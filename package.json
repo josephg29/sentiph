@@ -8,8 +8,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "start": "pnpm --filter @octogent/web dev",
-    "dev": "pnpm --filter @octogent/web dev",
+    "start": "pnpm dev",
+    "dev": "pnpm -r --parallel --filter @octogent/api --filter @octogent/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "biome check .",

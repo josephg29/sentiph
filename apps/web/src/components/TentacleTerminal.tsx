@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
+import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
+
 import "xterm/css/xterm.css";
 
 type TentacleTerminalProps = {
   tentacleId: string;
-};
-
-const buildSocketUrl = (tentacleId: string) => {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const encodedTentacleId = encodeURIComponent(tentacleId);
-  return `${protocol}//${window.location.host}/api/terminals/${encodedTentacleId}/ws`;
 };
 
 export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
@@ -24,7 +20,7 @@ export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
     let activeTerminal: { write: (value: string) => void } | null = null;
 
     const connect = () => {
-      const nextSocket = new WebSocket(buildSocketUrl(tentacleId));
+      const nextSocket = new WebSocket(buildTerminalSocketUrl(tentacleId));
       socket = nextSocket;
       setConnectionState("connecting");
 

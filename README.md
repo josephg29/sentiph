@@ -10,6 +10,12 @@ This repository is currently a scratch baseline built with:
 - ports-and-adapters core package
 - Vitest and Biome
 
+Current UI baseline includes:
+
+- a left dashboard deck for `Active Agents`
+- tentacle-grouped agent listings in that deck
+- keyboard/mouse-resizable and toggleable sidebar behavior
+
 ## Quickstart
 
 ```bash
@@ -19,10 +25,15 @@ pnpm start
 
 Open `http://localhost:5173`.
 
-In dev mode, the web app exposes:
+In dev mode:
 
-- `GET /api/agent-snapshots` from the Vite dev server plugin.
-- `WS /api/terminals/:tentacleId/ws` for interactive tentacle terminals backed by `node-pty`.
+- `apps/api` runs on `http://127.0.0.1:8787`.
+- `apps/web` runs on `http://localhost:5173` and proxies `/api` and terminal websocket traffic to `apps/api`.
+- Runtime endpoints:
+  - `GET /api/agent-snapshots`
+  - `WS /api/terminals/:tentacleId/ws`
+
+Set `VITE_OCTOGENT_API_ORIGIN` to route runtime calls directly to an external backend.
 
 ## Common workflows
 
@@ -36,6 +47,7 @@ pnpm format
 ## Repo layout
 
 - `apps/web` - web UI shell
+- `apps/api` - runtime API service (currently in-memory, no persistence yet)
 - `packages/core` - application/domain/ports/adapters core logic
 - `docs` - contributor and architecture documentation
 - `context` - long-term project context and decisions
