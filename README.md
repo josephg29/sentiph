@@ -19,7 +19,10 @@ pnpm start
 
 Open `http://localhost:5173`.
 
-The default screen is an empty operational view until a backend serves `GET /api/agent-snapshots`.
+In dev mode, the web app exposes:
+
+- `GET /api/agent-snapshots` from the Vite dev server plugin.
+- `WS /api/terminals/:tentacleId/ws` for interactive tentacle terminals backed by `node-pty`.
 
 ## Common workflows
 

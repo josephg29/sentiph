@@ -8,6 +8,8 @@
 
 ## Known limitations (scratch baseline)
 
-- Web app expects `GET /api/agent-snapshots` and defaults to an empty state when no agents are returned.
-- No backend API implementation yet.
+- Dev mode API is implemented by a Vite plugin and is non-persistent.
+  - `GET /api/agent-snapshots` returns synthetic live tentacles.
+  - `WS /api/terminals/:tentacleId/ws` streams interactive shell sessions.
+- Production backend API and auth are not implemented yet.
 - No persistence or auth layer yet.

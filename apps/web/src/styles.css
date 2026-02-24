@@ -33,12 +33,13 @@ body {
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr;
+  min-width: 0;
 }
 
 .chrome {
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-surface-2);
-  padding: 0.75rem 1rem;
+  padding: 0.45rem 0.6rem;
 }
 
 .chrome h1 {
@@ -58,9 +59,11 @@ body {
 .tentacles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 0.5rem;
-  padding: 0.5rem;
+  grid-auto-rows: 1fr;
+  gap: 0.2rem;
+  padding: 0.2rem;
   align-items: stretch;
+  min-height: 0;
 }
 
 .empty-state {
@@ -172,26 +175,87 @@ body {
   background: color-mix(in srgb, var(--bg-surface-1) 80%, #151515);
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
 }
 
 .tentacle-column h2 {
   margin: 0;
-  padding: 0.5rem;
+  padding: 0.3rem 0.45rem;
   border-bottom: 1px solid var(--border-subtle);
+  background: var(--accent-primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.75rem;
-  color: var(--accent-primary);
+  color: #121212;
 }
 
 .tentacle-column ul {
   list-style: none;
   margin: 0;
-  padding: 0.5rem;
+  padding: 0;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
   align-content: start;
+  border-top: 1px solid var(--border-subtle);
+  max-height: 35%;
+  overflow: auto;
+}
+
+.tentacle-terminal {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.terminal-header {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  background: var(--term-blue);
+  color: #eaf3ff;
+  text-transform: uppercase;
+}
+
+.terminal-header[data-connection-state="connected"] {
+  background: var(--term-green);
+  color: #111111;
+}
+
+.terminal-header[data-connection-state="closed"] {
+  background: var(--term-red);
+  color: #fff3f3;
+}
+
+.terminal-header[data-connection-state="error"] {
+  background: var(--term-red);
+  color: #fff3f3;
+}
+
+.terminal-header[data-connection-state="fallback"] {
+  background: var(--term-warning);
+  color: #111111;
+}
+
+.terminal-title {
+  color: inherit;
+  letter-spacing: 0.08em;
+}
+
+.terminal-connection {
+  color: inherit;
+  font-size: 0.7rem;
+}
+
+.terminal-mount {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.terminal-mount .xterm {
+  height: 100%;
 }
 
 .agent-card {
@@ -200,7 +264,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.35rem 0.5rem;
+  padding: 0.22rem 0.4rem;
   font-size: 0.8rem;
 }
 

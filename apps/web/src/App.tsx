@@ -2,6 +2,7 @@ import { type AgentState, InMemoryAgentSnapshotReader, buildTentacleColumns } fr
 import { useEffect, useState } from "react";
 
 import { EmptyOctopus } from "./components/EmptyOctopus";
+import { TentacleTerminal } from "./components/TentacleTerminal";
 
 const stateClass: Record<AgentState, string> = {
   live: "live",
@@ -114,6 +115,7 @@ export const App = () => {
             aria-label={column.tentacleId}
           >
             <h2>{column.tentacleId}</h2>
+            <TentacleTerminal tentacleId={column.tentacleId} />
             <ul>
               {column.agents.map((agent) => (
                 <li key={agent.agentId} className="agent-card">

@@ -13,4 +13,7 @@ Octogent is organized with a ports-and-adapters approach.
 
 - One use-case: `buildTentacleColumns`
 - One adapter: `InMemoryAgentSnapshotReader`
-- One React shell rendering tentacle columns and agent states
+- One React shell rendering tentacle columns, agent states, and per-tentacle full-height terminals (`xterm`)
+- One Vite dev-server adapter exposing:
+  - `GET /api/agent-snapshots` (dev snapshots)
+  - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
