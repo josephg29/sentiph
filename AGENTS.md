@@ -2,13 +2,21 @@
 
 **This is a living project guide.** Record user preferences, development style, and workflows here. After solving tasks, add or refine guidance when it would help future work. Prefer concrete, reusable notes over one-off task details. Keep entries concise, actionable, and specific. Remove stale guidance and avoid duplicating information that already exists in canonical docs.
 
-**This file is for general principles and preferences.** Project-specific context (what's implemented, architecture decisions, roadmap) belongs in `agent-context/`. See [Long-term Project Context](#long-term-project-context) below. 
+**This file is for general principles and preferences.** Project-specific context (what's implemented, architecture decisions, roadmap) belongs in `context/`. See [Long-term Project Context](#long-term-project-context) below. 
 
 ## Tech Stack & Environment
 
 ### Language & Runtime
 - **TypeScript** — Primary project language.
 - **Node.js 22+** — Runtime target.
+
+### Current Direction
+- **Web-first product direction** with a **Vite + React** frontend as the default UI approach.
+- **Backend organization:** use a ports-and-adapters separation for testability:
+  - pure core/application logic
+  - interface-based ports for system boundaries
+  - adapters for real implementations and test fakes
+  - thin API and UI layers that depend on use-cases, not infrastructure internals
 
 ### Build & Dev
 - **pnpm** — Package manager.
@@ -80,16 +88,20 @@ When implementing complex logic, add concise comments explaining why decisions w
 
 This is an open-source project. Actively maintain documentation in a `docs/` folder following standard documentation practices. This includes:
 
+- **README** at repo root with project purpose, quickstart, and common workflows.
+- **CONTRIBUTING** guide covering local setup, testing, and PR expectations.
 - **Usage guides** for end users.
-- **Contributing guide** for new contributors.
 - **API documentation** where applicable.
 - **Architecture overview** for developers working on the codebase.
+- **Operational docs** for maintainers (runbooks/troubleshooting/known limitations).
+- **Agent-facing docs** explaining repository conventions, task workflows, and coding/testing expectations for automated coding agents.
 
 Keep docs in sync with the code — when a feature changes, update its documentation in the same PR.
+Treat missing or stale docs as a quality issue, not optional cleanup.
 
 ## Long-term Project Context
 
-Maintain an `agent-context/` folder as your persistent notepad for project-specific development context. This folder is your memory across sessions — use it to track what's been implemented, architectural decisions and their rationale, known issues and workarounds, planned work for future releases, and anything else you'll need to recall in later sessions.
+Maintain an `context/` folder as your persistent notepad for project-specific development context. This folder is your memory across sessions — use it to track what's been implemented, architectural decisions and their rationale, known issues and workarounds, planned work for future releases, and anything else you'll need to recall in later sessions.
 
 - Keep an `index.md` in this folder as a table of contents for easy navigation.
 - Create separate markdown files for distinct topics (e.g., `auth_issue.md`, `architecture.md`, `roadmap.md`, `decisions.md`).
