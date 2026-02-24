@@ -15,6 +15,7 @@ describe("HttpAgentSnapshotReader", () => {
             label: "root-a",
             state: "live",
             tentacleId: "tentacle-a",
+            tentacleName: "planner",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
           {
@@ -30,6 +31,7 @@ describe("HttpAgentSnapshotReader", () => {
         label: "root-a",
         state: "live",
         tentacleId: "tentacle-a",
+        tentacleName: "planner",
         createdAt: "2026-02-24T10:00:00.000Z",
       },
     ]);

@@ -70,6 +70,7 @@ describe("App", () => {
     const tentacleColumn = await screen.findByLabelText("tentacle-a");
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(tentacleColumn).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename tentacle tentacle-a" })).toBeInTheDocument();
     expect(within(tentacleColumn).queryByText("core-planner")).toBeNull();
     expect(within(sidebar).getByText("core-planner")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-tentacle-a")).toBeInTheDocument();
@@ -167,6 +168,234 @@ describe("App", () => {
       expect(MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2/ws"))).toBe(
         true,
       );
+    });
+  });
+
+  it("starts inline editing on the new tentacle name immediately after creation", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        const afterCreate = fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles") &&
+            (calledInit?.method ?? "GET") === "POST",
+        );
+
+        return new Response(
+          JSON.stringify(
+            afterCreate
+              ? [
+                  {
+                    agentId: "tentacle-1-root",
+                    label: "tentacle-1-root",
+                    state: "live",
+                    tentacleId: "tentacle-1",
+                    tentacleName: "tentacle-1",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                  {
+                    agentId: "tentacle-2-root",
+                    label: "tentacle-2-root",
+                    state: "live",
+                    tentacleId: "tentacle-2",
+                    tentacleName: "tentacle-2",
+                    createdAt: "2026-02-24T10:05:00.000Z",
+                  },
+                ]
+              : [
+                  {
+                    agentId: "tentacle-1-root",
+                    label: "tentacle-1-root",
+                    state: "live",
+                    tentacleId: "tentacle-1",
+                    tentacleName: "tentacle-1",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                ],
+          ),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/tentacles") && method === "POST") {
+        expect(init?.body).toBeUndefined();
+        return new Response(
+          JSON.stringify({
+            agentId: "tentacle-2-root",
+            label: "tentacle-2-root",
+            state: "live",
+            tentacleId: "tentacle-2",
+            tentacleName: "tentacle-2",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          }),
+          {
+            status: 201,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-1");
+    fireEvent.click(screen.getByRole("button", { name: "New tentacle" }));
+
+    const nameEditor = await screen.findByLabelText("Tentacle name for tentacle-2");
+    expect(nameEditor).toHaveValue("tentacle-2");
+    expect(document.activeElement).toBe(nameEditor);
+    expect((nameEditor as HTMLInputElement).selectionStart).toBe(0);
+    expect((nameEditor as HTMLInputElement).selectionEnd).toBe("tentacle-2".length);
+  });
+
+  it("renames an existing tentacle inline from the column header", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    let tentacleName = "tentacle-a";
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(
+          JSON.stringify([
+            {
+              agentId: "agent-1",
+              label: "core-planner",
+              state: "live",
+              tentacleId: "tentacle-a",
+              tentacleName,
+              createdAt: "2026-02-24T10:00:00.000Z",
+            },
+          ]),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-a") && method === "PATCH") {
+        expect(init?.body).toBe(JSON.stringify({ name: "research" }));
+        tentacleName = "research";
+        return new Response(
+          JSON.stringify({
+            agentId: "tentacle-a-root",
+            label: "tentacle-a-root",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName,
+            createdAt: "2026-02-24T10:00:00.000Z",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+    const tentacleColumn = await screen.findByLabelText("tentacle-a");
+    fireEvent.click(screen.getByRole("button", { name: "Rename tentacle tentacle-a" }));
+    const nameEditor = await within(tentacleColumn).findByLabelText("Tentacle name for tentacle-a");
+    fireEvent.change(nameEditor, { target: { value: "research" } });
+    fireEvent.keyDown(nameEditor, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(within(tentacleColumn).getByRole("heading", { name: "research" })).toBeInTheDocument();
+    });
+  });
+
+  it("deletes a tentacle from the header action and refreshes board and sidebar", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    let includeTentacleB = true;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(
+          JSON.stringify(
+            includeTentacleB
+              ? [
+                  {
+                    agentId: "tentacle-a-root",
+                    label: "tentacle-a-root",
+                    state: "live",
+                    tentacleId: "tentacle-a",
+                    tentacleName: "tentacle-a",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                  {
+                    agentId: "tentacle-b-root",
+                    label: "tentacle-b-root",
+                    state: "live",
+                    tentacleId: "tentacle-b",
+                    tentacleName: "tentacle-b",
+                    createdAt: "2026-02-24T10:05:00.000Z",
+                  },
+                ]
+              : [
+                  {
+                    agentId: "tentacle-a-root",
+                    label: "tentacle-a-root",
+                    state: "live",
+                    tentacleId: "tentacle-a",
+                    tentacleName: "tentacle-a",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                ],
+          ),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-b") && method === "DELETE") {
+        includeTentacleB = false;
+        return new Response(null, { status: 204 });
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    const tentacleBColumn = await screen.findByLabelText("tentacle-b");
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-b" }));
+
+    await waitFor(() => {
+      expect(tentacleBColumn).not.toBeInTheDocument();
+      expect(within(sidebar).queryByLabelText("Active agents in tentacle-b")).toBeNull();
     });
   });
 

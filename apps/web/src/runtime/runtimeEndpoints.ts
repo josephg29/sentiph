@@ -55,6 +55,18 @@ export const buildTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/tentacles");
 };
 
+export const buildTentacleRenameUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  if (!runtimeBaseUrl) {
+    return `/api/tentacles/${encodedTentacleId}`;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, `/api/tentacles/${encodedTentacleId}`);
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

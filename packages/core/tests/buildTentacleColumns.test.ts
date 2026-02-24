@@ -19,6 +19,7 @@ describe("buildTentacleColumns", () => {
         label: "root-a",
         state: "live",
         tentacleId: "tentacle-a",
+        tentacleName: "planner",
         createdAt: "2026-02-24T10:00:00.000Z",
       },
       {
@@ -34,8 +35,10 @@ describe("buildTentacleColumns", () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]?.tentacleId).toBe("tentacle-a");
+    expect(result[0]?.tentacleName).toBe("planner");
     expect(result[0]?.agents.map((agent) => agent.agentId)).toEqual(["agent-1", "agent-2"]);
     expect(result[1]?.tentacleId).toBe("tentacle-b");
+    expect(result[1]?.tentacleName).toBe("tentacle-b");
     expect(result[1]?.agents.map((agent) => agent.agentId)).toEqual(["agent-3"]);
   });
 });

@@ -83,7 +83,7 @@ export const ActiveAgentsSidebar = ({
                 aria-label={`Active agents in ${column.tentacleId}`}
                 className="active-agents-group"
               >
-                <h3>{column.tentacleId}</h3>
+                <h3>{column.tentacleName}</h3>
                 <ul>
                   {column.agents.map((agent) => (
                     <li key={agent.agentId}>

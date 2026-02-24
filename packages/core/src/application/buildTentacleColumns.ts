@@ -27,6 +27,10 @@ export const buildTentacleColumns = async (
       ),
     )
     .map(([tentacleId, agents]) => {
+      const tentacleName =
+        agents.find(
+          (agent) => typeof agent.tentacleName === "string" && agent.tentacleName.length > 0,
+        )?.tentacleName ?? tentacleId;
       const orderedAgents = [...agents].sort((left, right) => {
         const leftIsRoot = left.parentAgentId === undefined;
         const rightIsRoot = right.parentAgentId === undefined;
@@ -40,6 +44,7 @@ export const buildTentacleColumns = async (
 
       return {
         tentacleId,
+        tentacleName,
         agents: orderedAgents,
       };
     });

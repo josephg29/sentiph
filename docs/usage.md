@@ -21,7 +21,9 @@ Then open `http://localhost:5173`.
 ## Create tentacles
 
 - Use the top bar `New tentacle` button to spawn a new tentacle.
-- Tentacles are named with unique incremental ids (`tentacle-1`, `tentacle-2`, ...).
+- Tentacles keep unique incremental ids (`tentacle-1`, `tentacle-2`, ...) for internal routing, plus a separate display name you can edit.
+- New tentacles appear with the default name selected inline so you can type a new name immediately.
+- Rename by clicking a tentacle header name or the right-side `Rename` button, then edit inline (`Enter` to save, `Escape` to cancel).
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).

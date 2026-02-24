@@ -38,6 +38,7 @@ describe("createApiServer", () => {
         label: "tentacle-1-root",
         state: "live",
         tentacleId: "tentacle-1",
+        tentacleName: "tentacle-1",
       }),
     ]);
   });
@@ -59,7 +60,9 @@ describe("createApiServer", () => {
       method: "POST",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({ name: "planner" }),
     });
 
     expect(createFirstResponse.status).toBe(201);
@@ -69,6 +72,7 @@ describe("createApiServer", () => {
         label: "tentacle-2-root",
         state: "live",
         tentacleId: "tentacle-2",
+        tentacleName: "planner",
       }),
     );
 
@@ -86,6 +90,24 @@ describe("createApiServer", () => {
         label: "tentacle-3-root",
         state: "live",
         tentacleId: "tentacle-3",
+        tentacleName: "tentacle-3",
+      }),
+    );
+
+    const renameResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-3`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "reviewer" }),
+    });
+
+    expect(renameResponse.status).toBe(200);
+    await expect(renameResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-3",
+        tentacleName: "reviewer",
       }),
     );
 
@@ -98,9 +120,74 @@ describe("createApiServer", () => {
 
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({ tentacleId: "tentacle-1" }),
-      expect.objectContaining({ tentacleId: "tentacle-2" }),
-      expect.objectContaining({ tentacleId: "tentacle-3" }),
+      expect.objectContaining({ tentacleId: "tentacle-1", tentacleName: "tentacle-1" }),
+      expect.objectContaining({ tentacleId: "tentacle-2", tentacleName: "planner" }),
+      expect.objectContaining({ tentacleId: "tentacle-3", tentacleName: "reviewer" }),
     ]);
+  });
+
+  it("returns 400 when tentacle name is empty after trimming", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: " " }),
+    });
+
+    expect(createResponse.status).toBe(400);
+
+    const renameResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: " " }),
+    });
+
+    expect(renameResponse.status).toBe(400);
+  });
+
+  it("deletes a tentacle and removes it from snapshots", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const deleteResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-2`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(deleteResponse.status).toBe(204);
+
+    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({ tentacleId: "tentacle-1" }),
+    ]);
+
+    const missingResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-2`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(missingResponse.status).toBe(404);
   });
 });

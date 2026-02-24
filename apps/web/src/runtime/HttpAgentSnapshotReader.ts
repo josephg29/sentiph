@@ -35,6 +35,7 @@ const isAgentSnapshot = (value: unknown): value is AgentSnapshot => {
     typeof snapshot.label === "string" &&
     isAgentState(snapshot.state) &&
     typeof snapshot.tentacleId === "string" &&
+    (snapshot.tentacleName === undefined || typeof snapshot.tentacleName === "string") &&
     typeof snapshot.createdAt === "string" &&
     (snapshot.parentAgentId === undefined || typeof snapshot.parentAgentId === "string")
   );

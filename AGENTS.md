@@ -52,6 +52,10 @@ When implementing features, identify shared parent components rather than creati
 
 For pane-based UI layout, keep each tentacle as a full-height column. Spawned agents for that tentacle should stack vertically within the same column (below the tentacle/root pane), while other tentacle columns remain on the left and right sides.
 
+### Tentacle Naming Preference
+
+Treat `tentacleId` as a stable internal identifier (routing, keys, websocket paths) and keep user-facing labels editable via a separate display name field.
+
 ### Sidebar Resize Preference
 
 Do not render a dedicated resize strip between the Active Agents sidebar and the main board. The sidebar should remain resizable by dragging its own right border.

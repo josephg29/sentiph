@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAgentSnapshotsUrl,
+  buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
 } from "../src/runtime/runtimeEndpoints";
@@ -24,6 +25,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute tentacle creation URL when runtime base URL is configured", () => {
     expect(buildTentaclesUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/tentacles",
+    );
+  });
+
+  it("builds tentacle rename URL on same origin by default", () => {
+    expect(buildTentacleRenameUrl("tentacle-main")).toBe("/api/tentacles/tentacle-main");
+  });
+
+  it("builds absolute tentacle rename URL when runtime base URL is configured", () => {
+    expect(buildTentacleRenameUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main",
     );
   });
 

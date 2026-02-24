@@ -13,7 +13,11 @@ import {
   resizeTentaclePair,
 } from "./layout/tentaclePaneSizing";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
-import { buildAgentSnapshotsUrl, buildTentaclesUrl } from "./runtime/runtimeEndpoints";
+import {
+  buildAgentSnapshotsUrl,
+  buildTentacleRenameUrl,
+  buildTentaclesUrl,
+} from "./runtime/runtimeEndpoints";
 
 type TentacleView = Awaited<ReturnType<typeof buildTentacleColumns>>;
 
@@ -23,9 +27,14 @@ export const App = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
   const [isCreatingTentacle, setIsCreatingTentacle] = useState(false);
+  const [isDeletingTentacleId, setIsDeletingTentacleId] = useState<string | null>(null);
+  const [editingTentacleId, setEditingTentacleId] = useState<string | null>(null);
+  const [tentacleNameDraft, setTentacleNameDraft] = useState("");
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
   const tentaclesRef = useRef<HTMLElement | null>(null);
+  const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
+  const cancelTentacleNameSubmitRef = useRef(false);
 
   const readColumns = useCallback(async (signal?: AbortSignal) => {
     const readerOptions: { endpoint: string; signal?: AbortSignal } = {
@@ -94,17 +103,83 @@ export const App = () => {
     const tentacleIds = columns.map((column) => column.tentacleId);
     const dividerTotalWidth = Math.max(0, tentacleIds.length - 1) * TENTACLE_DIVIDER_WIDTH;
     const paneViewportWidth =
-      tentacleViewportWidth === null ? null : Math.max(0, tentacleViewportWidth - dividerTotalWidth);
+      tentacleViewportWidth === null
+        ? null
+        : Math.max(0, tentacleViewportWidth - dividerTotalWidth);
     setTentacleWidths((currentWidths) =>
       reconcileTentacleWidths(currentWidths, tentacleIds, paneViewportWidth),
     );
   }, [columns, tentacleViewportWidth]);
 
+  useEffect(() => {
+    if (!editingTentacleId) {
+      return;
+    }
+
+    if (!columns.some((column) => column.tentacleId === editingTentacleId)) {
+      setEditingTentacleId(null);
+      return;
+    }
+
+    const input = tentacleNameInputRef.current;
+    if (!input) {
+      return;
+    }
+
+    input.focus();
+    input.select();
+  }, [columns, editingTentacleId]);
+
+  const beginTentacleNameEdit = (tentacleId: string, currentTentacleName: string) => {
+    setLoadError(null);
+    setEditingTentacleId(tentacleId);
+    setTentacleNameDraft(currentTentacleName);
+  };
+
+  const submitTentacleRename = async (tentacleId: string, currentTentacleName: string) => {
+    if (cancelTentacleNameSubmitRef.current) {
+      cancelTentacleNameSubmitRef.current = false;
+      return;
+    }
+
+    const trimmedName = tentacleNameDraft.trim();
+    if (trimmedName.length === 0) {
+      setLoadError("Tentacle name cannot be empty.");
+      return;
+    }
+
+    if (trimmedName === currentTentacleName) {
+      setEditingTentacleId(null);
+      return;
+    }
+
+    try {
+      setLoadError(null);
+      const response = await fetch(buildTentacleRenameUrl(tentacleId), {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to rename tentacle (${response.status})`);
+      }
+
+      const nextColumns = await readColumns();
+      setColumns(nextColumns);
+      setEditingTentacleId(null);
+    } catch {
+      setLoadError("Unable to rename tentacle.");
+    }
+  };
+
   const handleCreateTentacle = async () => {
     try {
       setIsCreatingTentacle(true);
       setLoadError(null);
-
       const response = await fetch(buildTentaclesUrl(), {
         method: "POST",
         headers: {
@@ -116,12 +191,64 @@ export const App = () => {
         throw new Error(`Unable to create tentacle (${response.status})`);
       }
 
+      const createdSnapshot = (await response.json()) as {
+        tentacleId?: unknown;
+        tentacleName?: unknown;
+      };
       const nextColumns = await readColumns();
       setColumns(nextColumns);
+
+      const createdTentacleId =
+        typeof createdSnapshot.tentacleId === "string" ? createdSnapshot.tentacleId : null;
+      if (!createdTentacleId) {
+        return;
+      }
+
+      const createdColumn = nextColumns.find((column) => column.tentacleId === createdTentacleId);
+      const createdTentacleName =
+        createdColumn?.tentacleName ??
+        (typeof createdSnapshot.tentacleName === "string"
+          ? createdSnapshot.tentacleName
+          : createdTentacleId);
+      beginTentacleNameEdit(createdTentacleId, createdTentacleName);
     } catch {
       setLoadError("Unable to create a new tentacle.");
     } finally {
       setIsCreatingTentacle(false);
+    }
+  };
+
+  const handleDeleteTentacle = async (tentacleId: string, tentacleName: string) => {
+    const shouldDelete = window.confirm(`Delete tentacle "${tentacleName}"?`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setLoadError(null);
+      setIsDeletingTentacleId(tentacleId);
+      const response = await fetch(buildTentacleRenameUrl(tentacleId), {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to delete tentacle (${response.status})`);
+      }
+
+      if (editingTentacleId === tentacleId) {
+        setEditingTentacleId(null);
+        setTentacleNameDraft("");
+      }
+
+      const nextColumns = await readColumns();
+      setColumns(nextColumns);
+    } catch {
+      setLoadError("Unable to delete tentacle.");
+    } finally {
+      setIsDeletingTentacleId(null);
     }
   };
 
@@ -273,7 +400,72 @@ export const App = () => {
                     width: `${tentacleWidths[column.tentacleId] ?? TENTACLE_MIN_WIDTH}px`,
                   }}
                 >
-                  <h2>{column.tentacleId}</h2>
+                  <div className="tentacle-column-header">
+                    {editingTentacleId === column.tentacleId ? (
+                      <input
+                        ref={tentacleNameInputRef}
+                        aria-label={`Tentacle name for ${column.tentacleId}`}
+                        className="tentacle-name-editor"
+                        onBlur={() => {
+                          void submitTentacleRename(column.tentacleId, column.tentacleName);
+                        }}
+                        onChange={(event) => {
+                          setTentacleNameDraft(event.target.value);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void submitTentacleRename(column.tentacleId, column.tentacleName);
+                          }
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            cancelTentacleNameSubmitRef.current = true;
+                            setEditingTentacleId(null);
+                            setTentacleNameDraft("");
+                          }
+                        }}
+                        type="text"
+                        value={tentacleNameDraft}
+                      />
+                    ) : (
+                      <h2>
+                        <button
+                          className="tentacle-name-display"
+                          onClick={() => {
+                            beginTentacleNameEdit(column.tentacleId, column.tentacleName);
+                          }}
+                          type="button"
+                        >
+                          {column.tentacleName}
+                        </button>
+                      </h2>
+                    )}
+                    {editingTentacleId !== column.tentacleId && (
+                      <div className="tentacle-header-actions">
+                        <button
+                          aria-label={`Rename tentacle ${column.tentacleId}`}
+                          className="tentacle-rename"
+                          onClick={() => {
+                            beginTentacleNameEdit(column.tentacleId, column.tentacleName);
+                          }}
+                          type="button"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          aria-label={`Delete tentacle ${column.tentacleId}`}
+                          className="tentacle-delete"
+                          disabled={isDeletingTentacleId === column.tentacleId}
+                          onClick={() => {
+                            void handleDeleteTentacle(column.tentacleId, column.tentacleName);
+                          }}
+                          type="button"
+                        >
+                          {isDeletingTentacleId === column.tentacleId ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <TentacleTerminal tentacleId={column.tentacleId} />
                 </section>
 

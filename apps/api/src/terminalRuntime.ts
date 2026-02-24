@@ -36,6 +36,7 @@ type TerminalSession = {
   pty: IPty;
   clients: Set<WebSocket>;
   createdAt: string;
+  tentacleName: string;
   codexState: CodexRuntimeState;
   stateTracker: CodexStateTracker;
   statePollTimer?: ReturnType<typeof setInterval>;
@@ -224,10 +225,19 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     return tentacleId;
   };
 
-  const closeSession = (tentacleId: string) => {
+  const buildRootSnapshot = (tentacleId: string, session: TerminalSession): AgentSnapshot => ({
+    agentId: `${tentacleId}-root`,
+    label: `${tentacleId}-root`,
+    state: "live",
+    tentacleId,
+    tentacleName: session.tentacleName,
+    createdAt: session.createdAt,
+  });
+
+  const closeSession = (tentacleId: string): boolean => {
     const session = sessions.get(tentacleId);
     if (!session) {
-      return;
+      return false;
     }
 
     try {
@@ -241,9 +251,10 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     }
     session.debugLog?.end();
     sessions.delete(tentacleId);
+    return true;
   };
 
-  const ensureSession = (tentacleId: string, bootstrapCommand?: string) => {
+  const ensureSession = (tentacleId: string, bootstrapCommand?: string, tentacleName?: string) => {
     const existingSession = sessions.get(tentacleId);
     if (existingSession) {
       return existingSession;
@@ -272,6 +283,7 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
       pty,
       clients: new Set(),
       createdAt: new Date().toISOString(),
+      tentacleName: tentacleName ?? tentacleId,
       codexState: stateTracker.currentState,
       stateTracker,
       debugLog: createDebugLog(tentacleId),
@@ -323,32 +335,36 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     return session;
   };
 
-  const createTentacle = (): AgentSnapshot => {
+  const createTentacle = (tentacleName?: string): AgentSnapshot => {
     const tentacleId = allocateTentacleId();
-    const session = ensureSession(tentacleId, "codex");
-    return {
-      agentId: `${tentacleId}-root`,
-      label: `${tentacleId}-root`,
-      state: "live",
-      tentacleId,
-      createdAt: session.createdAt,
-    };
+    const session = ensureSession(tentacleId, "codex", tentacleName);
+    return buildRootSnapshot(tentacleId, session);
   };
 
   createTentacle();
 
   return {
     listAgentSnapshots(): AgentSnapshot[] {
-      return [...sessions.entries()].map(([tentacleId, session]) => ({
-        agentId: `${tentacleId}-root`,
-        label: `${tentacleId}-root`,
-        state: "live",
-        tentacleId,
-        createdAt: session.createdAt,
-      }));
+      return [...sessions.entries()].map(([tentacleId, session]) =>
+        buildRootSnapshot(tentacleId, session),
+      );
     },
 
     createTentacle,
+
+    renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null {
+      const session = sessions.get(tentacleId);
+      if (!session) {
+        return null;
+      }
+
+      session.tentacleName = tentacleName;
+      return buildRootSnapshot(tentacleId, session);
+    },
+
+    deleteTentacle(tentacleId: string): boolean {
+      return closeSession(tentacleId);
+    },
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {
       const tentacleId = getTentacleId(request);

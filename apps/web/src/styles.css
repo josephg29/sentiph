@@ -425,11 +425,18 @@ body {
   outline-offset: -1px;
 }
 
-.tentacle-column h2 {
-  margin: 0;
-  padding: 0.3rem 0.45rem;
+.tentacle-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--accent-primary);
+}
+
+.tentacle-column-header h2 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-family: "Press Start 2P", "JetBrains Mono", monospace;
@@ -437,6 +444,95 @@ body {
   font-weight: 400;
   line-height: 1.25;
   color: #121212;
+}
+
+.tentacle-name-display {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  line-height: inherit;
+  padding: 0.3rem 0.45rem;
+  width: 100%;
+  text-align: left;
+  cursor: text;
+}
+
+.tentacle-name-display:focus-visible {
+  outline: 1px solid #121212;
+  outline-offset: -1px;
+}
+
+.tentacle-name-editor {
+  margin: 0;
+  width: 100%;
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent-primary) 92%, #ffffff 8%);
+  color: #121212;
+  font-family: "Press Start 2P", "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  padding: 0.3rem 0.45rem;
+}
+
+.tentacle-name-editor:focus-visible {
+  outline: 1px solid #121212;
+  outline-offset: -1px;
+}
+
+.tentacle-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.18rem;
+  margin-right: 0.2rem;
+}
+
+.tentacle-rename {
+  border: 1px solid #121212;
+  background: #000000;
+  color: var(--accent-primary);
+  font-family: "Press Start 2P", "JetBrains Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  padding: 0.16rem 0.25rem;
+  cursor: pointer;
+}
+
+.tentacle-rename:focus-visible {
+  outline: 1px solid #121212;
+  outline-offset: 1px;
+}
+
+.tentacle-delete {
+  border: 1px solid #121212;
+  background: #000000;
+  color: #ff9a9a;
+  font-family: "Press Start 2P", "JetBrains Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  padding: 0.16rem 0.25rem;
+  cursor: pointer;
+}
+
+.tentacle-delete:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.tentacle-delete:focus-visible {
+  outline: 1px solid #121212;
+  outline-offset: 1px;
 }
 
 .tentacle-terminal {
