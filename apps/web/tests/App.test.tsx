@@ -338,7 +338,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Show Active Agents sidebar" })).toBeInTheDocument();
   });
 
-  it("keeps a fixed active agents sidebar width", async () => {
+  it("resizes the active agents sidebar from its border without a separate separator strip", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify([]), {
         status: 200,
@@ -351,7 +351,17 @@ describe("App", () => {
     render(<App />);
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    const resizer = await screen.findByTestId("active-agents-border-resizer");
+
     expect(sidebar).toHaveStyle({ width: "320px" });
     expect(screen.queryByRole("separator", { name: "Resize Active Agents sidebar" })).toBeNull();
+
+    fireEvent.mouseDown(resizer, { clientX: 320 });
+    fireEvent.mouseMove(window, { clientX: 380 });
+    fireEvent.mouseUp(window);
+
+    await waitFor(() => {
+      expect(sidebar).toHaveStyle({ width: "380px" });
+    });
   });
 });

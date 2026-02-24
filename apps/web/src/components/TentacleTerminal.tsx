@@ -8,9 +8,27 @@ type TentacleTerminalProps = {
   tentacleId: string;
 };
 
+type CodexState = "idle" | "processing";
+
+type TerminalStateMessage = {
+  type: "state";
+  state: CodexState;
+};
+
+type TerminalOutputMessage = {
+  type: "output";
+  data: string;
+};
+
+type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
+
+const isCodexState = (value: unknown): value is CodexState =>
+  value === "idle" || value === "processing";
+
 export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
+  const [codexState, setCodexState] = useState<CodexState>("idle");
 
   useEffect(() => {
     let isCancelled = false;
@@ -52,7 +70,23 @@ export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
         if (isCancelled || socket !== nextSocket) {
           return;
         }
-        if (typeof event.data === "string") {
+
+        if (typeof event.data !== "string") {
+          return;
+        }
+
+        try {
+          const payload = JSON.parse(event.data) as TerminalServerMessage;
+          if (payload.type === "output" && typeof payload.data === "string") {
+            activeTerminal?.write(payload.data);
+            return;
+          }
+
+          if (payload.type === "state" && isCodexState(payload.state)) {
+            setCodexState(payload.state);
+            return;
+          }
+        } catch {
           activeTerminal?.write(event.data);
         }
       });
@@ -163,7 +197,9 @@ export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
     <div className="tentacle-terminal">
       <div className="terminal-header" data-connection-state={connectionState}>
         <span className="terminal-title">terminal</span>
-        <span className="terminal-connection">{connectionState}</span>
+        <span className={`pill terminal-state-badge ${codexState}`}>
+          {codexState.toUpperCase()}
+        </span>
       </div>
       <div
         ref={containerRef}

@@ -54,7 +54,7 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 
 ### Sidebar Resize Preference
 
-Do not render a dedicated resize handle between the Active Agents sidebar and the main board; keep the sidebar at a fixed width unless explicitly requested otherwise.
+Do not render a dedicated resize strip between the Active Agents sidebar and the main board. The sidebar should remain resizable by dragging its own right border.
 
 ### Preserve Existing Patterns
 
@@ -67,6 +67,10 @@ When refining the web visual system in `test-page.html`, keep using shared desig
 ### Brand Typography Preference
 
 Use `Press Start 2P` for brand/header labels in the web UI (the chrome `Octogent` title, `Active Agents`, `New tentacle`, tentacle column headers, and terminal window headers). Keep body/content typography on more readable monospace fonts.
+
+### Chrome Density Preference
+
+Keep the top chrome bar compact: smaller vertical padding and tighter control spacing over roomy header sizing.
 
 ### Progressive Implementation
 

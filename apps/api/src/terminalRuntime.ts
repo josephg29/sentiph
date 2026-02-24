@@ -1,4 +1,13 @@
-import { constants, accessSync, chmodSync, existsSync, statSync } from "node:fs";
+import {
+  constants,
+  type WriteStream,
+  accessSync,
+  chmodSync,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  statSync,
+} from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -7,12 +16,30 @@ import type { AgentSnapshot } from "@octogent/core";
 import { type IPty, spawn } from "node-pty";
 import { type WebSocket, WebSocketServer } from "ws";
 
+import { type CodexRuntimeState, CodexStateTracker } from "./codexStateDetection";
+
 const require = createRequire(import.meta.url);
+
+type TerminalStateMessage = {
+  type: "state";
+  state: CodexRuntimeState;
+};
+
+type TerminalOutputMessage = {
+  type: "output";
+  data: string;
+};
+
+type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
 
 type TerminalSession = {
   pty: IPty;
   clients: Set<WebSocket>;
   createdAt: string;
+  codexState: CodexRuntimeState;
+  stateTracker: CodexStateTracker;
+  statePollTimer?: ReturnType<typeof setInterval>;
+  debugLog?: WriteStream;
 };
 
 type CreateTerminalRuntimeOptions = {
@@ -102,6 +129,20 @@ const getTentacleId = (request: IncomingMessage) => {
   return decodeURIComponent(match[1] ?? "");
 };
 
+const sendMessage = (client: WebSocket, message: TerminalServerMessage) => {
+  if (client.readyState !== 1) {
+    return;
+  }
+
+  client.send(JSON.stringify(message));
+};
+
+const broadcastMessage = (session: TerminalSession, message: TerminalServerMessage) => {
+  for (const client of session.clients) {
+    sendMessage(client, message);
+  }
+};
+
 const TENTACLE_ID_PREFIX = "tentacle-";
 
 const parseTentacleNumber = (tentacleId: string): number | null => {
@@ -126,6 +167,43 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
   let nextTentacleNumber = 1;
+  const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
+  const ptyLogDir =
+    process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
+
+  const createDebugLog = (tentacleId: string) => {
+    if (!isDebugPtyLogsEnabled) {
+      return undefined;
+    }
+
+    mkdirSync(ptyLogDir, { recursive: true });
+    const filename = `${tentacleId}-${Date.now()}.log`;
+    return createWriteStream(join(ptyLogDir, filename), {
+      flags: "a",
+      encoding: "utf8",
+    });
+  };
+
+  const appendDebugLog = (session: TerminalSession, line: string) => {
+    session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
+  };
+
+  const emitStateIfChanged = (
+    session: TerminalSession,
+    tentacleId: string,
+    nextState: CodexRuntimeState | null,
+  ) => {
+    if (!nextState || nextState === session.codexState) {
+      return;
+    }
+
+    session.codexState = nextState;
+    appendDebugLog(session, `state-change tentacle=${tentacleId} state=${nextState}`);
+    broadcastMessage(session, {
+      type: "state",
+      state: nextState,
+    });
+  };
 
   const reserveTentacleNumber = (tentacleId: string) => {
     const parsed = parseTentacleNumber(tentacleId);
@@ -158,6 +236,10 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
       // Ignore teardown errors; session will still be discarded.
     }
 
+    if (session.statePollTimer) {
+      clearInterval(session.statePollTimer);
+    }
+    session.debugLog?.end();
     sessions.delete(tentacleId);
   };
 
@@ -185,29 +267,50 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
       throw new Error(`Unable to start terminal shell (${shellCommand.shell}): ${message}`);
     }
 
+    const stateTracker = new CodexStateTracker();
     const session: TerminalSession = {
       pty,
       clients: new Set(),
       createdAt: new Date().toISOString(),
+      codexState: stateTracker.currentState,
+      stateTracker,
+      debugLog: createDebugLog(tentacleId),
     };
+    appendDebugLog(session, `session-start tentacle=${tentacleId}`);
+    session.statePollTimer = setInterval(() => {
+      emitStateIfChanged(session, tentacleId, session.stateTracker.poll(Date.now()));
+    }, 300);
 
     session.pty.onData((chunk) => {
-      for (const client of session.clients) {
-        if (client.readyState === 1) {
-          client.send(chunk);
-        }
-      }
+      appendDebugLog(session, `pty-output tentacle=${tentacleId} chunk=${JSON.stringify(chunk)}`);
+      const nextState = session.stateTracker.observeChunk(chunk, Date.now());
+      broadcastMessage(session, {
+        type: "output",
+        data: chunk,
+      });
+      emitStateIfChanged(session, tentacleId, nextState);
     });
 
     session.pty.onExit(({ exitCode, signal }) => {
       const message = `\r\n[terminal exited (code ${exitCode}, signal ${signal})]\r\n`;
+      broadcastMessage(session, {
+        type: "output",
+        data: message,
+      });
       for (const client of session.clients) {
         if (client.readyState === 1) {
-          client.send(message);
           client.close();
         }
       }
 
+      appendDebugLog(
+        session,
+        `session-exit tentacle=${tentacleId} code=${exitCode} signal=${signal}`,
+      );
+      if (session.statePollTimer) {
+        clearInterval(session.statePollTimer);
+      }
+      session.debugLog?.end();
       sessions.delete(tentacleId);
     });
 
@@ -259,12 +362,20 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
           session = ensureSession(tentacleId);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          websocket.send(`\r\n[terminal failed to start: ${message}]\r\n`);
+          sendMessage(websocket, {
+            type: "output",
+            data: `\r\n[terminal failed to start: ${message}]\r\n`,
+          });
           websocket.close();
           return;
         }
 
         session.clients.add(websocket);
+        appendDebugLog(session, `ws-open tentacle=${tentacleId} clients=${session.clients.size}`);
+        sendMessage(websocket, {
+          type: "state",
+          state: session.codexState,
+        });
 
         websocket.on("message", (raw: unknown) => {
           const text =
@@ -275,7 +386,18 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
               | { type: "resize"; cols: number; rows: number };
 
             if (payload.type === "input" && typeof payload.data === "string") {
+              appendDebugLog(
+                session,
+                `ws-input tentacle=${tentacleId} data=${JSON.stringify(payload.data)}`,
+              );
               session.pty.write(payload.data);
+              if (/[\r\n]/.test(payload.data)) {
+                emitStateIfChanged(
+                  session,
+                  tentacleId,
+                  session.stateTracker.observeSubmit(Date.now()),
+                );
+              }
               return;
             }
 
@@ -296,6 +418,10 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
 
         websocket.on("close", () => {
           session.clients.delete(websocket);
+          appendDebugLog(
+            session,
+            `ws-close tentacle=${tentacleId} clients=${session.clients.size}`,
+          );
           if (session.clients.size === 0) {
             closeSession(tentacleId);
           }

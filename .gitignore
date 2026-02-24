@@ -1,5 +1,6 @@
 /.codex
 /context
+/.octogent
 /node_modules
 /dist
 /coverage
