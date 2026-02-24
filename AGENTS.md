@@ -56,6 +56,10 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 
 Before implementing a feature, read similar existing code to understand established patterns (component structure, state management, API design). Match the existing style and architecture unless there's a compelling reason to deviate.
 
+### UI Prototyping Baseline
+
+When refining the web visual system in `test-page.html`, keep using shared design tokens and reusable primitives (chrome, badges, tabs, input bars, density presets) rather than ad hoc one-off styles.
+
 ### Progressive Implementation
 
 Implement features incrementally — get the simplest version working first, then iterate and enhance. Avoid big-bang implementations that try to do everything at once. This makes debugging easier, allows for early feedback, and reduces the risk of major refactoring.

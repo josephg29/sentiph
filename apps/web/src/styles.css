@@ -1,0 +1,243 @@
+:root {
+  --bg-canvas: #000000;
+  --bg-surface-1: #040404;
+  --bg-surface-2: #191919;
+  --border-subtle: #5c5c5c;
+  --text-primary: #f0f0f0;
+  --text-secondary: #c8c8c8;
+  --accent-primary: #faa32c;
+  --term-red: #880f1e;
+  --term-green: #33ff66;
+  --term-blue: #1e59a3;
+  --term-warning: #ffb020;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  background: radial-gradient(circle at top right, #111111, var(--bg-canvas) 50%);
+  color: var(--text-primary);
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.chrome {
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  padding: 0.75rem 1rem;
+}
+
+.chrome h1 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-primary);
+  font-size: 1rem;
+}
+
+.chrome p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.tentacles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
+  align-items: stretch;
+}
+
+.empty-state {
+  border: 1px dashed var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface-1) 90%, #141414);
+  padding: 1rem;
+  min-height: 420px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.octopus-svg {
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 0.9rem;
+  overflow: visible;
+}
+
+.octopus-head-fill {
+  fill: var(--accent-primary);
+}
+
+.octopus-stroke {
+  stroke: color-mix(in srgb, var(--accent-primary) 55%, #ffffff 45%);
+  stroke-width: 1.4;
+}
+
+.octopus-eye-dot {
+  fill: #000000;
+}
+
+.octopus-tentacle-path {
+  fill: none;
+  stroke: var(--accent-primary);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.octopus-tentacle-group {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tentacleWiggle 2.1s ease-in-out infinite;
+}
+
+.octopus-tentacle-1 {
+  animation-delay: 0s;
+}
+
+.octopus-tentacle-2 {
+  animation-delay: 0.12s;
+}
+
+.octopus-tentacle-3 {
+  animation-delay: 0.24s;
+}
+
+.octopus-tentacle-4 {
+  animation-delay: 0.36s;
+}
+
+.octopus-tentacle-5 {
+  animation-delay: 0.48s;
+}
+
+.octopus-tentacle-6 {
+  animation-delay: 0.6s;
+}
+
+.octopus-tentacle-7 {
+  animation-delay: 0.72s;
+}
+
+.octopus-tentacle-8 {
+  animation-delay: 0.84s;
+}
+
+@keyframes tentacleWiggle {
+  0%,
+  100% {
+    transform: rotate(-5deg) scale(1);
+  }
+  50% {
+    transform: rotate(5deg) scale(1.03);
+  }
+}
+
+.empty-state h2 {
+  margin: 0;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+}
+
+.empty-state p {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.empty-state-subtle {
+  color: #cf8a8a;
+}
+
+.tentacle-column {
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface-1) 80%, #151515);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.tentacle-column h2 {
+  margin: 0;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--accent-primary);
+}
+
+.tentacle-column ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+}
+
+.agent-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.pill {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border-subtle);
+  color: #000000;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.pill.live {
+  background: var(--term-green);
+}
+
+.pill.idle {
+  background: var(--term-blue);
+  color: #f5fbff;
+}
+
+.pill.queued {
+  background: var(--term-warning);
+}
+
+.pill.blocked {
+  background: var(--term-red);
+  color: #fff3f3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .octopus-tentacle-group {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .tentacles {
+    grid-template-columns: 1fr;
+  }
+}

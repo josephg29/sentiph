@@ -1,2 +1,5 @@
 /.codex
 /context
+/node_modules
+/dist
+/coverage
