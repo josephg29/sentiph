@@ -1,11 +1,11 @@
-export const EmptyOctopus = () => {
+type OctopusGlyphProps = {
+  className: string;
+  testId?: string;
+};
+
+export const OctopusGlyph = ({ className, testId }: OctopusGlyphProps) => {
   return (
-    <svg
-      className="octopus-svg"
-      viewBox="0 0 160 160"
-      data-testid="empty-octopus"
-      aria-hidden="true"
-    >
+    <svg className={className} viewBox="0 0 160 160" data-testid={testId} aria-hidden="true">
       <g className="octopus-tentacle-group octopus-tentacle-1">
         <path d="M80 42 C76 34 83 28 80 22" className="octopus-tentacle-path" />
       </g>
@@ -37,4 +37,8 @@ export const EmptyOctopus = () => {
       <circle cx="93" cy="80" r="6" className="octopus-eye-dot" />
     </svg>
   );
+};
+
+export const EmptyOctopus = () => {
+  return <OctopusGlyph className="octopus-svg" testId="empty-octopus" />;
 };

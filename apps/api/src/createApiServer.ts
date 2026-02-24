@@ -10,7 +10,7 @@ type CreateApiServerOptions = {
 const withCors = (headers: Record<string, string>) => ({
   ...headers,
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 });
 
@@ -37,6 +37,19 @@ export const createApiServer = ({ workspaceCwd }: CreateApiServerOptions = {}) =
 
       const payload = runtime.listAgentSnapshots();
       response.writeHead(200, withCors({ "Content-Type": "application/json" }));
+      response.end(JSON.stringify(payload));
+      return;
+    }
+
+    if (requestUrl.pathname === "/api/tentacles") {
+      if (request.method !== "POST") {
+        response.writeHead(405, withCors({ "Content-Type": "application/json" }));
+        response.end(JSON.stringify({ error: "Method not allowed" }));
+        return;
+      }
+
+      const payload = runtime.createTentacle();
+      response.writeHead(201, withCors({ "Content-Type": "application/json" }));
       response.end(JSON.stringify(payload));
       return;
     }

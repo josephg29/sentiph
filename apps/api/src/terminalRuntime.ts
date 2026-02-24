@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 type TerminalSession = {
   pty: IPty;
   clients: Set<WebSocket>;
+  createdAt: string;
 };
 
 type CreateTerminalRuntimeOptions = {
@@ -101,9 +102,49 @@ const getTentacleId = (request: IncomingMessage) => {
   return decodeURIComponent(match[1] ?? "");
 };
 
+const TENTACLE_ID_PREFIX = "tentacle-";
+
+const parseTentacleNumber = (tentacleId: string): number | null => {
+  if (!tentacleId.startsWith(TENTACLE_ID_PREFIX)) {
+    return null;
+  }
+
+  const numericPart = tentacleId.slice(TENTACLE_ID_PREFIX.length);
+  if (!/^\d+$/.test(numericPart)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(numericPart, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return null;
+  }
+
+  return parsed;
+};
+
 export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOptions) => {
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
+  let nextTentacleNumber = 1;
+
+  const reserveTentacleNumber = (tentacleId: string) => {
+    const parsed = parseTentacleNumber(tentacleId);
+    if (parsed === null) {
+      return;
+    }
+
+    nextTentacleNumber = Math.max(nextTentacleNumber, parsed + 1);
+  };
+
+  const allocateTentacleId = () => {
+    while (sessions.has(`${TENTACLE_ID_PREFIX}${nextTentacleNumber}`)) {
+      nextTentacleNumber += 1;
+    }
+
+    const tentacleId = `${TENTACLE_ID_PREFIX}${nextTentacleNumber}`;
+    nextTentacleNumber += 1;
+    return tentacleId;
+  };
 
   const closeSession = (tentacleId: string) => {
     const session = sessions.get(tentacleId);
@@ -120,11 +161,12 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     sessions.delete(tentacleId);
   };
 
-  const ensureSession = (tentacleId: string) => {
+  const ensureSession = (tentacleId: string, bootstrapCommand?: string) => {
     const existingSession = sessions.get(tentacleId);
     if (existingSession) {
       return existingSession;
     }
+    reserveTentacleNumber(tentacleId);
 
     ensureNodePtySpawnHelperExecutable();
     const shellCommand = resolveShellCommand();
@@ -146,6 +188,7 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     const session: TerminalSession = {
       pty,
       clients: new Set(),
+      createdAt: new Date().toISOString(),
     };
 
     session.pty.onData((chunk) => {
@@ -169,21 +212,40 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     });
 
     sessions.set(tentacleId, session);
+
+    if (bootstrapCommand) {
+      session.pty.write(`${bootstrapCommand}\r`);
+    }
+
     return session;
   };
 
+  const createTentacle = (): AgentSnapshot => {
+    const tentacleId = allocateTentacleId();
+    const session = ensureSession(tentacleId, "codex");
+    return {
+      agentId: `${tentacleId}-root`,
+      label: `${tentacleId}-root`,
+      state: "live",
+      tentacleId,
+      createdAt: session.createdAt,
+    };
+  };
+
+  createTentacle();
+
   return {
     listAgentSnapshots(): AgentSnapshot[] {
-      const now = new Date().toISOString();
-      const tentacleIds = sessions.size > 0 ? [...sessions.keys()] : ["tentacle-main"];
-      return tentacleIds.map((tentacleId) => ({
+      return [...sessions.entries()].map(([tentacleId, session]) => ({
         agentId: `${tentacleId}-root`,
         label: `${tentacleId}-root`,
         state: "live",
         tentacleId,
-        createdAt: now,
+        createdAt: session.createdAt,
       }));
     },
+
+    createTentacle,
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {
       const tentacleId = getTentacleId(request);

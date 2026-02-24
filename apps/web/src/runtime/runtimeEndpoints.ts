@@ -47,6 +47,14 @@ export const buildAgentSnapshotsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) =>
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/agent-snapshots");
 };
 
+export const buildTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/tentacles";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/tentacles");
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

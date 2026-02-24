@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAgentSnapshotsUrl, buildTerminalSocketUrl } from "../src/runtime/runtimeEndpoints";
+import {
+  buildAgentSnapshotsUrl,
+  buildTentaclesUrl,
+  buildTerminalSocketUrl,
+} from "../src/runtime/runtimeEndpoints";
 
 describe("runtimeEndpoints", () => {
   it("returns same-origin API path when runtime base URL is not configured", () => {
@@ -10,6 +14,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute API URL when runtime base URL is configured", () => {
     expect(buildAgentSnapshotsUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/agent-snapshots",
+    );
+  });
+
+  it("builds tentacle creation URL on same origin by default", () => {
+    expect(buildTentaclesUrl()).toBe("/api/tentacles");
+  });
+
+  it("builds absolute tentacle creation URL when runtime base URL is configured", () => {
+    expect(buildTentaclesUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles",
     );
   });
 

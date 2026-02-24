@@ -79,6 +79,156 @@ describe("App", () => {
     expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/tentacle-a/ws");
   });
 
+  it("creates a new tentacle and refreshes columns plus sidebar listings", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        const afterCreate = fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles") &&
+            (calledInit?.method ?? "GET") === "POST",
+        );
+
+        return new Response(
+          JSON.stringify(
+            afterCreate
+              ? [
+                  {
+                    agentId: "tentacle-1-root",
+                    label: "tentacle-1-root",
+                    state: "live",
+                    tentacleId: "tentacle-1",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                  {
+                    agentId: "tentacle-2-root",
+                    label: "tentacle-2-root",
+                    state: "live",
+                    tentacleId: "tentacle-2",
+                    createdAt: "2026-02-24T10:05:00.000Z",
+                  },
+                ]
+              : [
+                  {
+                    agentId: "tentacle-1-root",
+                    label: "tentacle-1-root",
+                    state: "live",
+                    tentacleId: "tentacle-1",
+                    createdAt: "2026-02-24T10:00:00.000Z",
+                  },
+                ],
+          ),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/tentacles") && method === "POST") {
+        return new Response(
+          JSON.stringify({
+            agentId: "tentacle-2-root",
+            label: "tentacle-2-root",
+            state: "live",
+            tentacleId: "tentacle-2",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          }),
+          {
+            status: 201,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-1");
+    fireEvent.click(screen.getByRole("button", { name: "New tentacle" }));
+
+    const tentacleTwoColumn = await screen.findByLabelText("tentacle-2");
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+
+    expect(tentacleTwoColumn).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText("Active agents in tentacle-1")).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText("Active agents in tentacle-2")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2/ws"))).toBe(
+        true,
+      );
+    });
+  });
+
+  it("resizes adjacent tentacle panes from the divider", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      bottom: 0,
+      height: 0,
+      left: 0,
+      right: 1000,
+      top: 0,
+      width: 1000,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            agentId: "tentacle-1-root",
+            label: "tentacle-1-root",
+            state: "live",
+            tentacleId: "tentacle-1",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+          {
+            agentId: "tentacle-2-root",
+            label: "tentacle-2-root",
+            state: "live",
+            tentacleId: "tentacle-2",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+    render(<App />);
+
+    const leftPane = await screen.findByLabelText("tentacle-1");
+    const rightPane = await screen.findByLabelText("tentacle-2");
+    const divider = screen.getByRole("separator", {
+      name: "Resize between tentacle-1 and tentacle-2",
+    });
+
+    expect(leftPane).toHaveStyle({ width: "500px" });
+    expect(rightPane).toHaveStyle({ width: "500px" });
+
+    fireEvent.keyDown(divider, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(leftPane).toHaveStyle({ width: "524px" });
+      expect(rightPane).toHaveStyle({ width: "476px" });
+    });
+  });
+
   it("closes terminal websocket when app unmounts", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(

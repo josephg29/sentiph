@@ -18,6 +18,9 @@ Octogent is organized with a ports-and-adapters approach.
 - One React shell rendering tentacle columns with per-tentacle full-height terminals (`xterm`) plus a grouped active-agent sidebar
 - One API service in `apps/api` exposing:
   - `GET /api/agent-snapshots` (dev snapshots)
+  - `POST /api/tentacles` (create tentacle with unique incremental id)
   - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
+- Runtime bootstraps one default tentacle on startup and initializes created tentacles with `codex`
 - Shared runtime endpoint builders in `apps/web/src/runtime/runtimeEndpoints.ts` with optional `VITE_OCTOGENT_API_ORIGIN` override for external backends
 - Vite dev proxy in `apps/web/vite.config.ts` forwards `/api` traffic to `apps/api`
+- Tentacle pane sizing is managed client-side with per-tentacle widths, minimum-width constraints, and adjacent split-pane resizing

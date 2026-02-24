@@ -8,8 +8,9 @@
 
 ## Known limitations (scratch baseline)
 
-- Dev mode API is implemented by a Vite plugin and is non-persistent.
-  - `GET /api/agent-snapshots` returns synthetic live tentacles.
+- Runtime API is non-persistent (all state is in-memory).
+  - `GET /api/agent-snapshots` returns active in-memory tentacle root agents.
+  - `POST /api/tentacles` creates a new tentacle session.
   - `WS /api/terminals/:tentacleId/ws` streams interactive shell sessions.
 - Production backend API and auth are not implemented yet.
 - No persistence or auth layer yet.

@@ -15,6 +15,9 @@ Current UI baseline includes:
 - a left dashboard deck for `Active Agents`
 - tentacle-grouped agent listings in that deck
 - keyboard/mouse-resizable and toggleable sidebar behavior
+- `New tentacle` creation from the top bar
+- minimum-width tentacle columns with horizontal scrolling when space is constrained
+- draggable tentacle splitters that resize adjacent panes
 
 ## Quickstart
 
@@ -31,6 +34,7 @@ In dev mode:
 - `apps/web` runs on `http://localhost:5173` and proxies `/api` and terminal websocket traffic to `apps/api`.
 - Runtime endpoints:
   - `GET /api/agent-snapshots`
+  - `POST /api/tentacles`
   - `WS /api/terminals/:tentacleId/ws`
 
 Set `VITE_OCTOGENT_API_ORIGIN` to route runtime calls directly to an external backend.
