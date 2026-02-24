@@ -6,6 +6,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { EmptyOctopus, OctopusGlyph } from "./components/EmptyOctopus";
 import { TentacleTerminal } from "./components/TentacleTerminal";
 import {
+  TENTACLE_DIVIDER_WIDTH,
   TENTACLE_MIN_WIDTH,
   TENTACLE_RESIZE_STEP,
   reconcileTentacleWidths,
@@ -91,8 +92,11 @@ export const App = () => {
 
   useEffect(() => {
     const tentacleIds = columns.map((column) => column.tentacleId);
+    const dividerTotalWidth = Math.max(0, tentacleIds.length - 1) * TENTACLE_DIVIDER_WIDTH;
+    const paneViewportWidth =
+      tentacleViewportWidth === null ? null : Math.max(0, tentacleViewportWidth - dividerTotalWidth);
     setTentacleWidths((currentWidths) =>
-      reconcileTentacleWidths(currentWidths, tentacleIds, tentacleViewportWidth),
+      reconcileTentacleWidths(currentWidths, tentacleIds, paneViewportWidth),
     );
   }, [columns, tentacleViewportWidth]);
 

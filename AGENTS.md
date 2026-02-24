@@ -52,6 +52,10 @@ When implementing features, identify shared parent components rather than creati
 
 For pane-based UI layout, keep each tentacle as a full-height column. Spawned agents for that tentacle should stack vertically within the same column (below the tentacle/root pane), while other tentacle columns remain on the left and right sides.
 
+### Sidebar Resize Preference
+
+Do not render a dedicated resize handle between the Active Agents sidebar and the main board; keep the sidebar at a fixed width unless explicitly requested otherwise.
+
 ### Preserve Existing Patterns
 
 Before implementing a feature, read similar existing code to understand established patterns (component structure, state management, API design). Match the existing style and architecture unless there's a compelling reason to deviate.

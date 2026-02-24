@@ -1,5 +1,6 @@
 export const TENTACLE_MIN_WIDTH = 320;
 export const TENTACLE_RESIZE_STEP = 24;
+export const TENTACLE_DIVIDER_WIDTH = 6;
 
 export type TentacleWidthMap = Record<string, number>;
 

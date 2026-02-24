@@ -218,14 +218,14 @@ describe("App", () => {
       name: "Resize between tentacle-1 and tentacle-2",
     });
 
-    expect(leftPane).toHaveStyle({ width: "500px" });
-    expect(rightPane).toHaveStyle({ width: "500px" });
+    expect(leftPane).toHaveStyle({ width: "497px" });
+    expect(rightPane).toHaveStyle({ width: "497px" });
 
     fireEvent.keyDown(divider, { key: "ArrowRight" });
 
     await waitFor(() => {
-      expect(leftPane).toHaveStyle({ width: "524px" });
-      expect(rightPane).toHaveStyle({ width: "476px" });
+      expect(leftPane).toHaveStyle({ width: "521px" });
+      expect(rightPane).toHaveStyle({ width: "473px" });
     });
   });
 
@@ -338,7 +338,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Show Active Agents sidebar" })).toBeInTheDocument();
   });
 
-  it("resizes the active agents sidebar with keyboard", async () => {
+  it("keeps a fixed active agents sidebar width", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify([]), {
         status: 200,
@@ -351,15 +351,7 @@ describe("App", () => {
     render(<App />);
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    const separator = screen.getByRole("separator", {
-      name: "Resize Active Agents sidebar",
-    });
-    const initialWidth = Number.parseInt(sidebar.style.width, 10);
-
-    fireEvent.keyDown(separator, { key: "ArrowRight" });
-
-    await waitFor(() => {
-      expect(Number.parseInt(sidebar.style.width, 10)).toBeGreaterThan(initialWidth);
-    });
+    expect(sidebar).toHaveStyle({ width: "320px" });
+    expect(screen.queryByRole("separator", { name: "Resize Active Agents sidebar" })).toBeNull();
   });
 });

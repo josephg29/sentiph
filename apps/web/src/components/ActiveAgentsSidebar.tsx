@@ -1,11 +1,7 @@
 import type { AgentState, TentacleColumn } from "@octogent/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import { useMemo } from "react";
 
-const MIN_SIDEBAR_WIDTH = 240;
-const MAX_SIDEBAR_WIDTH = 520;
 const DEFAULT_SIDEBAR_WIDTH = 320;
-const KEYBOARD_RESIZE_STEP = 24;
 
 const stateClass: Record<AgentState, string> = {
   live: "live",
@@ -13,9 +9,6 @@ const stateClass: Record<AgentState, string> = {
   queued: "queued",
   blocked: "blocked",
 };
-
-const clampSidebarWidth = (width: number): number =>
-  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
 type ActiveAgentsSidebarProps = {
   columns: TentacleColumn[];
@@ -28,78 +21,17 @@ export const ActiveAgentsSidebar = ({
   isLoading,
   loadError,
 }: ActiveAgentsSidebarProps) => {
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isResizing, setIsResizing] = useState(false);
-
   const activeAgentCount = useMemo(
     () => columns.reduce((count, column) => count + column.agents.length, 0),
     [columns],
   );
-  const resizeBy = useCallback((delta: number) => {
-    setSidebarWidth((currentWidth) => clampSidebarWidth(currentWidth + delta));
-  }, []);
-
-  const handleResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsResizing(true);
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
-
-  const handleResizeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      resizeBy(KEYBOARD_RESIZE_STEP);
-      return;
-    }
-
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      resizeBy(-KEYBOARD_RESIZE_STEP);
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      setSidebarWidth(MIN_SIDEBAR_WIDTH);
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      setSidebarWidth(MAX_SIDEBAR_WIDTH);
-    }
-  };
-
-  useEffect(() => {
-    if (!isResizing) {
-      return;
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      setSidebarWidth(clampSidebarWidth(event.clientX));
-    };
-
-    const stopResize = () => {
-      setIsResizing(false);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", stopResize);
-    window.addEventListener("pointercancel", stopResize);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", stopResize);
-      window.removeEventListener("pointercancel", stopResize);
-    };
-  }, [isResizing]);
 
   return (
     <div className="dashboard-deck-shell">
       <aside
         aria-label="Active Agents sidebar"
         className="active-agents-sidebar"
-        style={{ width: `${sidebarWidth}px` }}
+        style={{ width: `${DEFAULT_SIDEBAR_WIDTH}px` }}
       >
         <header className="active-agents-header">
           <div className="active-agents-header-text">
@@ -141,19 +73,6 @@ export const ActiveAgentsSidebar = ({
           {loadError && <p className="active-agents-status active-agents-error">{loadError}</p>}
         </div>
       </aside>
-
-      <div
-        aria-label="Resize Active Agents sidebar"
-        aria-orientation="vertical"
-        aria-valuemax={MAX_SIDEBAR_WIDTH}
-        aria-valuemin={MIN_SIDEBAR_WIDTH}
-        aria-valuenow={sidebarWidth}
-        className="active-agents-resizer"
-        onKeyDown={handleResizeKeyDown}
-        onPointerDown={handleResizePointerDown}
-        role="separator"
-        tabIndex={0}
-      />
     </div>
   );
 };
