@@ -57,6 +57,9 @@ describe("TentacleTerminal", () => {
     });
 
     const socket = MockWebSocket.instances[0];
+    if (!socket) {
+      throw new Error("Expected websocket instance");
+    }
     socket.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {

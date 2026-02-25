@@ -18,6 +18,7 @@ Octogent is organized with a ports-and-adapters approach.
 - One React shell rendering tentacle columns with per-tentacle full-height terminals (`xterm`) plus a grouped active-agent sidebar
 - One API service in `apps/api` exposing:
   - `GET /api/agent-snapshots` (dev snapshots)
+  - `GET /api/codex/usage` (Codex OAuth usage snapshot for top chrome bar)
   - `POST /api/tentacles` (create tentacle with unique incremental id and optional display name)
   - `PATCH /api/tentacles/:tentacleId` (rename tentacle display name while keeping id stable)
   - `DELETE /api/tentacles/:tentacleId` (delete a tentacle session and remove it from active snapshots)

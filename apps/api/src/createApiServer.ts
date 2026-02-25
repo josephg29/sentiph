@@ -1,10 +1,16 @@
 import { createServer } from "node:http";
+import type { IncomingMessage } from "node:http";
 import { resolve } from "node:path";
 
+import {
+  type CodexUsageSnapshot,
+  readCodexUsageSnapshot as readCodexUsageSnapshotDefault,
+} from "./codexUsage";
 import { createTerminalRuntime } from "./terminalRuntime";
 
 type CreateApiServerOptions = {
   workspaceCwd?: string;
+  readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
 };
 
 const withCors = (headers: Record<string, string>) => ({
@@ -14,7 +20,7 @@ const withCors = (headers: Record<string, string>) => ({
   "Access-Control-Allow-Headers": "Content-Type",
 });
 
-const readJsonBody = async (request: Parameters<typeof createServer>[0]): Promise<unknown> => {
+const readJsonBody = async (request: IncomingMessage): Promise<unknown> => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
@@ -78,7 +84,10 @@ const parseTentacleName = (payload: unknown) => {
   };
 };
 
-export const createApiServer = ({ workspaceCwd }: CreateApiServerOptions = {}) => {
+export const createApiServer = ({
+  workspaceCwd,
+  readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
+}: CreateApiServerOptions = {}) => {
   const runtime = createTerminalRuntime({
     workspaceCwd: workspaceCwd ?? resolve(process.cwd(), "../.."),
   });
@@ -100,6 +109,19 @@ export const createApiServer = ({ workspaceCwd }: CreateApiServerOptions = {}) =
       }
 
       const payload = runtime.listAgentSnapshots();
+      response.writeHead(200, withCors({ "Content-Type": "application/json" }));
+      response.end(JSON.stringify(payload));
+      return;
+    }
+
+    if (requestUrl.pathname === "/api/codex/usage") {
+      if (request.method !== "GET") {
+        response.writeHead(405, withCors({ "Content-Type": "application/json" }));
+        response.end(JSON.stringify({ error: "Method not allowed" }));
+        return;
+      }
+
+      const payload = await readCodexUsageSnapshot();
       response.writeHead(200, withCors({ "Content-Type": "application/json" }));
       response.end(JSON.stringify(payload));
       return;

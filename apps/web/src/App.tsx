@@ -1,11 +1,16 @@
 import { buildTentacleColumns } from "@octogent/core";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent,
+} from "react";
 
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { EmptyOctopus, OctopusGlyph } from "./components/EmptyOctopus";
 import { TentacleTerminal } from "./components/TentacleTerminal";
+import { ActionButton } from "./components/ui/ActionButton";
 import {
   TENTACLE_DIVIDER_WIDTH,
   TENTACLE_MIN_WIDTH,
@@ -16,11 +21,69 @@ import {
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
 import {
   buildAgentSnapshotsUrl,
+  buildCodexUsageUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
 } from "./runtime/runtimeEndpoints";
 
 type TentacleView = Awaited<ReturnType<typeof buildTentacleColumns>>;
+type CodexUsageSnapshot = {
+  status: "ok" | "unavailable" | "error";
+  fetchedAt: string;
+  source: "oauth-api" | "none";
+  message?: string | null;
+  planType?: string | null;
+  primaryUsedPercent?: number | null;
+  secondaryUsedPercent?: number | null;
+  creditsBalance?: number | null;
+  creditsUnlimited?: boolean | null;
+};
+
+const CODEX_USAGE_SCAN_INTERVAL_MS = 60_000;
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
+const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
+const normalizeCodexUsageSnapshot = (value: unknown): CodexUsageSnapshot | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const status = record.status;
+  if (status !== "ok" && status !== "unavailable" && status !== "error") {
+    return null;
+  }
+
+  const source = record.source === "oauth-api" ? "oauth-api" : "none";
+  return {
+    status,
+    source,
+    fetchedAt: asString(record.fetchedAt) ?? new Date().toISOString(),
+    message: asString(record.message),
+    planType: asString(record.planType),
+    primaryUsedPercent: asNumber(record.primaryUsedPercent),
+    secondaryUsedPercent: asNumber(record.secondaryUsedPercent),
+    creditsBalance: asNumber(record.creditsBalance),
+    creditsUnlimited:
+      typeof record.creditsUnlimited === "boolean" ? record.creditsUnlimited : null,
+  };
+};
 
 export const App = () => {
   const [columns, setColumns] = useState<TentacleView>([]);
@@ -39,6 +102,7 @@ export const App = () => {
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
+  const [codexUsageSnapshot, setCodexUsageSnapshot] = useState<CodexUsageSnapshot | null>(null);
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
   const cancelTentacleNameSubmitRef = useRef(false);
@@ -81,6 +145,61 @@ export const App = () => {
       controller.abort();
     };
   }, [readColumns]);
+
+  useEffect(() => {
+    let isDisposed = false;
+    let isInFlight = false;
+
+    const syncCodexUsage = async () => {
+      if (isDisposed || isInFlight) {
+        return;
+      }
+      isInFlight = true;
+      try {
+        const response = await fetch(buildCodexUsageUrl(), {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to read codex usage (${response.status})`);
+        }
+
+        const parsed = normalizeCodexUsageSnapshot(await response.json());
+        if (!isDisposed) {
+          setCodexUsageSnapshot(
+            parsed ?? {
+              status: "error",
+              source: "none",
+              fetchedAt: new Date().toISOString(),
+            },
+          );
+        }
+      } catch {
+        if (!isDisposed) {
+          setCodexUsageSnapshot({
+            status: "error",
+            source: "none",
+            fetchedAt: new Date().toISOString(),
+          });
+        }
+      } finally {
+        isInFlight = false;
+      }
+    };
+
+    void syncCodexUsage();
+    const timerId = window.setInterval(() => {
+      void syncCodexUsage();
+    }, CODEX_USAGE_SCAN_INTERVAL_MS);
+
+    return () => {
+      isDisposed = true;
+      window.clearInterval(timerId);
+    };
+  }, []);
 
   useEffect(() => {
     if (!tentaclesRef.current) {
@@ -387,6 +506,29 @@ export const App = () => {
     };
   };
 
+  const handleTentacleHeaderWheel = (event: ReactWheelEvent<HTMLElement>) => {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+
+    if (!event.target.closest(".tentacle-column-header")) {
+      return;
+    }
+
+    const board = tentaclesRef.current;
+    if (!board) {
+      return;
+    }
+
+    const horizontalDelta = Math.abs(event.deltaX) > 0 ? event.deltaX : event.deltaY;
+    if (!Number.isFinite(horizontalDelta) || horizontalDelta === 0) {
+      return;
+    }
+
+    board.scrollLeft += horizontalDelta;
+    event.preventDefault();
+  };
+
   return (
     <div className="page">
       <header className="chrome">
@@ -428,17 +570,18 @@ export const App = () => {
         </div>
 
         <div className="chrome-right">
-          <button
+          <ActionButton
             aria-label="New tentacle"
             className="chrome-create-tentacle"
             disabled={isCreatingTentacle}
             onClick={() => {
               void handleCreateTentacle();
             }}
-            type="button"
+            size="dense"
+            variant="primary"
           >
             {isCreatingTentacle ? "Creating..." : "New tentacle"}
-          </button>
+          </ActionButton>
         </div>
       </header>
 
@@ -446,6 +589,8 @@ export const App = () => {
         {isAgentsSidebarVisible && (
           <ActiveAgentsSidebar
             columns={columns}
+            codexUsageSnapshot={codexUsageSnapshot}
+            codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
             isLoading={isLoading}
             loadError={loadError}
             tentacleStates={tentacleStates}
@@ -454,7 +599,12 @@ export const App = () => {
           />
         )}
 
-        <main ref={tentaclesRef} className="tentacles" aria-label="Tentacle board">
+        <main
+          ref={tentaclesRef}
+          className="tentacles"
+          aria-label="Tentacle board"
+          onWheel={handleTentacleHeaderWheel}
+        >
           {isLoading && (
             <section className="empty-state" aria-label="Loading">
               <h2>Loading tentacles...</h2>
@@ -531,37 +681,40 @@ export const App = () => {
                     )}
                     {editingTentacleId !== column.tentacleId && (
                       <div className="tentacle-header-actions">
-                        <button
+                        <ActionButton
                           aria-label={`Minimize tentacle ${column.tentacleId}`}
                           className="tentacle-minimize"
                           onClick={() => {
                             handleMinimizeTentacle(column.tentacleId);
                           }}
-                          type="button"
+                          size="dense"
+                          variant="info"
                         >
                           Minimize
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           aria-label={`Rename tentacle ${column.tentacleId}`}
                           className="tentacle-rename"
                           onClick={() => {
                             beginTentacleNameEdit(column.tentacleId, column.tentacleName);
                           }}
-                          type="button"
+                          size="dense"
+                          variant="accent"
                         >
                           Rename
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           aria-label={`Delete tentacle ${column.tentacleId}`}
                           className="tentacle-delete"
                           disabled={isDeletingTentacleId === column.tentacleId}
                           onClick={() => {
                             requestDeleteTentacle(column.tentacleId, column.tentacleName);
                           }}
-                          type="button"
+                          size="dense"
+                          variant="danger"
                         >
                           {isDeletingTentacleId === column.tentacleId ? "Deleting..." : "Delete"}
-                        </button>
+                        </ActionButton>
                       </div>
                     )}
                   </div>
@@ -612,29 +765,31 @@ export const App = () => {
               will be terminated.
             </p>
             <div className="delete-confirm-actions">
-              <button
+              <ActionButton
                 aria-label="Cancel delete"
                 className="delete-confirm-cancel"
                 onClick={() => {
                   setPendingDeleteTentacle(null);
                 }}
-                type="button"
+                size="dense"
+                variant="accent"
               >
                 Cancel
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
                 aria-label={`Confirm delete ${pendingDeleteTentacle.tentacleId}`}
                 className="delete-confirm-submit"
                 disabled={isDeletingTentacleId === pendingDeleteTentacle.tentacleId}
                 onClick={() => {
                   void handleDeleteTentacle();
                 }}
-                type="button"
+                size="dense"
+                variant="danger"
               >
                 {isDeletingTentacleId === pendingDeleteTentacle.tentacleId
                   ? "Deleting..."
                   : "Delete"}
-              </button>
+              </ActionButton>
             </div>
           </dialog>
         </div>

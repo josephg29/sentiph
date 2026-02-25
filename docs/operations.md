@@ -6,6 +6,12 @@
 - If workspace package resolution fails, run `pnpm install` from the repository root (not inside a subpackage).
 - If Node version is older than 22, switch runtime before running commands.
 
+## Quality gates
+
+- CI workflow: `.github/workflows/ci.yml`
+- Triggered on push to `main` and on pull requests.
+- Runs `pnpm lint`, `pnpm test`, and `pnpm build`.
+
 ## Known limitations (scratch baseline)
 
 - Runtime API is non-persistent (all state is in-memory).

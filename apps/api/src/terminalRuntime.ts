@@ -279,6 +279,7 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
     }
 
     const stateTracker = new CodexStateTracker();
+    const debugLog = createDebugLog(tentacleId);
     const session: TerminalSession = {
       pty,
       clients: new Set(),
@@ -286,8 +287,10 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
       tentacleName: tentacleName ?? tentacleId,
       codexState: stateTracker.currentState,
       stateTracker,
-      debugLog: createDebugLog(tentacleId),
     };
+    if (debugLog) {
+      session.debugLog = debugLog;
+    }
     appendDebugLog(session, `session-start tentacle=${tentacleId}`);
     session.statePollTimer = setInterval(() => {
       emitStateIfChanged(session, tentacleId, session.stateTracker.poll(Date.now()));

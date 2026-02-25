@@ -59,6 +59,55 @@ describe("App", () => {
     expect(screen.getByTestId("empty-octopus")).toBeInTheDocument();
   });
 
+  it("shows codex usage in the active agents sidebar footer", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            source: "oauth-api",
+            fetchedAt: "2026-02-25T12:00:00.000Z",
+            primaryUsedPercent: 12,
+            secondaryUsedPercent: 34,
+            creditsBalance: 15.5,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    expect(within(sidebar).getByText("Codex token usage")).toBeInTheDocument();
+    expect(within(sidebar).getByText("5H")).toBeInTheDocument();
+    expect(within(sidebar).getByText("WEEK")).toBeInTheDocument();
+    expect(within(sidebar).getByText("[=...........]")).toBeInTheDocument();
+    expect(within(sidebar).getByText("[====........]")).toBeInTheDocument();
+    expect(within(sidebar).getByText("12%")).toBeInTheDocument();
+    expect(within(sidebar).getByText("34%")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Credits $15.50")).toBeInTheDocument();
+  });
+
   it("renders tentacle columns when API returns agent snapshots", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
@@ -709,5 +758,65 @@ describe("App", () => {
     await waitFor(() => {
       expect(sidebar).toHaveStyle({ width: "380px" });
     });
+  });
+
+  it("scrolls the board horizontally from tentacle headers without hijacking terminal wheel events", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/api/agent-snapshots")) {
+        return new Response(
+          JSON.stringify([
+            {
+              agentId: "agent-1",
+              label: "core-planner",
+              state: "live",
+              tentacleId: "tentacle-a",
+              tentacleName: "tentacle-a",
+              createdAt: "2026-02-24T10:00:00.000Z",
+            },
+          ]),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/codex/usage")) {
+        return new Response(
+          JSON.stringify({
+            status: "unavailable",
+            fetchedAt: "2026-02-24T10:00:00.000Z",
+            source: "none",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    const board = await screen.findByLabelText("Tentacle board");
+    const headerNameButton = await screen.findByRole("button", { name: "tentacle-a" });
+    const terminal = await screen.findByTestId("terminal-tentacle-a");
+
+    expect(board.scrollLeft).toBe(0);
+
+    fireEvent.wheel(headerNameButton, { deltaY: 120 });
+    expect(board.scrollLeft).toBe(120);
+
+    fireEvent.wheel(terminal, { deltaY: 120 });
+    expect(board.scrollLeft).toBe(120);
   });
 });

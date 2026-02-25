@@ -32,7 +32,7 @@ describe("tentaclePaneSizing", () => {
       300,
     );
 
-    expect(resized["tentacle-1"]).toBe(680);
-    expect(resized["tentacle-2"]).toBe(320);
+    expect(resized["tentacle-1"]).toBe(1000 - TENTACLE_MIN_WIDTH);
+    expect(resized["tentacle-2"]).toBe(TENTACLE_MIN_WIDTH);
   });
 });

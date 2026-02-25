@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAgentSnapshotsUrl,
+  buildCodexUsageUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
@@ -25,6 +26,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute tentacle creation URL when runtime base URL is configured", () => {
     expect(buildTentaclesUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/tentacles",
+    );
+  });
+
+  it("builds codex usage URL on same origin by default", () => {
+    expect(buildCodexUsageUrl()).toBe("/api/codex/usage");
+  });
+
+  it("builds absolute codex usage URL when runtime base URL is configured", () => {
+    expect(buildCodexUsageUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/codex/usage",
     );
   });
 

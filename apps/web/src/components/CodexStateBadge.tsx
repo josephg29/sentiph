@@ -1,3 +1,5 @@
+import { StatusBadge } from "./ui/StatusBadge";
+
 type CodexStateBadgeProps = {
   state: CodexState;
 };
@@ -8,5 +10,5 @@ export const isCodexState = (value: unknown): value is CodexState =>
   value === "idle" || value === "processing";
 
 export const CodexStateBadge = ({ state }: CodexStateBadgeProps) => (
-  <span className={`pill terminal-state-badge ${state}`}>{state.toUpperCase()}</span>
+  <StatusBadge className="terminal-state-badge" label={state.toUpperCase()} tone={state} />
 );

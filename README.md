@@ -53,6 +53,8 @@ pnpm build
 pnpm format
 ```
 
+GitHub Actions runs the same `lint`, `test`, and `build` checks on pushes to `main` and on pull requests.
+
 ## Repo layout
 
 - `apps/web` - web UI shell

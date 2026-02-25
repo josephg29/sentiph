@@ -12,9 +12,12 @@ describe("createApiServer", () => {
     }
   });
 
-  const startServer = async () => {
+  const startServer = async (
+    options: Partial<Parameters<typeof createApiServer>[0]> = {},
+  ) => {
     const apiServer = createApiServer({
       workspaceCwd: process.cwd(),
+      ...options,
     });
     const address = await apiServer.start(0, "127.0.0.1");
     stopServer = () => apiServer.stop();
@@ -47,6 +50,49 @@ describe("createApiServer", () => {
     const baseUrl = await startServer();
 
     const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns codex usage snapshot for GET /api/codex/usage", async () => {
+    const codexSnapshot = {
+      status: "ok",
+      source: "oauth-api",
+      fetchedAt: "2026-02-25T12:00:00.000Z",
+      planType: "pro",
+      primaryUsedPercent: 12,
+      secondaryUsedPercent: 28,
+      creditsBalance: 88.5,
+      creditsUnlimited: false,
+    } as const;
+
+    const baseUrl = await startServer({
+      readCodexUsageSnapshot: async () => codexSnapshot,
+    });
+
+    const response = await fetch(`${baseUrl}/api/codex/usage`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(codexSnapshot);
+  });
+
+  it("returns 405 for unsupported methods on /api/codex/usage", async () => {
+    const baseUrl = await startServer({
+      readCodexUsageSnapshot: async () => ({
+        status: "unavailable",
+        source: "none",
+        fetchedAt: "2026-02-25T12:00:00.000Z",
+      }),
+    });
+
+    const response = await fetch(`${baseUrl}/api/codex/usage`, {
       method: "POST",
     });
 

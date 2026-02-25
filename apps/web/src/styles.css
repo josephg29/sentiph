@@ -18,7 +18,17 @@
   --term-green: #33ff66;
   --term-blue: #1e59a3;
   --term-warning: #ffb020;
-  --tentacle-column-min-width: 320px;
+  --control-border-strong: #121212;
+  --control-bg-strong: #000000;
+  --control-font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --control-letter-spacing: 0.06em;
+  --control-line-height: 1.2;
+  --scrollbar-size: 10px;
+  --scrollbar-track: color-mix(in srgb, var(--bg-surface-1) 88%, #121212);
+  --scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle) 62%);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--accent-primary) 54%, var(--border-subtle) 46%);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--accent-primary) 68%, var(--border-subtle) 32%);
+  --tentacle-column-min-width: 370px;
 }
 
 * {
@@ -29,6 +39,7 @@ html,
 body,
 #root {
   margin: 0;
+  height: 100%;
   min-height: 100%;
 }
 
@@ -36,20 +47,25 @@ body {
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   background: radial-gradient(circle at top right, #111111, var(--bg-canvas) 50%);
   color: var(--text-primary);
+  overflow: hidden;
 }
 
 .page {
+  height: 100vh;
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr;
   min-width: 0;
+  overflow: hidden;
 }
 
 .workspace-shell {
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-columns: auto 1fr;
   min-width: 0;
+  overflow: hidden;
 }
 
 .workspace-shell--full {
@@ -87,6 +103,8 @@ body {
   display: flex;
   align-items: center;
   justify-self: start;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .chrome-brand {
@@ -114,6 +132,72 @@ body {
   display: flex;
   align-items: center;
   justify-self: end;
+}
+
+.action-button {
+  --action-button-border: var(--control-border-strong);
+  --action-button-bg: var(--control-bg-strong);
+  --action-button-color: var(--accent-primary);
+  --action-button-font-size: 0.6rem;
+  --action-button-line-height: var(--control-line-height);
+  --action-button-letter-spacing: var(--control-letter-spacing);
+  --action-button-padding-y: 0.16rem;
+  --action-button-padding-x: 0.25rem;
+  border: 1px solid var(--action-button-border);
+  background: var(--action-button-bg);
+  color: var(--action-button-color);
+  font-family: var(--control-font-family);
+  font-size: var(--action-button-font-size);
+  font-weight: 700;
+  letter-spacing: var(--action-button-letter-spacing);
+  text-transform: uppercase;
+  line-height: var(--action-button-line-height);
+  padding: var(--action-button-padding-y) var(--action-button-padding-x);
+  cursor: pointer;
+}
+
+.action-button--dense {
+  --action-button-font-size: 0.6rem;
+  --action-button-padding-y: 0.16rem;
+  --action-button-padding-x: 0.25rem;
+}
+
+.action-button--compact {
+  --action-button-font-size: 0.58rem;
+  --action-button-padding-y: 0.14rem;
+  --action-button-padding-x: 0.22rem;
+}
+
+.action-button--primary {
+  --action-button-border: var(--border-subtle);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
+  --action-button-color: #121212;
+  --action-button-font-size: 0.68rem;
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.42rem;
+  --action-button-letter-spacing: 0.08em;
+}
+
+.action-button--accent {
+  --action-button-color: var(--accent-primary);
+}
+
+.action-button--info {
+  --action-button-color: #9bc8ff;
+}
+
+.action-button--danger {
+  --action-button-color: #ff9a9a;
+}
+
+.action-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.action-button:focus-visible {
+  outline: 1px solid var(--action-button-border);
+  outline-offset: 1px;
 }
 
 .chrome-sidebar-toggle {
@@ -147,26 +231,14 @@ body {
 }
 
 .chrome-create-tentacle {
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
-  color: #121212;
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.25;
-  padding: 0.2rem 0.42rem;
-  cursor: pointer;
-}
-
-.chrome-create-tentacle:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-.chrome-create-tentacle:focus-visible {
-  outline: 1px solid var(--accent-primary);
-  outline-offset: 1px;
+  --action-button-border: var(--border-subtle);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
+  --action-button-color: #121212;
+  --action-button-font-size: 0.64rem;
+  --action-button-letter-spacing: 0.08em;
+  --action-button-line-height: 1.25;
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.42rem;
 }
 
 .tentacles {
@@ -195,7 +267,7 @@ body {
   background: color-mix(in srgb, var(--bg-surface-1) 85%, #141414);
   border-right: 1px solid var(--border-subtle);
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   overflow: hidden;
   position: relative;
 }
@@ -237,6 +309,158 @@ body {
   gap: 0.2rem;
 }
 
+.active-agents-footer {
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  padding: 0.2rem 0.3rem 0.25rem;
+}
+
+.active-agents-codex-usage {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, #808080 10%);
+  background: color-mix(in srgb, var(--bg-surface-1) 86%, #131313);
+  padding: 0.18rem 0.22rem 0.2rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.active-agents-codex-usage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.54rem;
+  color: var(--accent-primary);
+  font-family: "Press Start 2P", "JetBrains Mono", monospace;
+  line-height: 1.2;
+}
+
+.active-agents-codex-usage-bars {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.active-agents-codex-usage-row {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 0.3rem;
+}
+
+.active-agents-codex-usage-label {
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  font-size: 0.58rem;
+  min-width: 2.6rem;
+}
+
+.active-agents-codex-usage-bar {
+  margin: 0;
+  border: 1px solid #202020;
+  background: #000000;
+  color: var(--term-green);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  padding: 0.08rem 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.active-agents-codex-usage-percent {
+  color: var(--term-green);
+  letter-spacing: 0.05em;
+  font-size: 0.58rem;
+  min-width: 2.6rem;
+  text-align: right;
+}
+
+.active-agents-codex-usage-credits,
+.active-agents-codex-usage-status {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.61rem;
+  color: var(--text-secondary);
+}
+
+.active-agents-codex-usage-status {
+  color: var(--text-secondary);
+}
+
+.active-agents-codex-usage--ok .active-agents-codex-usage-credits {
+  color: var(--term-green);
+}
+
+.active-agents-codex-usage--unavailable .active-agents-codex-usage-status {
+  color: var(--term-warning);
+}
+
+.active-agents-codex-usage--error .active-agents-codex-usage-status {
+  color: #ff6b6b;
+}
+
+.active-agents-codex-usage--loading .active-agents-codex-usage-status {
+  color: var(--text-secondary);
+}
+
+.active-agents-codex-usage--unavailable .active-agents-codex-usage-bar,
+.active-agents-codex-usage--unavailable .active-agents-codex-usage-percent {
+  color: var(--term-warning);
+}
+
+.active-agents-codex-usage--error .active-agents-codex-usage-bar,
+.active-agents-codex-usage--error .active-agents-codex-usage-percent {
+  color: #ff6b6b;
+}
+
+.active-agents-body,
+.tentacles,
+.terminal-mount .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.active-agents-body::-webkit-scrollbar,
+.tentacles::-webkit-scrollbar,
+.terminal-mount .xterm-viewport::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.active-agents-body::-webkit-scrollbar-track,
+.tentacles::-webkit-scrollbar-track,
+.terminal-mount .xterm-viewport::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.active-agents-body::-webkit-scrollbar-thumb,
+.tentacles::-webkit-scrollbar-thumb,
+.terminal-mount .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 1px solid color-mix(in srgb, var(--bg-surface-1) 78%, #000000);
+}
+
+.active-agents-body::-webkit-scrollbar-thumb:hover,
+.tentacles::-webkit-scrollbar-thumb:hover,
+.terminal-mount .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.active-agents-body::-webkit-scrollbar-thumb:active,
+.tentacles::-webkit-scrollbar-thumb:active,
+.terminal-mount .xterm-viewport::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+.active-agents-body::-webkit-scrollbar-corner,
+.tentacles::-webkit-scrollbar-corner,
+.terminal-mount .xterm-viewport::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
 .active-agents-group {
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--bg-surface-1) 80%, #181818);
@@ -260,21 +484,9 @@ body {
 }
 
 .active-agents-maximize {
-  border: 1px solid #121212;
-  background: #000000;
-  color: var(--accent-primary);
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.54rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  padding: 0.14rem 0.22rem;
-  cursor: pointer;
-}
-
-.active-agents-maximize:focus-visible {
-  outline: 1px solid #121212;
-  outline-offset: 1px;
+  --action-button-border: var(--control-border-strong);
+  --action-button-bg: var(--control-bg-strong);
+  --action-button-color: var(--accent-primary);
 }
 
 .active-agents-group ul {
@@ -430,6 +642,7 @@ body {
   background: color-mix(in srgb, var(--bg-surface-1) 80%, #151515);
   min-width: var(--tentacle-column-min-width);
   flex: 0 0 auto;
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -519,62 +732,15 @@ body {
 }
 
 .tentacle-minimize {
-  border: 1px solid #121212;
-  background: #000000;
-  color: #9bc8ff;
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  padding: 0.16rem 0.25rem;
-  cursor: pointer;
-}
-
-.tentacle-minimize:focus-visible {
-  outline: 1px solid #121212;
-  outline-offset: 1px;
+  --action-button-color: #9bc8ff;
 }
 
 .tentacle-rename {
-  border: 1px solid #121212;
-  background: #000000;
-  color: var(--accent-primary);
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  padding: 0.16rem 0.25rem;
-  cursor: pointer;
-}
-
-.tentacle-rename:focus-visible {
-  outline: 1px solid #121212;
-  outline-offset: 1px;
+  --action-button-color: var(--accent-primary);
 }
 
 .tentacle-delete {
-  border: 1px solid #121212;
-  background: #000000;
-  color: #ff9a9a;
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  padding: 0.16rem 0.25rem;
-  cursor: pointer;
-}
-
-.tentacle-delete:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.tentacle-delete:focus-visible {
-  outline: 1px solid #121212;
-  outline-offset: 1px;
+  --action-button-color: #ff9a9a;
 }
 
 .delete-confirm-backdrop {
@@ -630,40 +796,24 @@ body {
 
 .delete-confirm-cancel,
 .delete-confirm-submit {
-  border: 1px solid #121212;
-  background: #000000;
-  font-family: "Press Start 2P", "JetBrains Mono", monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  padding: 0.18rem 0.3rem;
-  cursor: pointer;
+  --action-button-padding-y: 0.18rem;
+  --action-button-padding-x: 0.3rem;
 }
 
 .delete-confirm-cancel {
-  color: var(--accent-primary);
+  --action-button-color: var(--accent-primary);
 }
 
 .delete-confirm-submit {
-  color: #ff9a9a;
-}
-
-.delete-confirm-submit:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.delete-confirm-cancel:focus-visible,
-.delete-confirm-submit:focus-visible {
-  outline: 1px solid #121212;
-  outline-offset: 1px;
+  --action-button-color: #ff9a9a;
 }
 
 .tentacle-terminal {
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr;
+  overflow: hidden;
 }
 
 .terminal-header {
@@ -721,15 +871,10 @@ body {
 
 .terminal-mount .xterm-viewport {
   background: var(--bg-surface-1);
-  scrollbar-width: none;
 }
 
-.terminal-mount .xterm-viewport::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.pill {
+.pill,
+.status-badge {
   padding: 0.1rem 0.35rem;
   border: 1px solid var(--border-subtle);
   color: #000000;
@@ -737,25 +882,30 @@ body {
   text-transform: uppercase;
 }
 
-.pill.live {
+.pill.live,
+.status-badge.live {
   background: var(--term-green);
 }
 
-.pill.idle {
+.pill.idle,
+.status-badge.idle {
   background: var(--term-blue);
   color: #f5fbff;
 }
 
-.pill.processing {
+.pill.processing,
+.status-badge.processing {
   background: var(--term-green);
   color: #031700;
 }
 
-.pill.queued {
+.pill.queued,
+.status-badge.queued {
   background: var(--term-warning);
 }
 
-.pill.blocked {
+.pill.blocked,
+.status-badge.blocked {
   background: var(--term-red);
   color: #fff3f3;
 }

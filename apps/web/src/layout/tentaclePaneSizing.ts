@@ -1,4 +1,4 @@
-export const TENTACLE_MIN_WIDTH = 320;
+export const TENTACLE_MIN_WIDTH = 370;
 export const TENTACLE_RESIZE_STEP = 24;
 export const TENTACLE_DIVIDER_WIDTH = 6;
 
