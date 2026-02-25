@@ -6,14 +6,31 @@ import { App } from "../src/App";
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
   readonly url: string;
+  private listeners = new Map<string, Set<(event: { data: unknown }) => void>>();
+
   close = vi.fn();
-  addEventListener = vi.fn();
-  removeEventListener = vi.fn();
   send = vi.fn();
 
   constructor(url: string) {
     this.url = url;
     MockWebSocket.instances.push(this);
+  }
+
+  addEventListener(type: string, listener: (event: { data: unknown }) => void) {
+    const bucket = this.listeners.get(type) ?? new Set<(event: { data: unknown }) => void>();
+    bucket.add(listener);
+    this.listeners.set(type, bucket);
+  }
+
+  removeEventListener(type: string, listener: (event: { data: unknown }) => void) {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  emit(type: string, data?: unknown) {
+    const event = { data };
+    for (const listener of this.listeners.get(type) ?? []) {
+      listener(event);
+    }
   }
 }
 
@@ -78,6 +95,51 @@ describe("App", () => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
     expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/tentacle-a/ws");
+  });
+
+  it("keeps sidebar root badge synced with the terminal idle/processing state", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            agentId: "agent-1",
+            label: "core-planner",
+            state: "live",
+            tentacleId: "tentacle-a",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+    render(<App />);
+
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    const tentacleGroup = within(sidebar).getByLabelText("Active agents in tentacle-a");
+
+    await waitFor(() => {
+      const idleBadge = within(tentacleGroup).getByText("IDLE");
+      expect(idleBadge).toHaveClass("pill", "terminal-state-badge", "idle");
+    });
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+    });
+    const socket = MockWebSocket.instances[0];
+    socket?.emit("message", JSON.stringify({ type: "state", state: "processing" }));
+
+    await waitFor(() => {
+      const processingBadge = within(tentacleGroup).getByText("PROCESSING");
+      expect(processingBadge).toHaveClass("pill", "terminal-state-badge", "processing");
+    });
   });
 
   it("creates a new tentacle and refreshes columns plus sidebar listings", async () => {
@@ -328,7 +390,6 @@ describe("App", () => {
 
   it("deletes a tentacle from the header action and refreshes board and sidebar", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     let includeTentacleB = true;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -392,11 +453,67 @@ describe("App", () => {
     expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-b" }));
+    expect(
+      screen.getByRole("dialog", { name: "Delete confirmation for tentacle-b" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete tentacle-b" }));
 
     await waitFor(() => {
       expect(tentacleBColumn).not.toBeInTheDocument();
       expect(within(sidebar).queryByLabelText("Active agents in tentacle-b")).toBeNull();
     });
+  });
+
+  it("minimizes tentacles from the header and maximizes them from the sidebar", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            agentId: "tentacle-a-root",
+            label: "tentacle-a-root",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+          {
+            agentId: "tentacle-b-root",
+            label: "tentacle-b-root",
+            state: "live",
+            tentacleId: "tentacle-b",
+            tentacleName: "tentacle-b",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-a");
+    await screen.findByLabelText("tentacle-b");
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimize tentacle tentacle-b" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("tentacle-b")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Maximize tentacle tentacle-b" }),
+      ).toBeInTheDocument();
+      expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Maximize tentacle tentacle-b" }));
+
+    expect(await screen.findByLabelText("tentacle-b")).toBeInTheDocument();
   });
 
   it("resizes adjacent tentacle panes from the divider", async () => {

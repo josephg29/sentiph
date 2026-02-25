@@ -24,6 +24,7 @@ Octogent is organized with a ports-and-adapters approach.
   - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
 - Runtime bootstraps one default tentacle on startup and initializes created tentacles with `codex`
 - Snapshot payloads include stable `tentacleId` plus optional `tentacleName` for UI display
+- Minimized tentacles are hidden from the board in client state and restored from sidebar actions
 - Shared runtime endpoint builders in `apps/web/src/runtime/runtimeEndpoints.ts` with optional `VITE_OCTOGENT_API_ORIGIN` override for external backends
 - Vite dev proxy in `apps/web/vite.config.ts` forwards `/api` traffic to `apps/api`
 - Tentacle pane sizing is managed client-side with per-tentacle widths, minimum-width constraints, and adjacent split-pane resizing

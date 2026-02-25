@@ -18,6 +18,7 @@ Current UI baseline includes:
 - `New tentacle` creation from the top bar with immediate inline naming
 - in-place tentacle rename from each column header (stable id + editable name)
 - tentacle delete action from each column header
+- tentacle minimize from header and maximize from the `Active Agents` sidebar
 - minimum-width tentacle columns with horizontal scrolling when space is constrained
 - draggable tentacle splitters that resize adjacent panes
 

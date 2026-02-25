@@ -2,21 +2,26 @@ import type { AgentState, TentacleColumn } from "@octogent/core";
 import { useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
+import { type CodexState, CodexStateBadge } from "./CodexStateBadge";
+
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 520;
 const DEFAULT_SIDEBAR_WIDTH = 320;
 
-const stateClass: Record<AgentState, string> = {
-  live: "live",
+const fallbackCodexStateByAgentState: Record<AgentState, CodexState> = {
+  live: "processing",
   idle: "idle",
-  queued: "queued",
-  blocked: "blocked",
+  queued: "processing",
+  blocked: "processing",
 };
 
 type ActiveAgentsSidebarProps = {
   columns: TentacleColumn[];
   isLoading: boolean;
   loadError: string | null;
+  tentacleStates?: Record<string, CodexState>;
+  minimizedTentacleIds?: string[];
+  onMaximizeTentacle?: (tentacleId: string) => void;
 };
 
 const clampSidebarWidth = (width: number): number =>
@@ -26,6 +31,9 @@ export const ActiveAgentsSidebar = ({
   columns,
   isLoading,
   loadError,
+  tentacleStates = {},
+  minimizedTentacleIds = [],
+  onMaximizeTentacle,
 }: ActiveAgentsSidebarProps) => {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const sidebarRef = useRef<HTMLElement | null>(null);
@@ -83,14 +91,33 @@ export const ActiveAgentsSidebar = ({
                 aria-label={`Active agents in ${column.tentacleId}`}
                 className="active-agents-group"
               >
-                <h3>{column.tentacleName}</h3>
+                <div className="active-agents-group-header">
+                  <h3>{column.tentacleName}</h3>
+                  {minimizedTentacleIds.includes(column.tentacleId) && (
+                    <button
+                      aria-label={`Maximize tentacle ${column.tentacleId}`}
+                      className="active-agents-maximize"
+                      onClick={() => {
+                        onMaximizeTentacle?.(column.tentacleId);
+                      }}
+                      type="button"
+                    >
+                      Maximize
+                    </button>
+                  )}
+                </div>
                 <ul>
                   {column.agents.map((agent) => (
                     <li key={agent.agentId}>
                       <span>{agent.label}</span>
-                      <span className={`pill ${stateClass[agent.state]}`}>
-                        {agent.state.toUpperCase()}
-                      </span>
+                      <CodexStateBadge
+                        state={
+                          agent.parentAgentId === undefined
+                            ? (tentacleStates[column.tentacleId] ??
+                              fallbackCodexStateByAgentState[agent.state])
+                            : fallbackCodexStateByAgentState[agent.state]
+                        }
+                      />
                     </li>
                   ))}
                 </ul>

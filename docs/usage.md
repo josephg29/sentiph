@@ -24,6 +24,9 @@ Then open `http://localhost:5173`.
 - Tentacles keep unique incremental ids (`tentacle-1`, `tentacle-2`, ...) for internal routing, plus a separate display name you can edit.
 - New tentacles appear with the default name selected inline so you can type a new name immediately.
 - Rename by clicking a tentacle header name or the right-side `Rename` button, then edit inline (`Enter` to save, `Escape` to cancel).
+- Minimize from the right-side `Minimize` button in the tentacle header.
+- Maximize minimized tentacles from `Maximize` buttons in the `Active Agents` sidebar.
+- Delete from the right-side `Delete` button in the tentacle header (with an in-app confirmation dialog).
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).

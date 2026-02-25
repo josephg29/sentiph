@@ -56,9 +56,17 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 
 Treat `tentacleId` as a stable internal identifier (routing, keys, websocket paths) and keep user-facing labels editable via a separate display name field.
 
+### Confirmation UX Preference
+
+Do not use browser alert/confirm dialogs for destructive actions. Use in-app confirmation UI that matches the retro terminal visual style.
+
 ### Sidebar Resize Preference
 
 Do not render a dedicated resize strip between the Active Agents sidebar and the main board. The sidebar should remain resizable by dragging its own right border.
+
+### Sidebar Status Badge Preference
+
+In the Active Agents sidebar, root agent rows should use the same `idle`/`processing` badge style and state semantics as the terminal window header.
 
 ### Preserve Existing Patterns
 

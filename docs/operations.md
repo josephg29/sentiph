@@ -14,5 +14,6 @@
   - `PATCH /api/tentacles/:tentacleId` renames an existing tentacle display name.
   - `DELETE /api/tentacles/:tentacleId` deletes an existing tentacle session.
   - `WS /api/terminals/:tentacleId/ws` streams interactive shell sessions.
+  - Tentacle sessions remain alive when no websocket clients are attached; explicit delete closes them.
 - Production backend API and auth are not implemented yet.
 - No persistence or auth layer yet.

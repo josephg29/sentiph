@@ -1,8 +1,9 @@
 import { buildTentacleColumns } from "@octogent/core";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
+import type { CodexState } from "./components/CodexStateBadge";
 import { EmptyOctopus, OctopusGlyph } from "./components/EmptyOctopus";
 import { TentacleTerminal } from "./components/TentacleTerminal";
 import {
@@ -28,13 +29,23 @@ export const App = () => {
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
   const [isCreatingTentacle, setIsCreatingTentacle] = useState(false);
   const [isDeletingTentacleId, setIsDeletingTentacleId] = useState<string | null>(null);
+  const [pendingDeleteTentacle, setPendingDeleteTentacle] = useState<{
+    tentacleId: string;
+    tentacleName: string;
+  } | null>(null);
+  const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
   const [editingTentacleId, setEditingTentacleId] = useState<string | null>(null);
   const [tentacleNameDraft, setTentacleNameDraft] = useState("");
+  const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
   const cancelTentacleNameSubmitRef = useRef(false);
+  const visibleColumns = useMemo(
+    () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
+    [columns, minimizedTentacleIds],
+  );
 
   const readColumns = useCallback(async (signal?: AbortSignal) => {
     const readerOptions: { endpoint: string; signal?: AbortSignal } = {
@@ -100,7 +111,7 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    const tentacleIds = columns.map((column) => column.tentacleId);
+    const tentacleIds = visibleColumns.map((column) => column.tentacleId);
     const dividerTotalWidth = Math.max(0, tentacleIds.length - 1) * TENTACLE_DIVIDER_WIDTH;
     const paneViewportWidth =
       tentacleViewportWidth === null
@@ -109,7 +120,7 @@ export const App = () => {
     setTentacleWidths((currentWidths) =>
       reconcileTentacleWidths(currentWidths, tentacleIds, paneViewportWidth),
     );
-  }, [columns, tentacleViewportWidth]);
+  }, [tentacleViewportWidth, visibleColumns]);
 
   useEffect(() => {
     if (!editingTentacleId) {
@@ -129,6 +140,24 @@ export const App = () => {
     input.focus();
     input.select();
   }, [columns, editingTentacleId]);
+
+  useEffect(() => {
+    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
+    setMinimizedTentacleIds((current) => {
+      const next = current.filter((tentacleId) => activeTentacleIds.has(tentacleId));
+      return next.length === current.length ? current : next;
+    });
+    setTentacleStates((current) => {
+      const retainedStates = Object.entries(current).filter(([tentacleId]) =>
+        activeTentacleIds.has(tentacleId),
+      );
+      if (retainedStates.length === Object.keys(current).length) {
+        return current;
+      }
+
+      return Object.fromEntries(retainedStates);
+    });
+  }, [columns]);
 
   const beginTentacleNameEdit = (tentacleId: string, currentTentacleName: string) => {
     setLoadError(null);
@@ -210,6 +239,9 @@ export const App = () => {
         (typeof createdSnapshot.tentacleName === "string"
           ? createdSnapshot.tentacleName
           : createdTentacleId);
+      setMinimizedTentacleIds((current) =>
+        current.filter((tentacleId) => tentacleId !== createdTentacleId),
+      );
       beginTentacleNameEdit(createdTentacleId, createdTentacleName);
     } catch {
       setLoadError("Unable to create a new tentacle.");
@@ -218,12 +250,17 @@ export const App = () => {
     }
   };
 
-  const handleDeleteTentacle = async (tentacleId: string, tentacleName: string) => {
-    const shouldDelete = window.confirm(`Delete tentacle "${tentacleName}"?`);
-    if (!shouldDelete) {
+  const requestDeleteTentacle = (tentacleId: string, tentacleName: string) => {
+    setLoadError(null);
+    setPendingDeleteTentacle({ tentacleId, tentacleName });
+  };
+
+  const handleDeleteTentacle = async () => {
+    if (!pendingDeleteTentacle) {
       return;
     }
 
+    const { tentacleId } = pendingDeleteTentacle;
     try {
       setLoadError(null);
       setIsDeletingTentacleId(tentacleId);
@@ -242,15 +279,52 @@ export const App = () => {
         setEditingTentacleId(null);
         setTentacleNameDraft("");
       }
+      setMinimizedTentacleIds((current) =>
+        current.filter((currentTentacleId) => currentTentacleId !== tentacleId),
+      );
 
       const nextColumns = await readColumns();
       setColumns(nextColumns);
+      setPendingDeleteTentacle(null);
     } catch {
       setLoadError("Unable to delete tentacle.");
     } finally {
       setIsDeletingTentacleId(null);
     }
   };
+
+  const handleMinimizeTentacle = (tentacleId: string) => {
+    if (editingTentacleId === tentacleId) {
+      setEditingTentacleId(null);
+      setTentacleNameDraft("");
+    }
+
+    setMinimizedTentacleIds((current) => {
+      if (current.includes(tentacleId)) {
+        return current;
+      }
+      return [...current, tentacleId];
+    });
+  };
+
+  const handleMaximizeTentacle = (tentacleId: string) => {
+    setMinimizedTentacleIds((current) =>
+      current.filter((currentTentacleId) => currentTentacleId !== tentacleId),
+    );
+  };
+
+  const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
+    setTentacleStates((current) => {
+      if (current[tentacleId] === state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [tentacleId]: state,
+      };
+    });
+  }, []);
 
   const handleTentacleDividerPointerDown = (leftTentacleId: string, rightTentacleId: string) => {
     return (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -370,7 +444,14 @@ export const App = () => {
 
       <div className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}>
         {isAgentsSidebarVisible && (
-          <ActiveAgentsSidebar columns={columns} isLoading={isLoading} loadError={loadError} />
+          <ActiveAgentsSidebar
+            columns={columns}
+            isLoading={isLoading}
+            loadError={loadError}
+            tentacleStates={tentacleStates}
+            minimizedTentacleIds={minimizedTentacleIds}
+            onMaximizeTentacle={handleMaximizeTentacle}
+          />
         )}
 
         <main ref={tentaclesRef} className="tentacles" aria-label="Tentacle board">
@@ -389,8 +470,16 @@ export const App = () => {
             </section>
           )}
 
-          {columns.map((column, index) => {
-            const rightNeighbor = columns[index + 1];
+          {!isLoading && columns.length > 0 && visibleColumns.length === 0 && (
+            <section className="empty-state" aria-label="All minimized">
+              <h2>All tentacles minimized</h2>
+              <p>Use the Active Agents sidebar to maximize a tentacle.</p>
+              {loadError && <p className="empty-state-subtle">{loadError}</p>}
+            </section>
+          )}
+
+          {visibleColumns.map((column, index) => {
+            const rightNeighbor = visibleColumns[index + 1];
             return (
               <Fragment key={column.tentacleId}>
                 <section
@@ -443,6 +532,16 @@ export const App = () => {
                     {editingTentacleId !== column.tentacleId && (
                       <div className="tentacle-header-actions">
                         <button
+                          aria-label={`Minimize tentacle ${column.tentacleId}`}
+                          className="tentacle-minimize"
+                          onClick={() => {
+                            handleMinimizeTentacle(column.tentacleId);
+                          }}
+                          type="button"
+                        >
+                          Minimize
+                        </button>
+                        <button
                           aria-label={`Rename tentacle ${column.tentacleId}`}
                           className="tentacle-rename"
                           onClick={() => {
@@ -457,7 +556,7 @@ export const App = () => {
                           className="tentacle-delete"
                           disabled={isDeletingTentacleId === column.tentacleId}
                           onClick={() => {
-                            void handleDeleteTentacle(column.tentacleId, column.tentacleName);
+                            requestDeleteTentacle(column.tentacleId, column.tentacleName);
                           }}
                           type="button"
                         >
@@ -466,7 +565,12 @@ export const App = () => {
                       </div>
                     )}
                   </div>
-                  <TentacleTerminal tentacleId={column.tentacleId} />
+                  <TentacleTerminal
+                    tentacleId={column.tentacleId}
+                    onCodexStateChange={(state) => {
+                      handleTentacleStateChange(column.tentacleId, state);
+                    }}
+                  />
                 </section>
 
                 {rightNeighbor && (
@@ -491,6 +595,50 @@ export const App = () => {
           })}
         </main>
       </div>
+
+      {pendingDeleteTentacle && (
+        <div className="delete-confirm-backdrop" role="presentation">
+          <dialog
+            aria-label={`Delete confirmation for ${pendingDeleteTentacle.tentacleName}`}
+            className="delete-confirm-dialog"
+            open
+          >
+            <header className="delete-confirm-header">
+              <h2>Confirm Delete</h2>
+              <span className="pill blocked">DESTRUCTIVE</span>
+            </header>
+            <p>
+              Delete <strong>{pendingDeleteTentacle.tentacleName}</strong>? The tentacle session
+              will be terminated.
+            </p>
+            <div className="delete-confirm-actions">
+              <button
+                aria-label="Cancel delete"
+                className="delete-confirm-cancel"
+                onClick={() => {
+                  setPendingDeleteTentacle(null);
+                }}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                aria-label={`Confirm delete ${pendingDeleteTentacle.tentacleId}`}
+                className="delete-confirm-submit"
+                disabled={isDeletingTentacleId === pendingDeleteTentacle.tentacleId}
+                onClick={() => {
+                  void handleDeleteTentacle();
+                }}
+                type="button"
+              >
+                {isDeletingTentacleId === pendingDeleteTentacle.tentacleId
+                  ? "Deleting..."
+                  : "Delete"}
+              </button>
+            </div>
+          </dialog>
+        </div>
+      )}
     </div>
   );
 };

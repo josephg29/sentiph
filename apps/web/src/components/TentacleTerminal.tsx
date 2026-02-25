@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
+import { type CodexState, CodexStateBadge, isCodexState } from "./CodexStateBadge";
 
 import "xterm/css/xterm.css";
 
 type TentacleTerminalProps = {
   tentacleId: string;
+  onCodexStateChange?: (state: CodexState) => void;
 };
-
-type CodexState = "idle" | "processing";
 
 type TerminalStateMessage = {
   type: "state";
@@ -22,13 +22,14 @@ type TerminalOutputMessage = {
 
 type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
 
-const isCodexState = (value: unknown): value is CodexState =>
-  value === "idle" || value === "processing";
-
-export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
+export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [codexState, setCodexState] = useState<CodexState>("idle");
+
+  useEffect(() => {
+    onCodexStateChange?.(codexState);
+  }, [codexState, onCodexStateChange]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -197,9 +198,7 @@ export const TentacleTerminal = ({ tentacleId }: TentacleTerminalProps) => {
     <div className="tentacle-terminal">
       <div className="terminal-header" data-connection-state={connectionState}>
         <span className="terminal-title">terminal</span>
-        <span className={`pill terminal-state-badge ${codexState}`}>
-          {codexState.toUpperCase()}
-        </span>
+        <CodexStateBadge state={codexState} />
       </div>
       <div
         ref={containerRef}

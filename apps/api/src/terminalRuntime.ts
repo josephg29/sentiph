@@ -438,9 +438,6 @@ export const createTerminalRuntime = ({ workspaceCwd }: CreateTerminalRuntimeOpt
             session,
             `ws-close tentacle=${tentacleId} clients=${session.clients.size}`,
           );
-          if (session.clients.size === 0) {
-            closeSession(tentacleId);
-          }
         });
       });
 
