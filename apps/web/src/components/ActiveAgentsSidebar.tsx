@@ -32,8 +32,6 @@ type ActiveAgentsSidebarProps = {
   codexUsageStatus?: "ok" | "unavailable" | "error" | "loading";
 };
 
-const CODEX_METER_WIDTH = 12;
-
 const clampSidebarWidth = (width: number): number =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
@@ -78,14 +76,6 @@ export const ActiveAgentsSidebar = ({
     }
     return `$${creditsBalance.toFixed(2)}`;
   }, [codexUsageSnapshot]);
-
-  const formatMeter = (value: number | null): string => {
-    if (value === null) {
-      return `[${".".repeat(CODEX_METER_WIDTH)}]`;
-    }
-    const filledBlocks = Math.round((value / 100) * CODEX_METER_WIDTH);
-    return `[${"=".repeat(filledBlocks)}${".".repeat(CODEX_METER_WIDTH - filledBlocks)}]`;
-  };
 
   const handleResizeMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -178,22 +168,56 @@ export const ActiveAgentsSidebar = ({
             </div>
             {codexUsageStatus === "ok" ? (
               <div aria-label="Codex token usage bars" className="active-agents-codex-usage-bars">
-                <p className="active-agents-codex-usage-row">
-                  <span className="active-agents-codex-usage-label">5H</span>
-                  <code className="active-agents-codex-usage-bar">{formatMeter(primaryUsagePercent)}</code>
-                  <span className="active-agents-codex-usage-percent">
-                    {primaryUsagePercent === null ? "--" : `${Math.round(primaryUsagePercent)}%`}
+                <div className="active-agents-codex-usage-row">
+                  <span
+                    aria-label="5H token usage"
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={primaryUsagePercent === null ? undefined : Math.round(primaryUsagePercent)}
+                    aria-valuetext={
+                      primaryUsagePercent === null ? "No usage data" : `${Math.round(primaryUsagePercent)}%`
+                    }
+                    className="active-agents-codex-usage-rail"
+                    role="progressbar"
+                  >
+                    <span
+                      className="active-agents-codex-usage-rail-fill"
+                      style={{ width: `${primaryUsagePercent ?? 0}%` }}
+                    />
                   </span>
-                </p>
-                <p className="active-agents-codex-usage-row">
-                  <span className="active-agents-codex-usage-label">WEEK</span>
-                  <code className="active-agents-codex-usage-bar">
-                    {formatMeter(secondaryUsagePercent)}
-                  </code>
-                  <span className="active-agents-codex-usage-percent">
-                    {secondaryUsagePercent === null ? "--" : `${Math.round(secondaryUsagePercent)}%`}
+                  <p className="active-agents-codex-usage-meta-row">
+                    <span className="active-agents-codex-usage-label">5H tokens</span>
+                    <span className="active-agents-codex-usage-percent">
+                      {primaryUsagePercent === null ? "--" : `${Math.round(primaryUsagePercent)}%`}
+                    </span>
+                  </p>
+                </div>
+                <div className="active-agents-codex-usage-row">
+                  <span
+                    aria-label="Weekly token usage"
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={secondaryUsagePercent === null ? undefined : Math.round(secondaryUsagePercent)}
+                    aria-valuetext={
+                      secondaryUsagePercent === null
+                        ? "No usage data"
+                        : `${Math.round(secondaryUsagePercent)}%`
+                    }
+                    className="active-agents-codex-usage-rail"
+                    role="progressbar"
+                  >
+                    <span
+                      className="active-agents-codex-usage-rail-fill"
+                      style={{ width: `${secondaryUsagePercent ?? 0}%` }}
+                    />
                   </span>
-                </p>
+                  <p className="active-agents-codex-usage-meta-row">
+                    <span className="active-agents-codex-usage-label">Week tokens</span>
+                    <span className="active-agents-codex-usage-percent">
+                      {secondaryUsagePercent === null ? "--" : `${Math.round(secondaryUsagePercent)}%`}
+                    </span>
+                  </p>
+                </div>
                 <p className="active-agents-codex-usage-credits">Credits {creditsLabel}</p>
               </div>
             ) : (

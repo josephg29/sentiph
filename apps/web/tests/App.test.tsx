@@ -99,10 +99,15 @@ describe("App", () => {
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(within(sidebar).getByText("Codex token usage")).toBeInTheDocument();
-    expect(within(sidebar).getByText("5H")).toBeInTheDocument();
-    expect(within(sidebar).getByText("WEEK")).toBeInTheDocument();
-    expect(within(sidebar).getByText("[=...........]")).toBeInTheDocument();
-    expect(within(sidebar).getByText("[====........]")).toBeInTheDocument();
+    expect(within(sidebar).getByText("5H tokens")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Week tokens")).toBeInTheDocument();
+    expect(within(sidebar).getByRole("progressbar", { name: "5H token usage" })).toHaveAttribute(
+      "aria-valuenow",
+      "12",
+    );
+    expect(
+      within(sidebar).getByRole("progressbar", { name: "Weekly token usage" }),
+    ).toHaveAttribute("aria-valuenow", "34");
     expect(within(sidebar).getByText("12%")).toBeInTheDocument();
     expect(within(sidebar).getByText("34%")).toBeInTheDocument();
     expect(within(sidebar).getByText("Credits $15.50")).toBeInTheDocument();
