@@ -7,7 +7,7 @@ import { ActionButton } from "./ui/ActionButton";
 
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 520;
-const DEFAULT_SIDEBAR_WIDTH = 320;
+const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
 
 const fallbackCodexStateByAgentState: Record<AgentState, CodexState> = {
   live: "processing",

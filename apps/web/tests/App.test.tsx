@@ -753,7 +753,7 @@ describe("App", () => {
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     const resizer = await screen.findByTestId("active-agents-border-resizer");
 
-    expect(sidebar).toHaveStyle({ width: "320px" });
+    expect(sidebar).toHaveStyle({ width: "240px" });
     expect(screen.queryByRole("separator", { name: "Resize Active Agents sidebar" })).toBeNull();
 
     fireEvent.mouseDown(resizer, { clientX: 320 });
