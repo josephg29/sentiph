@@ -46,6 +46,7 @@ type PersistedTentacle = {
   tentacleId: string;
   tentacleName: string;
   createdAt: string;
+  codexBootstrapped: boolean;
 };
 
 type TentacleRegistryDocument = {
@@ -59,7 +60,7 @@ export type TmuxClient = {
   hasSession(sessionName: string): boolean;
   configureSession(sessionName: string): void;
   capturePane(sessionName: string): string;
-  createSession(options: { sessionName: string; cwd: string; command: string }): void;
+  createSession(options: { sessionName: string; cwd: string; command?: string }): void;
   killSession(sessionName: string): void;
 };
 
@@ -243,7 +244,11 @@ const createDefaultTmuxClient = (): TmuxClient => ({
   },
 
   createSession({ sessionName, cwd, command }) {
-    execFileSync("tmux", ["new-session", "-d", "-s", sessionName, "-c", cwd, command], {
+    const args = ["new-session", "-d", "-s", sessionName, "-c", cwd];
+    if (command && command.length > 0) {
+      args.push(command);
+    }
+    execFileSync("tmux", args, {
       stdio: "pipe",
     });
   },
@@ -299,6 +304,8 @@ const parseRegistryDocument = (
     const tentacleId = typeof entry.tentacleId === "string" ? entry.tentacleId : null;
     const tentacleName = typeof entry.tentacleName === "string" ? entry.tentacleName : null;
     const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+    const codexBootstrapped =
+      typeof entry.codexBootstrapped === "boolean" ? entry.codexBootstrapped : true;
 
     if (!tentacleId || !tentacleName || !createdAt) {
       throw new Error(`Incomplete tentacle entry in registry (${registryPath}).`);
@@ -318,6 +325,7 @@ const parseRegistryDocument = (
       tentacleId,
       tentacleName,
       createdAt,
+      codexBootstrapped,
     });
   }
 
@@ -419,8 +427,19 @@ export const createTerminalRuntime = ({
   };
 
   const allocateTentacleId = () => {
-    while (tentacles.has(`${TENTACLE_ID_PREFIX}${nextTentacleNumber}`)) {
-      nextTentacleNumber += 1;
+    while (true) {
+      const candidateTentacleId = `${TENTACLE_ID_PREFIX}${nextTentacleNumber}`;
+      if (tentacles.has(candidateTentacleId)) {
+        nextTentacleNumber += 1;
+        continue;
+      }
+
+      if (tmuxClient.hasSession(tmuxSessionNameForTentacle(candidateTentacleId))) {
+        nextTentacleNumber += 1;
+        continue;
+      }
+
+      break;
     }
 
     const tentacleId = `${TENTACLE_ID_PREFIX}${nextTentacleNumber}`;
@@ -467,9 +486,20 @@ export const createTerminalRuntime = ({
     tmuxClient.createSession({
       sessionName: tmuxSessionName,
       cwd: workspaceCwd,
-      command: TENTACLE_BOOTSTRAP_COMMAND,
     });
     tmuxClient.configureSession(tmuxSessionName);
+  };
+
+  const ensureCodexBootstrapped = (tentacleId: string, session: TerminalSession) => {
+    const tentacle = tentacles.get(tentacleId);
+    if (!tentacle || tentacle.codexBootstrapped) {
+      return;
+    }
+
+    tentacle.codexBootstrapped = true;
+    persistRegistry();
+    appendDebugLog(session, `bootstrap tentacle=${tentacleId} command=${TENTACLE_BOOTSTRAP_COMMAND}`);
+    session.pty.write(`${TENTACLE_BOOTSTRAP_COMMAND}\r`);
   };
 
   const ensureSession = (tentacleId: string) => {
@@ -558,6 +588,7 @@ export const createTerminalRuntime = ({
       tentacleId,
       tentacleName: tentacleName ?? tentacleId,
       createdAt: new Date().toISOString(),
+      codexBootstrapped: false,
     };
 
     tentacles.set(tentacleId, tentacle);
@@ -626,6 +657,7 @@ export const createTerminalRuntime = ({
 
         session.clients.add(websocket);
         appendDebugLog(session, `ws-open tentacle=${tentacleId} clients=${session.clients.size}`);
+        ensureCodexBootstrapped(tentacleId, session);
         const paneSnapshot = tmuxClient.capturePane(tmuxSessionNameForTentacle(tentacleId));
         if (paneSnapshot.length > 0) {
           sendMessage(websocket, {

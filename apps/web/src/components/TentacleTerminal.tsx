@@ -22,6 +22,7 @@ type TerminalOutputMessage = {
 };
 
 type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
+const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
 export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -82,6 +83,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           const payload = JSON.parse(event.data) as TerminalServerMessage;
           if (payload.type === "output" && typeof payload.data === "string") {
             activeTerminal?.write(payload.data);
+            activeTerminal?.write(SHOW_CURSOR_ESCAPE);
             return;
           }
 
@@ -91,6 +93,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           }
         } catch {
           activeTerminal?.write(event.data);
+          activeTerminal?.write(SHOW_CURSOR_ESCAPE);
         }
       });
     };
@@ -125,21 +128,30 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         const terminal = new Terminal({
           convertEol: true,
           cursorBlink: true,
+          cursorInactiveStyle: "bar",
+          cursorStyle: "bar",
+          cursorWidth: 2,
           fontFamily: '"JetBrains Mono", "IBM Plex Mono", monospace',
           fontSize: 13,
           theme: {
             background: "#040404",
             foreground: "#f0f0f0",
             cursor: "#faa32c",
+            cursorAccent: "#040404",
           },
         });
         const fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
         terminal.open(containerRef.current);
         fitAddon.fit();
+        terminal.focus();
         activeTerminal = terminal;
 
         const wheelListenerTarget = containerRef.current;
+        const onPointerDown = () => {
+          terminal.focus();
+          terminal.write(SHOW_CURSOR_ESCAPE);
+        };
         const onWheel = (event: WheelEvent) => {
           const lines = wheelDeltaToScrollLines(event.deltaY, event.deltaMode);
           if (lines === 0) {
@@ -153,6 +165,9 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         wheelListenerTarget.addEventListener("wheel", onWheel, {
           capture: true,
           passive: false,
+        });
+        wheelListenerTarget.addEventListener("pointerdown", onPointerDown, {
+          capture: true,
         });
 
         const sendResize = () => {
@@ -170,6 +185,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         };
 
         const onDataDisposable = terminal.onData((data) => {
+          terminal.write(SHOW_CURSOR_ESCAPE);
           if (!socket || socket.readyState !== 1) {
             return;
           }
@@ -192,7 +208,9 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         }
 
         sendResize();
+        terminal.write(SHOW_CURSOR_ESCAPE);
         cleanupTerminal = () => {
+          wheelListenerTarget.removeEventListener("pointerdown", onPointerDown, true);
           wheelListenerTarget.removeEventListener("wheel", onWheel, true);
           observer?.disconnect();
           onDataDisposable.dispose();

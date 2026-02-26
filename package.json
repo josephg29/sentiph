@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "pnpm dev",
-    "dev": "pnpm -r --parallel --filter @octogent/api --filter @octogent/web dev",
+    "dev": "node scripts/dev.mjs",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "biome check .",

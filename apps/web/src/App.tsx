@@ -754,16 +754,36 @@ export const App = () => {
           <dialog
             aria-label={`Delete confirmation for ${pendingDeleteTentacle.tentacleName}`}
             className="delete-confirm-dialog"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape" || isDeletingTentacleId !== null) {
+                return;
+              }
+              event.preventDefault();
+              setPendingDeleteTentacle(null);
+            }}
             open
           >
             <header className="delete-confirm-header">
-              <h2>Confirm Delete</h2>
+              <h2>Delete Tentacle</h2>
               <span className="pill blocked">DESTRUCTIVE</span>
             </header>
-            <p>
-              Delete <strong>{pendingDeleteTentacle.tentacleName}</strong>? The tentacle session
-              will be terminated.
-            </p>
+            <div className="delete-confirm-body">
+              <p className="delete-confirm-message">
+                Delete <strong>{pendingDeleteTentacle.tentacleName}</strong> and terminate all of
+                its active sessions.
+              </p>
+              <p className="delete-confirm-warning">This action cannot be undone.</p>
+              <dl className="delete-confirm-details">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{pendingDeleteTentacle.tentacleName}</dd>
+                </div>
+                <div>
+                  <dt>ID</dt>
+                  <dd>{pendingDeleteTentacle.tentacleId}</dd>
+                </div>
+              </dl>
+            </div>
             <div className="delete-confirm-actions">
               <ActionButton
                 aria-label="Cancel delete"

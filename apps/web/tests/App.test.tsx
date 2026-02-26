@@ -113,6 +113,71 @@ describe("App", () => {
     expect(within(sidebar).getByText("Credits $15.50")).toBeInTheDocument();
   });
 
+  it("collapses and expands the codex usage section in the sidebar footer", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            source: "oauth-api",
+            fetchedAt: "2026-02-25T12:00:00.000Z",
+            primaryUsedPercent: 12,
+            secondaryUsedPercent: 34,
+            creditsBalance: 15.5,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(<App />);
+
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    expect(
+      within(sidebar).getByRole("progressbar", { name: "5H token usage" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(sidebar).getByRole("button", {
+        name: "Collapse Codex token usage section",
+      }),
+    );
+
+    expect(within(sidebar).queryByRole("progressbar", { name: "5H token usage" })).toBeNull();
+    expect(
+      within(sidebar).getByRole("button", {
+        name: "Expand Codex token usage section",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(sidebar).getByRole("button", {
+        name: "Expand Codex token usage section",
+      }),
+    );
+
+    expect(within(sidebar).getByRole("progressbar", { name: "5H token usage" })).toBeInTheDocument();
+  });
+
   it("renders tentacle columns when API returns agent snapshots", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
@@ -507,15 +572,48 @@ describe("App", () => {
     expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-b" }));
-    expect(
-      screen.getByRole("dialog", { name: "Delete confirmation for tentacle-b" }),
-    ).toBeInTheDocument();
+    const deleteDialog = screen.getByRole("dialog", { name: "Delete confirmation for tentacle-b" });
+    expect(deleteDialog).toBeInTheDocument();
+    expect(within(deleteDialog).getByText("This action cannot be undone.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete tentacle-b" }));
 
     await waitFor(() => {
       expect(tentacleBColumn).not.toBeInTheDocument();
       expect(within(sidebar).queryByLabelText("Active agents in tentacle-b")).toBeNull();
     });
+  });
+
+  it("closes the delete confirmation dialog with Escape", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            agentId: "tentacle-a-root",
+            label: "tentacle-a-root",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+    render(<App />);
+    await screen.findByLabelText("tentacle-a");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-a" }));
+    const deleteDialog = screen.getByRole("dialog", { name: "Delete confirmation for tentacle-a" });
+    expect(deleteDialog).toBeInTheDocument();
+
+    fireEvent.keyDown(deleteDialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Delete confirmation for tentacle-a" })).toBeNull();
   });
 
   it("minimizes tentacles from the header and maximizes them from the sidebar", async () => {
@@ -665,6 +763,8 @@ describe("App", () => {
   });
 
   it("renders active agents grouped by tentacle in the sidebar", async () => {
+    const longWorkerLabel =
+      "worker-1-with-a-very-long-label-that-should-truncate-in-the-sidebar";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify([
@@ -677,8 +777,8 @@ describe("App", () => {
           },
           {
             agentId: "agent-2",
-            label: "worker-1",
-            state: "queued",
+            label: longWorkerLabel,
+            state: "idle",
             tentacleId: "tentacle-a",
             parentAgentId: "agent-1",
             createdAt: "2026-02-24T10:05:00.000Z",
@@ -706,9 +806,67 @@ describe("App", () => {
     const tentacleAGroup = within(sidebar).getByLabelText("Active agents in tentacle-a");
     const tentacleBGroup = within(sidebar).getByLabelText("Active agents in tentacle-b");
 
+    expect(within(tentacleAGroup).getByText("1 processing · 1 idle · 2 agents")).toBeInTheDocument();
+    expect(within(tentacleBGroup).getByText("0 processing · 1 idle · 1 agent")).toBeInTheDocument();
     expect(within(tentacleAGroup).getByText("core-planner")).toBeInTheDocument();
-    expect(within(tentacleAGroup).getByText("worker-1")).toBeInTheDocument();
+    expect(within(tentacleAGroup).getByText(longWorkerLabel)).toBeInTheDocument();
     expect(within(tentacleBGroup).getByText("reviewer")).toBeInTheDocument();
+
+    const rootAgentRow = within(tentacleAGroup).getByText("core-planner").closest("li");
+    expect(rootAgentRow).toHaveClass("active-agents-agent-row", "active-agents-agent-row--root");
+
+    const childAgentLabel = within(tentacleAGroup).getByText(longWorkerLabel);
+    expect(childAgentLabel).toHaveAttribute("title", longWorkerLabel);
+    const childAgentRow = childAgentLabel.closest("li");
+    expect(childAgentRow).toHaveClass("active-agents-agent-row", "active-agents-agent-row--child");
+  });
+
+  it("collapses and expands the active agents sidebar section", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            agentId: "agent-1",
+            label: "core-planner",
+            state: "live",
+            tentacleId: "tentacle-a",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+    render(<App />);
+
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+    const tentacleGroupLabel = "Active agents in tentacle-a";
+    expect(within(sidebar).getByLabelText(tentacleGroupLabel)).toBeInTheDocument();
+
+    const collapseButton = within(sidebar).getByRole("button", {
+      name: "Collapse Active Agents section",
+    });
+    fireEvent.click(collapseButton);
+
+    expect(within(sidebar).queryByLabelText(tentacleGroupLabel)).toBeNull();
+    expect(
+      within(sidebar).getByRole("button", {
+        name: "Expand Active Agents section",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(sidebar).getByRole("button", {
+        name: "Expand Active Agents section",
+      }),
+    );
+
+    expect(within(sidebar).getByLabelText(tentacleGroupLabel)).toBeInTheDocument();
   });
 
   it("toggles the active agents sidebar", async () => {

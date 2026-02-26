@@ -182,127 +182,136 @@ export const createApiServer = ({
       return;
     }
 
-    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    try {
+      const requestUrl = new URL(request.url ?? "/", "http://localhost");
 
-    if (request.method === "OPTIONS") {
-      response.writeHead(204, withCors({}, corsOrigin));
-      response.end();
-      return;
-    }
-
-    if (requestUrl.pathname === "/api/agent-snapshots") {
-      if (request.method !== "GET") {
-        response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Method not allowed" }));
-        return;
-      }
-
-      const payload = runtime.listAgentSnapshots();
-      response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
-      response.end(JSON.stringify(payload));
-      return;
-    }
-
-    if (requestUrl.pathname === "/api/codex/usage") {
-      if (request.method !== "GET") {
-        response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Method not allowed" }));
-        return;
-      }
-
-      const payload = await readCodexUsageSnapshot();
-      response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
-      response.end(JSON.stringify(payload));
-      return;
-    }
-
-    if (requestUrl.pathname === "/api/tentacles") {
-      if (request.method !== "POST") {
-        response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Method not allowed" }));
-        return;
-      }
-
-      let bodyPayload: unknown = null;
-      try {
-        bodyPayload = await readJsonBody(request);
-      } catch {
-        response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Invalid JSON body." }));
-        return;
-      }
-
-      const nameResult = parseTentacleName(bodyPayload);
-      if (nameResult.error) {
-        response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: nameResult.error }));
-        return;
-      }
-
-      const payload = runtime.createTentacle(nameResult.name);
-      response.writeHead(201, withCors({ "Content-Type": "application/json" }, corsOrigin));
-      response.end(JSON.stringify(payload));
-      return;
-    }
-
-    const renameMatch = requestUrl.pathname.match(/^\/api\/tentacles\/([^/]+)$/);
-    if (renameMatch) {
-      if (request.method !== "PATCH" && request.method !== "DELETE") {
-        response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Method not allowed" }));
-        return;
-      }
-
-      const tentacleId = decodeURIComponent(renameMatch[1] ?? "");
-      if (request.method === "DELETE") {
-        const deleted = runtime.deleteTentacle(tentacleId);
-        if (!deleted) {
-          response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
-          response.end(JSON.stringify({ error: "Tentacle not found." }));
-          return;
-        }
-
+      if (request.method === "OPTIONS") {
         response.writeHead(204, withCors({}, corsOrigin));
         response.end();
         return;
       }
 
-      let bodyPayload: unknown = null;
-      try {
-        bodyPayload = await readJsonBody(request);
-      } catch {
-        response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Invalid JSON body." }));
+      if (requestUrl.pathname === "/api/agent-snapshots") {
+        if (request.method !== "GET") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        const payload = runtime.listAgentSnapshots();
+        response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
         return;
       }
 
-      const nameResult = parseTentacleName(bodyPayload);
-      if (nameResult.error) {
-        response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: nameResult.error }));
+      if (requestUrl.pathname === "/api/codex/usage") {
+        if (request.method !== "GET") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        const payload = await readCodexUsageSnapshot();
+        response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
         return;
       }
 
-      if (!nameResult.provided || !nameResult.name) {
-        response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Tentacle name is required." }));
+      if (requestUrl.pathname === "/api/tentacles") {
+        if (request.method !== "POST") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        let bodyPayload: unknown = null;
+        try {
+          bodyPayload = await readJsonBody(request);
+        } catch {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Invalid JSON body." }));
+          return;
+        }
+
+        const nameResult = parseTentacleName(bodyPayload);
+        if (nameResult.error) {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: nameResult.error }));
+          return;
+        }
+
+        const payload = runtime.createTentacle(nameResult.name);
+        response.writeHead(201, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
         return;
       }
 
-      const payload = runtime.renameTentacle(tentacleId, nameResult.name);
-      if (!payload) {
-        response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify({ error: "Tentacle not found." }));
+      const renameMatch = requestUrl.pathname.match(/^\/api\/tentacles\/([^/]+)$/);
+      if (renameMatch) {
+        if (request.method !== "PATCH" && request.method !== "DELETE") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        const tentacleId = decodeURIComponent(renameMatch[1] ?? "");
+        if (request.method === "DELETE") {
+          const deleted = runtime.deleteTentacle(tentacleId);
+          if (!deleted) {
+            response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
+            response.end(JSON.stringify({ error: "Tentacle not found." }));
+            return;
+          }
+
+          response.writeHead(204, withCors({}, corsOrigin));
+          response.end();
+          return;
+        }
+
+        let bodyPayload: unknown = null;
+        try {
+          bodyPayload = await readJsonBody(request);
+        } catch {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Invalid JSON body." }));
+          return;
+        }
+
+        const nameResult = parseTentacleName(bodyPayload);
+        if (nameResult.error) {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: nameResult.error }));
+          return;
+        }
+
+        if (!nameResult.provided || !nameResult.name) {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Tentacle name is required." }));
+          return;
+        }
+
+        const payload = runtime.renameTentacle(tentacleId, nameResult.name);
+        if (!payload) {
+          response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Tentacle not found." }));
+          return;
+        }
+
+        response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
         return;
       }
 
-      response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
-      response.end(JSON.stringify(payload));
-      return;
+      response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
+      response.end(JSON.stringify({ error: "Not found" }));
+    } catch (error) {
+      response.writeHead(500, withCors({ "Content-Type": "application/json" }, corsOrigin));
+      response.end(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Internal server error",
+        }),
+      );
     }
-
-    response.writeHead(404, withCors({ "Content-Type": "application/json" }, corsOrigin));
-    response.end(JSON.stringify({ error: "Not found" }));
   });
 
   server.on("upgrade", (request, socket, head) => {

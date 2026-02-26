@@ -68,6 +68,10 @@ Do not render a dedicated resize strip between the Active Agents sidebar and the
 
 In the Active Agents sidebar, root agent rows should use the same `idle`/`processing` badge style and state semantics as the terminal window header.
 
+### Sidebar Section UX Preference
+
+Structure the left sidebar as reusable sections with collapsible headers. Keep section headers visually prominent and use slightly roomier paddings to improve scanability.
+
 ### Codex Usage Placement Preference
 
 Show Codex usage in the `Active Agents` sidebar footer (bottom of the left sidebar), not in the top chrome bar. Keep it visually consistent with existing terminal/sidebar chrome styling.

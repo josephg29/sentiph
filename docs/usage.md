@@ -9,7 +9,7 @@ pnpm dev
 
 Then open `http://localhost:5173`.
 
-`pnpm dev` starts both the web app and API service. By default the API listens on `127.0.0.1:8787` and the web app proxies `/api` traffic to it.
+`pnpm dev` starts both the web app and API service. The dev runner auto-selects an available API port starting from `127.0.0.1:8787` and passes it to the web proxy automatically.
 Terminal persistence requires `tmux` to be installed and available on `PATH`.
 
 ## Active Agents dashboard deck

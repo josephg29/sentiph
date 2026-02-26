@@ -33,8 +33,8 @@ Open `http://localhost:5173`.
 
 In dev mode:
 
-- `apps/api` runs on `http://127.0.0.1:8787`.
-- `apps/web` runs on `http://localhost:5173` and proxies `/api` and terminal websocket traffic to `apps/api`.
+- `pnpm dev` auto-selects an available API port (starting at `8787`) and injects it into both apps.
+- `apps/web` may auto-select a free Vite port (`5173`, `5174`, `5175`, ...), and still proxies `/api` and terminal websocket traffic to the selected API port.
 - `apps/api` requires `tmux` on `PATH` for terminal persistence.
 - Runtime endpoints:
   - `GET /api/agent-snapshots`

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,7 +8,7 @@ import { createApiServer } from "../src/createApiServer";
 import type { TmuxClient } from "../src/terminalRuntime";
 
 class FakeTmuxClient implements TmuxClient {
-  private readonly sessions = new Map<string, { cwd: string; command: string }>();
+  private readonly sessions = new Map<string, { cwd: string; command?: string }>();
 
   assertAvailable(): void {}
 
@@ -33,16 +33,20 @@ class FakeTmuxClient implements TmuxClient {
   }: {
     sessionName: string;
     cwd: string;
-    command: string;
+    command?: string;
   }): void {
     if (this.sessions.has(sessionName)) {
       throw new Error(`Session already exists: ${sessionName}`);
     }
-    this.sessions.set(sessionName, { cwd, command });
+    this.sessions.set(sessionName, command ? { cwd, command } : { cwd });
   }
 
   killSession(sessionName: string): void {
     this.sessions.delete(sessionName);
+  }
+
+  getSession(sessionName: string): { cwd: string; command?: string } | null {
+    return this.sessions.get(sessionName) ?? null;
   }
 }
 
@@ -321,6 +325,47 @@ describe("createApiServer", () => {
     ]);
   });
 
+  it("creates tmux sessions without detached codex bootstrap command", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "planner" }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const session = tmuxClient.getSession("octogent_tentacle-1");
+    expect(session).toEqual(
+      expect.objectContaining({
+        cwd: workspaceCwd,
+      }),
+    );
+    expect(session?.command).toBeUndefined();
+
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+      tentacles: Array<{ tentacleId: string; codexBootstrapped: boolean }>;
+    };
+    expect(registryDocument.tentacles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tentacleId: "tentacle-1",
+          codexBootstrapped: false,
+        }),
+      ]),
+    );
+  });
+
   it("returns 400 when tentacle name is empty after trimming", async () => {
     const baseUrl = await startServer();
 
@@ -461,5 +506,34 @@ describe("createApiServer", () => {
     });
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
+  });
+
+  it("skips orphan tmux session ids when creating new tentacles", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+    tmuxClient.createSession({
+      sessionName: "octogent_tentacle-1",
+      cwd: workspaceCwd,
+      command: "codex",
+    });
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+    await expect(createResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-2",
+      }),
+    );
   });
 });

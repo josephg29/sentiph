@@ -46,7 +46,18 @@ export const ActiveAgentsSidebar = ({
   codexUsageStatus = "loading",
 }: ActiveAgentsSidebarProps) => {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
+  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const resolveAgentCodexState = (
+    tentacleId: string,
+    agent: { parentAgentId?: string; state: AgentState },
+  ): CodexState => {
+    if (agent.parentAgentId === undefined) {
+      return tentacleStates[tentacleId] ?? fallbackCodexStateByAgentState[agent.state];
+    }
+    return fallbackCodexStateByAgentState[agent.state];
+  };
 
   const activeAgentCount = useMemo(
     () => columns.reduce((count, column) => count + column.agents.length, 0),
@@ -102,134 +113,199 @@ export const ActiveAgentsSidebar = ({
         ref={sidebarRef}
         style={{ width: `${sidebarWidth}px` }}
       >
-        <header className="active-agents-header">
-          <div className="active-agents-header-text">
-            <h2>Active Agents</h2>
-            <p>
-              {columns.length} tentacles · {activeAgentCount} agents
-            </p>
-          </div>
-        </header>
-
         <div className="active-agents-body">
-          {isLoading && <p className="active-agents-status">Loading active agents...</p>}
+          <section className="active-agents-section" aria-label="Sidebar section Active Agents">
+            <button
+              aria-controls="active-agents-section-panel"
+              aria-expanded={isActiveAgentsSectionExpanded}
+              aria-label={
+                isActiveAgentsSectionExpanded
+                  ? "Collapse Active Agents section"
+                  : "Expand Active Agents section"
+              }
+              className="active-agents-section-toggle"
+              data-expanded={isActiveAgentsSectionExpanded ? "true" : "false"}
+              onClick={() => {
+                setIsActiveAgentsSectionExpanded((current) => !current);
+              }}
+              type="button"
+            >
+              <span className="active-agents-section-title">Active Agents</span>
+              <span className="active-agents-section-meta">
+                {columns.length} tentacles · {activeAgentCount} agents
+              </span>
+              <span className="active-agents-section-chevron" aria-hidden="true">
+                {isActiveAgentsSectionExpanded ? "▾" : "▸"}
+              </span>
+            </button>
 
-          {!isLoading && columns.length === 0 && (
-            <p className="active-agents-status">No active tentacles right now.</p>
-          )}
+            {isActiveAgentsSectionExpanded && (
+              <div className="active-agents-section-panel" id="active-agents-section-panel">
+                {isLoading && <p className="active-agents-status">Loading active agents...</p>}
 
-          {!isLoading &&
-            columns.map((column) => (
-              <section
-                key={column.tentacleId}
-                aria-label={`Active agents in ${column.tentacleId}`}
-                className="active-agents-group"
-              >
-                <div className="active-agents-group-header">
-                  <h3>{column.tentacleName}</h3>
-                  {minimizedTentacleIds.includes(column.tentacleId) && (
-                    <ActionButton
-                      aria-label={`Maximize tentacle ${column.tentacleId}`}
-                      className="active-agents-maximize"
-                      onClick={() => {
-                        onMaximizeTentacle?.(column.tentacleId);
-                      }}
-                      size="compact"
-                      variant="accent"
-                    >
-                      Maximize
-                    </ActionButton>
-                  )}
-                </div>
-                <ul>
-                  {column.agents.map((agent) => (
-                    <li key={agent.agentId}>
-                      <span>{agent.label}</span>
-                      <CodexStateBadge
-                        state={
-                          agent.parentAgentId === undefined
-                            ? (tentacleStates[column.tentacleId] ??
-                              fallbackCodexStateByAgentState[agent.state])
-                            : fallbackCodexStateByAgentState[agent.state]
-                        }
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+                {!isLoading && columns.length === 0 && (
+                  <p className="active-agents-status">No active tentacles right now.</p>
+                )}
 
-          {loadError && <p className="active-agents-status active-agents-error">{loadError}</p>}
+                {!isLoading &&
+                  columns.map((column) => {
+                    const processingCount = column.agents.reduce((count, agent) => {
+                      return resolveAgentCodexState(column.tentacleId, agent) === "processing"
+                        ? count + 1
+                        : count;
+                    }, 0);
+                    const idleCount = column.agents.length - processingCount;
+                    const agentCountLabel = column.agents.length === 1 ? "agent" : "agents";
+                    return (
+                      <section
+                        key={column.tentacleId}
+                        aria-label={`Active agents in ${column.tentacleId}`}
+                        className="active-agents-group"
+                      >
+                        <div className="active-agents-group-header">
+                          <div className="active-agents-group-header-text">
+                            <h3>{column.tentacleName}</h3>
+                            <p className="active-agents-group-stats">
+                              {processingCount} processing · {idleCount} idle · {column.agents.length}{" "}
+                              {agentCountLabel}
+                            </p>
+                          </div>
+                          {minimizedTentacleIds.includes(column.tentacleId) && (
+                            <ActionButton
+                              aria-label={`Maximize tentacle ${column.tentacleId}`}
+                              className="active-agents-maximize"
+                              onClick={() => {
+                                onMaximizeTentacle?.(column.tentacleId);
+                              }}
+                              size="compact"
+                              variant="accent"
+                            >
+                              Maximize
+                            </ActionButton>
+                          )}
+                        </div>
+                        <ul>
+                          {column.agents.map((agent) => (
+                            <li
+                              className={`active-agents-agent-row ${
+                                agent.parentAgentId === undefined
+                                  ? "active-agents-agent-row--root"
+                                  : "active-agents-agent-row--child"
+                              }`}
+                              key={agent.agentId}
+                            >
+                              <span className="active-agents-agent-label" title={agent.label}>
+                                {agent.label}
+                              </span>
+                              <CodexStateBadge state={resolveAgentCodexState(column.tentacleId, agent)} />
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    );
+                  })}
+
+                {loadError && <p className="active-agents-status active-agents-error">{loadError}</p>}
+              </div>
+            )}
+          </section>
         </div>
         <footer className="active-agents-footer">
-          <div className={`active-agents-codex-usage active-agents-codex-usage--${codexUsageStatus}`}>
-            <div className="active-agents-codex-usage-meta">
-              <span>Codex token usage</span>
-            </div>
-            {codexUsageStatus === "ok" ? (
-              <div aria-label="Codex token usage bars" className="active-agents-codex-usage-bars">
-                <div className="active-agents-codex-usage-row">
-                  <span
-                    aria-label="5H token usage"
-                    aria-valuemax={100}
-                    aria-valuemin={0}
-                    aria-valuenow={primaryUsagePercent === null ? undefined : Math.round(primaryUsagePercent)}
-                    aria-valuetext={
-                      primaryUsagePercent === null ? "No usage data" : `${Math.round(primaryUsagePercent)}%`
-                    }
-                    className="active-agents-codex-usage-rail"
-                    role="progressbar"
-                  >
-                    <span
-                      className="active-agents-codex-usage-rail-fill"
-                      style={{ width: `${primaryUsagePercent ?? 0}%` }}
-                    />
-                  </span>
-                  <p className="active-agents-codex-usage-meta-row">
-                    <span className="active-agents-codex-usage-label">5H tokens</span>
-                    <span className="active-agents-codex-usage-percent">
-                      {primaryUsagePercent === null ? "--" : `${Math.round(primaryUsagePercent)}%`}
-                    </span>
-                  </p>
+          <section className="active-agents-section active-agents-section--footer">
+            <button
+              aria-controls="codex-usage-section-panel"
+              aria-expanded={isCodexUsageSectionExpanded}
+              aria-label={
+                isCodexUsageSectionExpanded
+                  ? "Collapse Codex token usage section"
+                  : "Expand Codex token usage section"
+              }
+              className="active-agents-section-toggle"
+              data-expanded={isCodexUsageSectionExpanded ? "true" : "false"}
+              onClick={() => {
+                setIsCodexUsageSectionExpanded((current) => !current);
+              }}
+              type="button"
+            >
+              <span className="active-agents-section-title">Codex token usage</span>
+              <span className="active-agents-section-meta">5H + weekly + credits</span>
+              <span className="active-agents-section-chevron" aria-hidden="true">
+                {isCodexUsageSectionExpanded ? "▾" : "▸"}
+              </span>
+            </button>
+
+            {isCodexUsageSectionExpanded && (
+              <div className="active-agents-section-panel" id="codex-usage-section-panel">
+                <div className={`active-agents-codex-usage active-agents-codex-usage--${codexUsageStatus}`}>
+                  {codexUsageStatus === "ok" ? (
+                    <div aria-label="Codex token usage bars" className="active-agents-codex-usage-bars">
+                      <div className="active-agents-codex-usage-row">
+                        <span
+                          aria-label="5H token usage"
+                          aria-valuemax={100}
+                          aria-valuemin={0}
+                          aria-valuenow={primaryUsagePercent === null ? undefined : Math.round(primaryUsagePercent)}
+                          aria-valuetext={
+                            primaryUsagePercent === null ? "No usage data" : `${Math.round(primaryUsagePercent)}%`
+                          }
+                          className="active-agents-codex-usage-rail"
+                          role="progressbar"
+                        >
+                          <span
+                            className="active-agents-codex-usage-rail-fill"
+                            style={{ width: `${primaryUsagePercent ?? 0}%` }}
+                          />
+                        </span>
+                        <p className="active-agents-codex-usage-meta-row">
+                          <span className="active-agents-codex-usage-label">5H tokens</span>
+                          <span className="active-agents-codex-usage-percent">
+                            {primaryUsagePercent === null ? "--" : `${Math.round(primaryUsagePercent)}%`}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="active-agents-codex-usage-row">
+                        <span
+                          aria-label="Weekly token usage"
+                          aria-valuemax={100}
+                          aria-valuemin={0}
+                          aria-valuenow={
+                            secondaryUsagePercent === null ? undefined : Math.round(secondaryUsagePercent)
+                          }
+                          aria-valuetext={
+                            secondaryUsagePercent === null
+                              ? "No usage data"
+                              : `${Math.round(secondaryUsagePercent)}%`
+                          }
+                          className="active-agents-codex-usage-rail"
+                          role="progressbar"
+                        >
+                          <span
+                            className="active-agents-codex-usage-rail-fill"
+                            style={{ width: `${secondaryUsagePercent ?? 0}%` }}
+                          />
+                        </span>
+                        <p className="active-agents-codex-usage-meta-row">
+                          <span className="active-agents-codex-usage-label">Week tokens</span>
+                          <span className="active-agents-codex-usage-percent">
+                            {secondaryUsagePercent === null ? "--" : `${Math.round(secondaryUsagePercent)}%`}
+                          </span>
+                        </p>
+                      </div>
+                      <p className="active-agents-codex-usage-credits">Credits {creditsLabel}</p>
+                    </div>
+                  ) : (
+                    <p className="active-agents-codex-usage-status">
+                      {codexUsageStatus === "loading"
+                        ? "Waiting for Codex usage..."
+                        : codexUsageStatus === "unavailable"
+                          ? "Codex usage unavailable."
+                          : "Codex usage error."}
+                    </p>
+                  )}
                 </div>
-                <div className="active-agents-codex-usage-row">
-                  <span
-                    aria-label="Weekly token usage"
-                    aria-valuemax={100}
-                    aria-valuemin={0}
-                    aria-valuenow={secondaryUsagePercent === null ? undefined : Math.round(secondaryUsagePercent)}
-                    aria-valuetext={
-                      secondaryUsagePercent === null
-                        ? "No usage data"
-                        : `${Math.round(secondaryUsagePercent)}%`
-                    }
-                    className="active-agents-codex-usage-rail"
-                    role="progressbar"
-                  >
-                    <span
-                      className="active-agents-codex-usage-rail-fill"
-                      style={{ width: `${secondaryUsagePercent ?? 0}%` }}
-                    />
-                  </span>
-                  <p className="active-agents-codex-usage-meta-row">
-                    <span className="active-agents-codex-usage-label">Week tokens</span>
-                    <span className="active-agents-codex-usage-percent">
-                      {secondaryUsagePercent === null ? "--" : `${Math.round(secondaryUsagePercent)}%`}
-                    </span>
-                  </p>
-                </div>
-                <p className="active-agents-codex-usage-credits">Credits {creditsLabel}</p>
               </div>
-            ) : (
-              <p className="active-agents-codex-usage-status">
-                {codexUsageStatus === "loading"
-                  ? "Waiting for Codex usage..."
-                  : codexUsageStatus === "unavailable"
-                    ? "Codex usage unavailable."
-                    : "Codex usage error."}
-              </p>
             )}
-          </div>
+          </section>
         </footer>
         <div
           className="active-agents-border-resizer"

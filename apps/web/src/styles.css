@@ -259,52 +259,80 @@ body {
   background: color-mix(in srgb, var(--bg-surface-1) 85%, #141414);
   border-right: 1px solid var(--border-subtle);
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
   overflow: hidden;
   position: relative;
-}
-
-.active-agents-header {
-  min-height: 40px;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.2rem;
-  padding: 0.2rem 0.3rem;
-  background: var(--bg-surface-2);
-}
-
-.active-agents-header-text h2 {
-  margin: 0;
-  color: var(--accent-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
-  font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.active-agents-header-text p {
-  margin: 0.2rem 0 0;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
 }
 
 .active-agents-body {
   min-height: 0;
   overflow: auto;
-  padding: 0.2rem;
+  padding: 0.38rem;
   display: grid;
   align-content: start;
-  gap: 0.2rem;
+  gap: 0.38rem;
 }
 
 .active-agents-footer {
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-surface-2);
-  padding: 0.2rem 0.3rem 0.25rem;
+  padding: 0.32rem 0.4rem 0.36rem;
+}
+
+.active-agents-section {
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, var(--border-subtle) 65%);
+  background: color-mix(in srgb, var(--bg-surface-1) 82%, #121212);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 65%, transparent);
+}
+
+.active-agents-section-toggle {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--accent-primary) 42%, color-mix(in srgb, var(--border-subtle) 90%, #666666 10%));
+  background: color-mix(in srgb, var(--accent-primary) 72%, #f4cf95 28%);
+  color: #121212;
+  cursor: pointer;
+  padding: 0.3rem 0.4rem;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.32rem;
+  text-align: left;
+}
+
+.active-agents-section-toggle[data-expanded="false"] {
+  border-bottom: 0;
+}
+
+.active-agents-section-toggle:focus-visible {
+  outline: 1px solid #121212;
+  outline-offset: -2px;
+}
+
+.active-agents-section-title {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.active-agents-section-meta {
+  color: color-mix(in srgb, #121212 78%, #2d2d2d 22%);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.active-agents-section-chevron {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.active-agents-section-panel {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.34rem;
 }
 
 .active-agents-codex-usage {
@@ -521,9 +549,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.3rem;
   padding: 0.22rem 0.3rem;
   background: color-mix(in srgb, var(--accent-primary) 78%, #f8ce86 22%);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.active-agents-group-header-text {
+  min-width: 0;
+  display: grid;
+  gap: 0.08rem;
 }
 
 .active-agents-group h3 {
@@ -532,6 +567,14 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.67rem;
+}
+
+.active-agents-group-stats {
+  margin: 0;
+  color: color-mix(in srgb, #121212 76%, #262626 24%);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
 }
 
 .active-agents-maximize {
@@ -546,18 +589,41 @@ body {
   padding: 0;
 }
 
-.active-agents-group li {
+.active-agents-agent-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.3rem;
+  min-width: 0;
   padding: 0.22rem 0.3rem;
   border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
   font-size: 0.72rem;
 }
 
-.active-agents-group li:last-child {
+.active-agents-agent-row:last-child {
   border-bottom: 0;
+}
+
+.active-agents-agent-row .terminal-state-badge {
+  flex: 0 0 auto;
+}
+
+.active-agents-agent-row--root {
+  background: color-mix(in srgb, var(--bg-surface-1) 86%, #181818 14%);
+  font-weight: 700;
+}
+
+.active-agents-agent-row--child {
+  background: color-mix(in srgb, var(--bg-surface-1) 90%, #0f0f0f 10%);
+  color: color-mix(in srgb, var(--text-secondary) 84%, #9d9d9d 16%);
+  padding-left: 0.55rem;
+}
+
+.active-agents-agent-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .active-agents-status {
@@ -800,15 +866,17 @@ body {
   background: color-mix(in srgb, #000000 70%, transparent);
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: 1.35rem;
   z-index: 100;
 }
 
 .delete-confirm-dialog {
-  width: min(420px, 100%);
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--bg-surface-1) 86%, #101010);
-  box-shadow: 0 0 0 1px #000000;
+  width: min(460px, 100%);
+  border: 1px solid color-mix(in srgb, var(--term-red) 42%, var(--border-subtle) 58%);
+  background: color-mix(in srgb, var(--bg-surface-1) 90%, #090909);
+  box-shadow:
+    0 0 0 1px #000000,
+    0 0 22px color-mix(in srgb, var(--term-red) 24%, transparent);
 }
 
 .delete-confirm-header {
@@ -816,14 +884,14 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.35rem 0.45rem;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.5rem 0.62rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--term-red) 38%, var(--border-subtle) 62%);
   background: #000000;
 }
 
 .delete-confirm-header h2 {
   margin: 0;
-  color: var(--accent-primary);
+  color: #ff8f8f;
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-weight: 700;
   font-size: 0.66rem;
@@ -832,32 +900,98 @@ body {
   line-height: 1.2;
 }
 
-.delete-confirm-dialog p {
+.delete-confirm-body {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.82rem 0.62rem 0.56rem;
+}
+
+.delete-confirm-message {
   margin: 0;
-  padding: 0.55rem 0.45rem;
   color: var(--text-primary);
   font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.delete-confirm-warning {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--term-red) 45%, transparent);
+  background: color-mix(in srgb, var(--term-red) 12%, #100606);
+  color: #ffb3b3;
+  padding: 0.38rem 0.42rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+}
+
+.delete-confirm-details {
+  margin: 0;
+  display: grid;
+  gap: 0.22rem;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, #2b2b2b);
+  background: color-mix(in srgb, var(--bg-surface-1) 88%, #0f0f0f);
+}
+
+.delete-confirm-details div {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 0.35rem;
+  padding: 0.34rem 0.42rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+}
+
+.delete-confirm-details div:last-child {
+  border-bottom: 0;
+}
+
+.delete-confirm-details dt {
+  margin: 0;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.6rem;
+}
+
+.delete-confirm-details dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .delete-confirm-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.25rem;
-  padding: 0 0.45rem 0.45rem;
+  gap: 0.42rem;
+  padding: 0 0.62rem 0.62rem;
 }
 
 .delete-confirm-cancel,
 .delete-confirm-submit {
-  --action-button-padding-y: 0.18rem;
-  --action-button-padding-x: 0.3rem;
+  --action-button-padding-y: 0.22rem;
+  --action-button-padding-x: 0.4rem;
+  --action-button-letter-spacing: 0.07em;
 }
 
 .delete-confirm-cancel {
+  --action-button-border: color-mix(in srgb, var(--accent-primary) 58%, #2a2415);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 16%, #121212);
   --action-button-color: var(--accent-primary);
 }
 
 .delete-confirm-submit {
-  --action-button-color: #ff9a9a;
+  --action-button-border: color-mix(in srgb, #ff8f8f 65%, #2f1313);
+  --action-button-bg: color-mix(in srgb, #a83a3a 42%, #120909);
+  --action-button-color: #ffd4d4;
+}
+
+.delete-confirm-cancel:hover:not(:disabled) {
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 24%, #141414);
+}
+
+.delete-confirm-submit:hover:not(:disabled) {
+  --action-button-bg: color-mix(in srgb, #a83a3a 56%, #160b0b);
 }
 
 .tentacle-terminal {
