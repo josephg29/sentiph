@@ -55,6 +55,8 @@ type FrontendUiStateSnapshot = {
   tentacleWidths?: Record<string, number>;
 };
 
+type TentacleWorkspaceMode = "shared" | "worktree";
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
 
@@ -513,7 +515,7 @@ export const App = () => {
     }
   };
 
-  const handleCreateTentacle = async () => {
+  const handleCreateTentacle = async (workspaceMode: TentacleWorkspaceMode) => {
     try {
       setIsCreatingTentacle(true);
       setLoadError(null);
@@ -521,7 +523,9 @@ export const App = () => {
         method: "POST",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ workspaceMode }),
       });
 
       if (!response.ok) {
@@ -718,6 +722,9 @@ export const App = () => {
     event.preventDefault();
   };
 
+  const renderTentacleWorkspaceLabel = (workspaceMode: TentacleWorkspaceMode) =>
+    workspaceMode === "worktree" ? "WORKTREE" : "MAIN";
+
   return (
     <div className="page">
       <header className="chrome">
@@ -760,16 +767,30 @@ export const App = () => {
 
         <div className="chrome-right">
           <ActionButton
-            aria-label="New tentacle"
-            className="chrome-create-tentacle"
+            aria-label="Create tentacle in main codebase"
+            className="chrome-create-tentacle chrome-create-tentacle--shared"
             disabled={isCreatingTentacle}
             onClick={() => {
-              void handleCreateTentacle();
+              setLoadError(null);
+              void handleCreateTentacle("shared");
             }}
             size="dense"
             variant="primary"
           >
-            {isCreatingTentacle ? "Creating..." : "New tentacle"}
+            {isCreatingTentacle ? "Creating..." : "+ Main Tentacle"}
+          </ActionButton>
+          <ActionButton
+            aria-label="Create tentacle with isolated worktree"
+            className="chrome-create-tentacle chrome-create-tentacle--worktree"
+            disabled={isCreatingTentacle}
+            onClick={() => {
+              setLoadError(null);
+              void handleCreateTentacle("worktree");
+            }}
+            size="dense"
+            variant="info"
+          >
+            {isCreatingTentacle ? "Creating..." : "+ Worktree Tentacle"}
           </ActionButton>
         </div>
       </header>
@@ -837,45 +858,59 @@ export const App = () => {
                   }}
                 >
                   <div className="tentacle-column-header">
-                    {editingTentacleId === column.tentacleId ? (
-                      <input
-                        ref={tentacleNameInputRef}
-                        aria-label={`Tentacle name for ${column.tentacleId}`}
-                        className="tentacle-name-editor"
-                        onBlur={() => {
-                          void submitTentacleRename(column.tentacleId, column.tentacleName);
-                        }}
-                        onChange={(event) => {
-                          setTentacleNameDraft(event.target.value);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void submitTentacleRename(column.tentacleId, column.tentacleName);
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            cancelTentacleNameSubmitRef.current = true;
-                            setEditingTentacleId(null);
-                            setTentacleNameDraft("");
-                          }
-                        }}
-                        type="text"
-                        value={tentacleNameDraft}
-                      />
-                    ) : (
-                      <h2>
-                        <button
-                          className="tentacle-name-display"
-                          onClick={() => {
-                            beginTentacleNameEdit(column.tentacleId, column.tentacleName);
-                          }}
-                          type="button"
-                        >
-                          {column.tentacleName}
-                        </button>
-                      </h2>
-                    )}
+                    <div className="tentacle-column-heading">
+                      {editingTentacleId === column.tentacleId ? (
+                        <>
+                          <input
+                            ref={tentacleNameInputRef}
+                            aria-label={`Tentacle name for ${column.tentacleId}`}
+                            className="tentacle-name-editor"
+                            onBlur={() => {
+                              void submitTentacleRename(column.tentacleId, column.tentacleName);
+                            }}
+                            onChange={(event) => {
+                              setTentacleNameDraft(event.target.value);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void submitTentacleRename(column.tentacleId, column.tentacleName);
+                              }
+                              if (event.key === "Escape") {
+                                event.preventDefault();
+                                cancelTentacleNameSubmitRef.current = true;
+                                setEditingTentacleId(null);
+                                setTentacleNameDraft("");
+                              }
+                            }}
+                            type="text"
+                            value={tentacleNameDraft}
+                          />
+                          <span
+                            className={`tentacle-workspace-badge tentacle-workspace-badge--${column.tentacleWorkspaceMode}`}
+                          >
+                            {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
+                          </span>
+                        </>
+                      ) : (
+                        <h2>
+                          <button
+                            className="tentacle-name-display"
+                            onClick={() => {
+                              beginTentacleNameEdit(column.tentacleId, column.tentacleName);
+                            }}
+                            type="button"
+                          >
+                            {column.tentacleName}
+                          </button>
+                          <span
+                            className={`tentacle-workspace-badge tentacle-workspace-badge--${column.tentacleWorkspaceMode}`}
+                          >
+                            {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
+                          </span>
+                        </h2>
+                      )}
+                    </div>
                     {editingTentacleId !== column.tentacleId && (
                       <div className="tentacle-header-actions">
                         <ActionButton

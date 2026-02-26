@@ -36,6 +36,9 @@ const isAgentSnapshot = (value: unknown): value is AgentSnapshot => {
     isAgentState(snapshot.state) &&
     typeof snapshot.tentacleId === "string" &&
     (snapshot.tentacleName === undefined || typeof snapshot.tentacleName === "string") &&
+    (snapshot.tentacleWorkspaceMode === undefined ||
+      snapshot.tentacleWorkspaceMode === "shared" ||
+      snapshot.tentacleWorkspaceMode === "worktree") &&
     typeof snapshot.createdAt === "string" &&
     (snapshot.parentAgentId === undefined || typeof snapshot.parentAgentId === "string")
   );

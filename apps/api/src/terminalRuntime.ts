@@ -47,6 +47,7 @@ type PersistedTentacle = {
   tentacleName: string;
   createdAt: string;
   codexBootstrapped: boolean;
+  workspaceMode: TentacleWorkspaceMode;
 };
 
 export type PersistedUiState = {
@@ -59,7 +60,7 @@ export type PersistedUiState = {
 };
 
 type TentacleRegistryDocument = {
-  version: 1;
+  version: 2;
   nextTentacleNumber: number;
   tentacles: PersistedTentacle[];
   uiState?: PersistedUiState;
@@ -74,15 +75,29 @@ export type TmuxClient = {
   killSession(sessionName: string): void;
 };
 
+export type TentacleWorkspaceMode = "shared" | "worktree";
+
+export type GitClient = {
+  assertAvailable(): void;
+  isRepository(cwd: string): boolean;
+  addWorktree(options: { cwd: string; path: string; branchName: string; baseRef: string }): void;
+  removeWorktree(options: { cwd: string; path: string }): void;
+};
+
+export class RuntimeInputError extends Error {}
+
 type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;
   tmuxClient?: TmuxClient;
+  gitClient?: GitClient;
 };
 
 const TENTACLE_ID_PREFIX = "tentacle-";
 const TMUX_SESSION_PREFIX = "octogent_";
-const TENTACLE_REGISTRY_VERSION = 1;
+const TENTACLE_REGISTRY_VERSION = 2;
 const TENTACLE_REGISTRY_RELATIVE_PATH = ".octogent/state/tentacles.json";
+const TENTACLE_WORKTREE_RELATIVE_PATH = ".octogent/worktrees";
+const TENTACLE_WORKTREE_BRANCH_PREFIX = "octogent/";
 const TENTACLE_BOOTSTRAP_COMMAND = "codex";
 
 const createShellEnvironment = () => {
@@ -353,6 +368,44 @@ const createDefaultTmuxClient = (): TmuxClient => ({
   },
 });
 
+const createDefaultGitClient = (): GitClient => ({
+  assertAvailable() {
+    try {
+      execFileSync("git", ["--version"], { stdio: "ignore" });
+    } catch (error) {
+      throw new Error(`git is required for worktree tentacles: ${toErrorMessage(error)}`);
+    }
+  },
+
+  isRepository(cwd) {
+    try {
+      const output = execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
+        cwd,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+      return output.trim() === "true";
+    } catch {
+      return false;
+    }
+  },
+
+  addWorktree({ cwd, path, branchName, baseRef }) {
+    mkdirSync(dirname(path), { recursive: true });
+    execFileSync("git", ["worktree", "add", "-b", branchName, path, baseRef], {
+      cwd,
+      stdio: "pipe",
+    });
+  },
+
+  removeWorktree({ cwd, path }) {
+    execFileSync("git", ["worktree", "remove", "--force", path], {
+      cwd,
+      stdio: "pipe",
+    });
+  },
+});
+
 const parseRegistryDocument = (
   raw: string,
   registryPath: string,
@@ -373,7 +426,7 @@ const parseRegistryDocument = (
   }
 
   const record = parsed as Record<string, unknown>;
-  if (record.version !== TENTACLE_REGISTRY_VERSION) {
+  if (record.version !== 1 && record.version !== TENTACLE_REGISTRY_VERSION) {
     throw new Error(
       `Unsupported tentacle registry version in ${registryPath}: ${String(record.version)}`,
     );
@@ -403,6 +456,12 @@ const parseRegistryDocument = (
       throw new Error(`Incomplete tentacle entry in registry (${registryPath}).`);
     }
 
+    const rawWorkspaceMode = entry.workspaceMode;
+    const workspaceMode: TentacleWorkspaceMode =
+      rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
+        ? rawWorkspaceMode
+        : "shared";
+
     const tentacleNumber = parseTentacleNumber(tentacleId);
     if (tentacleNumber === null) {
       throw new Error(`Invalid tentacle id in registry (${registryPath}): ${tentacleId}`);
@@ -418,6 +477,7 @@ const parseRegistryDocument = (
       tentacleName,
       createdAt,
       codexBootstrapped,
+      workspaceMode,
     });
   }
 
@@ -471,6 +531,7 @@ const persistTentacleRegistry = (
 export const createTerminalRuntime = ({
   workspaceCwd,
   tmuxClient = createDefaultTmuxClient(),
+  gitClient = createDefaultGitClient(),
 }: CreateTerminalRuntimeOptions) => {
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
@@ -492,6 +553,66 @@ export const createTerminalRuntime = ({
       nextTentacleNumber,
       uiState,
     });
+  };
+
+  const getTentacleWorktreePath = (tentacleId: string) =>
+    join(workspaceCwd, TENTACLE_WORKTREE_RELATIVE_PATH, tentacleId);
+
+  const getTentacleWorkspaceCwd = (tentacleId: string) => {
+    const tentacle = tentacles.get(tentacleId);
+    if (!tentacle) {
+      throw new Error(`Unknown tentacle: ${tentacleId}`);
+    }
+
+    if (tentacle.workspaceMode === "worktree") {
+      return getTentacleWorktreePath(tentacleId);
+    }
+
+    return workspaceCwd;
+  };
+
+  const assertWorktreeCreationSupported = () => {
+    gitClient.assertAvailable();
+    if (!gitClient.isRepository(workspaceCwd)) {
+      throw new RuntimeInputError(
+        "Worktree tentacles require a git repository at the workspace root.",
+      );
+    }
+  };
+
+  const createTentacleWorktree = (tentacleId: string) => {
+    assertWorktreeCreationSupported();
+    const worktreePath = getTentacleWorktreePath(tentacleId);
+    if (existsSync(worktreePath)) {
+      throw new RuntimeInputError(`Worktree path already exists: ${worktreePath}`);
+    }
+
+    try {
+      gitClient.addWorktree({
+        cwd: workspaceCwd,
+        path: worktreePath,
+        branchName: `${TENTACLE_WORKTREE_BRANCH_PREFIX}${tentacleId}`,
+        baseRef: "HEAD",
+      });
+    } catch (error) {
+      throw new Error(`Unable to create worktree for ${tentacleId}: ${toErrorMessage(error)}`);
+    }
+  };
+
+  const removeTentacleWorktree = (tentacleId: string) => {
+    const worktreePath = getTentacleWorktreePath(tentacleId);
+    if (!existsSync(worktreePath)) {
+      return;
+    }
+
+    try {
+      gitClient.removeWorktree({
+        cwd: workspaceCwd,
+        path: worktreePath,
+      });
+    } catch {
+      // Best effort rollback cleanup.
+    }
   };
 
   const createDebugLog = (tentacleId: string) => {
@@ -555,6 +676,7 @@ export const createTerminalRuntime = ({
     state: "live",
     tentacleId: tentacle.tentacleId,
     tentacleName: tentacle.tentacleName,
+    tentacleWorkspaceMode: tentacle.workspaceMode,
     createdAt: tentacle.createdAt,
   });
 
@@ -585,9 +707,14 @@ export const createTerminalRuntime = ({
       return;
     }
 
+    const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
+    if (!existsSync(tentacleCwd)) {
+      throw new Error(`Tentacle working directory does not exist: ${tentacleCwd}`);
+    }
+
     tmuxClient.createSession({
       sessionName: tmuxSessionName,
-      cwd: workspaceCwd,
+      cwd: tentacleCwd,
     });
     tmuxClient.configureSession(tmuxSessionName);
   };
@@ -625,7 +752,7 @@ export const createTerminalRuntime = ({
       pty = spawn("tmux", ["attach-session", "-t", tmuxSessionNameForTentacle(tentacleId)], {
         cols: 120,
         rows: 35,
-        cwd: workspaceCwd,
+        cwd: getTentacleWorkspaceCwd(tentacleId),
         env: createShellEnvironment(),
         name: "xterm-256color",
       });
@@ -687,14 +814,26 @@ export const createTerminalRuntime = ({
     return session;
   };
 
-  const createTentacle = (tentacleName?: string): AgentSnapshot => {
+  const createTentacle = ({
+    tentacleName,
+    workspaceMode = "shared",
+  }: {
+    tentacleName?: string;
+    workspaceMode?: TentacleWorkspaceMode;
+  }): AgentSnapshot => {
     const tentacleId = allocateTentacleId();
     const tentacle: PersistedTentacle = {
       tentacleId,
       tentacleName: tentacleName ?? tentacleId,
       createdAt: new Date().toISOString(),
       codexBootstrapped: false,
+      workspaceMode,
     };
+
+    const shouldCreateWorktree = workspaceMode === "worktree";
+    if (shouldCreateWorktree) {
+      createTentacleWorktree(tentacleId);
+    }
 
     tentacles.set(tentacleId, tentacle);
     persistRegistry();
@@ -704,6 +843,9 @@ export const createTerminalRuntime = ({
     } catch (error) {
       tentacles.delete(tentacleId);
       persistRegistry();
+      if (shouldCreateWorktree) {
+        removeTentacleWorktree(tentacleId);
+      }
       throw error;
     }
 

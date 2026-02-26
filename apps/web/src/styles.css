@@ -15,6 +15,7 @@
   --control-font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   --control-letter-spacing: 0.06em;
   --control-line-height: 1.2;
+  --ui-base-font-size: 18px;
   --scrollbar-size: 10px;
   --scrollbar-track: color-mix(in srgb, var(--bg-surface-1) 88%, #121212);
   --scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle) 62%);
@@ -33,6 +34,10 @@ body,
   margin: 0;
   height: 100%;
   min-height: 100%;
+}
+
+html {
+  font-size: var(--ui-base-font-size);
 }
 
 body {
@@ -124,6 +129,7 @@ body {
   display: flex;
   align-items: center;
   justify-self: end;
+  gap: 0.26rem;
 }
 
 .action-button {
@@ -226,11 +232,17 @@ body {
   --action-button-border: var(--border-subtle);
   --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
   --action-button-color: #121212;
-  --action-button-font-size: 0.64rem;
+  --action-button-font-size: 0.6rem;
   --action-button-letter-spacing: 0.08em;
   --action-button-line-height: 1.25;
   --action-button-padding-y: 0.2rem;
-  --action-button-padding-x: 0.42rem;
+  --action-button-padding-x: 0.34rem;
+}
+
+.chrome-create-tentacle--worktree {
+  --action-button-border: color-mix(in srgb, #9bc8ff 45%, var(--border-subtle));
+  --action-button-bg: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
+  --action-button-color: #9bc8ff;
 }
 
 .tentacles {
@@ -289,7 +301,11 @@ body {
   width: 100%;
   border: 0;
   border-bottom: 1px solid
-    color-mix(in srgb, var(--accent-primary) 42%, color-mix(in srgb, var(--border-subtle) 90%, #666666 10%));
+    color-mix(
+      in srgb,
+      var(--accent-primary) 42%,
+      color-mix(in srgb, var(--border-subtle) 90%, #666666 10%)
+    );
   background: color-mix(in srgb, var(--accent-primary) 72%, #f4cf95 28%);
   color: #121212;
   cursor: pointer;
@@ -341,9 +357,8 @@ body {
   padding: 0.18rem 0.22rem 0.2rem;
   display: grid;
   gap: 0.18rem;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent),
-    inset 0 0 18px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent), inset 0 0
+    18px color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .active-agents-codex-usage-meta {
@@ -389,12 +404,11 @@ body {
   display: block;
   height: 0.68rem;
   border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, #0b0b0b);
-  background:
-    repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--accent-primary) 14%, #0f1310) 0 13px,
-      color-mix(in srgb, #000000 70%, #0a0a0a) 13px 15px
-    );
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-primary) 14%, #0f1310) 0 13px,
+    color-mix(in srgb, #000000 70%, #0a0a0a) 13px 15px
+  );
   overflow: hidden;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 50%, transparent);
 }
@@ -402,8 +416,7 @@ body {
 .active-agents-codex-usage-rail-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background:
-    repeating-linear-gradient(
+  background: repeating-linear-gradient(
       90deg,
       color-mix(in srgb, var(--accent-primary) 64%, #f6cf96) 0 13px,
       color-mix(in srgb, var(--accent-primary) 30%, #191919) 13px 15px
@@ -461,8 +474,7 @@ body {
 }
 
 .active-agents-codex-usage--unavailable .active-agents-codex-usage-rail-fill {
-  background:
-    repeating-linear-gradient(
+  background: repeating-linear-gradient(
       90deg,
       #d9952a 0 13px,
       color-mix(in srgb, #d9952a 35%, #191919) 13px 15px
@@ -476,8 +488,7 @@ body {
 }
 
 .active-agents-codex-usage--error .active-agents-codex-usage-rail-fill {
-  background:
-    repeating-linear-gradient(
+  background: repeating-linear-gradient(
       90deg,
       #a83a3a 0 13px,
       color-mix(in srgb, #a83a3a 35%, #191919) 13px 15px
@@ -789,6 +800,9 @@ body {
 
 .tentacle-column-header h2 {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
   flex: 1;
   min-width: 0;
   text-transform: uppercase;
@@ -800,6 +814,13 @@ body {
   color: #121212;
 }
 
+.tentacle-column-heading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
 .tentacle-name-display {
   border: 0;
   background: transparent;
@@ -809,9 +830,12 @@ body {
   text-transform: inherit;
   line-height: inherit;
   padding: 0.3rem 0.45rem;
-  width: 100%;
+  max-width: 100%;
   text-align: left;
   cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tentacle-name-display:focus-visible {
@@ -821,7 +845,6 @@ body {
 
 .tentacle-name-editor {
   margin: 0;
-  width: 100%;
   flex: 1;
   border: 0;
   border-radius: 0;
@@ -839,6 +862,28 @@ body {
 .tentacle-name-editor:focus-visible {
   outline: 1px solid #121212;
   outline-offset: -1px;
+}
+
+.tentacle-workspace-badge {
+  border: 1px solid color-mix(in srgb, #121212 35%, transparent);
+  background: color-mix(in srgb, #ffffff 28%, var(--accent-primary));
+  color: #121212;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 0.16rem 0.22rem;
+  white-space: nowrap;
+}
+
+.tentacle-workspace-badge--worktree {
+  background: color-mix(in srgb, #99c8ff 68%, #d7ebff 32%);
+}
+
+.tentacle-workspace-badge--shared {
+  background: color-mix(in srgb, var(--accent-primary) 78%, #fff5d8 22%);
 }
 
 .tentacle-header-actions {
@@ -874,9 +919,7 @@ body {
   width: min(460px, 100%);
   border: 1px solid color-mix(in srgb, var(--term-red) 42%, var(--border-subtle) 58%);
   background: color-mix(in srgb, var(--bg-surface-1) 90%, #090909);
-  box-shadow:
-    0 0 0 1px #000000,
-    0 0 22px color-mix(in srgb, var(--term-red) 24%, transparent);
+  box-shadow: 0 0 0 1px #000000, 0 0 22px color-mix(in srgb, var(--term-red) 24%, transparent);
 }
 
 .delete-confirm-header {

@@ -15,7 +15,8 @@ Current UI baseline includes:
 - a left dashboard deck for `Active Agents`
 - tentacle-grouped agent listings in that deck
 - keyboard/mouse-resizable and toggleable sidebar behavior
-- `New tentacle` creation from the top bar with immediate inline naming
+- top-bar `+ Main Tentacle` and `+ Worktree Tentacle` creation actions
+- immediate inline naming after tentacle creation
 - in-place tentacle rename from each column header (stable id + editable name)
 - tentacle delete action from each column header
 - tentacle minimize from header and maximize from the `Active Agents` sidebar
@@ -36,9 +37,10 @@ In dev mode:
 - `pnpm dev` auto-selects an available API port (starting at `8787`) and injects it into both apps.
 - `apps/web` may auto-select a free Vite port (`5173`, `5174`, `5175`, ...), and still proxies `/api` and terminal websocket traffic to the selected API port.
 - `apps/api` requires `tmux` on `PATH` for terminal persistence.
+- Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Runtime endpoints:
   - `GET /api/agent-snapshots`
-  - `POST /api/tentacles` (`{ "name"?: string }`)
+  - `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
   - `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
   - `DELETE /api/tentacles/:tentacleId`
   - `WS /api/terminals/:tentacleId/ws`

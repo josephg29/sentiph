@@ -24,7 +24,8 @@ Terminal persistence requires `tmux` to be installed and available on `PATH`.
 
 ## Create tentacles
 
-- Use the top bar `New tentacle` button to spawn a new tentacle.
+- Use the top bar `+ Main Tentacle` button for a shared workspace tentacle.
+- Use the top bar `+ Worktree Tentacle` button for a tentacle in `.octogent/worktrees/<tentacleId>`.
 - Fresh workspaces start with no tentacles; create the first tentacle from the top bar.
 - Tentacles keep unique incremental ids (`tentacle-1`, `tentacle-2`, ...) for internal routing, plus a separate display name you can edit.
 - New tentacles appear with the default name selected inline so you can type a new name immediately.
@@ -33,6 +34,7 @@ Terminal persistence requires `tmux` to be installed and available on `PATH`.
 - Maximize minimized tentacles from `Maximize` buttons in the `Active Agents` sidebar.
 - Delete from the right-side `Delete` button in the tentacle header (with an in-app confirmation dialog).
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
+- Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Tentacle metadata and tmux sessions persist across API restarts, so existing tentacles reconnect to the same terminal session.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).

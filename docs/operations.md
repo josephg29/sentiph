@@ -20,8 +20,11 @@
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
 - Runtime restores UI state from that registry on startup and serves it via `GET /api/ui-state`.
 - Each tentacle maps to a tmux session named `octogent_<tentacleId>`.
+- `workspaceMode: "shared"` tentacles run in the main workspace root.
+- `workspaceMode: "worktree"` tentacles run in `.octogent/worktrees/<tentacleId>`.
 - Orphan tmux sessions without a registry entry are ignored.
 - `DELETE /api/tentacles/:tentacleId` removes both registry state and the associated tmux session.
+- Deleting a worktree tentacle does not remove its git worktree directory or branch automatically.
 - `PATCH /api/ui-state` updates and persists frontend UI preferences.
 
 ## Local security defaults

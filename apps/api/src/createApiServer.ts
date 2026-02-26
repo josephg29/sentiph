@@ -6,11 +6,19 @@ import {
   type CodexUsageSnapshot,
   readCodexUsageSnapshot as readCodexUsageSnapshotDefault,
 } from "./codexUsage";
-import { type PersistedUiState, type TmuxClient, createTerminalRuntime } from "./terminalRuntime";
+import {
+  type GitClient,
+  type PersistedUiState,
+  RuntimeInputError,
+  type TentacleWorkspaceMode,
+  type TmuxClient,
+  createTerminalRuntime,
+} from "./terminalRuntime";
 
 type CreateApiServerOptions = {
   workspaceCwd?: string;
   tmuxClient?: TmuxClient;
+  gitClient?: GitClient;
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
   allowRemoteAccess?: boolean;
 };
@@ -150,6 +158,42 @@ const parseTentacleName = (payload: unknown) => {
   };
 };
 
+const parseTentacleWorkspaceMode = (payload: unknown) => {
+  if (payload === null || payload === undefined) {
+    return {
+      workspaceMode: "shared" as TentacleWorkspaceMode,
+      error: null as string | null,
+    };
+  }
+
+  if (typeof payload !== "object") {
+    return {
+      workspaceMode: "shared" as TentacleWorkspaceMode,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const rawWorkspaceMode = (payload as Record<string, unknown>).workspaceMode;
+  if (rawWorkspaceMode === undefined) {
+    return {
+      workspaceMode: "shared" as TentacleWorkspaceMode,
+      error: null as string | null,
+    };
+  }
+
+  if (rawWorkspaceMode !== "shared" && rawWorkspaceMode !== "worktree") {
+    return {
+      workspaceMode: "shared" as TentacleWorkspaceMode,
+      error: "Tentacle workspace mode must be either 'shared' or 'worktree'.",
+    };
+  }
+
+  return {
+    workspaceMode: rawWorkspaceMode as TentacleWorkspaceMode,
+    error: null as string | null,
+  };
+};
+
 const parseUiStatePatch = (
   payload: unknown,
 ): { patch: PersistedUiState | null; error: string | null } => {
@@ -259,6 +303,7 @@ const parseUiStatePatch = (
 export const createApiServer = ({
   workspaceCwd,
   tmuxClient,
+  gitClient,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
@@ -267,6 +312,9 @@ export const createApiServer = ({
   };
   if (tmuxClient) {
     runtimeOptions.tmuxClient = tmuxClient;
+  }
+  if (gitClient) {
+    runtimeOptions.gitClient = gitClient;
   }
 
   const runtime = createTerminalRuntime(runtimeOptions);
@@ -382,10 +430,29 @@ export const createApiServer = ({
           return;
         }
 
-        const payload = runtime.createTentacle(nameResult.name);
-        response.writeHead(201, withCors({ "Content-Type": "application/json" }, corsOrigin));
-        response.end(JSON.stringify(payload));
-        return;
+        const workspaceModeResult = parseTentacleWorkspaceMode(bodyPayload);
+        if (workspaceModeResult.error) {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: workspaceModeResult.error }));
+          return;
+        }
+
+        try {
+          const payload = runtime.createTentacle({
+            tentacleName: nameResult.name,
+            workspaceMode: workspaceModeResult.workspaceMode,
+          });
+          response.writeHead(201, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify(payload));
+          return;
+        } catch (error) {
+          if (error instanceof RuntimeInputError) {
+            response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+            response.end(JSON.stringify({ error: error.message }));
+            return;
+          }
+          throw error;
+        }
       }
 
       const renameMatch = requestUrl.pathname.match(/^\/api\/tentacles\/([^/]+)$/);

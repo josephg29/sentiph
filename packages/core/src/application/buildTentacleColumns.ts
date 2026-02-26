@@ -31,6 +31,11 @@ export const buildTentacleColumns = async (
         agents.find(
           (agent) => typeof agent.tentacleName === "string" && agent.tentacleName.length > 0,
         )?.tentacleName ?? tentacleId;
+      const tentacleWorkspaceMode =
+        agents.find(
+          (agent) =>
+            agent.tentacleWorkspaceMode === "shared" || agent.tentacleWorkspaceMode === "worktree",
+        )?.tentacleWorkspaceMode ?? "shared";
       const orderedAgents = [...agents].sort((left, right) => {
         const leftIsRoot = left.parentAgentId === undefined;
         const rightIsRoot = right.parentAgentId === undefined;
@@ -45,6 +50,7 @@ export const buildTentacleColumns = async (
       return {
         tentacleId,
         tentacleName,
+        tentacleWorkspaceMode,
         agents: orderedAgents,
       };
     });

@@ -1,4 +1,5 @@
 export type AgentState = "live" | "idle" | "queued" | "blocked";
+export type TentacleWorkspaceMode = "shared" | "worktree";
 
 export type AgentSnapshot = {
   agentId: string;
@@ -6,6 +7,7 @@ export type AgentSnapshot = {
   state: AgentState;
   tentacleId: string;
   tentacleName?: string;
+  tentacleWorkspaceMode?: TentacleWorkspaceMode;
   createdAt: string;
   parentAgentId?: string;
 };
@@ -13,5 +15,6 @@ export type AgentSnapshot = {
 export type TentacleColumn = {
   tentacleId: string;
   tentacleName: string;
+  tentacleWorkspaceMode: TentacleWorkspaceMode;
   agents: AgentSnapshot[];
 };

@@ -125,6 +125,13 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           return;
         }
 
+        const rootFontSize = Number.parseFloat(
+          window.getComputedStyle(document.documentElement).fontSize,
+        );
+        const terminalFontSize = Number.isFinite(rootFontSize)
+          ? Math.max(13, Math.round(rootFontSize * 0.82))
+          : 13;
+
         const terminal = new Terminal({
           convertEol: true,
           cursorBlink: true,
@@ -132,7 +139,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           cursorStyle: "bar",
           cursorWidth: 2,
           fontFamily: '"JetBrains Mono", "IBM Plex Mono", monospace',
-          fontSize: 13,
+          fontSize: terminalFontSize,
           theme: {
             background: "#040404",
             foreground: "#f0f0f0",

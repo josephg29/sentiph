@@ -56,6 +56,10 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 
 Treat `tentacleId` as a stable internal identifier (routing, keys, websocket paths) and keep user-facing labels editable via a separate display name field.
 
+### Tentacle Workspace Isolation Preference
+
+Tentacle creation should offer two explicit modes: shared main codebase (`workspaceMode: "shared"`) and isolated git worktree (`workspaceMode: "worktree"`). Keep shared as the compatibility default when no mode is provided.
+
 ### Confirmation UX Preference
 
 Do not use browser alert/confirm dialogs for destructive actions. Use in-app confirmation UI that matches the retro terminal visual style.
@@ -92,6 +96,10 @@ When refining the web visual system in `test-page.html`, keep using shared desig
 ### Brand Typography Preference
 
 Use `Press Start 2P` for brand/header labels in the web UI (the chrome `Octogent` title, `Active Agents`, `New tentacle`, tentacle column headers, and terminal window headers). Keep body/content typography on more readable monospace fonts.
+
+### UI Legibility Preference
+
+Avoid tiny control text. Keep the global web UI base font size and terminal font size large enough for comfortable reading, and scale from shared tokens instead of ad hoc per-component overrides.
 
 ### Chrome Density Preference
 

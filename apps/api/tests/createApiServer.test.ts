@@ -1,11 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createApiServer } from "../src/createApiServer";
-import type { TmuxClient } from "../src/terminalRuntime";
+import type { GitClient, TmuxClient } from "../src/terminalRuntime";
 
 class FakeTmuxClient implements TmuxClient {
   private readonly sessions = new Map<string, { cwd: string; command?: string }>();
@@ -50,6 +50,50 @@ class FakeTmuxClient implements TmuxClient {
   }
 }
 
+class FakeGitClient implements GitClient {
+  private readonly worktrees = new Map<
+    string,
+    { branchName: string; baseRef: string; cwd: string }
+  >();
+  private repositoryAvailable = true;
+
+  assertAvailable(): void {}
+
+  isRepository(): boolean {
+    return this.repositoryAvailable;
+  }
+
+  addWorktree({
+    cwd,
+    path,
+    branchName,
+    baseRef,
+  }: {
+    cwd: string;
+    path: string;
+    branchName: string;
+    baseRef: string;
+  }): void {
+    if (this.worktrees.has(path)) {
+      throw new Error(`Worktree already exists: ${path}`);
+    }
+    mkdirSync(path, { recursive: true });
+    this.worktrees.set(path, { cwd, branchName, baseRef });
+  }
+
+  removeWorktree({ path }: { cwd: string; path: string }): void {
+    this.worktrees.delete(path);
+  }
+
+  setRepositoryAvailable(available: boolean): void {
+    this.repositoryAvailable = available;
+  }
+
+  getWorktree(path: string): { branchName: string; baseRef: string; cwd: string } | null {
+    return this.worktrees.get(path) ?? null;
+  }
+}
+
 describe("createApiServer", () => {
   let stopServer: (() => Promise<void>) | null = null;
   const temporaryDirectories: string[] = [];
@@ -77,6 +121,7 @@ describe("createApiServer", () => {
     const apiServer = createApiServer({
       workspaceCwd,
       tmuxClient: options.tmuxClient ?? new FakeTmuxClient(),
+      gitClient: options.gitClient ?? new FakeGitClient(),
       ...options,
     });
     const address = await apiServer.start(0, "127.0.0.1");
@@ -352,6 +397,7 @@ describe("createApiServer", () => {
         state: "live",
         tentacleId: "tentacle-1",
         tentacleName: "planner",
+        tentacleWorkspaceMode: "shared",
       }),
     );
 
@@ -370,6 +416,7 @@ describe("createApiServer", () => {
         state: "live",
         tentacleId: "tentacle-2",
         tentacleName: "tentacle-2",
+        tentacleWorkspaceMode: "shared",
       }),
     );
 
@@ -399,8 +446,16 @@ describe("createApiServer", () => {
 
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({ tentacleId: "tentacle-1", tentacleName: "planner" }),
-      expect.objectContaining({ tentacleId: "tentacle-2", tentacleName: "reviewer" }),
+      expect.objectContaining({
+        tentacleId: "tentacle-1",
+        tentacleName: "planner",
+        tentacleWorkspaceMode: "shared",
+      }),
+      expect.objectContaining({
+        tentacleId: "tentacle-2",
+        tentacleName: "reviewer",
+        tentacleWorkspaceMode: "shared",
+      }),
     ]);
   });
 
@@ -433,16 +488,139 @@ describe("createApiServer", () => {
 
     const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
     const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
-      tentacles: Array<{ tentacleId: string; codexBootstrapped: boolean }>;
+      tentacles: Array<{
+        tentacleId: string;
+        codexBootstrapped: boolean;
+        workspaceMode: "shared" | "worktree";
+      }>;
     };
     expect(registryDocument.tentacles).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           tentacleId: "tentacle-1",
           codexBootstrapped: false,
+          workspaceMode: "shared",
         }),
       ]),
     );
+  });
+
+  it("creates isolated worktree tentacles with dedicated cwd", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "planner",
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+    await expect(createResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-1",
+        tentacleName: "planner",
+        tentacleWorkspaceMode: "worktree",
+      }),
+    );
+
+    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const session = tmuxClient.getSession("octogent_tentacle-1");
+    expect(session).toEqual(
+      expect.objectContaining({
+        cwd: expectedWorktreePath,
+      }),
+    );
+    expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
+      expect.objectContaining({
+        cwd: workspaceCwd,
+        branchName: "octogent/tentacle-1",
+        baseRef: "HEAD",
+      }),
+    );
+
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+      tentacles: Array<{ tentacleId: string; workspaceMode: "shared" | "worktree" }>;
+    };
+    expect(registryDocument.tentacles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tentacleId: "tentacle-1",
+          workspaceMode: "worktree",
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when workspace mode is invalid", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "invalid-mode",
+      }),
+    });
+
+    expect(createResponse.status).toBe(400);
+    await expect(createResponse.json()).resolves.toEqual({
+      error: "Tentacle workspace mode must be either 'shared' or 'worktree'.",
+    });
+  });
+
+  it("returns 400 when creating worktree tentacle outside a git repository", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+    const gitClient = new FakeGitClient();
+    gitClient.setRepositoryAvailable(false);
+    const baseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(400);
+    await expect(createResponse.json()).resolves.toEqual({
+      error: "Worktree tentacles require a git repository at the workspace root.",
+    });
+
+    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([]);
+    expect(tmuxClient.getSession("octogent_tentacle-1")).toBeNull();
   });
 
   it("returns 400 when tentacle name is empty after trimming", async () => {

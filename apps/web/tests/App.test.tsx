@@ -191,6 +191,7 @@ describe("App", () => {
             label: "core-planner",
             state: "live",
             tentacleId: "tentacle-a",
+            tentacleWorkspaceMode: "worktree",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]),
@@ -209,6 +210,7 @@ describe("App", () => {
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(tentacleColumn).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rename tentacle tentacle-a" })).toBeInTheDocument();
+    expect(within(tentacleColumn).getByText("WORKTREE")).toBeInTheDocument();
     expect(within(tentacleColumn).queryByText("core-planner")).toBeNull();
     expect(within(sidebar).getByText("core-planner")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-tentacle-a")).toBeInTheDocument();
@@ -263,7 +265,7 @@ describe("App", () => {
     });
   });
 
-  it("creates a new tentacle and refreshes columns plus sidebar listings", async () => {
+  it("creates a shared-codebase tentacle and refreshes columns plus sidebar listings", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -316,6 +318,7 @@ describe("App", () => {
       }
 
       if (url.endsWith("/api/tentacles") && method === "POST") {
+        expect(init?.body).toBe(JSON.stringify({ workspaceMode: "shared" }));
         return new Response(
           JSON.stringify({
             agentId: "tentacle-2-root",
@@ -339,7 +342,7 @@ describe("App", () => {
     render(<App />);
 
     await screen.findByLabelText("tentacle-1");
-    fireEvent.click(screen.getByRole("button", { name: "New tentacle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create tentacle in main codebase" }));
 
     const tentacleTwoColumn = await screen.findByLabelText("tentacle-2");
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
@@ -354,7 +357,7 @@ describe("App", () => {
     });
   });
 
-  it("starts inline editing on the new tentacle name immediately after creation", async () => {
+  it("creates an isolated-worktree tentacle and starts inline editing immediately", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -410,7 +413,7 @@ describe("App", () => {
       }
 
       if (url.endsWith("/api/tentacles") && method === "POST") {
-        expect(init?.body).toBeUndefined();
+        expect(init?.body).toBe(JSON.stringify({ workspaceMode: "worktree" }));
         return new Response(
           JSON.stringify({
             agentId: "tentacle-2-root",
@@ -435,7 +438,9 @@ describe("App", () => {
     render(<App />);
 
     await screen.findByLabelText("tentacle-1");
-    fireEvent.click(screen.getByRole("button", { name: "New tentacle" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create tentacle with isolated worktree" }),
+    );
 
     const nameEditor = await screen.findByLabelText("Tentacle name for tentacle-2");
     expect(nameEditor).toHaveValue("tentacle-2");
@@ -505,7 +510,7 @@ describe("App", () => {
     fireEvent.keyDown(nameEditor, { key: "Enter" });
 
     await waitFor(() => {
-      expect(within(tentacleColumn).getByRole("heading", { name: "research" })).toBeInTheDocument();
+      expect(within(tentacleColumn).getByRole("button", { name: "research" })).toBeInTheDocument();
     });
   });
 
