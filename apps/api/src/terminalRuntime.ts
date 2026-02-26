@@ -49,10 +49,20 @@ type PersistedTentacle = {
   codexBootstrapped: boolean;
 };
 
+export type PersistedUiState = {
+  isAgentsSidebarVisible?: boolean;
+  sidebarWidth?: number;
+  isActiveAgentsSectionExpanded?: boolean;
+  isCodexUsageSectionExpanded?: boolean;
+  minimizedTentacleIds?: string[];
+  tentacleWidths?: Record<string, number>;
+};
+
 type TentacleRegistryDocument = {
   version: 1;
   nextTentacleNumber: number;
   tentacles: PersistedTentacle[];
+  uiState?: PersistedUiState;
 };
 
 export type TmuxClient = {
@@ -159,6 +169,84 @@ const parseTentacleNumber = (tentacleId: string): number | null => {
   }
 
   return parsed;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const parsePersistedUiState = (value: unknown): PersistedUiState => {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const nextState: PersistedUiState = {};
+
+  if (typeof value.isAgentsSidebarVisible === "boolean") {
+    nextState.isAgentsSidebarVisible = value.isAgentsSidebarVisible;
+  }
+
+  if (typeof value.sidebarWidth === "number" && Number.isFinite(value.sidebarWidth)) {
+    nextState.sidebarWidth = value.sidebarWidth;
+  }
+
+  if (typeof value.isActiveAgentsSectionExpanded === "boolean") {
+    nextState.isActiveAgentsSectionExpanded = value.isActiveAgentsSectionExpanded;
+  }
+
+  if (typeof value.isCodexUsageSectionExpanded === "boolean") {
+    nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
+  }
+
+  if (Array.isArray(value.minimizedTentacleIds)) {
+    const minimizedTentacleIds = value.minimizedTentacleIds.filter(
+      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+    );
+    nextState.minimizedTentacleIds = [...new Set(minimizedTentacleIds)];
+  }
+
+  if (isRecord(value.tentacleWidths)) {
+    const tentacleWidths = Object.entries(value.tentacleWidths).reduce<Record<string, number>>(
+      (acc, [tentacleId, width]) => {
+        if (typeof width === "number" && Number.isFinite(width)) {
+          acc[tentacleId] = width;
+        }
+        return acc;
+      },
+      {},
+    );
+    nextState.tentacleWidths = tentacleWidths;
+  }
+
+  return nextState;
+};
+
+const pruneUiStateTentacleReferences = (
+  uiState: PersistedUiState,
+  tentacles: Map<string, PersistedTentacle>,
+): PersistedUiState => {
+  const activeTentacleIds = new Set(tentacles.keys());
+  const nextState: PersistedUiState = {
+    ...uiState,
+  };
+
+  if (nextState.minimizedTentacleIds) {
+    nextState.minimizedTentacleIds = nextState.minimizedTentacleIds.filter((tentacleId) =>
+      activeTentacleIds.has(tentacleId),
+    );
+  }
+
+  if (nextState.tentacleWidths) {
+    nextState.tentacleWidths = Object.entries(nextState.tentacleWidths).reduce<
+      Record<string, number>
+    >((acc, [tentacleId, width]) => {
+      if (activeTentacleIds.has(tentacleId)) {
+        acc[tentacleId] = width;
+      }
+      return acc;
+    }, {});
+  }
+
+  return nextState;
 };
 
 const toErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -268,7 +356,11 @@ const createDefaultTmuxClient = (): TmuxClient => ({
 const parseRegistryDocument = (
   raw: string,
   registryPath: string,
-): { tentacles: Map<string, PersistedTentacle>; nextTentacleNumber: number } => {
+): {
+  tentacles: Map<string, PersistedTentacle>;
+  nextTentacleNumber: number;
+  uiState: PersistedUiState;
+} => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -340,6 +432,7 @@ const parseRegistryDocument = (
   return {
     tentacles,
     nextTentacleNumber: Math.max(nextTentacleNumber, maxTentacleNumber + 1, 1),
+    uiState: pruneUiStateTentacleReferences(parsePersistedUiState(record.uiState), tentacles),
   };
 };
 
@@ -348,6 +441,7 @@ const loadTentacleRegistry = (registryPath: string) => {
     return {
       tentacles: new Map<string, PersistedTentacle>(),
       nextTentacleNumber: 1,
+      uiState: {} as PersistedUiState,
     };
   }
 
@@ -355,14 +449,19 @@ const loadTentacleRegistry = (registryPath: string) => {
   return parseRegistryDocument(raw, registryPath);
 };
 
-const persistTentacleRegistry = (registryPath: string, state: {
-  tentacles: Map<string, PersistedTentacle>;
-  nextTentacleNumber: number;
-}) => {
+const persistTentacleRegistry = (
+  registryPath: string,
+  state: {
+    tentacles: Map<string, PersistedTentacle>;
+    nextTentacleNumber: number;
+    uiState: PersistedUiState;
+  },
+) => {
   const document: TentacleRegistryDocument = {
     version: TENTACLE_REGISTRY_VERSION,
     nextTentacleNumber: state.nextTentacleNumber,
     tentacles: [...state.tentacles.values()],
+    uiState: state.uiState,
   };
 
   mkdirSync(dirname(registryPath), { recursive: true });
@@ -379,6 +478,7 @@ export const createTerminalRuntime = ({
   const registryState = loadTentacleRegistry(registryPath);
   const tentacles = registryState.tentacles;
   let nextTentacleNumber = registryState.nextTentacleNumber;
+  let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
     process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
@@ -386,9 +486,11 @@ export const createTerminalRuntime = ({
   tmuxClient.assertAvailable();
 
   const persistRegistry = () => {
+    uiState = pruneUiStateTentacleReferences(uiState, tentacles);
     persistTentacleRegistry(registryPath, {
       tentacles,
       nextTentacleNumber,
+      uiState,
     });
   };
 
@@ -498,7 +600,10 @@ export const createTerminalRuntime = ({
 
     tentacle.codexBootstrapped = true;
     persistRegistry();
-    appendDebugLog(session, `bootstrap tentacle=${tentacleId} command=${TENTACLE_BOOTSTRAP_COMMAND}`);
+    appendDebugLog(
+      session,
+      `bootstrap tentacle=${tentacleId} command=${TENTACLE_BOOTSTRAP_COMMAND}`,
+    );
     session.pty.write(`${TENTACLE_BOOTSTRAP_COMMAND}\r`);
   };
 
@@ -605,9 +710,47 @@ export const createTerminalRuntime = ({
     return buildRootSnapshot(tentacle);
   };
 
+  const readUiState = (): PersistedUiState => {
+    const normalized = pruneUiStateTentacleReferences(uiState, tentacles);
+    const result: PersistedUiState = { ...normalized };
+    if (normalized.minimizedTentacleIds) {
+      result.minimizedTentacleIds = [...normalized.minimizedTentacleIds];
+    }
+    if (normalized.tentacleWidths) {
+      result.tentacleWidths = { ...normalized.tentacleWidths };
+    }
+    return result;
+  };
+
   return {
     listAgentSnapshots(): AgentSnapshot[] {
       return [...tentacles.values()].map((tentacle) => buildRootSnapshot(tentacle));
+    },
+
+    readUiState,
+
+    patchUiState(patch: PersistedUiState): PersistedUiState {
+      if (patch.isAgentsSidebarVisible !== undefined) {
+        uiState.isAgentsSidebarVisible = patch.isAgentsSidebarVisible;
+      }
+      if (patch.sidebarWidth !== undefined) {
+        uiState.sidebarWidth = patch.sidebarWidth;
+      }
+      if (patch.isActiveAgentsSectionExpanded !== undefined) {
+        uiState.isActiveAgentsSectionExpanded = patch.isActiveAgentsSectionExpanded;
+      }
+      if (patch.isCodexUsageSectionExpanded !== undefined) {
+        uiState.isCodexUsageSectionExpanded = patch.isCodexUsageSectionExpanded;
+      }
+      if (patch.minimizedTentacleIds !== undefined) {
+        uiState.minimizedTentacleIds = [...patch.minimizedTentacleIds];
+      }
+      if (patch.tentacleWidths !== undefined) {
+        uiState.tentacleWidths = { ...patch.tentacleWidths };
+      }
+
+      persistRegistry();
+      return readUiState();
     },
 
     createTentacle,

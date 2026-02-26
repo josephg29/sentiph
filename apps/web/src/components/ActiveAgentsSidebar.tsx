@@ -1,5 +1,5 @@
 import type { AgentState, TentacleColumn } from "@octogent/core";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
 import { type CodexState, CodexStateBadge } from "./CodexStateBadge";
@@ -7,7 +7,6 @@ import { ActionButton } from "./ui/ActionButton";
 
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 520;
-const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
 
 const fallbackCodexStateByAgentState: Record<AgentState, CodexState> = {
   live: "processing",
@@ -20,6 +19,12 @@ type ActiveAgentsSidebarProps = {
   columns: TentacleColumn[];
   isLoading: boolean;
   loadError: string | null;
+  sidebarWidth: number;
+  onSidebarWidthChange: (width: number) => void;
+  isActiveAgentsSectionExpanded: boolean;
+  onActiveAgentsSectionExpandedChange: (expanded: boolean) => void;
+  isCodexUsageSectionExpanded: boolean;
+  onCodexUsageSectionExpandedChange: (expanded: boolean) => void;
   tentacleStates?: Record<string, CodexState>;
   minimizedTentacleIds?: string[];
   onMaximizeTentacle?: (tentacleId: string) => void;
@@ -39,15 +44,18 @@ export const ActiveAgentsSidebar = ({
   columns,
   isLoading,
   loadError,
+  sidebarWidth,
+  onSidebarWidthChange,
+  isActiveAgentsSectionExpanded,
+  onActiveAgentsSectionExpandedChange,
+  isCodexUsageSectionExpanded,
+  onCodexUsageSectionExpandedChange,
   tentacleStates = {},
   minimizedTentacleIds = [],
   onMaximizeTentacle,
   codexUsageSnapshot = null,
   codexUsageStatus = "loading",
 }: ActiveAgentsSidebarProps) => {
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
-  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const resolveAgentCodexState = (
     tentacleId: string,
@@ -82,7 +90,11 @@ export const ActiveAgentsSidebar = ({
       return "unlimited";
     }
     const creditsBalance = codexUsageSnapshot?.creditsBalance;
-    if (creditsBalance === null || creditsBalance === undefined || !Number.isFinite(creditsBalance)) {
+    if (
+      creditsBalance === null ||
+      creditsBalance === undefined ||
+      !Number.isFinite(creditsBalance)
+    ) {
       return "--";
     }
     return `$${creditsBalance.toFixed(2)}`;
@@ -93,7 +105,7 @@ export const ActiveAgentsSidebar = ({
     const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
 
     const handleMouseMove = (event: MouseEvent) => {
-      setSidebarWidth(clampSidebarWidth(event.clientX - sidebarLeft));
+      onSidebarWidthChange(clampSidebarWidth(event.clientX - sidebarLeft));
     };
 
     const stopResize = () => {
@@ -126,7 +138,7 @@ export const ActiveAgentsSidebar = ({
               className="active-agents-section-toggle"
               data-expanded={isActiveAgentsSectionExpanded ? "true" : "false"}
               onClick={() => {
-                setIsActiveAgentsSectionExpanded((current) => !current);
+                onActiveAgentsSectionExpandedChange(!isActiveAgentsSectionExpanded);
               }}
               type="button"
             >
@@ -166,8 +178,8 @@ export const ActiveAgentsSidebar = ({
                           <div className="active-agents-group-header-text">
                             <h3>{column.tentacleName}</h3>
                             <p className="active-agents-group-stats">
-                              {processingCount} processing · {idleCount} idle · {column.agents.length}{" "}
-                              {agentCountLabel}
+                              {processingCount} processing · {idleCount} idle ·{" "}
+                              {column.agents.length} {agentCountLabel}
                             </p>
                           </div>
                           {minimizedTentacleIds.includes(column.tentacleId) && (
@@ -197,7 +209,9 @@ export const ActiveAgentsSidebar = ({
                               <span className="active-agents-agent-label" title={agent.label}>
                                 {agent.label}
                               </span>
-                              <CodexStateBadge state={resolveAgentCodexState(column.tentacleId, agent)} />
+                              <CodexStateBadge
+                                state={resolveAgentCodexState(column.tentacleId, agent)}
+                              />
                             </li>
                           ))}
                         </ul>
@@ -205,7 +219,9 @@ export const ActiveAgentsSidebar = ({
                     );
                   })}
 
-                {loadError && <p className="active-agents-status active-agents-error">{loadError}</p>}
+                {loadError && (
+                  <p className="active-agents-status active-agents-error">{loadError}</p>
+                )}
               </div>
             )}
           </section>
@@ -223,7 +239,7 @@ export const ActiveAgentsSidebar = ({
               className="active-agents-section-toggle"
               data-expanded={isCodexUsageSectionExpanded ? "true" : "false"}
               onClick={() => {
-                setIsCodexUsageSectionExpanded((current) => !current);
+                onCodexUsageSectionExpandedChange(!isCodexUsageSectionExpanded);
               }}
               type="button"
             >
@@ -236,20 +252,32 @@ export const ActiveAgentsSidebar = ({
 
             {isCodexUsageSectionExpanded && (
               <div className="active-agents-section-panel" id="codex-usage-section-panel">
-                <div className={`active-agents-codex-usage active-agents-codex-usage--${codexUsageStatus}`}>
+                <div
+                  className={`active-agents-codex-usage active-agents-codex-usage--${codexUsageStatus}`}
+                >
                   {codexUsageStatus === "ok" ? (
-                    <div aria-label="Codex token usage bars" className="active-agents-codex-usage-bars">
+                    <div
+                      aria-label="Codex token usage bars"
+                      className="active-agents-codex-usage-bars"
+                    >
                       <div className="active-agents-codex-usage-row">
                         <span
                           aria-label="5H token usage"
                           aria-valuemax={100}
                           aria-valuemin={0}
-                          aria-valuenow={primaryUsagePercent === null ? undefined : Math.round(primaryUsagePercent)}
+                          aria-valuenow={
+                            primaryUsagePercent === null
+                              ? undefined
+                              : Math.round(primaryUsagePercent)
+                          }
                           aria-valuetext={
-                            primaryUsagePercent === null ? "No usage data" : `${Math.round(primaryUsagePercent)}%`
+                            primaryUsagePercent === null
+                              ? "No usage data"
+                              : `${Math.round(primaryUsagePercent)}%`
                           }
                           className="active-agents-codex-usage-rail"
                           role="progressbar"
+                          tabIndex={0}
                         >
                           <span
                             className="active-agents-codex-usage-rail-fill"
@@ -259,7 +287,9 @@ export const ActiveAgentsSidebar = ({
                         <p className="active-agents-codex-usage-meta-row">
                           <span className="active-agents-codex-usage-label">5H tokens</span>
                           <span className="active-agents-codex-usage-percent">
-                            {primaryUsagePercent === null ? "--" : `${Math.round(primaryUsagePercent)}%`}
+                            {primaryUsagePercent === null
+                              ? "--"
+                              : `${Math.round(primaryUsagePercent)}%`}
                           </span>
                         </p>
                       </div>
@@ -269,7 +299,9 @@ export const ActiveAgentsSidebar = ({
                           aria-valuemax={100}
                           aria-valuemin={0}
                           aria-valuenow={
-                            secondaryUsagePercent === null ? undefined : Math.round(secondaryUsagePercent)
+                            secondaryUsagePercent === null
+                              ? undefined
+                              : Math.round(secondaryUsagePercent)
                           }
                           aria-valuetext={
                             secondaryUsagePercent === null
@@ -278,6 +310,7 @@ export const ActiveAgentsSidebar = ({
                           }
                           className="active-agents-codex-usage-rail"
                           role="progressbar"
+                          tabIndex={0}
                         >
                           <span
                             className="active-agents-codex-usage-rail-fill"
@@ -287,7 +320,9 @@ export const ActiveAgentsSidebar = ({
                         <p className="active-agents-codex-usage-meta-row">
                           <span className="active-agents-codex-usage-label">Week tokens</span>
                           <span className="active-agents-codex-usage-percent">
-                            {secondaryUsagePercent === null ? "--" : `${Math.round(secondaryUsagePercent)}%`}
+                            {secondaryUsagePercent === null
+                              ? "--"
+                              : `${Math.round(secondaryUsagePercent)}%`}
                           </span>
                         </p>
                       </div>

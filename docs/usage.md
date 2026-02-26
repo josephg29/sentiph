@@ -20,6 +20,7 @@ Terminal persistence requires `tmux` to be installed and available on `PATH`.
 - Resize on desktop by dragging the sidebar right border.
 - The `Active Agents` sidebar footer includes a retro terminal-style Codex token usage bar (`5h`, `week`, `credits`) that refreshes every 1 minute.
 - Codex usage is sourced from local Codex OAuth credentials (`~/.codex/auth.json` or `CODEX_HOME/auth.json`) through `GET /api/codex/usage`.
+- Sidebar visibility/width, section collapse state, minimized tentacles, and pane widths are persisted through `GET/PATCH /api/ui-state` in `.octogent/state/tentacles.json`.
 
 ## Create tentacles
 

@@ -66,9 +66,7 @@ describe("createApiServer", () => {
     temporaryDirectories.length = 0;
   });
 
-  const startServer = async (
-    options: Partial<Parameters<typeof createApiServer>[0]> = {},
-  ) => {
+  const startServer = async (options: Partial<Parameters<typeof createApiServer>[0]> = {}) => {
     const workspaceCwd =
       options.workspaceCwd ??
       (() => {
@@ -177,13 +175,7 @@ describe("createApiServer", () => {
 
       socket.on("connect", () => {
         socket.write(
-          `GET ${wsUrl.pathname} HTTP/1.1\r\n` +
-            `Host: ${wsUrl.host}\r\n` +
-            "Connection: Upgrade\r\n" +
-            "Upgrade: websocket\r\n" +
-            "Sec-WebSocket-Version: 13\r\n" +
-            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n" +
-            "Origin: https://attacker.example\r\n\r\n",
+          `GET ${wsUrl.pathname} HTTP/1.1\r\nHost: ${wsUrl.host}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nOrigin: https://attacker.example\r\n\r\n`,
         );
       });
       socket.on("data", (chunk) => {
@@ -251,6 +243,93 @@ describe("createApiServer", () => {
     });
 
     expect(response.status).toBe(405);
+  });
+
+  it("returns 405 for unsupported methods on /api/ui-state", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/ui-state`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("restores ui state across API restarts using persisted registry", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+
+    const firstBaseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+    });
+
+    const createResponse = await fetch(`${firstBaseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const patchResponse = await fetch(`${firstBaseUrl}/api/ui-state`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        isAgentsSidebarVisible: false,
+        sidebarWidth: 380,
+        isActiveAgentsSectionExpanded: false,
+        isCodexUsageSectionExpanded: false,
+        minimizedTentacleIds: ["tentacle-1"],
+        tentacleWidths: {
+          "tentacle-1": 420,
+        },
+      }),
+    });
+    expect(patchResponse.status).toBe(200);
+    await expect(patchResponse.json()).resolves.toEqual({
+      isAgentsSidebarVisible: false,
+      sidebarWidth: 380,
+      isActiveAgentsSectionExpanded: false,
+      isCodexUsageSectionExpanded: false,
+      minimizedTentacleIds: ["tentacle-1"],
+      tentacleWidths: {
+        "tentacle-1": 420,
+      },
+    });
+
+    if (stopServer) {
+      await stopServer();
+      stopServer = null;
+    }
+
+    const secondBaseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+    });
+
+    const getResponse = await fetch(`${secondBaseUrl}/api/ui-state`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.json()).resolves.toEqual({
+      isAgentsSidebarVisible: false,
+      sidebarWidth: 380,
+      isActiveAgentsSectionExpanded: false,
+      isCodexUsageSectionExpanded: false,
+      minimizedTentacleIds: ["tentacle-1"],
+      tentacleWidths: {
+        "tentacle-1": 420,
+      },
+    });
   });
 
   it("creates new tentacles with unique incremental ids", async () => {

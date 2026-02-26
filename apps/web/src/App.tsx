@@ -24,6 +24,7 @@ import {
   buildCodexUsageUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
+  buildUiStateUrl,
 } from "./runtime/runtimeEndpoints";
 
 type TentacleView = Awaited<ReturnType<typeof buildTentacleColumns>>;
@@ -40,6 +41,19 @@ type CodexUsageSnapshot = {
 };
 
 const CODEX_USAGE_SCAN_INTERVAL_MS = 60_000;
+const UI_STATE_SAVE_DEBOUNCE_MS = 250;
+const MIN_SIDEBAR_WIDTH = 240;
+const MAX_SIDEBAR_WIDTH = 520;
+const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
+
+type FrontendUiStateSnapshot = {
+  isAgentsSidebarVisible?: boolean;
+  sidebarWidth?: number;
+  isActiveAgentsSectionExpanded?: boolean;
+  isCodexUsageSectionExpanded?: boolean;
+  minimizedTentacleIds?: string[];
+  tentacleWidths?: Record<string, number>;
+};
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
@@ -58,6 +72,9 @@ const asNumber = (value: unknown): number | null => {
 };
 
 const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
+const clampSidebarWidth = (width: number) =>
+  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
 const normalizeCodexUsageSnapshot = (value: unknown): CodexUsageSnapshot | null => {
   const record = asRecord(value);
@@ -80,9 +97,53 @@ const normalizeCodexUsageSnapshot = (value: unknown): CodexUsageSnapshot | null 
     primaryUsedPercent: asNumber(record.primaryUsedPercent),
     secondaryUsedPercent: asNumber(record.secondaryUsedPercent),
     creditsBalance: asNumber(record.creditsBalance),
-    creditsUnlimited:
-      typeof record.creditsUnlimited === "boolean" ? record.creditsUnlimited : null,
+    creditsUnlimited: typeof record.creditsUnlimited === "boolean" ? record.creditsUnlimited : null,
   };
+};
+
+const normalizeFrontendUiStateSnapshot = (value: unknown): FrontendUiStateSnapshot | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const nextState: FrontendUiStateSnapshot = {};
+  if (typeof record.isAgentsSidebarVisible === "boolean") {
+    nextState.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
+  }
+
+  if (typeof record.sidebarWidth === "number" && Number.isFinite(record.sidebarWidth)) {
+    nextState.sidebarWidth = clampSidebarWidth(record.sidebarWidth);
+  }
+
+  if (typeof record.isActiveAgentsSectionExpanded === "boolean") {
+    nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
+  }
+
+  if (typeof record.isCodexUsageSectionExpanded === "boolean") {
+    nextState.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
+  }
+
+  if (Array.isArray(record.minimizedTentacleIds)) {
+    nextState.minimizedTentacleIds = [...new Set(record.minimizedTentacleIds)].filter(
+      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+    );
+  }
+
+  const rawTentacleWidths = asRecord(record.tentacleWidths);
+  if (rawTentacleWidths) {
+    nextState.tentacleWidths = Object.entries(rawTentacleWidths).reduce<Record<string, number>>(
+      (acc, [tentacleId, width]) => {
+        if (typeof width === "number" && Number.isFinite(width)) {
+          acc[tentacleId] = width;
+        }
+        return acc;
+      },
+      {},
+    );
+  }
+
+  return nextState;
 };
 
 export const App = () => {
@@ -90,6 +151,10 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
+  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
+  const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
   const [isCreatingTentacle, setIsCreatingTentacle] = useState(false);
   const [isDeletingTentacleId, setIsDeletingTentacleId] = useState<string | null>(null);
   const [pendingDeleteTentacle, setPendingDeleteTentacle] = useState<{
@@ -122,14 +187,87 @@ export const App = () => {
     return buildTentacleColumns(reader);
   }, []);
 
+  const readUiState = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const requestOptions: {
+        method: "GET";
+        headers: { Accept: string };
+        signal?: AbortSignal;
+      } = {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      };
+      if (signal) {
+        requestOptions.signal = signal;
+      }
+
+      const response = await fetch(buildUiStateUrl(), requestOptions);
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return normalizeFrontendUiStateSnapshot(await response.json());
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
     const syncColumns = async () => {
       try {
         setLoadError(null);
-        const nextColumns = await readColumns(controller.signal);
+        const [nextColumns, nextUiState] = await Promise.all([
+          readColumns(controller.signal),
+          readUiState(controller.signal),
+        ]);
         setColumns(nextColumns);
+
+        if (nextUiState) {
+          if (nextUiState.isAgentsSidebarVisible !== undefined) {
+            setIsAgentsSidebarVisible(nextUiState.isAgentsSidebarVisible);
+          }
+
+          if (nextUiState.sidebarWidth !== undefined) {
+            setSidebarWidth(clampSidebarWidth(nextUiState.sidebarWidth));
+          }
+
+          if (nextUiState.isActiveAgentsSectionExpanded !== undefined) {
+            setIsActiveAgentsSectionExpanded(nextUiState.isActiveAgentsSectionExpanded);
+          }
+
+          if (nextUiState.isCodexUsageSectionExpanded !== undefined) {
+            setIsCodexUsageSectionExpanded(nextUiState.isCodexUsageSectionExpanded);
+          }
+
+          if (nextUiState.minimizedTentacleIds) {
+            const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
+            setMinimizedTentacleIds(
+              nextUiState.minimizedTentacleIds.filter((tentacleId) =>
+                activeTentacleIds.has(tentacleId),
+              ),
+            );
+          }
+
+          if (nextUiState.tentacleWidths) {
+            const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
+            setTentacleWidths(
+              Object.entries(nextUiState.tentacleWidths).reduce<Record<string, number>>(
+                (acc, [tentacleId, width]) => {
+                  if (activeTentacleIds.has(tentacleId)) {
+                    acc[tentacleId] = width;
+                  }
+                  return acc;
+                },
+                {},
+              ),
+            );
+          }
+        }
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           setColumns([]);
@@ -137,6 +275,7 @@ export const App = () => {
         }
       } finally {
         setIsLoading(false);
+        setIsUiStateHydrated(true);
       }
     };
 
@@ -144,7 +283,57 @@ export const App = () => {
     return () => {
       controller.abort();
     };
-  }, [readColumns]);
+  }, [readColumns, readUiState]);
+
+  useEffect(() => {
+    if (!isUiStateHydrated) {
+      return;
+    }
+
+    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
+    const payload: FrontendUiStateSnapshot = {
+      isAgentsSidebarVisible,
+      sidebarWidth: clampSidebarWidth(sidebarWidth),
+      isActiveAgentsSectionExpanded,
+      isCodexUsageSectionExpanded,
+      minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
+        activeTentacleIds.has(tentacleId),
+      ),
+      tentacleWidths: Object.entries(tentacleWidths).reduce<Record<string, number>>(
+        (acc, [tentacleId, width]) => {
+          if (activeTentacleIds.has(tentacleId)) {
+            acc[tentacleId] = width;
+          }
+          return acc;
+        },
+        {},
+      ),
+    };
+
+    const timerId = window.setTimeout(() => {
+      void fetch(buildUiStateUrl(), {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }, UI_STATE_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [
+    columns,
+    isActiveAgentsSectionExpanded,
+    isAgentsSidebarVisible,
+    isCodexUsageSectionExpanded,
+    isUiStateHydrated,
+    minimizedTentacleIds,
+    sidebarWidth,
+    tentacleWidths,
+  ]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -593,6 +782,14 @@ export const App = () => {
             codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
             isLoading={isLoading}
             loadError={loadError}
+            sidebarWidth={sidebarWidth}
+            onSidebarWidthChange={(width) => {
+              setSidebarWidth(clampSidebarWidth(width));
+            }}
+            isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
+            onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
+            isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
+            onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
             tentacleStates={tentacleStates}
             minimizedTentacleIds={minimizedTentacleIds}
             onMaximizeTentacle={handleMaximizeTentacle}

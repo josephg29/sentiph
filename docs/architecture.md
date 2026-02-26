@@ -18,16 +18,19 @@ Octogent is organized with a ports-and-adapters approach.
 - One React shell rendering tentacle columns with per-tentacle full-height terminals (`xterm`) plus a grouped active-agent sidebar
 - One API service in `apps/api` exposing:
   - `GET /api/agent-snapshots` (dev snapshots)
-  - `GET /api/codex/usage` (Codex OAuth usage snapshot for top chrome bar)
+  - `GET /api/codex/usage` (Codex OAuth usage snapshot for sidebar footer usage bars)
+  - `GET /api/ui-state` (load persisted frontend UI preferences)
+  - `PATCH /api/ui-state` (persist frontend UI preference updates)
   - `POST /api/tentacles` (create tentacle with unique incremental id and optional display name)
   - `PATCH /api/tentacles/:tentacleId` (rename tentacle display name while keeping id stable)
   - `DELETE /api/tentacles/:tentacleId` (delete a tentacle session and remove it from active snapshots)
   - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
 - Runtime requires `tmux` and persists tentacle registry state to `.octogent/state/tentacles.json`
 - Runtime restores tentacles from registry on startup (no implicit default tentacle)
+- Runtime also persists frontend UI state in the same registry (`uiState`) so sidebar/tentacle layout preferences survive restarts
 - Tentacles attach to stable `tmux` sessions (`octogent_<tentacleId>`) and initialize newly created sessions with `codex`
 - Snapshot payloads include stable `tentacleId` plus optional `tentacleName` for UI display
-- Minimized tentacles are hidden from the board in client state and restored from sidebar actions
+- Minimized tentacles are hidden from the board and persisted via runtime UI state
 - Shared runtime endpoint builders in `apps/web/src/runtime/runtimeEndpoints.ts` with optional `VITE_OCTOGENT_API_ORIGIN` override for external backends
 - Vite dev proxy in `apps/web/vite.config.ts` forwards `/api` traffic to `apps/api`
 - Tentacle pane sizing is managed client-side with per-tentacle widths, minimum-width constraints, and adjacent split-pane resizing

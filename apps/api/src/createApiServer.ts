@@ -6,7 +6,7 @@ import {
   type CodexUsageSnapshot,
   readCodexUsageSnapshot as readCodexUsageSnapshotDefault,
 } from "./codexUsage";
-import { createTerminalRuntime, type TmuxClient } from "./terminalRuntime";
+import { type PersistedUiState, type TmuxClient, createTerminalRuntime } from "./terminalRuntime";
 
 type CreateApiServerOptions = {
   workspaceCwd?: string;
@@ -150,6 +150,112 @@ const parseTentacleName = (payload: unknown) => {
   };
 };
 
+const parseUiStatePatch = (
+  payload: unknown,
+): { patch: PersistedUiState | null; error: string | null } => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return {
+      patch: null,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const patch: PersistedUiState = {};
+
+  if (record.isAgentsSidebarVisible !== undefined) {
+    if (typeof record.isAgentsSidebarVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isAgentsSidebarVisible must be a boolean.",
+      };
+    }
+    patch.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
+  }
+
+  if (record.sidebarWidth !== undefined) {
+    if (typeof record.sidebarWidth !== "number" || !Number.isFinite(record.sidebarWidth)) {
+      return {
+        patch: null,
+        error: "sidebarWidth must be a finite number.",
+      };
+    }
+    patch.sidebarWidth = record.sidebarWidth;
+  }
+
+  if (record.isActiveAgentsSectionExpanded !== undefined) {
+    if (typeof record.isActiveAgentsSectionExpanded !== "boolean") {
+      return {
+        patch: null,
+        error: "isActiveAgentsSectionExpanded must be a boolean.",
+      };
+    }
+    patch.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
+  }
+
+  if (record.isCodexUsageSectionExpanded !== undefined) {
+    if (typeof record.isCodexUsageSectionExpanded !== "boolean") {
+      return {
+        patch: null,
+        error: "isCodexUsageSectionExpanded must be a boolean.",
+      };
+    }
+    patch.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
+  }
+
+  if (record.minimizedTentacleIds !== undefined) {
+    if (!Array.isArray(record.minimizedTentacleIds)) {
+      return {
+        patch: null,
+        error: "minimizedTentacleIds must be an array of strings.",
+      };
+    }
+
+    const minimizedTentacleIds = record.minimizedTentacleIds.filter(
+      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+    );
+    if (minimizedTentacleIds.length !== record.minimizedTentacleIds.length) {
+      return {
+        patch: null,
+        error: "minimizedTentacleIds must be an array of strings.",
+      };
+    }
+    patch.minimizedTentacleIds = [...new Set(minimizedTentacleIds)];
+  }
+
+  if (record.tentacleWidths !== undefined) {
+    if (
+      record.tentacleWidths === null ||
+      typeof record.tentacleWidths !== "object" ||
+      Array.isArray(record.tentacleWidths)
+    ) {
+      return {
+        patch: null,
+        error: "tentacleWidths must be an object map of numbers.",
+      };
+    }
+
+    const tentacleWidths = Object.entries(record.tentacleWidths).reduce<Record<string, number>>(
+      (acc, [tentacleId, width]) => {
+        if (typeof width === "number" && Number.isFinite(width)) {
+          acc[tentacleId] = width;
+        }
+        return acc;
+      },
+      {},
+    );
+    if (Object.keys(tentacleWidths).length !== Object.keys(record.tentacleWidths).length) {
+      return {
+        patch: null,
+        error: "tentacleWidths must be an object map of numbers.",
+      };
+    }
+    patch.tentacleWidths = tentacleWidths;
+  }
+
+  return { patch, error: null };
+};
+
 export const createApiServer = ({
   workspaceCwd,
   tmuxClient,
@@ -212,6 +318,42 @@ export const createApiServer = ({
         }
 
         const payload = await readCodexUsageSnapshot();
+        response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
+        return;
+      }
+
+      if (requestUrl.pathname === "/api/ui-state") {
+        if (request.method === "GET") {
+          const payload = runtime.readUiState();
+          response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify(payload));
+          return;
+        }
+
+        if (request.method !== "PATCH") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        let bodyPayload: unknown = null;
+        try {
+          bodyPayload = await readJsonBody(request);
+        } catch {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Invalid JSON body." }));
+          return;
+        }
+
+        const uiStatePatch = parseUiStatePatch(bodyPayload);
+        if (uiStatePatch.error || !uiStatePatch.patch) {
+          response.writeHead(400, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: uiStatePatch.error ?? "Invalid UI state patch." }));
+          return;
+        }
+
+        const payload = runtime.patchUiState(uiStatePatch.patch);
         response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
         response.end(JSON.stringify(payload));
         return;

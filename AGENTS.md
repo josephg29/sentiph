@@ -72,6 +72,10 @@ In the Active Agents sidebar, root agent rows should use the same `idle`/`proces
 
 Structure the left sidebar as reusable sections with collapsible headers. Keep section headers visually prominent and use slightly roomier paddings to improve scanability.
 
+### Frontend UI Persistence Preference
+
+Persist frontend layout/preferences in the runtime registry JSON (`.octogent/state/tentacles.json`, `uiState`) via API endpoints, not browser-only storage.
+
 ### Codex Usage Placement Preference
 
 Show Codex usage in the `Active Agents` sidebar footer (bottom of the left sidebar), not in the top chrome bar. Keep it visually consistent with existing terminal/sidebar chrome styling.

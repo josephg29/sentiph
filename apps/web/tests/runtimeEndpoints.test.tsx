@@ -6,6 +6,7 @@ import {
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
+  buildUiStateUrl,
 } from "../src/runtime/runtimeEndpoints";
 
 describe("runtimeEndpoints", () => {
@@ -36,6 +37,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute codex usage URL when runtime base URL is configured", () => {
     expect(buildCodexUsageUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/codex/usage",
+    );
+  });
+
+  it("builds ui state URL on same origin by default", () => {
+    expect(buildUiStateUrl()).toBe("/api/ui-state");
+  });
+
+  it("builds absolute ui state URL when runtime base URL is configured", () => {
+    expect(buildUiStateUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/ui-state",
     );
   });
 

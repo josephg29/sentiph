@@ -63,6 +63,14 @@ export const buildCodexUsageUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/codex/usage");
 };
 
+export const buildUiStateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/ui-state";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/ui-state");
+};
+
 export const buildTentacleRenameUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

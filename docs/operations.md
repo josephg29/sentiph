@@ -16,10 +16,13 @@
 ## Runtime persistence notes
 
 - Tentacle metadata is persisted at `.octogent/state/tentacles.json`.
+- Frontend UI preference state is persisted in the same registry under `uiState`.
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
+- Runtime restores UI state from that registry on startup and serves it via `GET /api/ui-state`.
 - Each tentacle maps to a tmux session named `octogent_<tentacleId>`.
 - Orphan tmux sessions without a registry entry are ignored.
 - `DELETE /api/tentacles/:tentacleId` removes both registry state and the associated tmux session.
+- `PATCH /api/ui-state` updates and persists frontend UI preferences.
 
 ## Local security defaults
 
