@@ -57,6 +57,7 @@ type TentacleRegistryDocument = {
 export type TmuxClient = {
   assertAvailable(): void;
   hasSession(sessionName: string): boolean;
+  configureSession(sessionName: string): void;
   capturePane(sessionName: string): string;
   createSession(options: { sessionName: string; cwd: string; command: string }): void;
   killSession(sessionName: string): void;
@@ -215,6 +216,12 @@ const createDefaultTmuxClient = (): TmuxClient => ({
       }
       throw error;
     }
+  },
+
+  configureSession(sessionName) {
+    execFileSync("tmux", ["set-option", "-t", sessionName, "status", "off"], {
+      stdio: "pipe",
+    });
   },
 
   capturePane(sessionName) {
@@ -453,6 +460,7 @@ export const createTerminalRuntime = ({
   const ensureTmuxSession = (tentacleId: string) => {
     const tmuxSessionName = tmuxSessionNameForTentacle(tentacleId);
     if (tmuxClient.hasSession(tmuxSessionName)) {
+      tmuxClient.configureSession(tmuxSessionName);
       return;
     }
 
@@ -461,6 +469,7 @@ export const createTerminalRuntime = ({
       cwd: workspaceCwd,
       command: TENTACLE_BOOTSTRAP_COMMAND,
     });
+    tmuxClient.configureSession(tmuxSessionName);
   };
 
   const ensureSession = (tentacleId: string) => {
