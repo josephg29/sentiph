@@ -11,8 +11,9 @@ const parsePort = (value: string | undefined, fallback: number) => {
 
 const host = process.env.HOST ?? "127.0.0.1";
 const port = parsePort(process.env.PORT, 8787);
+const allowRemoteAccess = process.env.OCTOGENT_ALLOW_REMOTE_ACCESS === "1";
 
-const apiServer = createApiServer();
+const apiServer = createApiServer({ allowRemoteAccess });
 
 const shutdown = async () => {
   await apiServer.stop();

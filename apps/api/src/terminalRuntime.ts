@@ -67,7 +67,7 @@ type CreateTerminalRuntimeOptions = {
 };
 
 const TENTACLE_ID_PREFIX = "tentacle-";
-const TMUX_SESSION_PREFIX = "octogent.";
+const TMUX_SESSION_PREFIX = "octogent_";
 const TENTACLE_REGISTRY_VERSION = 1;
 const TENTACLE_REGISTRY_RELATIVE_PATH = ".octogent/state/tentacles.json";
 const TENTACLE_BOOTSTRAP_COMMAND = "codex";
@@ -160,7 +160,11 @@ const parseTentacleNumber = (tentacleId: string): number | null => {
 
 const toErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-const tmuxSessionNameForTentacle = (tentacleId: string) => `${TMUX_SESSION_PREFIX}${tentacleId}`;
+const tmuxSessionNameForTentacle = (tentacleId: string) => {
+  // tmux target parsing treats punctuation as selectors; keep names explicit and stable.
+  const sanitizedTentacleId = tentacleId.replace(/[^A-Za-z0-9_-]/g, "_");
+  return `${TMUX_SESSION_PREFIX}${sanitizedTentacleId}`;
+};
 
 const readCommandErrorOutput = (error: unknown) => {
   if (!error || typeof error !== "object") {

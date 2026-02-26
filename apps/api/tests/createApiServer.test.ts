@@ -1,4 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
+import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -71,6 +72,11 @@ describe("createApiServer", () => {
     return `http://${address.host}:${address.port}`;
   };
 
+  const toWebSocketBaseUrl = (httpBaseUrl: string) =>
+    httpBaseUrl.startsWith("https://")
+      ? httpBaseUrl.replace("https://", "wss://")
+      : httpBaseUrl.replace("http://", "ws://");
+
   it("returns snapshots for GET /api/agent-snapshots", async () => {
     const baseUrl = await startServer();
 
@@ -83,6 +89,101 @@ describe("createApiServer", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([]);
+  });
+
+  it("rejects non-local browser origins for HTTP endpoints", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Origin: "https://attacker.example",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    await expect(response.json()).resolves.toEqual({
+      error: "Origin not allowed.",
+    });
+  });
+
+  it("allows loopback browser origins and reflects CORS origin", async () => {
+    const baseUrl = await startServer();
+    const origin = "http://localhost:5173";
+
+    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Origin: origin,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+    expect(response.headers.get("vary")).toBe("Origin");
+  });
+
+  it("rejects non-local CORS preflight requests", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://attacker.example",
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  it("rejects websocket upgrades from non-local origins", async () => {
+    const baseUrl = await startServer();
+    const wsUrl = new URL(`${toWebSocketBaseUrl(baseUrl)}/api/terminals/tentacle-1/ws`);
+
+    const opened = await new Promise<boolean>((resolve) => {
+      const socket = createConnection({
+        host: wsUrl.hostname,
+        port: Number.parseInt(wsUrl.port, 10),
+      });
+      let settled = false;
+      let responseHead = "";
+
+      const finish = (didOpen: boolean) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        socket.destroy();
+        resolve(didOpen);
+      };
+
+      socket.on("connect", () => {
+        socket.write(
+          `GET ${wsUrl.pathname} HTTP/1.1\r\n` +
+            `Host: ${wsUrl.host}\r\n` +
+            "Connection: Upgrade\r\n" +
+            "Upgrade: websocket\r\n" +
+            "Sec-WebSocket-Version: 13\r\n" +
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n" +
+            "Origin: https://attacker.example\r\n\r\n",
+        );
+      });
+      socket.on("data", (chunk) => {
+        responseHead += chunk.toString("utf8");
+        if (responseHead.includes("101 Switching Protocols")) {
+          finish(true);
+        }
+      });
+      socket.on("error", () => finish(false));
+      socket.on("close", () => finish(false));
+      setTimeout(() => finish(false), 1_000);
+    });
+
+    expect(opened).toBe(false);
   });
 
   it("returns 405 for unsupported methods on /api/agent-snapshots", async () => {
@@ -332,7 +433,7 @@ describe("createApiServer", () => {
     temporaryDirectories.push(workspaceCwd);
     const tmuxClient = new FakeTmuxClient();
     tmuxClient.createSession({
-      sessionName: "octogent.tentacle-99",
+      sessionName: "octogent_tentacle-99",
       cwd: workspaceCwd,
       command: "codex",
     });

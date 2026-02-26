@@ -25,7 +25,7 @@ Octogent is organized with a ports-and-adapters approach.
   - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
 - Runtime requires `tmux` and persists tentacle registry state to `.octogent/state/tentacles.json`
 - Runtime restores tentacles from registry on startup (no implicit default tentacle)
-- Tentacles attach to stable `tmux` sessions (`octogent.<tentacleId>`) and initialize newly created sessions with `codex`
+- Tentacles attach to stable `tmux` sessions (`octogent_<tentacleId>`) and initialize newly created sessions with `codex`
 - Snapshot payloads include stable `tentacleId` plus optional `tentacleName` for UI display
 - Minimized tentacles are hidden from the board in client state and restored from sidebar actions
 - Shared runtime endpoint builders in `apps/web/src/runtime/runtimeEndpoints.ts` with optional `VITE_OCTOGENT_API_ORIGIN` override for external backends

@@ -17,10 +17,16 @@
 
 - Tentacle metadata is persisted at `.octogent/state/tentacles.json`.
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
-- Each tentacle maps to a tmux session named `octogent.<tentacleId>`.
+- Each tentacle maps to a tmux session named `octogent_<tentacleId>`.
 - Orphan tmux sessions without a registry entry are ignored.
 - `DELETE /api/tentacles/:tentacleId` removes both registry state and the associated tmux session.
 
+## Local security defaults
+
+- API defaults to `HOST=127.0.0.1`.
+- HTTP and WebSocket requests are restricted to loopback `Host` and browser `Origin` values by default.
+- For intentionally remote setups, set `OCTOGENT_ALLOW_REMOTE_ACCESS=1`.
+
 ## Known limitations (scratch baseline)
 
-- Production backend API and auth are not implemented yet.
+- Full multi-user auth/session model is not implemented yet.
