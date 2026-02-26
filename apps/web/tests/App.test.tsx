@@ -812,10 +812,8 @@ describe("App", () => {
     const tentacleAGroup = within(sidebar).getByLabelText("Active agents in tentacle-a");
     const tentacleBGroup = within(sidebar).getByLabelText("Active agents in tentacle-b");
 
-    expect(
-      within(tentacleAGroup).getByText("1 processing · 1 idle · 2 agents"),
-    ).toBeInTheDocument();
-    expect(within(tentacleBGroup).getByText("0 processing · 1 idle · 1 agent")).toBeInTheDocument();
+    expect(within(tentacleAGroup).getByText("2 agents")).toBeInTheDocument();
+    expect(within(tentacleBGroup).getByText("1 agent")).toBeInTheDocument();
     expect(within(tentacleAGroup).getByText("core-planner")).toBeInTheDocument();
     expect(within(tentacleAGroup).getByText(longWorkerLabel)).toBeInTheDocument();
     expect(within(tentacleBGroup).getByText("reviewer")).toBeInTheDocument();

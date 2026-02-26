@@ -131,6 +131,11 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         const terminalFontSize = Number.isFinite(rootFontSize)
           ? Math.max(13, Math.round(rootFontSize * 0.82))
           : 13;
+        const terminalBackground =
+          window
+            .getComputedStyle(document.documentElement)
+            .getPropertyValue("--terminal-bg")
+            .trim() || "#101722";
 
         const terminal = new Terminal({
           convertEol: true,
@@ -141,10 +146,10 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           fontFamily: '"JetBrains Mono", "IBM Plex Mono", monospace',
           fontSize: terminalFontSize,
           theme: {
-            background: "#040404",
+            background: terminalBackground,
             foreground: "#f0f0f0",
             cursor: "#faa32c",
-            cursorAccent: "#040404",
+            cursorAccent: terminalBackground,
           },
         });
         const fitAddon = new FitAddon();

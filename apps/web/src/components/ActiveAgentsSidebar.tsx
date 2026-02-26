@@ -67,10 +67,6 @@ export const ActiveAgentsSidebar = ({
     return fallbackCodexStateByAgentState[agent.state];
   };
 
-  const activeAgentCount = useMemo(
-    () => columns.reduce((count, column) => count + column.agents.length, 0),
-    [columns],
-  );
   const primaryUsagePercent = useMemo(() => {
     const value = codexUsageSnapshot?.primaryUsedPercent;
     if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -143,9 +139,7 @@ export const ActiveAgentsSidebar = ({
               type="button"
             >
               <span className="active-agents-section-title">Active Agents</span>
-              <span className="active-agents-section-meta">
-                {columns.length} tentacles · {activeAgentCount} agents
-              </span>
+              <span className="active-agents-section-meta">{columns.length} tentacles</span>
               <span className="active-agents-section-chevron" aria-hidden="true">
                 {isActiveAgentsSectionExpanded ? "▾" : "▸"}
               </span>
@@ -161,12 +155,6 @@ export const ActiveAgentsSidebar = ({
 
                 {!isLoading &&
                   columns.map((column) => {
-                    const processingCount = column.agents.reduce((count, agent) => {
-                      return resolveAgentCodexState(column.tentacleId, agent) === "processing"
-                        ? count + 1
-                        : count;
-                    }, 0);
-                    const idleCount = column.agents.length - processingCount;
                     const agentCountLabel = column.agents.length === 1 ? "agent" : "agents";
                     return (
                       <section
@@ -177,11 +165,10 @@ export const ActiveAgentsSidebar = ({
                         <div className="active-agents-group-header">
                           <div className="active-agents-group-header-text">
                             <h3>{column.tentacleName}</h3>
-                            <p className="active-agents-group-stats">
-                              {processingCount} processing · {idleCount} idle ·{" "}
-                              {column.agents.length} {agentCountLabel}
-                            </p>
                           </div>
+                          <span className="active-agents-group-count">
+                            {column.agents.length} {agentCountLabel}
+                          </span>
                           {minimizedTentacleIds.includes(column.tentacleId) && (
                             <ActionButton
                               aria-label={`Maximize tentacle ${column.tentacleId}`}
@@ -244,7 +231,7 @@ export const ActiveAgentsSidebar = ({
               type="button"
             >
               <span className="active-agents-section-title">Codex token usage</span>
-              <span className="active-agents-section-meta">5H + weekly + credits</span>
+              <span className="active-agents-section-meta">Usage overview</span>
               <span className="active-agents-section-chevron" aria-hidden="true">
                 {isCodexUsageSectionExpanded ? "▾" : "▸"}
               </span>

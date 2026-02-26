@@ -76,6 +76,10 @@ In the Active Agents sidebar, root agent rows should use the same `idle`/`proces
 
 Structure the left sidebar as reusable sections with collapsible headers. Keep section headers visually prominent and use slightly roomier paddings to improve scanability.
 
+### Sidebar Visual Contrast Preference
+
+Keep the left sidebar mostly neutral (deep slate/gray surfaces) and reserve accent color for active/focus indicators, meter fills, and warning/error states instead of large header backgrounds.
+
 ### Frontend UI Persistence Preference
 
 Persist frontend layout/preferences in the runtime registry JSON (`.octogent/state/tentacles.json`, `uiState`) via API endpoints, not browser-only storage.
@@ -101,9 +105,14 @@ Use `PP Neue Machina Plain` as the primary UI font for web chrome, controls, and
 
 Avoid tiny control text. Keep the global web UI base font size and terminal font size large enough for comfortable reading, and scale from shared tokens instead of ad hoc per-component overrides.
 
+### Terminal Surface Preference
+
+Keep the terminal surface dark but not pure black; prefer a deep slate background for long-session readability.
+
 ### Chrome Density Preference
 
 Keep the top chrome bar compact: smaller vertical padding and tighter control spacing over roomy header sizing.
+Keep top chrome action button labels comfortably legible (avoid tiny CTA text); prefer slightly larger label size even in dense mode.
 
 ### Progressive Implementation
 
