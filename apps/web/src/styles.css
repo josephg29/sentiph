@@ -1050,10 +1050,13 @@ body {
 .terminal-mount {
   min-height: 0;
   overflow: hidden;
+  padding: 2px;
+  background: color-mix(in srgb, var(--bg-surface-1) 92%, #000000);
 }
 
 .terminal-mount .xterm {
   height: 100%;
+  width: 100%;
 }
 
 .terminal-mount .xterm-viewport {
