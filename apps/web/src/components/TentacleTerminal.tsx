@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
+import { wheelDeltaToScrollLines } from "./terminalWheel";
 import { type CodexState, CodexStateBadge, isCodexState } from "./CodexStateBadge";
 
 import "xterm/css/xterm.css";
@@ -36,7 +37,8 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
     let reconnectTimer: number | null = null;
     let socket: WebSocket | null = null;
     let cleanupTerminal = () => {};
-    let activeTerminal: { write: (value: string) => void } | null = null;
+    let activeTerminal: { write: (value: string) => void; scrollLines: (lineCount: number) => void } | null =
+      null;
 
     const connect = () => {
       const nextSocket = new WebSocket(buildTerminalSocketUrl(tentacleId));
@@ -137,6 +139,22 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         fitAddon.fit();
         activeTerminal = terminal;
 
+        const wheelListenerTarget = containerRef.current;
+        const onWheel = (event: WheelEvent) => {
+          const lines = wheelDeltaToScrollLines(event.deltaY, event.deltaMode);
+          if (lines === 0) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          terminal.scrollLines(lines);
+        };
+        wheelListenerTarget.addEventListener("wheel", onWheel, {
+          capture: true,
+          passive: false,
+        });
+
         const sendResize = () => {
           if (!socket || socket.readyState !== 1) {
             return;
@@ -175,6 +193,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
 
         sendResize();
         cleanupTerminal = () => {
+          wheelListenerTarget.removeEventListener("wheel", onWheel, true);
           observer?.disconnect();
           onDataDisposable.dispose();
           terminal.dispose();
