@@ -80,6 +80,78 @@ describe("App", () => {
     expect(screen.getByText("Press 0-6 to navigate · Type context to search")).toBeInTheDocument();
   });
 
+  it("renders github repo metrics in the runtime status strip", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "unavailable",
+            source: "none",
+            fetchedAt: "2026-02-27T12:00:00.000Z",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/github/summary") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            source: "gh-cli",
+            fetchedAt: "2026-02-27T12:00:00.000Z",
+            repo: "hesamsheikh/octogent",
+            stargazerCount: 42,
+            openIssueCount: 7,
+            openPullRequestCount: 3,
+            commitsPerDay: [
+              { date: "2026-02-25", count: 4 },
+              { date: "2026-02-26", count: 6 },
+              { date: "2026-02-27", count: 8 },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    const { container } = render(<App />);
+
+    const strip = await screen.findByLabelText("Runtime status strip");
+    expect(within(strip).getByText("hesamsheikh/octogent")).toBeInTheDocument();
+    expect(within(strip).getByText("★ 42")).toBeInTheDocument();
+    expect(within(strip).getByText("7")).toBeInTheDocument();
+    expect(within(strip).getByText("3")).toBeInTheDocument();
+    expect(within(strip).getByText("18")).toBeInTheDocument();
+
+    const sparkline = container.querySelector(".console-status-sparkline polyline");
+    expect(sparkline).not.toBeNull();
+    expect(sparkline?.getAttribute("points")).not.toBe("");
+  });
+
   it("supports keyboard-first primary navigation with number keys 0-6", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify([]), {

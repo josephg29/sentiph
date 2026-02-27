@@ -22,6 +22,7 @@ import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
 import {
   buildAgentSnapshotsUrl,
   buildCodexUsageUrl,
+  buildGithubSummaryUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildUiStateUrl,
@@ -40,7 +41,25 @@ type CodexUsageSnapshot = {
   creditsUnlimited?: boolean | null;
 };
 
+type GitHubCommitPoint = {
+  date: string;
+  count: number;
+};
+
+type GitHubRepoSummarySnapshot = {
+  status: "ok" | "unavailable" | "error";
+  fetchedAt: string;
+  source: "gh-cli" | "none";
+  message?: string | null;
+  repo?: string | null;
+  stargazerCount?: number | null;
+  openIssueCount?: number | null;
+  openPullRequestCount?: number | null;
+  commitsPerDay?: GitHubCommitPoint[];
+};
+
 const CODEX_USAGE_SCAN_INTERVAL_MS = 60_000;
+const GITHUB_SUMMARY_SCAN_INTERVAL_MS = 60_000;
 const UI_STATE_SAVE_DEBOUNCE_MS = 250;
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 520;
@@ -64,7 +83,7 @@ const TELEMETRY_TAPE_ITEMS = [
   { symbol: "ERRORS", change: -0.44 },
   { symbol: "THROUGHPUT", change: 0.29 },
 ] as const;
-const QUOTE_SPARKLINE = [22, 19, 23, 24, 21, 26, 27, 25, 29, 31, 30, 33];
+const GITHUB_COMMIT_SERIES_LENGTH = 30;
 
 type PrimaryNavIndex = (typeof PRIMARY_NAV_ITEMS)[number]["index"];
 
@@ -122,6 +141,53 @@ const normalizeCodexUsageSnapshot = (value: unknown): CodexUsageSnapshot | null 
     secondaryUsedPercent: asNumber(record.secondaryUsedPercent),
     creditsBalance: asNumber(record.creditsBalance),
     creditsUnlimited: typeof record.creditsUnlimited === "boolean" ? record.creditsUnlimited : null,
+  };
+};
+
+const normalizeGitHubCommitPoint = (value: unknown): GitHubCommitPoint | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const date = asString(record.date);
+  const count = asNumber(record.count);
+  if (!date || count === null) {
+    return null;
+  }
+
+  return {
+    date,
+    count: Math.max(0, Math.round(count)),
+  };
+};
+
+const normalizeGitHubRepoSummarySnapshot = (value: unknown): GitHubRepoSummarySnapshot | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const status = record.status;
+  if (status !== "ok" && status !== "unavailable" && status !== "error") {
+    return null;
+  }
+
+  const rawCommitsPerDay = Array.isArray(record.commitsPerDay) ? record.commitsPerDay : [];
+  const commitsPerDay = rawCommitsPerDay
+    .map((point) => normalizeGitHubCommitPoint(point))
+    .filter((point): point is GitHubCommitPoint => point !== null);
+
+  return {
+    status,
+    source: record.source === "gh-cli" ? "gh-cli" : "none",
+    fetchedAt: asString(record.fetchedAt) ?? new Date().toISOString(),
+    message: asString(record.message),
+    repo: asString(record.repo),
+    stargazerCount: asNumber(record.stargazerCount),
+    openIssueCount: asNumber(record.openIssueCount),
+    openPullRequestCount: asNumber(record.openPullRequestCount),
+    commitsPerDay,
   };
 };
 
@@ -192,6 +258,7 @@ export const App = () => {
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
   const [codexUsageSnapshot, setCodexUsageSnapshot] = useState<CodexUsageSnapshot | null>(null);
+  const [githubRepoSummary, setGithubRepoSummary] = useState<GitHubRepoSummarySnapshot | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [tickerQuery, setTickerQuery] = useState("MAIN");
   const tentaclesRef = useRef<HTMLElement | null>(null);
@@ -418,6 +485,65 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
+    let isDisposed = false;
+    let isInFlight = false;
+
+    const syncGitHubRepoSummary = async () => {
+      if (isDisposed || isInFlight) {
+        return;
+      }
+      isInFlight = true;
+      try {
+        const response = await fetch(buildGithubSummaryUrl(), {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to read github summary (${response.status})`);
+        }
+
+        const parsed = normalizeGitHubRepoSummarySnapshot(await response.json());
+        if (!isDisposed) {
+          setGithubRepoSummary(
+            parsed ?? {
+              status: "error",
+              source: "none",
+              fetchedAt: new Date().toISOString(),
+              message: "GitHub summary payload is invalid.",
+              commitsPerDay: [],
+            },
+          );
+        }
+      } catch {
+        if (!isDisposed) {
+          setGithubRepoSummary({
+            status: "error",
+            source: "none",
+            fetchedAt: new Date().toISOString(),
+            message: "Unable to read GitHub summary.",
+            commitsPerDay: [],
+          });
+        }
+      } finally {
+        isInFlight = false;
+      }
+    };
+
+    void syncGitHubRepoSummary();
+    const timerId = window.setInterval(() => {
+      void syncGitHubRepoSummary();
+    }, GITHUB_SUMMARY_SCAN_INTERVAL_MS);
+
+    return () => {
+      isDisposed = true;
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!tentaclesRef.current) {
       return;
     }
@@ -502,29 +628,71 @@ export const App = () => {
     const trimmed = tickerQuery.trim().toUpperCase();
     return trimmed.length > 0 ? trimmed : "----";
   }, [tickerQuery]);
-  const quotePrice = useMemo(() => {
-    const base = 132.45 + columns.length * 0.83;
-    return Number.parseFloat((base + activePrimaryNav * 0.47).toFixed(2));
-  }, [activePrimaryNav, columns.length]);
-  const quoteChange = useMemo(() => {
-    const directionalDelta = ((columns.length % 2 === 0 ? 1 : -1) * 0.38 + activePrimaryNav * 0.07)
-      .toFixed(2);
-    return Number.parseFloat(directionalDelta);
-  }, [activePrimaryNav, columns.length]);
+  const githubCommitSeries = useMemo(() => {
+    const fallbackSeries = Array.from({ length: GITHUB_COMMIT_SERIES_LENGTH }, (_, index) => ({
+      date: `n/a-${index}`,
+      count: 0,
+    }));
+
+    if (!githubRepoSummary?.commitsPerDay || githubRepoSummary.commitsPerDay.length === 0) {
+      return fallbackSeries;
+    }
+
+    const sorted = [...githubRepoSummary.commitsPerDay]
+      .sort((left, right) => left.date.localeCompare(right.date))
+      .slice(-GITHUB_COMMIT_SERIES_LENGTH);
+
+    if (sorted.length === GITHUB_COMMIT_SERIES_LENGTH) {
+      return sorted;
+    }
+
+    const missing = GITHUB_COMMIT_SERIES_LENGTH - sorted.length;
+    return [...fallbackSeries.slice(0, missing), ...sorted];
+  }, [githubRepoSummary]);
+  const githubCommitCount30d = useMemo(
+    () => githubCommitSeries.reduce((total, point) => total + point.count, 0),
+    [githubCommitSeries],
+  );
   const sparklinePoints = useMemo(() => {
     const width = 148;
     const height = 36;
-    const minValue = Math.min(...QUOTE_SPARKLINE);
-    const maxValue = Math.max(...QUOTE_SPARKLINE);
+    const values = githubCommitSeries.map((point) => point.count);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
     const valueRange = Math.max(1, maxValue - minValue);
 
-    return QUOTE_SPARKLINE.map((value, index) => {
-      const x = (index / Math.max(1, QUOTE_SPARKLINE.length - 1)) * width;
+    return values.map((value, index) => {
+      const x = (index / Math.max(1, values.length - 1)) * width;
       const y = height - ((value - minValue) / valueRange) * height;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(" ");
-  }, []);
-  const quoteChangePrefix = quoteChange > 0 ? "+" : "";
+  }, [githubCommitSeries]);
+  const githubStatusPill = useMemo(() => {
+    if (!githubRepoSummary) {
+      return "GitHub loading";
+    }
+
+    if (githubRepoSummary.status === "ok") {
+      return "GitHub live";
+    }
+
+    if (githubRepoSummary.status === "unavailable") {
+      return "GitHub unavailable";
+    }
+
+    return "GitHub error";
+  }, [githubRepoSummary]);
+  const githubStatusMessage = useMemo(() => {
+    if (!githubRepoSummary) {
+      return "Loading repository metrics...";
+    }
+
+    if (githubRepoSummary.status === "ok") {
+      return "COMMITS/DAY · LAST 30 DAYS";
+    }
+
+    return githubRepoSummary.message ?? "GitHub integration unavailable.";
+  }, [githubRepoSummary]);
 
   useEffect(() => {
     const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -812,9 +980,20 @@ export const App = () => {
 
   const renderTentacleWorkspaceLabel = (workspaceMode: TentacleWorkspaceMode) =>
     workspaceMode === "worktree" ? "WORKTREE" : "MAIN";
-  const dummyCpuPercent = Math.min(99, Math.round(42 + activePrimaryNav * 4 + columns.length * 2));
-  const dummyMemoryGb = (9.8 + activePrimaryNav * 0.7 + columns.length * 0.35).toFixed(1);
-  const dummyQueueDepth = (12 + activePrimaryNav * 3 + columns.length * 5).toString();
+  const githubRepoLabel = githubRepoSummary?.repo ?? "GitHub repository";
+  const githubStarsLabel =
+    githubRepoSummary?.stargazerCount !== null && githubRepoSummary?.stargazerCount !== undefined
+      ? `★ ${Math.round(githubRepoSummary.stargazerCount)}`
+      : "★ --";
+  const githubOpenIssuesLabel =
+    githubRepoSummary?.openIssueCount !== null && githubRepoSummary?.openIssueCount !== undefined
+      ? Math.round(githubRepoSummary.openIssueCount).toString()
+      : "--";
+  const githubOpenPrsLabel =
+    githubRepoSummary?.openPullRequestCount !== null &&
+    githubRepoSummary?.openPullRequestCount !== undefined
+      ? Math.round(githubRepoSummary.openPullRequestCount).toString()
+      : "--";
 
   return (
     <div className="page console-shell">
@@ -891,30 +1070,28 @@ export const App = () => {
 
       <section className="console-status-strip" aria-label="Runtime status strip">
         <div className="console-status-main">
-          <span className="console-status-symbol">{normalizedTicker}</span>
-          <strong className="console-status-metric">{quotePrice.toFixed(2)}%</strong>
-          <span className={`console-status-delta ${quoteChange >= 0 ? "is-up" : "is-down"}`}>
-            {`${quoteChangePrefix}${quoteChange.toFixed(2)}% dummy delta`}
-          </span>
-          <span className="console-status-pill">SIMULATED</span>
+          <span className="console-status-symbol">{githubRepoLabel}</span>
+          <strong className="console-status-metric">{githubStarsLabel}</strong>
+          <span className="console-status-delta">{githubStatusMessage}</span>
+          <span className="console-status-pill">{githubStatusPill}</span>
         </div>
-        <div className="console-status-sparkline" aria-hidden="true">
+        <div className="console-status-sparkline" aria-label="Commits per day over last 30 days">
           <svg viewBox="0 0 148 36" role="presentation">
             <polyline points={sparklinePoints} />
           </svg>
         </div>
         <dl className="console-status-stats">
           <div>
-            <dt>CPU</dt>
-            <dd>{dummyCpuPercent}%</dd>
+            <dt>ISSUES</dt>
+            <dd>{githubOpenIssuesLabel}</dd>
           </div>
           <div>
-            <dt>MEM</dt>
-            <dd>{dummyMemoryGb}GB</dd>
+            <dt>PRS</dt>
+            <dd>{githubOpenPrsLabel}</dd>
           </div>
           <div>
-            <dt>QUEUE</dt>
-            <dd>{dummyQueueDepth}</dd>
+            <dt>COMMITS 30D</dt>
+            <dd>{githubCommitCount30d}</dd>
           </div>
         </dl>
       </section>

@@ -7,6 +7,10 @@ import {
   readCodexUsageSnapshot as readCodexUsageSnapshotDefault,
 } from "./codexUsage";
 import {
+  type GitHubRepoSummarySnapshot,
+  readGithubRepoSummary as readGithubRepoSummaryDefault,
+} from "./githubRepoSummary";
+import {
   type GitClient,
   type PersistedUiState,
   RuntimeInputError,
@@ -20,6 +24,7 @@ type CreateApiServerOptions = {
   tmuxClient?: TmuxClient;
   gitClient?: GitClient;
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
+  readGithubRepoSummary?: () => Promise<GitHubRepoSummarySnapshot>;
   allowRemoteAccess?: boolean;
 };
 
@@ -305,6 +310,10 @@ export const createApiServer = ({
   tmuxClient,
   gitClient,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
+  readGithubRepoSummary = () =>
+    readGithubRepoSummaryDefault({
+      cwd: workspaceCwd ?? resolve(process.cwd(), "../.."),
+    }),
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const runtimeOptions: Parameters<typeof createTerminalRuntime>[0] = {
@@ -366,6 +375,19 @@ export const createApiServer = ({
         }
 
         const payload = await readCodexUsageSnapshot();
+        response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
+        response.end(JSON.stringify(payload));
+        return;
+      }
+
+      if (requestUrl.pathname === "/api/github/summary") {
+        if (request.method !== "GET") {
+          response.writeHead(405, withCors({ "Content-Type": "application/json" }, corsOrigin));
+          response.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        const payload = await readGithubRepoSummary();
         response.writeHead(200, withCors({ "Content-Type": "application/json" }, corsOrigin));
         response.end(JSON.stringify(payload));
         return;

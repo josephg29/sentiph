@@ -1432,8 +1432,12 @@ body {
   color: var(--accent-primary);
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  max-width: min(36vw, 22rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .console-status-metric {
@@ -1444,6 +1448,7 @@ body {
 }
 
 .console-status-delta {
+  color: #9cb0cb;
   font-size: 0.78rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

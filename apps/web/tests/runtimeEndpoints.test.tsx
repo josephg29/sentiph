@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAgentSnapshotsUrl,
   buildCodexUsageUrl,
+  buildGithubSummaryUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
@@ -37,6 +38,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute codex usage URL when runtime base URL is configured", () => {
     expect(buildCodexUsageUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/codex/usage",
+    );
+  });
+
+  it("builds github summary URL on same origin by default", () => {
+    expect(buildGithubSummaryUrl()).toBe("/api/github/summary");
+  });
+
+  it("builds absolute github summary URL when runtime base URL is configured", () => {
+    expect(buildGithubSummaryUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/github/summary",
     );
   });
 

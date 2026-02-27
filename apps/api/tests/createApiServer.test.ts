@@ -274,6 +274,37 @@ describe("createApiServer", () => {
     await expect(response.json()).resolves.toEqual(codexSnapshot);
   });
 
+  it("returns github summary for GET /api/github/summary", async () => {
+    const githubSummary = {
+      status: "ok",
+      fetchedAt: "2026-02-27T12:00:00.000Z",
+      source: "gh-cli",
+      repo: "hesamsheikh/octogent",
+      stargazerCount: 42,
+      openIssueCount: 7,
+      openPullRequestCount: 3,
+      commitsPerDay: [
+        { date: "2026-02-25", count: 4 },
+        { date: "2026-02-26", count: 6 },
+        { date: "2026-02-27", count: 8 },
+      ],
+    } as const;
+
+    const baseUrl = await startServer({
+      readGithubRepoSummary: async () => githubSummary,
+    });
+
+    const response = await fetch(`${baseUrl}/api/github/summary`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(githubSummary);
+  });
+
   it("returns 405 for unsupported methods on /api/codex/usage", async () => {
     const baseUrl = await startServer({
       readCodexUsageSnapshot: async () => ({
@@ -284,6 +315,23 @@ describe("createApiServer", () => {
     });
 
     const response = await fetch(`${baseUrl}/api/codex/usage`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns 405 for unsupported methods on /api/github/summary", async () => {
+    const baseUrl = await startServer({
+      readGithubRepoSummary: async () => ({
+        status: "unavailable",
+        fetchedAt: "2026-02-27T12:00:00.000Z",
+        source: "none",
+        message: "GitHub CLI not available.",
+      }),
+    });
+
+    const response = await fetch(`${baseUrl}/api/github/summary`, {
       method: "POST",
     });
 
