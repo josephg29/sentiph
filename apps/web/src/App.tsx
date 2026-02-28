@@ -7,13 +7,11 @@ import type {
 } from "react";
 
 import {
-  CODEX_USAGE_SCAN_INTERVAL_MS,
   DEFAULT_SIDEBAR_WIDTH,
   GITHUB_OVERVIEW_GRAPH_HEIGHT,
   GITHUB_OVERVIEW_GRAPH_WIDTH,
   GITHUB_SPARKLINE_HEIGHT,
   GITHUB_SPARKLINE_WIDTH,
-  GITHUB_SUMMARY_SCAN_INTERVAL_MS,
   type GitHubSubtabId,
   PRIMARY_NAV_ITEMS,
   type PrimaryNavIndex,
@@ -27,20 +25,11 @@ import {
   buildGitHubStatusPill,
   formatGitHubCommitHoverLabel,
 } from "./app/githubMetrics";
-import {
-  clampSidebarWidth,
-  normalizeCodexUsageSnapshot,
-  normalizeFrontendUiStateSnapshot,
-  normalizeGitHubRepoSummarySnapshot,
-} from "./app/normalizers";
-import type {
-  CodexUsageSnapshot,
-  FrontendUiStateSnapshot,
-  GitHubCommitSparkPoint,
-  GitHubRepoSummarySnapshot,
-  TentacleView,
-  TentacleWorkspaceMode,
-} from "./app/types";
+import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
+import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
+import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
+import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "./app/normalizers";
+import type { FrontendUiStateSnapshot, GitHubCommitSparkPoint, TentacleView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
@@ -57,14 +46,7 @@ import {
   resizeTentaclePair,
 } from "./layout/tentaclePaneSizing";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
-import {
-  buildAgentSnapshotsUrl,
-  buildCodexUsageUrl,
-  buildGithubSummaryUrl,
-  buildTentacleRenameUrl,
-  buildTentaclesUrl,
-  buildUiStateUrl,
-} from "./runtime/runtimeEndpoints";
+import { buildAgentSnapshotsUrl, buildUiStateUrl } from "./runtime/runtimeEndpoints";
 
 export const App = () => {
   const [columns, setColumns] = useState<TentacleView>([]);
@@ -75,23 +57,10 @@ export const App = () => {
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
-  const [isCreatingTentacle, setIsCreatingTentacle] = useState(false);
-  const [isDeletingTentacleId, setIsDeletingTentacleId] = useState<string | null>(null);
-  const [pendingDeleteTentacle, setPendingDeleteTentacle] = useState<{
-    tentacleId: string;
-    tentacleName: string;
-  } | null>(null);
   const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
-  const [editingTentacleId, setEditingTentacleId] = useState<string | null>(null);
-  const [tentacleNameDraft, setTentacleNameDraft] = useState("");
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
-  const [codexUsageSnapshot, setCodexUsageSnapshot] = useState<CodexUsageSnapshot | null>(null);
-  const [githubRepoSummary, setGithubRepoSummary] = useState<GitHubRepoSummarySnapshot | null>(
-    null,
-  );
-  const [isRefreshingGitHubSummary, setIsRefreshingGitHubSummary] = useState(false);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [activeGitHubSubtab, setActiveGitHubSubtab] = useState<GitHubSubtabId>("overview");
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
@@ -101,8 +70,6 @@ export const App = () => {
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
   const tickerInputRef = useRef<HTMLInputElement | null>(null);
-  const cancelTentacleNameSubmitRef = useRef(false);
-  const githubSummaryInFlightRef = useRef(false);
   const visibleColumns = useMemo(
     () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
     [columns, minimizedTentacleIds],
@@ -146,6 +113,28 @@ export const App = () => {
       return null;
     }
   }, []);
+
+  const {
+    beginTentacleNameEdit,
+    cancelTentacleRename,
+    clearPendingDeleteTentacle,
+    confirmDeleteTentacle,
+    createTentacle,
+    editingTentacleId,
+    isCreatingTentacle,
+    isDeletingTentacleId,
+    pendingDeleteTentacle,
+    requestDeleteTentacle,
+    setEditingTentacleId,
+    setTentacleNameDraft,
+    submitTentacleRename,
+    tentacleNameDraft,
+  } = useTentacleMutations({
+    readColumns: async () => readColumns(),
+    setColumns,
+    setLoadError,
+    setMinimizedTentacleIds,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -267,114 +256,9 @@ export const App = () => {
     tentacleWidths,
   ]);
 
-  useEffect(() => {
-    let isDisposed = false;
-    let isInFlight = false;
-
-    const syncCodexUsage = async () => {
-      if (isDisposed || isInFlight) {
-        return;
-      }
-      isInFlight = true;
-      try {
-        const response = await fetch(buildCodexUsageUrl(), {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Unable to read codex usage (${response.status})`);
-        }
-
-        const parsed = normalizeCodexUsageSnapshot(await response.json());
-        if (!isDisposed) {
-          setCodexUsageSnapshot(
-            parsed ?? {
-              status: "error",
-              source: "none",
-              fetchedAt: new Date().toISOString(),
-            },
-          );
-        }
-      } catch {
-        if (!isDisposed) {
-          setCodexUsageSnapshot({
-            status: "error",
-            source: "none",
-            fetchedAt: new Date().toISOString(),
-          });
-        }
-      } finally {
-        isInFlight = false;
-      }
-    };
-
-    void syncCodexUsage();
-    const timerId = window.setInterval(() => {
-      void syncCodexUsage();
-    }, CODEX_USAGE_SCAN_INTERVAL_MS);
-
-    return () => {
-      isDisposed = true;
-      window.clearInterval(timerId);
-    };
-  }, []);
-
-  const refreshGitHubRepoSummary = useCallback(async () => {
-    if (githubSummaryInFlightRef.current) {
-      return;
-    }
-
-    githubSummaryInFlightRef.current = true;
-    setIsRefreshingGitHubSummary(true);
-    try {
-      const response = await fetch(buildGithubSummaryUrl(), {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to read github summary (${response.status})`);
-      }
-
-      const parsed = normalizeGitHubRepoSummarySnapshot(await response.json());
-      setGithubRepoSummary(
-        parsed ?? {
-          status: "error",
-          source: "none",
-          fetchedAt: new Date().toISOString(),
-          message: "GitHub summary payload is invalid.",
-          commitsPerDay: [],
-        },
-      );
-    } catch {
-      setGithubRepoSummary({
-        status: "error",
-        source: "none",
-        fetchedAt: new Date().toISOString(),
-        message: "Unable to read GitHub summary.",
-        commitsPerDay: [],
-      });
-    } finally {
-      githubSummaryInFlightRef.current = false;
-      setIsRefreshingGitHubSummary(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshGitHubRepoSummary();
-    const timerId = window.setInterval(() => {
-      void refreshGitHubRepoSummary();
-    }, GITHUB_SUMMARY_SCAN_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(timerId);
-    };
-  }, [refreshGitHubRepoSummary]);
+  const codexUsageSnapshot = useCodexUsagePolling();
+  const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
+    useGithubSummaryPolling();
 
   useEffect(() => {
     if (!tentaclesRef.current) {
@@ -433,7 +317,7 @@ export const App = () => {
 
     input.focus();
     input.select();
-  }, [columns, editingTentacleId]);
+  }, [columns, editingTentacleId, setEditingTentacleId]);
 
   useEffect(() => {
     const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
@@ -553,142 +437,6 @@ export const App = () => {
       window.removeEventListener("keydown", handleWindowKeyDown);
     };
   }, []);
-
-  const beginTentacleNameEdit = (tentacleId: string, currentTentacleName: string) => {
-    setLoadError(null);
-    setEditingTentacleId(tentacleId);
-    setTentacleNameDraft(currentTentacleName);
-  };
-
-  const submitTentacleRename = async (tentacleId: string, currentTentacleName: string) => {
-    if (cancelTentacleNameSubmitRef.current) {
-      cancelTentacleNameSubmitRef.current = false;
-      return;
-    }
-
-    const trimmedName = tentacleNameDraft.trim();
-    if (trimmedName.length === 0) {
-      setLoadError("Tentacle name cannot be empty.");
-      return;
-    }
-
-    if (trimmedName === currentTentacleName) {
-      setEditingTentacleId(null);
-      return;
-    }
-
-    try {
-      setLoadError(null);
-      const response = await fetch(buildTentacleRenameUrl(tentacleId), {
-        method: "PATCH",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: trimmedName }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to rename tentacle (${response.status})`);
-      }
-
-      const nextColumns = await readColumns();
-      setColumns(nextColumns);
-      setEditingTentacleId(null);
-    } catch {
-      setLoadError("Unable to rename tentacle.");
-    }
-  };
-
-  const handleCreateTentacle = async (workspaceMode: TentacleWorkspaceMode) => {
-    try {
-      setIsCreatingTentacle(true);
-      setLoadError(null);
-      const response = await fetch(buildTentaclesUrl(), {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ workspaceMode }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to create tentacle (${response.status})`);
-      }
-
-      const createdSnapshot = (await response.json()) as {
-        tentacleId?: unknown;
-        tentacleName?: unknown;
-      };
-      const nextColumns = await readColumns();
-      setColumns(nextColumns);
-
-      const createdTentacleId =
-        typeof createdSnapshot.tentacleId === "string" ? createdSnapshot.tentacleId : null;
-      if (!createdTentacleId) {
-        return;
-      }
-
-      const createdColumn = nextColumns.find((column) => column.tentacleId === createdTentacleId);
-      const createdTentacleName =
-        createdColumn?.tentacleName ??
-        (typeof createdSnapshot.tentacleName === "string"
-          ? createdSnapshot.tentacleName
-          : createdTentacleId);
-      setMinimizedTentacleIds((current) =>
-        current.filter((tentacleId) => tentacleId !== createdTentacleId),
-      );
-      beginTentacleNameEdit(createdTentacleId, createdTentacleName);
-    } catch {
-      setLoadError("Unable to create a new tentacle.");
-    } finally {
-      setIsCreatingTentacle(false);
-    }
-  };
-
-  const requestDeleteTentacle = (tentacleId: string, tentacleName: string) => {
-    setLoadError(null);
-    setPendingDeleteTentacle({ tentacleId, tentacleName });
-  };
-
-  const handleDeleteTentacle = async () => {
-    if (!pendingDeleteTentacle) {
-      return;
-    }
-
-    const { tentacleId } = pendingDeleteTentacle;
-    try {
-      setLoadError(null);
-      setIsDeletingTentacleId(tentacleId);
-      const response = await fetch(buildTentacleRenameUrl(tentacleId), {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to delete tentacle (${response.status})`);
-      }
-
-      if (editingTentacleId === tentacleId) {
-        setEditingTentacleId(null);
-        setTentacleNameDraft("");
-      }
-      setMinimizedTentacleIds((current) =>
-        current.filter((currentTentacleId) => currentTentacleId !== tentacleId),
-      );
-
-      const nextColumns = await readColumns();
-      setColumns(nextColumns);
-      setPendingDeleteTentacle(null);
-    } catch {
-      setLoadError("Unable to delete tentacle.");
-    } finally {
-      setIsDeletingTentacleId(null);
-    }
-  };
 
   const handleMinimizeTentacle = (tentacleId: string) => {
     if (editingTentacleId === tentacleId) {
@@ -872,7 +620,7 @@ export const App = () => {
             disabled={isCreatingTentacle}
             onClick={() => {
               setLoadError(null);
-              void handleCreateTentacle("shared");
+              void createTentacle("shared");
             }}
             size="dense"
             variant="primary"
@@ -885,7 +633,7 @@ export const App = () => {
             disabled={isCreatingTentacle}
             onClick={() => {
               setLoadError(null);
-              void handleCreateTentacle("worktree");
+              void createTentacle("worktree");
             }}
             size="dense"
             variant="info"
@@ -1007,11 +755,7 @@ export const App = () => {
               isLoading={isLoading}
               loadError={loadError}
               onBeginTentacleNameEdit={beginTentacleNameEdit}
-              onCancelTentacleRename={() => {
-                cancelTentacleNameSubmitRef.current = true;
-                setEditingTentacleId(null);
-                setTentacleNameDraft("");
-              }}
+              onCancelTentacleRename={cancelTentacleRename}
               onMinimizeTentacle={handleMinimizeTentacle}
               onRequestDeleteTentacle={requestDeleteTentacle}
               onSubmitTentacleRename={(tentacleId, currentTentacleName) => {
@@ -1037,11 +781,9 @@ export const App = () => {
       {pendingDeleteTentacle && (
         <DeleteTentacleDialog
           isDeletingTentacleId={isDeletingTentacleId}
-          onCancel={() => {
-            setPendingDeleteTentacle(null);
-          }}
+          onCancel={clearPendingDeleteTentacle}
           onConfirmDelete={() => {
-            void handleDeleteTentacle();
+            void confirmDeleteTentacle();
           }}
           pendingDeleteTentacle={pendingDeleteTentacle}
         />
