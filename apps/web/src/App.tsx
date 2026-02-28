@@ -46,6 +46,11 @@ type GitHubCommitPoint = {
   count: number;
 };
 
+type GitHubCommitSparkPoint = GitHubCommitPoint & {
+  x: number;
+  y: number;
+};
+
 type GitHubRepoSummarySnapshot = {
   status: "ok" | "unavailable" | "error";
   fetchedAt: string;
@@ -68,11 +73,12 @@ const PRIMARY_NAV_ITEMS = [
   { index: 0, label: "Board" },
   { index: 1, label: "Agents" },
   { index: 2, label: "Sessions" },
-  { index: 3, label: "Worktrees" },
+  { index: 3, label: "GitHub" },
   { index: 4, label: "Pipelines" },
   { index: 5, label: "Logs" },
   { index: 6, label: "Settings" },
 ] as const;
+const GITHUB_SUBTABS = [{ id: "overview", label: "Overview" }] as const;
 const TELEMETRY_TAPE_ITEMS = [
   { symbol: "QUEUE", change: 1.92 },
   { symbol: "CPU", change: -0.37 },
@@ -84,8 +90,13 @@ const TELEMETRY_TAPE_ITEMS = [
   { symbol: "THROUGHPUT", change: 0.29 },
 ] as const;
 const GITHUB_COMMIT_SERIES_LENGTH = 30;
+const GITHUB_SPARKLINE_WIDTH = 148;
+const GITHUB_SPARKLINE_HEIGHT = 36;
+const GITHUB_OVERVIEW_GRAPH_WIDTH = 640;
+const GITHUB_OVERVIEW_GRAPH_HEIGHT = 180;
 
 type PrimaryNavIndex = (typeof PRIMARY_NAV_ITEMS)[number]["index"];
+type GitHubSubtabId = (typeof GITHUB_SUBTABS)[number]["id"];
 
 type FrontendUiStateSnapshot = {
   isAgentsSidebarVisible?: boolean;
@@ -115,6 +126,16 @@ const asNumber = (value: unknown): number | null => {
 };
 
 const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
+const formatGitHubCommitHoverLabel = (point: GitHubCommitPoint) => {
+  if (point.date.startsWith("n/a-")) {
+    return point.count === 1 ? "No date · 1 commit" : `No date · ${point.count} commits`;
+  }
+
+  return point.count === 1
+    ? `${point.date} · 1 commit`
+    : `${point.date} · ${point.count} commits`;
+};
 
 const clampSidebarWidth = (width: number) =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
@@ -259,12 +280,18 @@ export const App = () => {
   const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
   const [codexUsageSnapshot, setCodexUsageSnapshot] = useState<CodexUsageSnapshot | null>(null);
   const [githubRepoSummary, setGithubRepoSummary] = useState<GitHubRepoSummarySnapshot | null>(null);
+  const [isRefreshingGitHubSummary, setIsRefreshingGitHubSummary] = useState(false);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
+  const [activeGitHubSubtab, setActiveGitHubSubtab] = useState<GitHubSubtabId>("overview");
+  const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
+    number | null
+  >(null);
   const [tickerQuery, setTickerQuery] = useState("MAIN");
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
   const tickerInputRef = useRef<HTMLInputElement | null>(null);
   const cancelTentacleNameSubmitRef = useRef(false);
+  const githubSummaryInFlightRef = useRef(false);
   const visibleColumns = useMemo(
     () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
     [columns, minimizedTentacleIds],
@@ -484,64 +511,59 @@ export const App = () => {
     };
   }, []);
 
+  const refreshGitHubRepoSummary = useCallback(async () => {
+    if (githubSummaryInFlightRef.current) {
+      return;
+    }
+
+    githubSummaryInFlightRef.current = true;
+    setIsRefreshingGitHubSummary(true);
+    try {
+      const response = await fetch(buildGithubSummaryUrl(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to read github summary (${response.status})`);
+      }
+
+      const parsed = normalizeGitHubRepoSummarySnapshot(await response.json());
+      setGithubRepoSummary(
+        parsed ?? {
+          status: "error",
+          source: "none",
+          fetchedAt: new Date().toISOString(),
+          message: "GitHub summary payload is invalid.",
+          commitsPerDay: [],
+        },
+      );
+    } catch {
+      setGithubRepoSummary({
+        status: "error",
+        source: "none",
+        fetchedAt: new Date().toISOString(),
+        message: "Unable to read GitHub summary.",
+        commitsPerDay: [],
+      });
+    } finally {
+      githubSummaryInFlightRef.current = false;
+      setIsRefreshingGitHubSummary(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let isDisposed = false;
-    let isInFlight = false;
-
-    const syncGitHubRepoSummary = async () => {
-      if (isDisposed || isInFlight) {
-        return;
-      }
-      isInFlight = true;
-      try {
-        const response = await fetch(buildGithubSummaryUrl(), {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Unable to read github summary (${response.status})`);
-        }
-
-        const parsed = normalizeGitHubRepoSummarySnapshot(await response.json());
-        if (!isDisposed) {
-          setGithubRepoSummary(
-            parsed ?? {
-              status: "error",
-              source: "none",
-              fetchedAt: new Date().toISOString(),
-              message: "GitHub summary payload is invalid.",
-              commitsPerDay: [],
-            },
-          );
-        }
-      } catch {
-        if (!isDisposed) {
-          setGithubRepoSummary({
-            status: "error",
-            source: "none",
-            fetchedAt: new Date().toISOString(),
-            message: "Unable to read GitHub summary.",
-            commitsPerDay: [],
-          });
-        }
-      } finally {
-        isInFlight = false;
-      }
-    };
-
-    void syncGitHubRepoSummary();
+    void refreshGitHubRepoSummary();
     const timerId = window.setInterval(() => {
-      void syncGitHubRepoSummary();
+      void refreshGitHubRepoSummary();
     }, GITHUB_SUMMARY_SCAN_INTERVAL_MS);
 
     return () => {
-      isDisposed = true;
       window.clearInterval(timerId);
     };
-  }, []);
+  }, [refreshGitHubRepoSummary]);
 
   useEffect(() => {
     if (!tentaclesRef.current) {
@@ -653,20 +675,69 @@ export const App = () => {
     () => githubCommitSeries.reduce((total, point) => total + point.count, 0),
     [githubCommitSeries],
   );
-  const sparklinePoints = useMemo(() => {
-    const width = 148;
-    const height = 36;
+  const sparklineSeries = useMemo<GitHubCommitSparkPoint[]>(() => {
     const values = githubCommitSeries.map((point) => point.count);
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
     const valueRange = Math.max(1, maxValue - minValue);
 
-    return values.map((value, index) => {
-      const x = (index / Math.max(1, values.length - 1)) * width;
-      const y = height - ((value - minValue) / valueRange) * height;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
+    return githubCommitSeries.map((point, index) => {
+      const x = (index / Math.max(1, githubCommitSeries.length - 1)) * GITHUB_SPARKLINE_WIDTH;
+      const y =
+        GITHUB_SPARKLINE_HEIGHT - ((point.count - minValue) / valueRange) * GITHUB_SPARKLINE_HEIGHT;
+      return {
+        date: point.date,
+        count: point.count,
+        x,
+        y,
+      };
+    });
   }, [githubCommitSeries]);
+  const sparklinePoints = useMemo(
+    () => sparklineSeries.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" "),
+    [sparklineSeries],
+  );
+  const githubOverviewGraphSeries = useMemo<GitHubCommitSparkPoint[]>(() => {
+    const values = githubCommitSeries.map((point) => point.count);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = Math.max(1, maxValue - minValue);
+
+    return githubCommitSeries.map((point, index) => {
+      const x =
+        (index / Math.max(1, githubCommitSeries.length - 1)) * GITHUB_OVERVIEW_GRAPH_WIDTH;
+      const y =
+        GITHUB_OVERVIEW_GRAPH_HEIGHT -
+        ((point.count - minValue) / valueRange) * GITHUB_OVERVIEW_GRAPH_HEIGHT;
+      return {
+        date: point.date,
+        count: point.count,
+        x,
+        y,
+      };
+    });
+  }, [githubCommitSeries]);
+  const githubOverviewGraphPolylinePoints = useMemo(
+    () =>
+      githubOverviewGraphSeries
+        .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+        .join(" "),
+    [githubOverviewGraphSeries],
+  );
+  const hoveredGitHubOverviewPoint = useMemo(() => {
+    if (hoveredGitHubOverviewPointIndex === null) {
+      return null;
+    }
+    return githubOverviewGraphSeries[hoveredGitHubOverviewPointIndex] ?? null;
+  }, [githubOverviewGraphSeries, hoveredGitHubOverviewPointIndex]);
+  const githubOverviewHoverLabel = useMemo(() => {
+    if (hoveredGitHubOverviewPoint) {
+      return formatGitHubCommitHoverLabel(hoveredGitHubOverviewPoint);
+    }
+
+    return "Hover points for date and commit count";
+  }, [hoveredGitHubOverviewPoint]);
+  const isGitHubPrimaryView = activePrimaryNav === 3;
   const githubStatusPill = useMemo(() => {
     if (!githubRepoSummary) {
       return "GitHub loading";
@@ -682,17 +753,15 @@ export const App = () => {
 
     return "GitHub error";
   }, [githubRepoSummary]);
-  const githubStatusMessage = useMemo(() => {
-    if (!githubRepoSummary) {
-      return "Loading repository metrics...";
-    }
 
-    if (githubRepoSummary.status === "ok") {
-      return "COMMITS/DAY · LAST 30 DAYS";
+  useEffect(() => {
+    if (hoveredGitHubOverviewPointIndex === null) {
+      return;
     }
-
-    return githubRepoSummary.message ?? "GitHub integration unavailable.";
-  }, [githubRepoSummary]);
+    if (hoveredGitHubOverviewPointIndex >= githubOverviewGraphSeries.length) {
+      setHoveredGitHubOverviewPointIndex(null);
+    }
+  }, [githubOverviewGraphSeries.length, hoveredGitHubOverviewPointIndex]);
 
   useEffect(() => {
     const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -981,10 +1050,10 @@ export const App = () => {
   const renderTentacleWorkspaceLabel = (workspaceMode: TentacleWorkspaceMode) =>
     workspaceMode === "worktree" ? "WORKTREE" : "MAIN";
   const githubRepoLabel = githubRepoSummary?.repo ?? "GitHub repository";
-  const githubStarsLabel =
+  const githubStarCountLabel =
     githubRepoSummary?.stargazerCount !== null && githubRepoSummary?.stargazerCount !== undefined
-      ? `★ ${Math.round(githubRepoSummary.stargazerCount)}`
-      : "★ --";
+      ? Math.round(githubRepoSummary.stargazerCount).toLocaleString("en-US")
+      : "--";
   const githubOpenIssuesLabel =
     githubRepoSummary?.openIssueCount !== null && githubRepoSummary?.openIssueCount !== undefined
       ? Math.round(githubRepoSummary.openIssueCount).toString()
@@ -1071,27 +1140,34 @@ export const App = () => {
       <section className="console-status-strip" aria-label="Runtime status strip">
         <div className="console-status-main">
           <span className="console-status-symbol">{githubRepoLabel}</span>
-          <strong className="console-status-metric">{githubStarsLabel}</strong>
-          <span className="console-status-delta">{githubStatusMessage}</span>
+          <span className="console-status-stars" aria-label={`GitHub stars ${githubStarCountLabel}`}>
+            <svg aria-hidden="true" className="console-status-star-icon" viewBox="0 0 16 16">
+              <path d="M8 .25l2.2 4.69 5.18.8-3.73 3.82.88 5.44L8 12.62 3.47 15l.88-5.44L.62 5.74l5.18-.8L8 .25z" />
+            </svg>
+            <strong className="console-status-metric">{githubStarCountLabel}</strong>
+          </span>
           <span className="console-status-pill">{githubStatusPill}</span>
         </div>
         <div className="console-status-sparkline" aria-label="Commits per day over last 30 days">
-          <svg viewBox="0 0 148 36" role="presentation">
-            <polyline points={sparklinePoints} />
-          </svg>
+          <div className="console-status-sparkline-chart">
+            <svg viewBox={`0 0 ${GITHUB_SPARKLINE_WIDTH} ${GITHUB_SPARKLINE_HEIGHT}`} role="presentation">
+              <polyline points={sparklinePoints} />
+            </svg>
+          </div>
+          <span className="console-status-sparkline-label">COMMITS/DAY · LAST 30 DAYS</span>
         </div>
         <dl className="console-status-stats">
           <div>
-            <dt>ISSUES</dt>
             <dd>{githubOpenIssuesLabel}</dd>
+            <dt>ISSUES</dt>
           </div>
           <div>
-            <dt>PRS</dt>
             <dd>{githubOpenPrsLabel}</dd>
+            <dt>PRS</dt>
           </div>
           <div>
-            <dt>COMMITS 30D</dt>
             <dd>{githubCommitCount30d}</dd>
+            <dt>COMMITS 30D</dt>
           </div>
         </dl>
       </section>
@@ -1166,6 +1242,106 @@ export const App = () => {
               onMaximizeTentacle={handleMaximizeTentacle}
             />
           )}
+
+          {isGitHubPrimaryView ? (
+            <section className="github-view" aria-label="GitHub primary view">
+            <nav className="github-subtabs" aria-label="GitHub subtabs">
+              {GITHUB_SUBTABS.map((subtab) => (
+                <button
+                  aria-current={activeGitHubSubtab === subtab.id ? "page" : undefined}
+                  className="github-subtab"
+                  data-active={activeGitHubSubtab === subtab.id ? "true" : "false"}
+                  key={subtab.id}
+                  onClick={() => {
+                    setActiveGitHubSubtab(subtab.id);
+                  }}
+                  type="button"
+                >
+                  {subtab.label}
+                </button>
+              ))}
+            </nav>
+
+            {activeGitHubSubtab === "overview" && (
+              <section className="github-overview" aria-label="GitHub overview">
+                <header className="github-overview-header">
+                  <h2>{githubRepoLabel}</h2>
+                  <div className="github-overview-header-actions">
+                    <span className="console-status-pill">{githubStatusPill}</span>
+                    <ActionButton
+                      aria-label="Refresh GitHub overview data"
+                      className="github-overview-refresh"
+                      disabled={isRefreshingGitHubSummary}
+                      onClick={() => {
+                        void refreshGitHubRepoSummary();
+                      }}
+                      size="dense"
+                      variant="accent"
+                    >
+                      {isRefreshingGitHubSummary ? "Refreshing..." : "Refresh"}
+                    </ActionButton>
+                  </div>
+                </header>
+                <dl className="github-overview-stats">
+                  <div>
+                    <dt>Stars</dt>
+                    <dd>{githubStarCountLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Open issues</dt>
+                    <dd>{githubOpenIssuesLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Open PRs</dt>
+                    <dd>{githubOpenPrsLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Commits (30d)</dt>
+                    <dd>{githubCommitCount30d}</dd>
+                  </div>
+                </dl>
+                <section className="github-overview-graph" aria-label="GitHub commits graph">
+                  <div className="github-overview-graph-meta">
+                    <strong>Commits Per Day</strong>
+                    <span>{githubOverviewHoverLabel}</span>
+                  </div>
+                  <div className="github-overview-graph-surface">
+                    <svg
+                      onMouseLeave={() => {
+                        setHoveredGitHubOverviewPointIndex(null);
+                      }}
+                      viewBox={`0 0 ${GITHUB_OVERVIEW_GRAPH_WIDTH} ${GITHUB_OVERVIEW_GRAPH_HEIGHT}`}
+                      role="presentation"
+                    >
+                      <polyline points={githubOverviewGraphPolylinePoints} />
+                      {githubOverviewGraphSeries.map((point, index) => (
+                        <circle
+                          aria-label={formatGitHubCommitHoverLabel(point)}
+                          className={`github-overview-graph-point${
+                            hoveredGitHubOverviewPointIndex === index ? " is-active" : ""
+                          }`}
+                          cx={point.x}
+                          cy={point.y}
+                          key={`${point.date}-${index}`}
+                          onFocus={() => {
+                            setHoveredGitHubOverviewPointIndex(index);
+                          }}
+                          onMouseEnter={() => {
+                            setHoveredGitHubOverviewPointIndex(index);
+                          }}
+                          r={6}
+                          tabIndex={0}
+                        >
+                          <title>{formatGitHubCommitHoverLabel(point)}</title>
+                        </circle>
+                      ))}
+                    </svg>
+                  </div>
+                </section>
+              </section>
+            )}
+            </section>
+          ) : (
 
           <main
             ref={tentaclesRef}
@@ -1329,6 +1505,7 @@ export const App = () => {
               );
             })}
           </main>
+          )}
         </div>
       </section>
 

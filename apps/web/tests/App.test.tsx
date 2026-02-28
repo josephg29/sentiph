@@ -142,7 +142,8 @@ describe("App", () => {
 
     const strip = await screen.findByLabelText("Runtime status strip");
     expect(within(strip).getByText("hesamsheikh/octogent")).toBeInTheDocument();
-    expect(within(strip).getByText("★ 42")).toBeInTheDocument();
+    expect(within(strip).getByText("42")).toBeInTheDocument();
+    expect(within(strip).getByText("COMMITS/DAY · LAST 30 DAYS")).toBeInTheDocument();
     expect(within(strip).getByText("7")).toBeInTheDocument();
     expect(within(strip).getByText("3")).toBeInTheDocument();
     expect(within(strip).getByText("18")).toBeInTheDocument();
@@ -172,6 +173,95 @@ describe("App", () => {
         name: "[4] Pipelines",
       }),
     ).toHaveAttribute("aria-current", "page");
+  });
+
+  it("renders [3] GitHub with an Overview subtab and hoverable overview graph", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "unavailable",
+            source: "none",
+            fetchedAt: "2026-02-27T12:00:00.000Z",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.endsWith("/api/github/summary") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            source: "gh-cli",
+            fetchedAt: "2026-02-27T12:00:00.000Z",
+            repo: "hesamsheikh/octogent",
+            stargazerCount: 42,
+            openIssueCount: 7,
+            openPullRequestCount: 3,
+            commitsPerDay: [
+              { date: "2026-02-25", count: 4 },
+              { date: "2026-02-26", count: 6 },
+              { date: "2026-02-27", count: 8 },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    const { container } = render(<App />);
+    await screen.findByText("No active tentacles");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "[3] GitHub",
+      }),
+    );
+
+    const githubView = await screen.findByLabelText("GitHub primary view");
+    expect(within(githubView).getByRole("navigation", { name: "GitHub subtabs" })).toBeInTheDocument();
+    expect(within(githubView).getByRole("button", { name: "Overview" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(githubView).getByText("hesamsheikh/octogent")).toBeInTheDocument();
+    expect(
+      within(githubView).getByRole("button", { name: "Refresh GitHub overview data" }),
+    ).toBeInTheDocument();
+
+    const graphPoint = container.querySelector(
+      ".github-overview-graph-point[aria-label='2026-02-27 · 8 commits']",
+    );
+    expect(graphPoint).not.toBeNull();
+    fireEvent.mouseEnter(graphPoint as Element);
+
+    const hoverMeta = container.querySelector(".github-overview-graph-meta span");
+    expect(hoverMeta).not.toBeNull();
+    expect(hoverMeta).toHaveTextContent("2026-02-27 · 8 commits");
   });
 
   it("shows codex usage in the active agents sidebar footer", async () => {
