@@ -7,6 +7,7 @@ import {
   parseTentacleName,
   parseTentacleWorkspaceMode,
   parseUiStatePatch,
+  RequestBodyTooLargeError,
   readJsonBody,
 } from "./requestParsers";
 import {
@@ -118,7 +119,11 @@ export const createApiRequestHandler = ({
         let bodyPayload: unknown = null;
         try {
           bodyPayload = await readJsonBody(request);
-        } catch {
+        } catch (error) {
+          if (error instanceof RequestBodyTooLargeError) {
+            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
+            return;
+          }
           writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
           return;
         }
@@ -148,7 +153,11 @@ export const createApiRequestHandler = ({
         let bodyPayload: unknown = null;
         try {
           bodyPayload = await readJsonBody(request);
-        } catch {
+        } catch (error) {
+          if (error instanceof RequestBodyTooLargeError) {
+            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
+            return;
+          }
           writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
           return;
         }
@@ -210,7 +219,11 @@ export const createApiRequestHandler = ({
         let bodyPayload: unknown = null;
         try {
           bodyPayload = await readJsonBody(request);
-        } catch {
+        } catch (error) {
+          if (error instanceof RequestBodyTooLargeError) {
+            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
+            return;
+          }
           writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
           return;
         }

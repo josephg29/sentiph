@@ -349,6 +349,47 @@ describe("createApiServer", () => {
     expect(response.status).toBe(405);
   });
 
+  it("returns 413 when create tentacle body exceeds size limit", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "x".repeat(1024 * 1024 + 1),
+      }),
+    });
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Request body too large.",
+    });
+  });
+
+  it("returns 413 when ui-state patch body exceeds size limit", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/ui-state`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        minimizedTentacleIds: ["tentacle-1"],
+        blob: "x".repeat(1024 * 1024 + 1),
+      }),
+    });
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Request body too large.",
+    });
+  });
+
   it("restores ui state across API restarts using persisted registry", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
