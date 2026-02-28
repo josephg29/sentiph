@@ -4,10 +4,10 @@ import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { RuntimeInputError, type TentacleWorkspaceMode } from "../terminalRuntime";
 import {
+  RequestBodyTooLargeError,
   parseTentacleName,
   parseTentacleWorkspaceMode,
   parseUiStatePatch,
-  RequestBodyTooLargeError,
   readJsonBody,
 } from "./requestParsers";
 import {
@@ -27,6 +27,25 @@ type CreateApiRequestHandlerOptions = {
   allowRemoteAccess: boolean;
 };
 
+type RouteHandlerDependencies = {
+  runtime: TerminalRuntime;
+  readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
+  readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
+};
+
+type RouteHandlerContext = {
+  request: IncomingMessage;
+  response: ServerResponse;
+  requestUrl: URL;
+  corsOrigin: string | null;
+};
+
+type JsonBodyReadResult = { ok: true; payload: unknown } | { ok: false };
+type ApiRouteHandler = (
+  context: RouteHandlerContext,
+  dependencies: RouteHandlerDependencies,
+) => Promise<boolean>;
+
 const writeJson = (
   response: ServerResponse,
   status: number,
@@ -42,12 +61,252 @@ const writeNoContent = (response: ServerResponse, status: number, corsOrigin: st
   response.end();
 };
 
+const writeMethodNotAllowed = (response: ServerResponse, corsOrigin: string | null) => {
+  writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
+};
+
+const readJsonBodyOrWriteError = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  corsOrigin: string | null,
+): Promise<JsonBodyReadResult> => {
+  try {
+    const payload = await readJsonBody(request);
+    return { ok: true, payload };
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
+      return { ok: false };
+    }
+
+    writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
+    return { ok: false };
+  }
+};
+
+const handleAgentSnapshotsRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== "/api/agent-snapshots") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const payload = runtime.listAgentSnapshots();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleCodexUsageRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { readCodexUsageSnapshot },
+) => {
+  if (requestUrl.pathname !== "/api/codex/usage") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const payload = await readCodexUsageSnapshot();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleGithubSummaryRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { readGithubRepoSummary },
+) => {
+  if (requestUrl.pathname !== "/api/github/summary") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const payload = await readGithubRepoSummary();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleUiStateRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== "/api/ui-state") {
+    return false;
+  }
+
+  if (request.method === "GET") {
+    const payload = runtime.readUiState();
+    writeJson(response, 200, payload, corsOrigin);
+    return true;
+  }
+
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const uiStatePatch = parseUiStatePatch(bodyReadResult.payload);
+  if (uiStatePatch.error || !uiStatePatch.patch) {
+    writeJson(
+      response,
+      400,
+      { error: uiStatePatch.error ?? "Invalid UI state patch." },
+      corsOrigin,
+    );
+    return true;
+  }
+
+  const payload = runtime.patchUiState(uiStatePatch.patch);
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleTentaclesCollectionRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== "/api/tentacles") {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const nameResult = parseTentacleName(bodyReadResult.payload);
+  if (nameResult.error) {
+    writeJson(response, 400, { error: nameResult.error }, corsOrigin);
+    return true;
+  }
+
+  const workspaceModeResult = parseTentacleWorkspaceMode(bodyReadResult.payload);
+  if (workspaceModeResult.error) {
+    writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
+    return true;
+  }
+
+  try {
+    const createTentacleInput: {
+      tentacleName?: string;
+      workspaceMode: TentacleWorkspaceMode;
+    } = {
+      workspaceMode: workspaceModeResult.workspaceMode,
+    };
+    if (nameResult.name !== undefined) {
+      createTentacleInput.tentacleName = nameResult.name;
+    }
+
+    const payload = runtime.createTentacle(createTentacleInput);
+    writeJson(response, 201, payload, corsOrigin);
+    return true;
+  } catch (error) {
+    if (error instanceof RuntimeInputError) {
+      writeJson(response, 400, { error: error.message }, corsOrigin);
+      return true;
+    }
+
+    throw error;
+  }
+};
+
+const TENTACLE_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)$/;
+
+const handleTentacleItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const renameMatch = requestUrl.pathname.match(TENTACLE_ITEM_PATH_PATTERN);
+  if (!renameMatch) {
+    return false;
+  }
+
+  if (request.method !== "PATCH" && request.method !== "DELETE") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(renameMatch[1] ?? "");
+  if (request.method === "DELETE") {
+    const deleted = runtime.deleteTentacle(tentacleId);
+    if (!deleted) {
+      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+      return true;
+    }
+
+    writeNoContent(response, 204, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const nameResult = parseTentacleName(bodyReadResult.payload);
+  if (nameResult.error) {
+    writeJson(response, 400, { error: nameResult.error }, corsOrigin);
+    return true;
+  }
+
+  if (!nameResult.provided || !nameResult.name) {
+    writeJson(response, 400, { error: "Tentacle name is required." }, corsOrigin);
+    return true;
+  }
+
+  const payload = runtime.renameTentacle(tentacleId, nameResult.name);
+  if (!payload) {
+    writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
+  handleAgentSnapshotsRoute,
+  handleCodexUsageRoute,
+  handleGithubSummaryRoute,
+  handleUiStateRoute,
+  handleTentaclesCollectionRoute,
+  handleTentacleItemRoute,
+];
+
 export const createApiRequestHandler = ({
   runtime,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
+  const routeDependencies: RouteHandlerDependencies = {
+    runtime,
+    readCodexUsageSnapshot,
+    readGithubRepoSummary,
+  };
+
   return async (request: IncomingMessage, response: ServerResponse) => {
     const originHeader = readHeaderValue(request.headers.origin);
     const hostHeader = readHeaderValue(request.headers.host);
@@ -71,182 +330,16 @@ export const createApiRequestHandler = ({
         return;
       }
 
-      if (requestUrl.pathname === "/api/agent-snapshots") {
-        if (request.method !== "GET") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
+      const routeContext: RouteHandlerContext = {
+        request,
+        response,
+        requestUrl,
+        corsOrigin,
+      };
+      for (const handleRoute of API_ROUTE_HANDLERS) {
+        if (await handleRoute(routeContext, routeDependencies)) {
           return;
         }
-
-        const payload = runtime.listAgentSnapshots();
-        writeJson(response, 200, payload, corsOrigin);
-        return;
-      }
-
-      if (requestUrl.pathname === "/api/codex/usage") {
-        if (request.method !== "GET") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
-          return;
-        }
-
-        const payload = await readCodexUsageSnapshot();
-        writeJson(response, 200, payload, corsOrigin);
-        return;
-      }
-
-      if (requestUrl.pathname === "/api/github/summary") {
-        if (request.method !== "GET") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
-          return;
-        }
-
-        const payload = await readGithubRepoSummary();
-        writeJson(response, 200, payload, corsOrigin);
-        return;
-      }
-
-      if (requestUrl.pathname === "/api/ui-state") {
-        if (request.method === "GET") {
-          const payload = runtime.readUiState();
-          writeJson(response, 200, payload, corsOrigin);
-          return;
-        }
-
-        if (request.method !== "PATCH") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
-          return;
-        }
-
-        let bodyPayload: unknown = null;
-        try {
-          bodyPayload = await readJsonBody(request);
-        } catch (error) {
-          if (error instanceof RequestBodyTooLargeError) {
-            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
-            return;
-          }
-          writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
-          return;
-        }
-
-        const uiStatePatch = parseUiStatePatch(bodyPayload);
-        if (uiStatePatch.error || !uiStatePatch.patch) {
-          writeJson(
-            response,
-            400,
-            { error: uiStatePatch.error ?? "Invalid UI state patch." },
-            corsOrigin,
-          );
-          return;
-        }
-
-        const payload = runtime.patchUiState(uiStatePatch.patch);
-        writeJson(response, 200, payload, corsOrigin);
-        return;
-      }
-
-      if (requestUrl.pathname === "/api/tentacles") {
-        if (request.method !== "POST") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
-          return;
-        }
-
-        let bodyPayload: unknown = null;
-        try {
-          bodyPayload = await readJsonBody(request);
-        } catch (error) {
-          if (error instanceof RequestBodyTooLargeError) {
-            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
-            return;
-          }
-          writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
-          return;
-        }
-
-        const nameResult = parseTentacleName(bodyPayload);
-        if (nameResult.error) {
-          writeJson(response, 400, { error: nameResult.error }, corsOrigin);
-          return;
-        }
-
-        const workspaceModeResult = parseTentacleWorkspaceMode(bodyPayload);
-        if (workspaceModeResult.error) {
-          writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
-          return;
-        }
-
-        try {
-          const createTentacleInput: {
-            tentacleName?: string;
-            workspaceMode: TentacleWorkspaceMode;
-          } = {
-            workspaceMode: workspaceModeResult.workspaceMode,
-          };
-          if (nameResult.name !== undefined) {
-            createTentacleInput.tentacleName = nameResult.name;
-          }
-
-          const payload = runtime.createTentacle(createTentacleInput);
-          writeJson(response, 201, payload, corsOrigin);
-          return;
-        } catch (error) {
-          if (error instanceof RuntimeInputError) {
-            writeJson(response, 400, { error: error.message }, corsOrigin);
-            return;
-          }
-          throw error;
-        }
-      }
-
-      const renameMatch = requestUrl.pathname.match(/^\/api\/tentacles\/([^/]+)$/);
-      if (renameMatch) {
-        if (request.method !== "PATCH" && request.method !== "DELETE") {
-          writeJson(response, 405, { error: "Method not allowed" }, corsOrigin);
-          return;
-        }
-
-        const tentacleId = decodeURIComponent(renameMatch[1] ?? "");
-        if (request.method === "DELETE") {
-          const deleted = runtime.deleteTentacle(tentacleId);
-          if (!deleted) {
-            writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
-            return;
-          }
-
-          writeNoContent(response, 204, corsOrigin);
-          return;
-        }
-
-        let bodyPayload: unknown = null;
-        try {
-          bodyPayload = await readJsonBody(request);
-        } catch (error) {
-          if (error instanceof RequestBodyTooLargeError) {
-            writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
-            return;
-          }
-          writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
-          return;
-        }
-
-        const nameResult = parseTentacleName(bodyPayload);
-        if (nameResult.error) {
-          writeJson(response, 400, { error: nameResult.error }, corsOrigin);
-          return;
-        }
-
-        if (!nameResult.provided || !nameResult.name) {
-          writeJson(response, 400, { error: "Tentacle name is required." }, corsOrigin);
-          return;
-        }
-
-        const payload = runtime.renameTentacle(tentacleId, nameResult.name);
-        if (!payload) {
-          writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
-          return;
-        }
-
-        writeJson(response, 200, payload, corsOrigin);
-        return;
       }
 
       writeJson(response, 404, { error: "Not found" }, corsOrigin);
