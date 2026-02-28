@@ -63,10 +63,7 @@ describe("readCodexUsageSnapshot", () => {
         ),
       );
 
-    const writeFileText = vi.fn<(
-      path: string,
-      contents: string,
-    ) => Promise<void>>();
+    const writeFileText = vi.fn<(path: string, contents: string) => Promise<void>>();
 
     const snapshot = await readCodexUsageSnapshot({
       now: () => new Date("2026-02-25T12:00:00.000Z"),

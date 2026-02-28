@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createApiServer } from "../src/createApiServer";
+import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";
 import type { GitClient, TmuxClient } from "../src/terminalRuntime";
 
 class FakeTmuxClient implements TmuxClient {
@@ -275,7 +276,7 @@ describe("createApiServer", () => {
   });
 
   it("returns github summary for GET /api/github/summary", async () => {
-    const githubSummary = {
+    const githubSummary: GitHubRepoSummarySnapshot = {
       status: "ok",
       fetchedAt: "2026-02-27T12:00:00.000Z",
       source: "gh-cli",
@@ -288,7 +289,7 @@ describe("createApiServer", () => {
         { date: "2026-02-26", count: 6 },
         { date: "2026-02-27", count: 8 },
       ],
-    } as const;
+    };
 
     const baseUrl = await startServer({
       readGithubRepoSummary: async () => githubSummary,

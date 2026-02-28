@@ -1,5 +1,5 @@
-import { createServer } from "node:net";
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 
 const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;

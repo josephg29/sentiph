@@ -128,11 +128,7 @@ const readGhAuthenticationFailure = (error: unknown) => {
   return null;
 };
 
-const readRepository = async (
-  runCommand: RunCommand,
-  cwd: string,
-  env: NodeJS.ProcessEnv | undefined,
-) => {
+const readRepository = async (runCommand: RunCommand, cwd: string, env: NodeJS.ProcessEnv) => {
   const { stdout } = await runCommand(
     "gh",
     ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
@@ -148,7 +144,7 @@ const readRepository = async (
 const readRepositoryStats = async (
   runCommand: RunCommand,
   cwd: string,
-  env: NodeJS.ProcessEnv | undefined,
+  env: NodeJS.ProcessEnv,
   repository: string,
 ) => {
   const [owner, name] = repository.split("/");
@@ -199,7 +195,7 @@ const readRepositoryStats = async (
 const readCommitSeries = async (
   runCommand: RunCommand,
   cwd: string,
-  env: NodeJS.ProcessEnv | undefined,
+  env: NodeJS.ProcessEnv,
   now: Date,
 ) => {
   const dates = buildDailySeries(now);

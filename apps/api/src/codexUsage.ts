@@ -144,10 +144,7 @@ const loadCredentials = (authJson: unknown): CodexCredentials | null => {
     accessToken,
     refreshToken: refreshToken && refreshToken.length > 0 ? refreshToken : null,
     accountId: accountId && accountId.length > 0 ? accountId : null,
-    lastRefresh:
-      lastRefresh && Number.isFinite(lastRefresh.getTime())
-        ? lastRefresh
-        : null,
+    lastRefresh: lastRefresh && Number.isFinite(lastRefresh.getTime()) ? lastRefresh : null,
   };
 };
 
@@ -228,7 +225,8 @@ export const readCodexUsageSnapshot = async (
   const now = dependencies.now?.() ?? new Date();
   const readFileText = dependencies.readFileText ?? ((path: string) => readFile(path, "utf8"));
   const writeFileText =
-    dependencies.writeFileText ?? ((path: string, contents: string) => writeFile(path, contents, "utf8"));
+    dependencies.writeFileText ??
+    ((path: string, contents: string) => writeFile(path, contents, "utf8"));
   const fetchImpl = dependencies.fetchImpl ?? fetch;
 
   const authPath = join(resolveCodexHome(env), "auth.json");

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
-import { wheelDeltaToScrollLines } from "./terminalWheel";
 import { type CodexState, CodexStateBadge, isCodexState } from "./CodexStateBadge";
+import { wheelDeltaToScrollLines } from "./terminalWheel";
 
 import "xterm/css/xterm.css";
 
@@ -38,8 +38,10 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
     let reconnectTimer: number | null = null;
     let socket: WebSocket | null = null;
     let cleanupTerminal = () => {};
-    let activeTerminal: { write: (value: string) => void; scrollLines: (lineCount: number) => void } | null =
-      null;
+    let activeTerminal: {
+      write: (value: string) => void;
+      scrollLines: (lineCount: number) => void;
+    } | null = null;
 
     const connect = () => {
       const nextSocket = new WebSocket(buildTerminalSocketUrl(tentacleId));
