@@ -20,6 +20,7 @@ import {
 } from "./app/githubMetrics";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
+import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardInteractions";
 import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
@@ -29,6 +30,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
 import { GitHubPrimaryView } from "./components/GitHubPrimaryView";
+import { MonitorPrimaryView } from "./components/MonitorPrimaryView";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { TentacleBoard } from "./components/TentacleBoard";
@@ -193,6 +195,15 @@ export const App = () => {
       return Object.fromEntries(retainedStates);
     });
   }, [columns, setMinimizedTentacleIds]);
+  const {
+    monitorConfig,
+    monitorFeed,
+    monitorError,
+    isRefreshingMonitorFeed,
+    isSavingMonitorConfig,
+    refreshMonitorFeed,
+    patchMonitorConfig,
+  } = useMonitorRuntime();
 
   const activeNavItem = useMemo(
     () => PRIMARY_NAV_ITEMS.find((item) => item.index === activePrimaryNav) ?? PRIMARY_NAV_ITEMS[1],
@@ -250,6 +261,7 @@ export const App = () => {
     return "Hover points for date and commit count";
   }, [hoveredGitHubOverviewPoint]);
   const isGitHubPrimaryView = activePrimaryNav === 3;
+  const isMonitorPrimaryView = activePrimaryNav === 4;
   const githubStatusPill = useMemo(
     () => buildGitHubStatusPill(githubRepoSummary),
     [githubRepoSummary],
@@ -498,6 +510,18 @@ export const App = () => {
               onHoveredGitHubOverviewPointIndexChange={setHoveredGitHubOverviewPointIndex}
               onRefresh={() => {
                 void refreshGitHubRepoSummary();
+              }}
+            />
+          ) : isMonitorPrimaryView ? (
+            <MonitorPrimaryView
+              isRefreshingMonitorFeed={isRefreshingMonitorFeed}
+              isSavingMonitorConfig={isSavingMonitorConfig}
+              monitorConfig={monitorConfig}
+              monitorError={monitorError}
+              monitorFeed={monitorFeed}
+              onPatchConfig={patchMonitorConfig}
+              onRefresh={() => {
+                void refreshMonitorFeed(true);
               }}
             />
           ) : (

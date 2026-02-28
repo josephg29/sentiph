@@ -4,6 +4,9 @@ import {
   buildAgentSnapshotsUrl,
   buildCodexUsageUrl,
   buildGithubSummaryUrl,
+  buildMonitorConfigUrl,
+  buildMonitorFeedUrl,
+  buildMonitorRefreshUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
@@ -48,6 +51,30 @@ describe("runtimeEndpoints", () => {
   it("builds absolute github summary URL when runtime base URL is configured", () => {
     expect(buildGithubSummaryUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/github/summary",
+    );
+  });
+
+  it("builds monitor config URL on same origin by default", () => {
+    expect(buildMonitorConfigUrl()).toBe("/api/monitor/config");
+  });
+
+  it("builds monitor feed URL on same origin by default", () => {
+    expect(buildMonitorFeedUrl()).toBe("/api/monitor/feed");
+  });
+
+  it("builds monitor refresh URL on same origin by default", () => {
+    expect(buildMonitorRefreshUrl()).toBe("/api/monitor/refresh");
+  });
+
+  it("builds absolute monitor URLs when runtime base URL is configured", () => {
+    expect(buildMonitorConfigUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/monitor/config",
+    );
+    expect(buildMonitorFeedUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/monitor/feed",
+    );
+    expect(buildMonitorRefreshUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/monitor/refresh",
     );
   });
 

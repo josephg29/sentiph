@@ -63,6 +63,17 @@ Terminal persistence requires `tmux` on `PATH`.
 - The GitHub Overview page also provides a manual `Refresh` action.
 - If `gh` is unavailable or unauthenticated, UI falls back to an unavailable/error snapshot.
 
+## X monitor
+
+- Open `[4] Monitor` to configure and view social monitoring.
+- Save X developer credentials and target terms from the `X Connection` panel.
+- Default terms are `AI Engineering`, `Agent Engineering`, `Codex`, `Quad Code`, `Skills at Indy`.
+- Backend queries X recent search for the last 7 days, filters retweets, then ranks posts locally by `likeCount`.
+- Feed is trimmed to top 30 posts and cached.
+- `GET /api/monitor/feed` auto-refreshes when cache age exceeds 24 hours.
+- Use the Monitor `Refresh` action for a forced manual refresh (`POST /api/monitor/refresh`).
+- Usage metrics in Monitor come from X API usage/cap endpoints (cap, used, remaining, reset), not wallet billing balance.
+
 ## Run quality checks
 
 ```bash

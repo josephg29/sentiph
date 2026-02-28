@@ -44,7 +44,7 @@ describe("App shell and navigation", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "[4] Pipelines",
+        name: "[4] Monitor",
       }),
     ).toHaveAttribute("aria-current", "page");
   });

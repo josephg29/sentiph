@@ -1,0 +1,255 @@
+.console-shell .monitor-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.34rem;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.32rem;
+}
+
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.monitor-header h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.monitor-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.26rem;
+}
+
+.console-shell .monitor-header .console-status-pill[data-state="stale"] {
+  color: #ffb86b;
+  border-color: color-mix(in srgb, #ffb86b 55%, #4b3826);
+}
+
+.monitor-refresh,
+.monitor-save {
+  --action-button-font-size: 0.66rem;
+  --action-button-padding-y: 0.16rem;
+  --action-button-padding-x: 0.34rem;
+}
+
+.monitor-panel-grid {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr);
+}
+
+.monitor-panel {
+  border: 1px solid #2b2f36;
+  background: #090d12;
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+
+.monitor-panel h3 {
+  margin: 0;
+  color: #d7a622;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.monitor-panel label {
+  color: #9eb0c8;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.monitor-input,
+.monitor-textarea {
+  border: 1px solid #2b2f36;
+  background: #050607;
+  color: #e6e8ec;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  padding: 0.28rem 0.34rem;
+  min-width: 0;
+}
+
+.monitor-textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.monitor-input:focus-visible,
+.monitor-textarea:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 82%, #f0cf75);
+  outline-offset: 1px;
+}
+
+.monitor-optional-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.24rem;
+}
+
+.monitor-optional-grid > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.monitor-panel p,
+.monitor-credentials-meta {
+  margin: 0;
+  color: #8d9db4;
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
+.monitor-panel--status dl {
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.monitor-panel--status dl div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.monitor-panel--status dt {
+  color: #7f8ea3;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.monitor-panel--status dd {
+  margin: 0;
+  color: #e9edf4;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.monitor-feed {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #090d12;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.monitor-feed > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid #2b2f36;
+  padding: 0.34rem 0.4rem;
+}
+
+.monitor-feed > header h3 {
+  margin: 0;
+  color: #d7a622;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.monitor-feed > header span {
+  color: #9cb0cb;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.monitor-feed table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+}
+
+.monitor-feed thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.monitor-feed th {
+  text-align: left;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #91a5c0;
+  border-bottom: 1px solid #2b2f36;
+  background: #0f141c;
+  padding: 0.24rem 0.3rem;
+}
+
+.monitor-feed td {
+  border-bottom: 1px solid color-mix(in srgb, #2b2f36 85%, transparent);
+  padding: 0.28rem 0.3rem;
+  color: #d8deea;
+  vertical-align: top;
+}
+
+.monitor-feed td:first-child,
+.monitor-feed td:last-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-feed tbody {
+  display: block;
+  overflow: auto;
+  max-height: 100%;
+}
+
+.monitor-feed thead,
+.monitor-feed tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.monitor-feed a {
+  color: #dbe8ff;
+  text-decoration: none;
+}
+
+.monitor-feed a:hover {
+  text-decoration: underline;
+}
+
+.monitor-empty,
+.monitor-error {
+  margin: 0;
+  padding: 0.4rem;
+  font-size: 0.7rem;
+}
+
+.monitor-empty {
+  color: #9cb0cb;
+}
+
+.monitor-error {
+  color: #ff9f9f;
+}
+
+@media (max-width: 1200px) {
+  .monitor-panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monitor-feed tbody {
+    max-height: 20rem;
+  }
+}

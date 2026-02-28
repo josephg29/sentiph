@@ -6,6 +6,7 @@ import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
 import { readGithubRepoSummary as readGithubRepoSummaryDefault } from "./githubRepoSummary";
+import { createMonitorService } from "./monitor";
 import { createTerminalRuntime } from "./terminalRuntime";
 
 export const createApiServer = ({
@@ -14,6 +15,7 @@ export const createApiServer = ({
   gitClient,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
+  monitorService,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const resolvedWorkspaceCwd = workspaceCwd ?? resolve(process.cwd(), "../..");
@@ -35,10 +37,16 @@ export const createApiServer = ({
   }
 
   const runtime = createTerminalRuntime(runtimeOptions);
+  const monitorServiceWithDefault =
+    monitorService ??
+    createMonitorService({
+      workspaceCwd: resolvedWorkspaceCwd,
+    });
   const requestHandler = createApiRequestHandler({
     runtime,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
+    monitorService: monitorServiceWithDefault,
     allowRemoteAccess,
   });
 

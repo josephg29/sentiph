@@ -79,6 +79,30 @@ export const buildUiStateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/ui-state");
 };
 
+export const buildMonitorConfigUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/monitor/config";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/config");
+};
+
+export const buildMonitorFeedUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/monitor/feed";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/feed");
+};
+
+export const buildMonitorRefreshUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/monitor/refresh";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/refresh");
+};
+
 export const buildTentacleRenameUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

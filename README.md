@@ -22,6 +22,7 @@ Current UI baseline includes:
 - tentacle minimize from header and maximize from the `Active Agents` sidebar
 - minimum-width tentacle columns with horizontal scrolling when space is constrained
 - draggable tentacle splitters that resize adjacent panes
+- `[4] Monitor` tab for X topic monitoring (credentials, usage/cap metrics, top posts)
 
 ## Quickstart
 
@@ -38,8 +39,13 @@ In dev mode:
 - `apps/web` may auto-select a free Vite port (`5173`, `5174`, `5175`, ...), and still proxies `/api` and terminal websocket traffic to the selected API port.
 - `apps/api` requires `tmux` on `PATH` for terminal persistence.
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
+- Optional: X developer bearer token/API credentials for Monitor data.
 - Runtime endpoints:
   - `GET /api/agent-snapshots`
+  - `GET /api/monitor/config`
+  - `PATCH /api/monitor/config`
+  - `GET /api/monitor/feed`
+  - `POST /api/monitor/refresh`
   - `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
   - `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
   - `DELETE /api/tentacles/:tentacleId`

@@ -46,3 +46,61 @@ export type FrontendUiStateSnapshot = {
 };
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
+
+export type MonitorUsageSnapshot = {
+  status: "ok" | "unavailable" | "error";
+  source: "x-api" | "none";
+  fetchedAt: string;
+  message?: string | null;
+  cap?: number | null;
+  used?: number | null;
+  remaining?: number | null;
+  resetAt?: string | null;
+};
+
+export type MonitorPost = {
+  source: "x";
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
+  likeCount: number;
+  permalink: string;
+};
+
+export type MonitorCredentialsSummary = {
+  isConfigured: boolean;
+  bearerTokenHint: string | null;
+  apiKeyHint: string | null;
+  hasApiSecret: boolean;
+  hasAccessToken: boolean;
+  hasAccessTokenSecret: boolean;
+  updatedAt: string | null;
+};
+
+export type MonitorConfigSnapshot = {
+  providerId: "x";
+  queryTerms: string[];
+  refreshPolicy: {
+    maxCacheAgeMs: number;
+  };
+  providers: {
+    x: {
+      credentials: MonitorCredentialsSummary;
+    };
+  };
+};
+
+export type MonitorFeedSnapshot = {
+  providerId: "x";
+  queryTerms: string[];
+  refreshPolicy: {
+    maxCacheAgeMs: number;
+  };
+  lastFetchedAt: string | null;
+  staleAfter: string | null;
+  isStale: boolean;
+  lastError: string | null;
+  posts: MonitorPost[];
+  usage: MonitorUsageSnapshot | null;
+};

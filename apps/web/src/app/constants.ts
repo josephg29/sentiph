@@ -1,5 +1,6 @@
 export const CODEX_USAGE_SCAN_INTERVAL_MS = 60_000;
 export const GITHUB_SUMMARY_SCAN_INTERVAL_MS = 60_000;
+export const MONITOR_SCAN_INTERVAL_MS = 60_000;
 export const UI_STATE_SAVE_DEBOUNCE_MS = 250;
 export const MIN_SIDEBAR_WIDTH = 240;
 export const MAX_SIDEBAR_WIDTH = 520;
@@ -10,7 +11,7 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 1, label: "Agents" },
   { index: 2, label: "Sessions" },
   { index: 3, label: "GitHub" },
-  { index: 4, label: "Pipelines" },
+  { index: 4, label: "Monitor" },
   { index: 5, label: "Logs" },
   { index: 6, label: "Settings" },
 ] as const;

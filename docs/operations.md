@@ -10,6 +10,8 @@
   - `git --version` works
   - workspace root is a git repository (`git rev-parse --is-inside-work-tree`)
 - If GitHub telemetry is unavailable, verify `gh auth status`.
+- If Monitor refresh fails with auth errors, verify your X bearer token and API app access.
+- If Monitor usage metrics are unavailable, verify X API usage endpoints are enabled for your plan.
 
 ## Quality gates
 
@@ -21,8 +23,11 @@
 
 - Tentacle metadata is persisted at `.octogent/state/tentacles.json`.
 - Frontend UI preference state is persisted in the same registry under `uiState`.
+- Monitor config is persisted at `.octogent/state/monitor-config.json`.
+- Monitor feed cache is persisted at `.octogent/state/monitor-cache.json`.
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
 - Runtime restores UI state from that registry on startup and serves it via `GET /api/ui-state`.
+- Runtime serves monitor config/feed from monitor state files via `GET/PATCH /api/monitor/config`, `GET /api/monitor/feed`, and `POST /api/monitor/refresh`.
 - Each tentacle maps to a tmux session named `octogent_<tentacleId>`.
 - `workspaceMode: "shared"` tentacles run in the main workspace root.
 - `workspaceMode: "worktree"` tentacles run in `.octogent/worktrees/<tentacleId>`.
@@ -43,6 +48,7 @@
 - JSON bodies are capped at `1 MiB` (`413 Request body too large` beyond limit).
 - Invalid JSON and validation failures return `400` with structured error messages.
 - Unsupported methods return `405`.
+- Monitor config responses are sanitized and redact stored secrets.
 
 ## Known limitations (scratch baseline)
 

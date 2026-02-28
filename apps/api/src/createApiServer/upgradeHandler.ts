@@ -27,7 +27,11 @@ export const createUpgradeHandler = ({
       return;
     }
 
-    if (!runtime.handleUpgrade(request, socket, head)) {
+    try {
+      if (!runtime.handleUpgrade(request, socket, head)) {
+        socket.destroy();
+      }
+    } catch {
       socket.destroy();
     }
   };

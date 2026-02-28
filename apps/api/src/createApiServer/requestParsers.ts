@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 
+import type { MonitorConfigPatchInput } from "../monitor";
 import type { PersistedUiState, TentacleWorkspaceMode } from "../terminalRuntime";
 
 export const MAX_JSON_BODY_BYTES = 1024 * 1024;
@@ -213,6 +214,105 @@ export const parseUiStatePatch = (
       };
     }
     patch.tentacleWidths = tentacleWidths;
+  }
+
+  return { patch, error: null };
+};
+
+export const parseMonitorConfigPatch = (
+  payload: unknown,
+): { patch: MonitorConfigPatchInput | null; error: string | null } => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return {
+      patch: null,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const patch: MonitorConfigPatchInput = {};
+
+  if (record.providerId !== undefined) {
+    if (record.providerId !== "x") {
+      return {
+        patch: null,
+        error: "providerId must be 'x'.",
+      };
+    }
+
+    patch.providerId = "x";
+  }
+
+  if (record.queryTerms !== undefined) {
+    if (!Array.isArray(record.queryTerms)) {
+      return {
+        patch: null,
+        error: "queryTerms must be an array of strings.",
+      };
+    }
+
+    const queryTerms = record.queryTerms.filter((term): term is string => typeof term === "string");
+    if (queryTerms.length !== record.queryTerms.length) {
+      return {
+        patch: null,
+        error: "queryTerms must be an array of strings.",
+      };
+    }
+
+    patch.queryTerms = queryTerms;
+  }
+
+  if (record.refreshPolicy !== undefined) {
+    if (
+      record.refreshPolicy === null ||
+      typeof record.refreshPolicy !== "object" ||
+      Array.isArray(record.refreshPolicy)
+    ) {
+      return {
+        patch: null,
+        error: "refreshPolicy must be an object.",
+      };
+    }
+
+    const refreshPolicyRecord = record.refreshPolicy as Record<string, unknown>;
+    if (
+      refreshPolicyRecord.maxCacheAgeMs !== undefined &&
+      (typeof refreshPolicyRecord.maxCacheAgeMs !== "number" ||
+        !Number.isFinite(refreshPolicyRecord.maxCacheAgeMs) ||
+        refreshPolicyRecord.maxCacheAgeMs <= 0)
+    ) {
+      return {
+        patch: null,
+        error: "refreshPolicy.maxCacheAgeMs must be a positive number.",
+      };
+    }
+
+    patch.refreshPolicy = {};
+    if (refreshPolicyRecord.maxCacheAgeMs !== undefined) {
+      patch.refreshPolicy.maxCacheAgeMs = refreshPolicyRecord.maxCacheAgeMs;
+    }
+  }
+
+  if (record.credentials !== undefined) {
+    if (record.credentials === null || typeof record.credentials !== "object" || Array.isArray(record.credentials)) {
+      return {
+        patch: null,
+        error: "credentials must be an object.",
+      };
+    }
+
+    patch.credentials = record.credentials;
+  }
+
+  if (record.validateCredentials !== undefined) {
+    if (typeof record.validateCredentials !== "boolean") {
+      return {
+        patch: null,
+        error: "validateCredentials must be a boolean.",
+      };
+    }
+
+    patch.validateCredentials = record.validateCredentials;
   }
 
   return { patch, error: null };

@@ -9,13 +9,23 @@ export const getTentacleId = (request: IncomingMessage) => {
     return null;
   }
 
-  const url = new URL(request.url, "http://localhost");
+  let url: URL;
+  try {
+    url = new URL(request.url, "http://localhost");
+  } catch {
+    return null;
+  }
+
   const match = url.pathname.match(/^\/api\/terminals\/([^/]+)\/ws$/);
   if (!match) {
     return null;
   }
 
-  return decodeURIComponent(match[1] ?? "");
+  try {
+    return decodeURIComponent(match[1] ?? "");
+  } catch {
+    return null;
+  }
 };
 
 export const sendMessage = (client: WebSocket, message: TerminalServerMessage) => {
