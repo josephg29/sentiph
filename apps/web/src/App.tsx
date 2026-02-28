@@ -1,13 +1,7 @@
 import { buildTentacleColumns } from "@octogent/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-  WheelEvent as ReactWheelEvent,
-} from "react";
 
 import {
-  DEFAULT_SIDEBAR_WIDTH,
   GITHUB_OVERVIEW_GRAPH_HEIGHT,
   GITHUB_OVERVIEW_GRAPH_WIDTH,
   GITHUB_SPARKLINE_HEIGHT,
@@ -15,7 +9,6 @@ import {
   type GitHubSubtabId,
   PRIMARY_NAV_ITEMS,
   type PrimaryNavIndex,
-  UI_STATE_SAVE_DEBOUNCE_MS,
 } from "./app/constants";
 import {
   buildGitHubCommitCount,
@@ -27,9 +20,11 @@ import {
 } from "./app/githubMetrics";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
+import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
+import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardInteractions";
 import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
-import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "./app/normalizers";
-import type { FrontendUiStateSnapshot, GitHubCommitSparkPoint, TentacleView } from "./app/types";
+import { clampSidebarWidth } from "./app/normalizers";
+import type { GitHubCommitSparkPoint, TentacleView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
@@ -38,29 +33,14 @@ import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { TentacleBoard } from "./components/TentacleBoard";
 import { ActionButton } from "./components/ui/ActionButton";
-import {
-  TENTACLE_DIVIDER_WIDTH,
-  TENTACLE_MIN_WIDTH,
-  TENTACLE_RESIZE_STEP,
-  reconcileTentacleWidths,
-  resizeTentaclePair,
-} from "./layout/tentaclePaneSizing";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
-import { buildAgentSnapshotsUrl, buildUiStateUrl } from "./runtime/runtimeEndpoints";
+import { buildAgentSnapshotsUrl } from "./runtime/runtimeEndpoints";
 
 export const App = () => {
   const [columns, setColumns] = useState<TentacleView>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
-  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
-  const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
-  const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
-  const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
-  const [tentacleViewportWidth, setTentacleViewportWidth] = useState<number | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [activeGitHubSubtab, setActiveGitHubSubtab] = useState<GitHubSubtabId>("overview");
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
@@ -70,6 +50,26 @@ export const App = () => {
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
   const tickerInputRef = useRef<HTMLInputElement | null>(null);
+
+  const {
+    applyHydratedUiState,
+    isActiveAgentsSectionExpanded,
+    isAgentsSidebarVisible,
+    isCodexUsageSectionExpanded,
+    isUiStateHydrated,
+    minimizedTentacleIds,
+    readUiState,
+    setIsActiveAgentsSectionExpanded,
+    setIsAgentsSidebarVisible,
+    setIsCodexUsageSectionExpanded,
+    setIsUiStateHydrated,
+    setMinimizedTentacleIds,
+    setSidebarWidth,
+    setTentacleWidths,
+    sidebarWidth,
+    tentacleWidths,
+  } = usePersistedUiState({ columns });
+
   const visibleColumns = useMemo(
     () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
     [columns, minimizedTentacleIds],
@@ -84,34 +84,6 @@ export const App = () => {
     }
     const reader = new HttpAgentSnapshotReader(readerOptions);
     return buildTentacleColumns(reader);
-  }, []);
-
-  const readUiState = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const requestOptions: {
-        method: "GET";
-        headers: { Accept: string };
-        signal?: AbortSignal;
-      } = {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      };
-      if (signal) {
-        requestOptions.signal = signal;
-      }
-
-      const response = await fetch(buildUiStateUrl(), requestOptions);
-
-      if (!response.ok) {
-        return null;
-      }
-
-      return normalizeFrontendUiStateSnapshot(await response.json());
-    } catch {
-      return null;
-    }
   }, []);
 
   const {
@@ -147,48 +119,7 @@ export const App = () => {
           readUiState(controller.signal),
         ]);
         setColumns(nextColumns);
-
-        if (nextUiState) {
-          if (nextUiState.isAgentsSidebarVisible !== undefined) {
-            setIsAgentsSidebarVisible(nextUiState.isAgentsSidebarVisible);
-          }
-
-          if (nextUiState.sidebarWidth !== undefined) {
-            setSidebarWidth(clampSidebarWidth(nextUiState.sidebarWidth));
-          }
-
-          if (nextUiState.isActiveAgentsSectionExpanded !== undefined) {
-            setIsActiveAgentsSectionExpanded(nextUiState.isActiveAgentsSectionExpanded);
-          }
-
-          if (nextUiState.isCodexUsageSectionExpanded !== undefined) {
-            setIsCodexUsageSectionExpanded(nextUiState.isCodexUsageSectionExpanded);
-          }
-
-          if (nextUiState.minimizedTentacleIds) {
-            const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
-            setMinimizedTentacleIds(
-              nextUiState.minimizedTentacleIds.filter((tentacleId) =>
-                activeTentacleIds.has(tentacleId),
-              ),
-            );
-          }
-
-          if (nextUiState.tentacleWidths) {
-            const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
-            setTentacleWidths(
-              Object.entries(nextUiState.tentacleWidths).reduce<Record<string, number>>(
-                (acc, [tentacleId, width]) => {
-                  if (activeTentacleIds.has(tentacleId)) {
-                    acc[tentacleId] = width;
-                  }
-                  return acc;
-                },
-                {},
-              ),
-            );
-          }
-        }
+        applyHydratedUiState(nextUiState, nextColumns);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           setColumns([]);
@@ -204,101 +135,27 @@ export const App = () => {
     return () => {
       controller.abort();
     };
-  }, [readColumns, readUiState]);
-
-  useEffect(() => {
-    if (!isUiStateHydrated) {
-      return;
-    }
-
-    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
-    const payload: FrontendUiStateSnapshot = {
-      isAgentsSidebarVisible,
-      sidebarWidth: clampSidebarWidth(sidebarWidth),
-      isActiveAgentsSectionExpanded,
-      isCodexUsageSectionExpanded,
-      minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
-        activeTentacleIds.has(tentacleId),
-      ),
-      tentacleWidths: Object.entries(tentacleWidths).reduce<Record<string, number>>(
-        (acc, [tentacleId, width]) => {
-          if (activeTentacleIds.has(tentacleId)) {
-            acc[tentacleId] = width;
-          }
-          return acc;
-        },
-        {},
-      ),
-    };
-
-    const timerId = window.setTimeout(() => {
-      void fetch(buildUiStateUrl(), {
-        method: "PATCH",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    }, UI_STATE_SAVE_DEBOUNCE_MS);
-
-    return () => {
-      window.clearTimeout(timerId);
-    };
-  }, [
-    columns,
-    isActiveAgentsSectionExpanded,
-    isAgentsSidebarVisible,
-    isCodexUsageSectionExpanded,
-    isUiStateHydrated,
-    minimizedTentacleIds,
-    sidebarWidth,
-    tentacleWidths,
-  ]);
+  }, [applyHydratedUiState, readColumns, readUiState, setIsUiStateHydrated]);
 
   const codexUsageSnapshot = useCodexUsagePolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
-
-  useEffect(() => {
-    if (!tentaclesRef.current) {
-      return;
-    }
-
-    const measure = () => {
-      const width = Math.floor(tentaclesRef.current?.getBoundingClientRect().width ?? 0);
-      setTentacleViewportWidth(width > 0 ? width : null);
-    };
-
-    measure();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(() => {
-        measure();
-      });
-      observer.observe(tentaclesRef.current);
-      return () => {
-        observer.disconnect();
-      };
-    }
-
-    window.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
-
-  useEffect(() => {
-    const tentacleIds = visibleColumns.map((column) => column.tentacleId);
-    const dividerTotalWidth = Math.max(0, tentacleIds.length - 1) * TENTACLE_DIVIDER_WIDTH;
-    const paneViewportWidth =
-      tentacleViewportWidth === null
-        ? null
-        : Math.max(0, tentacleViewportWidth - dividerTotalWidth);
-    setTentacleWidths((currentWidths) =>
-      reconcileTentacleWidths(currentWidths, tentacleIds, paneViewportWidth),
-    );
-  }, [tentacleViewportWidth, visibleColumns]);
+  const {
+    handleMaximizeTentacle,
+    handleMinimizeTentacle,
+    handleTentacleDividerKeyDown,
+    handleTentacleDividerPointerDown,
+    handleTentacleHeaderWheel,
+  } = useTentacleBoardInteractions({
+    tentaclesRef,
+    visibleColumns,
+    tentacleWidths,
+    setTentacleWidths,
+    setMinimizedTentacleIds,
+    editingTentacleId,
+    setEditingTentacleId,
+    setTentacleNameDraft,
+  });
 
   useEffect(() => {
     if (!editingTentacleId) {
@@ -335,7 +192,7 @@ export const App = () => {
 
       return Object.fromEntries(retainedStates);
     });
-  }, [columns]);
+  }, [columns, setMinimizedTentacleIds]);
 
   const activeNavItem = useMemo(
     () => PRIMARY_NAV_ITEMS.find((item) => item.index === activePrimaryNav) ?? PRIMARY_NAV_ITEMS[1],
@@ -438,26 +295,6 @@ export const App = () => {
     };
   }, []);
 
-  const handleMinimizeTentacle = (tentacleId: string) => {
-    if (editingTentacleId === tentacleId) {
-      setEditingTentacleId(null);
-      setTentacleNameDraft("");
-    }
-
-    setMinimizedTentacleIds((current) => {
-      if (current.includes(tentacleId)) {
-        return current;
-      }
-      return [...current, tentacleId];
-    });
-  };
-
-  const handleMaximizeTentacle = (tentacleId: string) => {
-    setMinimizedTentacleIds((current) =>
-      current.filter((currentTentacleId) => currentTentacleId !== tentacleId),
-    );
-  };
-
   const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
     setTentacleStates((current) => {
       if (current[tentacleId] === state) {
@@ -470,90 +307,6 @@ export const App = () => {
       };
     });
   }, []);
-
-  const handleTentacleDividerPointerDown = (leftTentacleId: string, rightTentacleId: string) => {
-    return (event: ReactPointerEvent<HTMLDivElement>) => {
-      event.preventDefault();
-
-      const startX = event.clientX;
-      const startLeftWidth = tentacleWidths[leftTentacleId] ?? TENTACLE_MIN_WIDTH;
-      const startRightWidth = tentacleWidths[rightTentacleId] ?? TENTACLE_MIN_WIDTH;
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const delta = moveEvent.clientX - startX;
-        const resizedPair = resizeTentaclePair(
-          {
-            [leftTentacleId]: startLeftWidth,
-            [rightTentacleId]: startRightWidth,
-          },
-          leftTentacleId,
-          rightTentacleId,
-          delta,
-        );
-
-        setTentacleWidths((current) => {
-          const nextLeft = resizedPair[leftTentacleId] ?? startLeftWidth;
-          const nextRight = resizedPair[rightTentacleId] ?? startRightWidth;
-          if (current[leftTentacleId] === nextLeft && current[rightTentacleId] === nextRight) {
-            return current;
-          }
-
-          return {
-            ...current,
-            [leftTentacleId]: nextLeft,
-            [rightTentacleId]: nextRight,
-          };
-        });
-      };
-
-      const stopResize = () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", stopResize);
-        window.removeEventListener("pointercancel", stopResize);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", stopResize);
-      window.addEventListener("pointercancel", stopResize);
-    };
-  };
-
-  const handleTentacleDividerKeyDown = (leftTentacleId: string, rightTentacleId: string) => {
-    return (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-        return;
-      }
-
-      event.preventDefault();
-      const delta = event.key === "ArrowRight" ? TENTACLE_RESIZE_STEP : -TENTACLE_RESIZE_STEP;
-      setTentacleWidths((currentWidths) =>
-        resizeTentaclePair(currentWidths, leftTentacleId, rightTentacleId, delta),
-      );
-    };
-  };
-
-  const handleTentacleHeaderWheel = (event: ReactWheelEvent<HTMLElement>) => {
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-
-    if (!event.target.closest(".tentacle-column-header")) {
-      return;
-    }
-
-    const board = tentaclesRef.current;
-    if (!board) {
-      return;
-    }
-
-    const horizontalDelta = Math.abs(event.deltaX) > 0 ? event.deltaX : event.deltaY;
-    if (!Number.isFinite(horizontalDelta) || horizontalDelta === 0) {
-      return;
-    }
-
-    board.scrollLeft += horizontalDelta;
-    event.preventDefault();
-  };
 
   const githubRepoLabel = githubRepoSummary?.repo ?? "GitHub repository";
   const githubStarCountLabel =

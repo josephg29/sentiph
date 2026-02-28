@@ -1,0 +1,188 @@
+import { useCallback, useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
+
+import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
+import { DEFAULT_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
+import type { FrontendUiStateSnapshot, TentacleView } from "../types";
+
+type UsePersistedUiStateOptions = {
+  columns: TentacleView;
+};
+
+type UsePersistedUiStateResult = {
+  isUiStateHydrated: boolean;
+  setIsUiStateHydrated: Dispatch<SetStateAction<boolean>>;
+  isAgentsSidebarVisible: boolean;
+  setIsAgentsSidebarVisible: Dispatch<SetStateAction<boolean>>;
+  sidebarWidth: number;
+  setSidebarWidth: Dispatch<SetStateAction<number>>;
+  isActiveAgentsSectionExpanded: boolean;
+  setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+  isCodexUsageSectionExpanded: boolean;
+  setIsCodexUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
+  minimizedTentacleIds: string[];
+  setMinimizedTentacleIds: Dispatch<SetStateAction<string[]>>;
+  tentacleWidths: Record<string, number>;
+  setTentacleWidths: Dispatch<SetStateAction<Record<string, number>>>;
+  readUiState: (signal?: AbortSignal) => Promise<FrontendUiStateSnapshot | null>;
+  applyHydratedUiState: (
+    snapshot: FrontendUiStateSnapshot | null,
+    nextColumns: TentacleView,
+  ) => void;
+};
+
+export const usePersistedUiState = ({
+  columns,
+}: UsePersistedUiStateOptions): UsePersistedUiStateResult => {
+  const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
+  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
+  const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
+  const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
+  const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
+
+  const readUiState = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const requestOptions: {
+        method: "GET";
+        headers: { Accept: string };
+        signal?: AbortSignal;
+      } = {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      };
+      if (signal) {
+        requestOptions.signal = signal;
+      }
+
+      const response = await fetch(buildUiStateUrl(), requestOptions);
+      if (!response.ok) {
+        return null;
+      }
+
+      return normalizeFrontendUiStateSnapshot(await response.json());
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const applyHydratedUiState = useCallback(
+    (snapshot: FrontendUiStateSnapshot | null, nextColumns: TentacleView) => {
+      if (!snapshot) {
+        return;
+      }
+
+      if (snapshot.isAgentsSidebarVisible !== undefined) {
+        setIsAgentsSidebarVisible(snapshot.isAgentsSidebarVisible);
+      }
+
+      if (snapshot.sidebarWidth !== undefined) {
+        setSidebarWidth(clampSidebarWidth(snapshot.sidebarWidth));
+      }
+
+      if (snapshot.isActiveAgentsSectionExpanded !== undefined) {
+        setIsActiveAgentsSectionExpanded(snapshot.isActiveAgentsSectionExpanded);
+      }
+
+      if (snapshot.isCodexUsageSectionExpanded !== undefined) {
+        setIsCodexUsageSectionExpanded(snapshot.isCodexUsageSectionExpanded);
+      }
+
+      if (snapshot.minimizedTentacleIds) {
+        const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
+        setMinimizedTentacleIds(
+          snapshot.minimizedTentacleIds.filter((tentacleId) => activeTentacleIds.has(tentacleId)),
+        );
+      }
+
+      if (snapshot.tentacleWidths) {
+        const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
+        setTentacleWidths(
+          Object.entries(snapshot.tentacleWidths).reduce<Record<string, number>>(
+            (acc, [tentacleId, width]) => {
+              if (activeTentacleIds.has(tentacleId)) {
+                acc[tentacleId] = width;
+              }
+              return acc;
+            },
+            {},
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isUiStateHydrated) {
+      return;
+    }
+
+    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
+    const payload: FrontendUiStateSnapshot = {
+      isAgentsSidebarVisible,
+      sidebarWidth: clampSidebarWidth(sidebarWidth),
+      isActiveAgentsSectionExpanded,
+      isCodexUsageSectionExpanded,
+      minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
+        activeTentacleIds.has(tentacleId),
+      ),
+      tentacleWidths: Object.entries(tentacleWidths).reduce<Record<string, number>>(
+        (acc, [tentacleId, width]) => {
+          if (activeTentacleIds.has(tentacleId)) {
+            acc[tentacleId] = width;
+          }
+          return acc;
+        },
+        {},
+      ),
+    };
+
+    const timerId = window.setTimeout(() => {
+      void fetch(buildUiStateUrl(), {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }, UI_STATE_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [
+    columns,
+    isActiveAgentsSectionExpanded,
+    isAgentsSidebarVisible,
+    isCodexUsageSectionExpanded,
+    isUiStateHydrated,
+    minimizedTentacleIds,
+    sidebarWidth,
+    tentacleWidths,
+  ]);
+
+  return {
+    isUiStateHydrated,
+    setIsUiStateHydrated,
+    isAgentsSidebarVisible,
+    setIsAgentsSidebarVisible,
+    sidebarWidth,
+    setSidebarWidth,
+    isActiveAgentsSectionExpanded,
+    setIsActiveAgentsSectionExpanded,
+    isCodexUsageSectionExpanded,
+    setIsCodexUsageSectionExpanded,
+    minimizedTentacleIds,
+    setMinimizedTentacleIds,
+    tentacleWidths,
+    setTentacleWidths,
+    readUiState,
+    applyHydratedUiState,
+  };
+};
