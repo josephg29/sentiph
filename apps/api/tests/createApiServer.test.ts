@@ -614,6 +614,47 @@ describe("createApiServer", () => {
     );
   });
 
+  it("removes isolated worktree metadata when deleting a worktree tentacle", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const tmuxClient = new FakeTmuxClient();
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      tmuxClient,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
+      expect.objectContaining({
+        cwd: workspaceCwd,
+        branchName: "octogent/tentacle-1",
+      }),
+    );
+
+    const deleteResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(deleteResponse.status).toBe(204);
+    expect(gitClient.getWorktree(expectedWorktreePath)).toBeNull();
+  });
+
   it("returns 400 when workspace mode is invalid", async () => {
     const baseUrl = await startServer();
 

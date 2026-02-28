@@ -208,6 +208,9 @@ export const createTerminalRuntime = ({
 
       sessionRuntime.closeSession(tentacleId);
       tmuxClient.killSession(tmuxSessionNameForTentacle(tentacleId));
+      if (tentacle.workspaceMode === "worktree") {
+        worktreeManager.removeTentacleWorktree(tentacleId);
+      }
       tentacles.delete(tentacleId);
       persistRegistry();
       return true;
