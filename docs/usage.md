@@ -10,7 +10,15 @@ pnpm dev
 Then open `http://localhost:5173`.
 
 `pnpm dev` starts both the web app and API service. The dev runner auto-selects an available API port starting from `127.0.0.1:8787` and passes it to the web proxy automatically.
-Terminal persistence requires `tmux` to be installed and available on `PATH`.
+Terminal persistence requires `tmux` on `PATH`.
+
+## Prerequisites and optional integrations
+
+- Node.js `22+`
+- `tmux` for terminal runtime persistence
+- `git` for worktree tentacles
+- Optional: `gh` CLI (`gh auth login`) for live GitHub telemetry
+- Optional: Codex auth at `~/.codex/auth.json` or `CODEX_HOME/auth.json` for usage bars
 
 ## Active Agents dashboard deck
 
@@ -47,6 +55,13 @@ Terminal persistence requires `tmux` to be installed and available on `PATH`.
 - Tentacle metadata and tmux sessions persist across API restarts, so existing tentacles reconnect to the same terminal session.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).
+
+## GitHub telemetry
+
+- The runtime status strip and `[3] GitHub` section read from `GET /api/github/summary`.
+- The web app auto-refreshes GitHub summary every 60 seconds.
+- The GitHub Overview page also provides a manual `Refresh` action.
+- If `gh` is unavailable or unauthenticated, UI falls back to an unavailable/error snapshot.
 
 ## Run quality checks
 

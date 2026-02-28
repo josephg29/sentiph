@@ -6,6 +6,10 @@
 - If workspace package resolution fails, run `pnpm install` from the repository root (not inside a subpackage).
 - If Node version is older than 22, switch runtime before running commands.
 - If API startup fails with a tmux error, install `tmux` and verify `tmux -V` works in your shell.
+- If worktree tentacle creation fails, verify:
+  - `git --version` works
+  - workspace root is a git repository (`git rev-parse --is-inside-work-tree`)
+- If GitHub telemetry is unavailable, verify `gh auth status`.
 
 ## Quality gates
 
@@ -24,7 +28,8 @@
 - `workspaceMode: "worktree"` tentacles run in `.octogent/worktrees/<tentacleId>`.
 - Orphan tmux sessions without a registry entry are ignored.
 - `DELETE /api/tentacles/:tentacleId` removes both registry state and the associated tmux session.
-- Deleting a worktree tentacle does not remove its git worktree directory or branch automatically.
+- Deleting a worktree tentacle attempts to remove its worktree directory (`git worktree remove --force`).
+- Worktree branch cleanup is still manual (runtime does not delete branches automatically).
 - `PATCH /api/ui-state` updates and persists frontend UI preferences.
 
 ## Local security defaults
@@ -32,6 +37,12 @@
 - API defaults to `HOST=127.0.0.1`.
 - HTTP and WebSocket requests are restricted to loopback `Host` and browser `Origin` values by default.
 - For intentionally remote setups, set `OCTOGENT_ALLOW_REMOTE_ACCESS=1`.
+
+## API parsing and limits
+
+- JSON bodies are capped at `1 MiB` (`413 Request body too large` beyond limit).
+- Invalid JSON and validation failures return `400` with structured error messages.
+- Unsupported methods return `405`.
 
 ## Known limitations (scratch baseline)
 

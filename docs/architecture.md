@@ -1,36 +1,68 @@
 # Architecture Overview
 
-Octogent is organized with a ports-and-adapters approach.
+Octogent is a pnpm monorepo with three runtime layers:
 
-## Layers
+- `apps/web` - Vite + React operator UI
+- `apps/api` - HTTP/WS runtime service for tentacles and telemetry
+- `packages/core` - framework-agnostic domain/application logic
 
-- Domain and application logic live in `packages/core/src/domain` and `packages/core/src/application`.
-- System boundaries are expressed as interfaces in `packages/core/src/ports`.
-- Concrete implementations for tests/local execution live in `packages/core/src/adapters`.
-- API runtime service in `apps/api` handles HTTP/WS transport and runtime orchestration (`node-pty` attached to `tmux` sessions).
-- UI in `apps/web` consumes use-cases from `@octogent/core` and calls runtime APIs through dedicated adapters.
+## Core boundaries
 
-## Current scratch scope
+- Domain model lives in `packages/core/src/domain`.
+- Application logic lives in `packages/core/src/application` (currently `buildTentacleColumns`).
+- Boundary interfaces live in `packages/core/src/ports`.
+- Test/local adapters live in `packages/core/src/adapters`.
 
-- One use-case: `buildTentacleColumns`
-- One adapter: `InMemoryAgentSnapshotReader`
-- One runtime HTTP adapter in `apps/web/src/runtime/HttpAgentSnapshotReader.ts` that loads snapshots from API and validates payload shape
-- One React shell rendering tentacle columns with per-tentacle full-height terminals (`xterm`) plus a grouped active-agent sidebar
-- One API service in `apps/api` exposing:
-  - `GET /api/agent-snapshots` (dev snapshots)
-  - `GET /api/codex/usage` (Codex OAuth usage snapshot for sidebar footer usage bars)
-  - `GET /api/ui-state` (load persisted frontend UI preferences)
-  - `PATCH /api/ui-state` (persist frontend UI preference updates)
-  - `POST /api/tentacles` (create tentacle with unique incremental id and optional display name)
-  - `PATCH /api/tentacles/:tentacleId` (rename tentacle display name while keeping id stable)
-  - `DELETE /api/tentacles/:tentacleId` (delete a tentacle session and remove it from active snapshots)
-  - `WS /api/terminals/:tentacleId/ws` (interactive shell stream via `node-pty`)
-- Runtime requires `tmux` and persists tentacle registry state to `.octogent/state/tentacles.json`
-- Runtime restores tentacles from registry on startup (no implicit default tentacle)
-- Runtime also persists frontend UI state in the same registry (`uiState`) so sidebar/tentacle layout preferences survive restarts
-- Tentacles attach to stable `tmux` sessions (`octogent_<tentacleId>`) and initialize newly created sessions with `codex`
-- Snapshot payloads include stable `tentacleId` plus optional `tentacleName` for UI display
-- Minimized tentacles are hidden from the board and persisted via runtime UI state
-- Shared runtime endpoint builders in `apps/web/src/runtime/runtimeEndpoints.ts` with optional `VITE_OCTOGENT_API_ORIGIN` override for external backends
-- Vite dev proxy in `apps/web/vite.config.ts` forwards `/api` traffic to `apps/api`
-- Tentacle pane sizing is managed client-side with per-tentacle widths, minimum-width constraints, and adjacent split-pane resizing
+The web and API apps both depend on `@octogent/core`.
+
+## Frontend structure (`apps/web`)
+
+- `src/App.tsx` is orchestration-only: state wiring, polling hooks, and page-level composition.
+- `src/app/*` holds pure app logic:
+  - `constants.ts`, `types.ts`, `normalizers.ts`, `githubMetrics.ts`
+  - hooks (`usePersistedUiState`, `useTentacleMutations`, `useTentacleBoardInteractions`, polling hooks)
+- `src/components/*` holds UI sections (sidebar, board, terminal, status strip, GitHub view, dialogs).
+- `src/components/ui/*` holds reusable primitives (`ActionButton`, `StatusBadge`).
+- `src/runtime/*` holds runtime adapters and endpoint builders.
+- `src/styles.css` is an import manifest for modular style files in `src/styles/*`.
+
+## API structure (`apps/api`)
+
+- `src/createApiServer.ts` is orchestration-only.
+- `src/createApiServer/*` isolates request concerns:
+  - `requestHandler.ts` (route dispatch)
+  - `requestParsers.ts` (JSON/body parsing and validation)
+  - `security.ts` (host/origin/CORS rules)
+  - `upgradeHandler.ts` (WebSocket upgrade gate)
+- `src/terminalRuntime.ts` is orchestration-only for tentacle lifecycle and state.
+- `src/terminalRuntime/*` isolates runtime concerns:
+  - registry persistence, worktree lifecycle, session runtime, tmux/git system clients, protocol/constants/ids.
+- `src/codexUsage.ts` and `src/githubRepoSummary.ts` provide sidebar/status telemetry snapshots.
+
+## Runtime API surface
+
+- `GET /api/agent-snapshots`
+- `GET /api/codex/usage`
+- `GET /api/github/summary`
+- `GET /api/ui-state`
+- `PATCH /api/ui-state`
+- `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
+- `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
+- `DELETE /api/tentacles/:tentacleId`
+- `WS /api/terminals/:tentacleId/ws`
+
+## Persistence and runtime model
+
+- Tentacle and UI state persist in `.octogent/state/tentacles.json`.
+- Registry document is versioned (`version: 2`) and stores tentacles plus `uiState`.
+- Startup restores tentacles from the registry; no implicit default tentacle is created.
+- Tentacles map to stable tmux sessions: `octogent_<tentacleId>`.
+- Worktree tentacles run in `.octogent/worktrees/<tentacleId>` and are created via `git worktree`.
+- UI state persistence is server-backed (`GET/PATCH /api/ui-state`), not browser-local only.
+
+## Security and transport defaults
+
+- API binds to `127.0.0.1` by default.
+- HTTP and WebSocket requests enforce loopback `Host` and `Origin` headers by default.
+- Set `OCTOGENT_ALLOW_REMOTE_ACCESS=1` to disable local-only host/origin checks.
+- JSON request bodies are capped at `1 MiB` (`413` when exceeded).
