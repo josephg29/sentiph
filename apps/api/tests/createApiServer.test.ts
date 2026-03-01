@@ -248,6 +248,22 @@ describe("createApiServer", () => {
     expect(response.status).toBe(405);
   });
 
+  it("sanitizes unexpected internal errors from API responses", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/tentacles/%E0%A4%A`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "Internal server error",
+    });
+  });
+
   it("returns codex usage snapshot for GET /api/codex/usage", async () => {
     const codexSnapshot = {
       status: "ok",

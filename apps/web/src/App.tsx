@@ -296,6 +296,9 @@ export const App = () => {
               onRefresh={() => {
                 void refreshMonitorFeed(true);
               }}
+              onSyncFeed={() => {
+                void refreshMonitorFeed(false);
+              }}
             />
           ) : (
             <TentacleBoard

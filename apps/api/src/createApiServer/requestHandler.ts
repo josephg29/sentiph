@@ -438,12 +438,12 @@ export const createApiRequestHandler = ({
       }
 
       writeJson(response, 404, { error: "Not found" }, corsOrigin);
-    } catch (error) {
+    } catch {
       writeJson(
         response,
         500,
         {
-          error: error instanceof Error ? error.message : "Internal server error",
+          error: "Internal server error",
         },
         corsOrigin,
       );

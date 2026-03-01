@@ -99,10 +99,7 @@ const summarizeXCredentials = (credentials: unknown): MonitorCredentialSummary =
 
 const quoteQueryTerm = (term: string): string => {
   const trimmed = term.trim();
-  if (trimmed.includes(" ")) {
-    return `"${trimmed.replaceAll('"', "")}"`;
-  }
-  return trimmed;
+  return `"${trimmed.replaceAll('"', "")}"`;
 };
 
 const normalizeQueryTerms = (queryTerms: string[]): string[] => {
@@ -134,6 +131,52 @@ const asErrorMessage = (value: unknown): string => {
     return value.message;
   }
   return typeof value === "string" ? value : "Unknown error";
+};
+
+const truncateText = (value: string, maxLength = 220): string =>
+  value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+
+const readResponseErrorDetail = async (response: Response): Promise<string | null> => {
+  try {
+    const payload = (await response.clone().json()) as unknown;
+    const record = asRecord(payload);
+    if (record) {
+      const detail = asString(record.detail);
+      if (detail) {
+        return truncateText(detail);
+      }
+      const message = asString(record.message);
+      if (message) {
+        return truncateText(message);
+      }
+      const title = asString(record.title);
+      if (title) {
+        return truncateText(title);
+      }
+
+      const errors = Array.isArray(record.errors) ? record.errors : null;
+      if (errors) {
+        const first = asRecord(errors[0]);
+        const firstMessage = first ? asString(first.message) : null;
+        if (firstMessage) {
+          return truncateText(firstMessage);
+        }
+      }
+    }
+  } catch {
+    // fall through to text body parsing
+  }
+
+  try {
+    const text = (await response.clone().text()).trim();
+    if (text.length > 0) {
+      return truncateText(text);
+    }
+  } catch {
+    // noop
+  }
+
+  return null;
 };
 
 const assertXCredentials = (credentials: unknown): XMonitorCredentials => {
@@ -266,7 +309,6 @@ const fetchRecentSearchPage = async ({
   credentials,
   query,
   startTime,
-  endTime,
   nextToken,
 }: {
   fetchFn: typeof fetch;
@@ -274,7 +316,6 @@ const fetchRecentSearchPage = async ({
   credentials: XMonitorCredentials;
   query: string;
   startTime: string;
-  endTime: string;
   nextToken?: string | null;
 }) => {
   const searchParams = new URLSearchParams({
@@ -284,7 +325,6 @@ const fetchRecentSearchPage = async ({
     "user.fields": "id,name,username",
     max_results: "100",
     start_time: startTime,
-    end_time: endTime,
   });
 
   if (nextToken) {
@@ -301,7 +341,12 @@ const fetchRecentSearchPage = async ({
   });
 
   if (!response.ok) {
-    throw new Error(`X recent search failed (${response.status}).`);
+    const detail = await readResponseErrorDetail(response);
+    throw new Error(
+      detail
+        ? `X recent search failed (${response.status}): ${detail}`
+        : `X recent search failed (${response.status}).`,
+    );
   }
 
   return response.json();
@@ -325,7 +370,6 @@ const validateXCredentials = async ({
       credentials,
       query: "Codex lang:en -is:retweet",
       startTime,
-      endTime: now.toISOString(),
     });
     return { ok: true };
   } catch (error) {
@@ -350,7 +394,6 @@ const fetchXRecentPosts = async ({
   now: Date;
 }): Promise<MonitorPost[]> => {
   const startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const endTime = now.toISOString();
   const query = buildXRecentSearchQuery(queryTerms);
 
   let nextToken: string | null = null;
@@ -364,7 +407,6 @@ const fetchXRecentPosts = async ({
       credentials,
       query,
       startTime,
-      endTime,
       nextToken,
     });
 
@@ -404,11 +446,14 @@ const fetchXUsage = async ({
     });
 
     if (!response.ok) {
+      const detail = await readResponseErrorDetail(response);
       return {
         status: "error",
         source: "x-api",
         fetchedAt: now.toISOString(),
-        message: `X usage request failed (${response.status}).`,
+        message: detail
+          ? `X usage request failed (${response.status}): ${detail}`
+          : `X usage request failed (${response.status}).`,
       };
     }
 

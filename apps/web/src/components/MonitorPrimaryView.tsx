@@ -10,6 +10,7 @@ type MonitorPrimaryViewProps = {
   isRefreshingMonitorFeed: boolean;
   isSavingMonitorConfig: boolean;
   onRefresh: () => void;
+  onSyncFeed: () => void;
   onPatchConfig: (patch: {
     providerId: "x";
     queryTerms: string[];
@@ -67,6 +68,7 @@ export const MonitorPrimaryView = ({
   isRefreshingMonitorFeed,
   isSavingMonitorConfig,
   onRefresh,
+  onSyncFeed,
   onPatchConfig,
 }: MonitorPrimaryViewProps) => {
   const activeProviderId: MonitorProviderId = "x";
@@ -106,6 +108,17 @@ export const MonitorPrimaryView = ({
 
     return Math.round(monitorFeed.usage.remaining).toLocaleString("en-US");
   }, [monitorFeed]);
+  const resourceRollItems = useMemo(
+    () => [
+      `Last sync ${formatTimestamp(monitorFeed?.lastFetchedAt ?? null)}`,
+      `Stale after ${formatTimestamp(monitorFeed?.staleAfter ?? null)}`,
+      `Usage cap ${usageCapLabel}`,
+      `Used ${usageUsedLabel}`,
+      `Remaining ${usageRemainingLabel}`,
+      `Resets ${formatTimestamp(monitorFeed?.usage?.resetAt ?? null)}`,
+    ],
+    [monitorFeed, usageCapLabel, usageRemainingLabel, usageUsedLabel],
+  );
 
   const credentialsSummary = monitorConfig?.providers.x.credentials;
   const canSaveQueryTerms = queryTermsDraft.length > 0;
@@ -127,62 +140,74 @@ export const MonitorPrimaryView = ({
   return (
     <section className="monitor-view" aria-label="Monitor primary view">
       <header className="monitor-header">
-        <div className="monitor-header-main">
-          <nav className="monitor-provider-tabs" aria-label="Monitor providers">
-            {MONITOR_PROVIDER_TABS.map((provider) => (
-              <button
-                aria-current={activeProviderId === provider.id ? "page" : undefined}
-                className="monitor-provider-tab"
-                data-active={activeProviderId === provider.id ? "true" : "false"}
-                key={provider.id}
-                type="button"
-              >
-                <span aria-hidden="true" className="monitor-provider-tab-icon">
-                  {provider.icon}
-                </span>
-                <span>{provider.label}</span>
-              </button>
-            ))}
-          </nav>
+        <div className="monitor-header-top">
+          <div className="monitor-header-main">
+            <nav className="monitor-provider-tabs" aria-label="Monitor providers">
+              {MONITOR_PROVIDER_TABS.map((provider) => (
+                <button
+                  aria-current={activeProviderId === provider.id ? "page" : undefined}
+                  className="monitor-provider-tab"
+                  data-active={activeProviderId === provider.id ? "true" : "false"}
+                  key={provider.id}
+                  type="button"
+                >
+                  <span aria-hidden="true" className="monitor-provider-tab-icon">
+                    {provider.icon}
+                  </span>
+                  <span>{provider.label}</span>
+                </button>
+              ))}
+            </nav>
 
-          <nav className="monitor-subtabs" aria-label="Monitor subtabs">
-            {MONITOR_SUBTABS.map((subtab) => (
-              <button
-                aria-current={activeSubtab === subtab.id ? "page" : undefined}
-                className="monitor-subtab"
-                data-active={activeSubtab === subtab.id ? "true" : "false"}
-                key={subtab.id}
-                onClick={() => {
-                  setActiveSubtab(subtab.id);
-                }}
-                type="button"
-              >
-                {subtab.label}
-              </button>
-            ))}
-          </nav>
+            <nav className="monitor-subtabs" aria-label="Monitor subtabs">
+              {MONITOR_SUBTABS.map((subtab) => (
+                <button
+                  aria-current={activeSubtab === subtab.id ? "page" : undefined}
+                  className="monitor-subtab"
+                  data-active={activeSubtab === subtab.id ? "true" : "false"}
+                  key={subtab.id}
+                  onClick={() => {
+                    setActiveSubtab(subtab.id);
+                  }}
+                  type="button"
+                >
+                  {subtab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="monitor-header-actions">
+            <span className="console-status-pill" data-state={monitorFeed?.isStale ? "stale" : "fresh"}>
+              {monitorFeed?.isStale ? "STALE" : "FRESH"}
+            </span>
+            <ActionButton
+              aria-label="Refresh monitor feed"
+              className="monitor-refresh"
+              disabled={isRefreshingMonitorFeed}
+              onClick={onRefresh}
+              size="dense"
+              variant="accent"
+            >
+              {isRefreshingMonitorFeed ? "Refreshing..." : "Refresh"}
+            </ActionButton>
+          </div>
         </div>
 
-        <div className="monitor-header-actions">
-          <span className="console-status-pill" data-state={monitorFeed?.isStale ? "stale" : "fresh"}>
-            {monitorFeed?.isStale ? "STALE" : "FRESH"}
-          </span>
-          <ActionButton
-            aria-label="Refresh monitor feed"
-            className="monitor-refresh"
-            disabled={isRefreshingMonitorFeed}
-            onClick={onRefresh}
-            size="dense"
-            variant="accent"
-          >
-            {isRefreshingMonitorFeed ? "Refreshing..." : "Refresh"}
-          </ActionButton>
-        </div>
+        {activeSubtab === "resources" && (
+          <div className="monitor-header-roll" aria-label="Monitor rolling stats">
+            <div className="monitor-header-roll-track">
+              {[...resourceRollItems, ...resourceRollItems].map((item, index) => (
+                <span key={`${item}-${index}`}>{item}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {activeSubtab === "configure" ? (
-        <section className="monitor-panel-grid monitor-panel-grid--configure" aria-label="Monitor configuration">
-          <section className="monitor-panel monitor-panel--connection" aria-label="X connection settings">
+        <section className="monitor-configure" aria-label="Monitor configuration">
+          <section className="monitor-panel monitor-panel--configure" aria-label="Monitor configuration panel">
             <h3>X Connection</h3>
             <label htmlFor="monitor-x-bearer-token">X bearer token</label>
             <input
@@ -202,7 +227,11 @@ export const MonitorPrimaryView = ({
               className="monitor-save"
               disabled={isSavingMonitorConfig}
               onClick={() => {
-                const nextTerms = normalizeTerms(queryTermsDraft);
+                const nextTerms = normalizeTerms(
+                  queryTermsDraft.length > 0
+                    ? queryTermsDraft
+                    : (monitorConfig?.queryTerms ?? []),
+                );
                 const patchCredentials: {
                   bearerToken?: string;
                 } = {};
@@ -213,7 +242,7 @@ export const MonitorPrimaryView = ({
                 const patchPayload = {
                   providerId: "x" as const,
                   queryTerms: nextTerms,
-                  validateCredentials: true,
+                  validateCredentials: false,
                   ...(hasCredentialPatch ? { credentials: patchCredentials } : {}),
                 };
 
@@ -223,6 +252,8 @@ export const MonitorPrimaryView = ({
                   }
 
                   setBearerToken("");
+                  setActiveSubtab("resources");
+                  onSyncFeed();
                 });
               }}
               size="dense"
@@ -238,9 +269,9 @@ export const MonitorPrimaryView = ({
                   : "Not configured"}
               </p>
             )}
-          </section>
+            {monitorError ? <p className="monitor-error">{monitorError}</p> : null}
+            {monitorFeed?.lastError ? <p className="monitor-error">{monitorFeed.lastError}</p> : null}
 
-          <section className="monitor-panel monitor-panel--query" aria-label="Monitor query settings">
             <h3>Target terms</h3>
             <div className="monitor-query-terms-list" role="list" aria-label="Monitor query terms">
               {queryTermsDraft.map((term) => (
@@ -311,36 +342,6 @@ export const MonitorPrimaryView = ({
         </section>
       ) : (
         <section className="monitor-resources" aria-label="Monitor resources">
-          <section className="monitor-panel monitor-panel--status" aria-label="Monitor status metrics">
-            <h3>Status</h3>
-            <dl>
-              <div>
-                <dt>Last sync</dt>
-                <dd>{formatTimestamp(monitorFeed?.lastFetchedAt ?? null)}</dd>
-              </div>
-              <div>
-                <dt>Stale after</dt>
-                <dd>{formatTimestamp(monitorFeed?.staleAfter ?? null)}</dd>
-              </div>
-              <div>
-                <dt>Usage cap</dt>
-                <dd>{usageCapLabel}</dd>
-              </div>
-              <div>
-                <dt>Used</dt>
-                <dd>{usageUsedLabel}</dd>
-              </div>
-              <div>
-                <dt>Remaining</dt>
-                <dd>{usageRemainingLabel}</dd>
-              </div>
-              <div>
-                <dt>Resets</dt>
-                <dd>{formatTimestamp(monitorFeed?.usage?.resetAt ?? null)}</dd>
-              </div>
-            </dl>
-          </section>
-
           <section className="monitor-feed" aria-label="Monitor feed results">
             <header>
               <h3>Top posts by likes</h3>
@@ -351,30 +352,32 @@ export const MonitorPrimaryView = ({
             {monitorFeed && monitorFeed.posts.length === 0 ? (
               <p className="monitor-empty">No posts available yet.</p>
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Likes</th>
-                    <th scope="col">Author</th>
-                    <th scope="col">Post</th>
-                    <th scope="col">Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(monitorFeed?.posts ?? []).map((post) => (
-                    <tr key={`${post.source}:${post.id}`}>
-                      <td>{Math.round(post.likeCount).toLocaleString("en-US")}</td>
-                      <td>@{post.author}</td>
-                      <td>
-                        <a href={post.permalink} rel="noreferrer" target="_blank">
-                          {post.text}
-                        </a>
-                      </td>
-                      <td>{formatTimestamp(post.createdAt)}</td>
+              <div className="monitor-feed-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Likes</th>
+                      <th scope="col">Author</th>
+                      <th scope="col">Post</th>
+                      <th scope="col">Created</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(monitorFeed?.posts ?? []).map((post) => (
+                      <tr key={`${post.source}:${post.id}`}>
+                        <td>{Math.round(post.likeCount).toLocaleString("en-US")}</td>
+                        <td>@{post.author}</td>
+                        <td>
+                          <a href={post.permalink} rel="noreferrer" target="_blank">
+                            {post.text}
+                          </a>
+                        </td>
+                        <td>{formatTimestamp(post.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         </section>
