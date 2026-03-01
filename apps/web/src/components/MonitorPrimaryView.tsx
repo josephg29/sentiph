@@ -137,7 +137,13 @@ export const MonitorPrimaryView = ({
   const credentialsSummary = monitorConfig?.providers.x.credentials;
   const parsedMaxPosts =
     /^[1-9]\d*$/.test(maxPostsDraft.trim()) ? Number.parseInt(maxPostsDraft.trim(), 10) : null;
-  const canSaveQueryTerms = queryTermsDraft.length > 0 && parsedMaxPosts !== null;
+  const currentConfiguredTerms = monitorConfig?.queryTerms ?? [];
+  const nextTermsForSave = normalizeTerms(
+    queryTermsDraft.length > 0 ? queryTermsDraft : currentConfiguredTerms,
+  );
+  const hasCredentialInput = bearerToken.trim().length > 0;
+  const canSaveConfig =
+    parsedMaxPosts !== null && (nextTermsForSave.length > 0 || hasCredentialInput);
   const configuredMaxPosts =
     monitorFeed?.refreshPolicy.maxPosts ?? monitorConfig?.refreshPolicy.maxPosts ?? 30;
 
@@ -153,6 +159,39 @@ export const MonitorPrimaryView = ({
 
   const removeQueryTerm = (termToRemove: string) => {
     setQueryTermsDraft((current) => current.filter((term) => term !== termToRemove));
+  };
+
+  const saveMonitorSettings = () => {
+    if (parsedMaxPosts === null) {
+      return;
+    }
+
+    const patchCredentials: {
+      bearerToken?: string;
+    } = {};
+    if (hasCredentialInput) {
+      patchCredentials.bearerToken = bearerToken.trim();
+    }
+    const hasCredentialPatch = Object.keys(patchCredentials).length > 0;
+    const patchPayload = {
+      providerId: "x" as const,
+      validateCredentials: false,
+      ...(nextTermsForSave.length > 0 ? { queryTerms: nextTermsForSave } : {}),
+      refreshPolicy: {
+        maxPosts: parsedMaxPosts,
+        searchWindowDays: searchWindowDaysDraft,
+      },
+      ...(hasCredentialPatch ? { credentials: patchCredentials } : {}),
+    };
+
+    void onPatchConfig(patchPayload).then((saved) => {
+      if (!saved) {
+        return;
+      }
+
+      setBearerToken("");
+      onSyncFeed();
+    });
   };
 
   return (
@@ -226,174 +265,160 @@ export const MonitorPrimaryView = ({
       {activeSubtab === "configure" ? (
         <section className="monitor-configure" aria-label="Monitor configuration">
           <section className="monitor-panel monitor-panel--configure" aria-label="Monitor configuration panel">
-            <h3>X Connection</h3>
-            <label htmlFor="monitor-x-bearer-token">X bearer token</label>
-            <input
-              id="monitor-x-bearer-token"
-              autoComplete="off"
-              className="monitor-input"
-              onChange={(event) => {
-                setBearerToken(event.target.value);
-              }}
-              placeholder={credentialsSummary?.isConfigured ? "Saved token is redacted" : "Paste X bearer token"}
-              type="password"
-              value={bearerToken}
-            />
+            <h3>Monitor setup</h3>
+            <div className="monitor-config-summary" aria-label="Monitor setup summary">
+              <span className="monitor-config-chip">{`Terms ${nextTermsForSave.length}`}</span>
+              <span className="monitor-config-chip">{`Window ${searchWindowDaysDraft}D`}</span>
+              <span className="monitor-config-chip">{`Max ${parsedMaxPosts ?? "--"}`}</span>
+            </div>
 
-            <ActionButton
-              aria-label="Save X credentials"
-              className="monitor-save"
-              disabled={isSavingMonitorConfig}
-              onClick={() => {
-                const nextTerms = normalizeTerms(
-                  queryTermsDraft.length > 0
-                    ? queryTermsDraft
-                    : (monitorConfig?.queryTerms ?? []),
-                );
-                const patchCredentials: {
-                  bearerToken?: string;
-                } = {};
-                if (bearerToken.trim().length > 0) {
-                  patchCredentials.bearerToken = bearerToken.trim();
-                }
-                const hasCredentialPatch = Object.keys(patchCredentials).length > 0;
-                const patchPayload = {
-                  providerId: "x" as const,
-                  validateCredentials: false,
-                  ...(nextTerms.length > 0 ? { queryTerms: nextTerms } : {}),
-                  ...(parsedMaxPosts !== null
-                    ? { refreshPolicy: { maxPosts: parsedMaxPosts, searchWindowDays: searchWindowDaysDraft } }
-                    : { refreshPolicy: { searchWindowDays: searchWindowDaysDraft } }),
-                  ...(hasCredentialPatch ? { credentials: patchCredentials } : {}),
-                };
-
-                void onPatchConfig(patchPayload).then((saved) => {
-                  if (!saved) {
-                    return;
-                  }
-
-                  setBearerToken("");
-                  setActiveSubtab("resources");
-                  onSyncFeed();
-                });
-              }}
-              size="dense"
-              variant="primary"
-            >
-              {isSavingMonitorConfig ? "Saving..." : "Save X credentials"}
-            </ActionButton>
-
-            {credentialsSummary && (
-              <p className="monitor-credentials-meta">
-                {credentialsSummary.isConfigured
-                  ? `Saved · token ${credentialsSummary.bearerTokenHint ?? "(redacted)"}`
-                  : "Not configured"}
-              </p>
-            )}
             {monitorError ? <p className="monitor-error">{monitorError}</p> : null}
             {monitorFeed?.lastError ? <p className="monitor-error">{monitorFeed.lastError}</p> : null}
 
-            <h3>Target terms</h3>
-            <div className="monitor-query-terms-list" role="list" aria-label="Monitor query terms">
-              {queryTermsDraft.map((term) => (
-                <div className="monitor-query-term" key={term} role="listitem">
-                  <span>{term}</span>
-                  <button
-                    aria-label={`Remove query term ${term}`}
-                    onClick={() => {
-                      removeQueryTerm(term);
+            <div className="monitor-config-layout">
+              <div className="monitor-config-column">
+                <div className="monitor-config-section">
+                  <label htmlFor="monitor-x-bearer-token">X bearer token</label>
+                  <input
+                    id="monitor-x-bearer-token"
+                    autoComplete="off"
+                    className="monitor-input"
+                    onChange={(event) => {
+                      setBearerToken(event.target.value);
                     }}
-                    type="button"
-                  >
-                    Remove
-                  </button>
+                    placeholder={
+                      credentialsSummary?.isConfigured
+                        ? "Token saved. Paste to replace"
+                        : "Paste X bearer token"
+                    }
+                    type="password"
+                    value={bearerToken}
+                  />
+                  {credentialsSummary && (
+                    <div className="monitor-credentials-meta" role="status" aria-live="polite">
+                      {credentialsSummary.isConfigured ? (
+                        <span className="monitor-state-badge monitor-state-badge--saved">Saved</span>
+                      ) : (
+                        <span>Not configured</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
-              {queryTermsDraft.length === 0 ? (
-                <p className="monitor-query-empty">Add at least one query term to save.</p>
-              ) : null}
+
+                <div className="monitor-config-section">
+                  <p className="monitor-section-label">Target terms</p>
+                  <div className="monitor-query-terms-list" role="list" aria-label="Monitor query terms">
+                    {queryTermsDraft.map((term) => (
+                      <div className="monitor-query-term" key={term} role="listitem">
+                        <span>{term}</span>
+                        <button
+                          aria-label={`Remove query term ${term}`}
+                          onClick={() => {
+                            removeQueryTerm(term);
+                          }}
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    {queryTermsDraft.length === 0 ? (
+                      <p className="monitor-query-empty">Add at least one query term to save.</p>
+                    ) : null}
+                  </div>
+                  <div className="monitor-query-term-form">
+                    <input
+                      aria-label="Add monitor query term"
+                      className="monitor-input"
+                      onChange={(event) => {
+                        setQueryTermInput(event.target.value);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          appendQueryTerm(queryTermInput);
+                        }
+                      }}
+                      placeholder="Add term and press Enter"
+                      type="text"
+                      value={queryTermInput}
+                    />
+                    <ActionButton
+                      aria-label="Add query term"
+                      className="monitor-query-add"
+                      onClick={() => {
+                        appendQueryTerm(queryTermInput);
+                      }}
+                      size="dense"
+                      variant="info"
+                    >
+                      Add
+                    </ActionButton>
+                  </div>
+                </div>
+              </div>
+
+              <div className="monitor-config-column">
+                <div className="monitor-config-section">
+                  <p className="monitor-section-label">Search policy</p>
+                  <div className="monitor-policy-grid">
+                    <div className="monitor-field">
+                      <label htmlFor="monitor-max-posts">Max returned posts</label>
+                      <input
+                        id="monitor-max-posts"
+                        className="monitor-input"
+                        inputMode="numeric"
+                        min={1}
+                        onChange={(event) => {
+                          setMaxPostsDraft(event.target.value);
+                        }}
+                        pattern="[0-9]*"
+                        type="text"
+                        value={maxPostsDraft}
+                      />
+                    </div>
+                    <div className="monitor-field">
+                      <p className="monitor-section-label monitor-field-label" id="monitor-search-window-label">
+                        Search timeframe
+                      </p>
+                      <div
+                        aria-labelledby="monitor-search-window-label"
+                        className="monitor-timeframe-picker"
+                        role="radiogroup"
+                      >
+                        {MONITOR_SEARCH_WINDOW_OPTIONS.map((option) => (
+                          <button
+                            aria-checked={searchWindowDaysDraft === option.value}
+                            className="monitor-timeframe-option"
+                            data-active={searchWindowDaysDraft === option.value ? "true" : "false"}
+                            key={option.value}
+                            onClick={() => {
+                              setSearchWindowDaysDraft(option.value);
+                            }}
+                            role="radio"
+                            type="button"
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="monitor-query-term-form">
-              <input
-                aria-label="Add monitor query term"
-                className="monitor-input"
-                onChange={(event) => {
-                  setQueryTermInput(event.target.value);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    appendQueryTerm(queryTermInput);
-                  }
-                }}
-                placeholder="Add term and press Enter"
-                type="text"
-                value={queryTermInput}
-              />
+            <div className="monitor-config-footer">
               <ActionButton
-                aria-label="Add query term"
-                className="monitor-query-add"
-                onClick={() => {
-                  appendQueryTerm(queryTermInput);
-                }}
+                aria-label="Save monitor settings"
+                className="monitor-config-save"
+                disabled={isSavingMonitorConfig || !canSaveConfig}
+                onClick={saveMonitorSettings}
                 size="dense"
-                variant="info"
+                variant="primary"
               >
-                Add
+                {isSavingMonitorConfig ? "Saving..." : "Save monitor settings"}
               </ActionButton>
             </div>
-            <label htmlFor="monitor-max-posts">Max returned posts</label>
-            <input
-              id="monitor-max-posts"
-              className="monitor-input"
-              inputMode="numeric"
-              min={1}
-              onChange={(event) => {
-                setMaxPostsDraft(event.target.value);
-              }}
-              pattern="[0-9]*"
-              type="text"
-              value={maxPostsDraft}
-            />
-            <label htmlFor="monitor-search-window">Search timeframe</label>
-            <select
-              id="monitor-search-window"
-              className="monitor-input"
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
-                if (nextValue === 1 || nextValue === 3 || nextValue === 7) {
-                  setSearchWindowDaysDraft(nextValue);
-                }
-              }}
-              value={String(searchWindowDaysDraft)}
-            >
-              {MONITOR_SEARCH_WINDOW_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <ActionButton
-              aria-label="Save monitor query terms"
-              className="monitor-query-save"
-              disabled={isSavingMonitorConfig || !canSaveQueryTerms}
-              onClick={() => {
-                void onPatchConfig({
-                  providerId: "x",
-                  queryTerms: normalizeTerms(queryTermsDraft),
-                  refreshPolicy:
-                    parsedMaxPosts !== null
-                      ? { maxPosts: parsedMaxPosts, searchWindowDays: searchWindowDaysDraft }
-                      : { searchWindowDays: searchWindowDaysDraft },
-                  validateCredentials: false,
-                });
-              }}
-              size="dense"
-              variant="primary"
-            >
-              {isSavingMonitorConfig ? "Saving..." : "Save Terms"}
-            </ActionButton>
-            <p>Search timeframe applies per term and defaults to 7D.</p>
           </section>
         </section>
       ) : (

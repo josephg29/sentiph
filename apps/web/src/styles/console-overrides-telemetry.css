@@ -198,29 +198,54 @@
   gap: 1.2rem;
   min-width: max-content;
   padding: 0.22rem 0.55rem;
-  animation: consoleTelemetryScroll 28s linear infinite;
+  animation-name: consoleTelemetryScroll;
+  animation-duration: 60s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .console-telemetry-item {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.26rem;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.36rem;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
+  color: #b3bdcb;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .console-telemetry-item strong {
-  color: #c5d4ea;
+  color: #dce6f7;
   font-size: 0.7rem;
 }
 
-.console-telemetry-item.is-up span {
+.console-telemetry-source {
+  color: #d6a21a;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.console-telemetry-snippet {
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.console-telemetry-likes {
   color: #25d366;
 }
 
-.console-telemetry-item.is-down span {
-  color: #ff4d4d;
+a.console-telemetry-item:hover .console-telemetry-snippet,
+a.console-telemetry-item:focus-visible .console-telemetry-snippet {
+  text-decoration: underline;
+}
+
+a.console-telemetry-item:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #f0cf75);
+  outline-offset: 2px;
 }
 
 @keyframes consoleTelemetryScroll {

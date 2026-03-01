@@ -310,7 +310,7 @@ export const App = () => {
         </div>
       </section>
 
-      <TelemetryTape />
+      <TelemetryTape monitorFeed={monitorFeed} />
 
       {pendingDeleteTentacle && (
         <DeleteTentacleDialog

@@ -127,6 +127,12 @@ Use `PP Neue Machina Plain` as the primary UI font for web chrome, controls, and
 
 Avoid tiny control text. Keep the global web UI base font size and terminal font size large enough for comfortable reading, and scale from shared tokens instead of ad hoc per-component overrides.
 
+### Monitor Configure UX Preference
+
+Keep Monitor Configure controls in a single unified view (not split into separate cards), with one primary save action and compact grouped fields/chips to reduce visual clutter.
+Use column-based layout to fill the available panel width while keeping individual controls readable, and show token state as a green `Saved` badge (without displaying token hints/previews).
+For option picking (like timeframe), prefer custom in-app segmented selectors over native browser `<select>` dropdown popups.
+
 ### Terminal Surface Preference
 
 Keep the terminal surface dark but not pure black; prefer a deep slate background for long-session readability.

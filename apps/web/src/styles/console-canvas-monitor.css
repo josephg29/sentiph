@@ -108,7 +108,7 @@
 }
 
 .monitor-refresh,
-.monitor-save {
+.monitor-config-save {
   --action-button-font-size: 0.78rem;
   --action-button-padding-y: 0.24rem;
   --action-button-padding-x: 0.48rem;
@@ -157,6 +157,10 @@
 .monitor-panel--configure {
   min-height: 0;
   align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 100%;
 }
 
 .monitor-resources {
@@ -190,6 +194,58 @@
   letter-spacing: 0.06em;
 }
 
+.monitor-config-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.monitor-config-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem;
+  align-items: start;
+}
+
+.monitor-config-column,
+.monitor-config-section {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+}
+
+.monitor-config-column {
+  gap: 0.5rem;
+}
+
+.monitor-config-section {
+  gap: 0.28rem;
+}
+
+.monitor-section-label {
+  margin: 0;
+  color: #d7a622;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.monitor-field-label {
+  color: #9eb0c8;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+.monitor-config-chip {
+  border: 1px solid #2f3946;
+  background: #111822;
+  color: #d9e4f6;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.16rem 0.4rem;
+}
+
 .monitor-input,
 .monitor-textarea {
   border: 1px solid #2b2f36;
@@ -220,6 +276,7 @@
   flex-wrap: wrap;
   gap: 0.28rem;
   min-height: 2.2rem;
+  width: 100%;
 }
 
 .monitor-query-term {
@@ -254,13 +311,95 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.22rem;
+  width: 100%;
 }
 
 .monitor-query-add,
-.monitor-query-save {
+.monitor-config-save {
   --action-button-font-size: 0.76rem;
   --action-button-padding-y: 0.2rem;
   --action-button-padding-x: 0.42rem;
+}
+
+.monitor-config-save {
+  --action-button-border: color-mix(in srgb, #54d98d 62%, #2b5c3d);
+  --action-button-bg: color-mix(in srgb, #54d98d 72%, #1f4b33 28%);
+  --action-button-color: #06110b;
+  align-self: flex-start;
+}
+
+.console-shell .monitor-config-save.action-button {
+  border-color: color-mix(in srgb, #54d98d 62%, #2b5c3d);
+  background: color-mix(in srgb, #54d98d 72%, #1f4b33 28%);
+  color: #06110b;
+}
+
+.console-shell .monitor-config-save.action-button:hover:not(:disabled) {
+  background: color-mix(in srgb, #6ae3a0 76%, #1f4b33 24%);
+}
+
+.monitor-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.36rem;
+  width: 100%;
+}
+
+.monitor-timeframe-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.24rem;
+}
+
+.monitor-timeframe-option {
+  border: 1px solid #2b2f36;
+  background: #10151d;
+  color: #a9b0ba;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.46rem 0.5rem;
+  cursor: pointer;
+}
+
+.monitor-timeframe-option[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
+  background: color-mix(in srgb, var(--accent-primary) 82%, #f3cd74 18%);
+  color: #111216;
+}
+
+.monitor-timeframe-option:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 82%, #f0cf75);
+  outline-offset: 1px;
+}
+
+.monitor-field {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.monitor-credentials-meta {
+  min-height: 1.3rem;
+  display: flex;
+  align-items: center;
+}
+
+.monitor-state-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.08rem 0.48rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.monitor-state-badge--saved {
+  border: 1px solid color-mix(in srgb, #54d98d 62%, #2b5c3d);
+  background: color-mix(in srgb, #54d98d 20%, #111822);
+  color: #9af2bf;
 }
 
 .monitor-panel p,
@@ -269,6 +408,16 @@
   color: #8d9db4;
   font-size: 0.8rem;
   line-height: 1.35;
+}
+
+.monitor-config-footer {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.32rem;
+  width: 100%;
 }
 
 .monitor-panel--status dl {
@@ -413,6 +562,18 @@
 @media (max-width: 1200px) {
   .monitor-panel-grid {
     grid-template-columns: 1fr;
+  }
+
+  .monitor-config-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .monitor-policy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monitor-timeframe-picker {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .monitor-header-top {

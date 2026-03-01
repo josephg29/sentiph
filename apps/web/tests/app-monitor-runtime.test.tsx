@@ -188,6 +188,16 @@ describe("App Monitor runtime", () => {
       }),
     );
 
+    const telemetryTape = screen.getByLabelText("Telemetry ticker tape");
+    await waitFor(() => {
+      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
+      expect(within(telemetryTape).getAllByText("♥ 123")).toHaveLength(2);
+      expect(within(telemetryTape).getAllByText("𝕏")).toHaveLength(2);
+      const resourceLinks = within(telemetryTape).getAllByRole("link");
+      expect(resourceLinks.length).toBeGreaterThan(0);
+      expect(resourceLinks[0]).toHaveAttribute("href", "https://x.com/octogent/status/1");
+    });
+
     const monitorView = await screen.findByLabelText("Monitor primary view");
     expect(within(monitorView).getByRole("button", { name: "Resources" })).toHaveAttribute(
       "aria-current",
@@ -199,18 +209,14 @@ describe("App Monitor runtime", () => {
       "page",
     );
     expect(within(monitorView).queryByRole("textbox", { name: "Monitor query terms" })).not.toBeInTheDocument();
-    fireEvent.change(within(monitorView).getByLabelText("Search timeframe"), {
-      target: {
-        value: "3",
-      },
-    });
+    fireEvent.click(within(monitorView).getByRole("radio", { name: "3D" }));
     fireEvent.change(within(monitorView).getByLabelText("Add monitor query term"), {
       target: {
         value: "Agent Ops",
       },
     });
     fireEvent.click(within(monitorView).getByRole("button", { name: "Add query term" }));
-    fireEvent.click(within(monitorView).getByRole("button", { name: "Save monitor query terms" }));
+    fireEvent.click(within(monitorView).getByRole("button", { name: "Save monitor settings" }));
 
     await waitFor(() => {
       expect(
@@ -233,7 +239,7 @@ describe("App Monitor runtime", () => {
         value: "my-x-token",
       },
     });
-    fireEvent.click(within(monitorView).getByRole("button", { name: "Save X credentials" }));
+    fireEvent.click(within(monitorView).getByRole("button", { name: "Save monitor settings" }));
 
     await waitFor(() => {
       expect(monitorConfigPatchBodies.length).toBeGreaterThan(0);

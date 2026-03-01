@@ -18,17 +18,6 @@ export const PRIMARY_NAV_ITEMS = [
 
 export const GITHUB_SUBTABS = [{ id: "overview", label: "Overview" }] as const;
 
-export const TELEMETRY_TAPE_ITEMS = [
-  { symbol: "QUEUE", change: 1.92 },
-  { symbol: "CPU", change: -0.37 },
-  { symbol: "TOKENS", change: 0.66 },
-  { symbol: "LATENCY", change: -2.12 },
-  { symbol: "WORKTREE", change: 0.73 },
-  { symbol: "RETRIES", change: 1.31 },
-  { symbol: "ERRORS", change: -0.44 },
-  { symbol: "THROUGHPUT", change: 0.29 },
-] as const;
-
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;
 export const GITHUB_SPARKLINE_WIDTH = 148;
 export const GITHUB_SPARKLINE_HEIGHT = 36;
