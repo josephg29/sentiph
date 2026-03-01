@@ -13,7 +13,7 @@ type MonitorPrimaryViewProps = {
   onSyncFeed: () => void;
   onPatchConfig: (patch: {
     providerId: "x";
-    queryTerms: string[];
+    queryTerms?: string[];
     credentials?: {
       bearerToken?: string;
     };
@@ -241,8 +241,8 @@ export const MonitorPrimaryView = ({
                 const hasCredentialPatch = Object.keys(patchCredentials).length > 0;
                 const patchPayload = {
                   providerId: "x" as const,
-                  queryTerms: nextTerms,
                   validateCredentials: false,
+                  ...(nextTerms.length > 0 ? { queryTerms: nextTerms } : {}),
                   ...(hasCredentialPatch ? { credentials: patchCredentials } : {}),
                 };
 

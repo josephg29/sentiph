@@ -117,6 +117,69 @@ describe("monitor API routes", () => {
     return `http://${address.host}:${address.port}`;
   };
 
+  it("returns empty query terms for a fresh workspace config", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      providerId: "x",
+      queryTerms: [],
+    });
+  });
+
+  it("saves credentials even when query terms have not been configured yet", async () => {
+    const baseUrl = await startServer();
+
+    const patchResponse = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        providerId: "x",
+        validateCredentials: false,
+        credentials: {
+          bearerToken: "x-example-secret-token",
+        },
+      }),
+    });
+
+    expect(patchResponse.status).toBe(200);
+    await expect(patchResponse.json()).resolves.toMatchObject({
+      providerId: "x",
+      queryTerms: [],
+      providers: {
+        x: {
+          credentials: {
+            isConfigured: true,
+          },
+        },
+      },
+    });
+
+    const feedResponse = await fetch(`${baseUrl}/api/monitor/feed`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(feedResponse.status).toBe(200);
+    await expect(feedResponse.json()).resolves.toMatchObject({
+      providerId: "x",
+      queryTerms: [],
+      lastError: "At least one monitor query term is required.",
+    });
+  });
+
   it("saves monitor credentials and returns redacted config", async () => {
     const baseUrl = await startServer();
 

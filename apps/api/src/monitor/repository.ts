@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { DEFAULT_MONITOR_MAX_CACHE_AGE_MS, DEFAULT_MONITOR_QUERY_TERMS } from "./defaults";
+import { DEFAULT_MONITOR_MAX_CACHE_AGE_MS } from "./defaults";
 import type { MonitorRepository, PersistedMonitorCache, PersistedMonitorConfig } from "./types";
 
 const MONITOR_CONFIG_VERSION = 1 as const;
@@ -146,7 +146,7 @@ const normalizeCredentials = (
 const defaultConfig = (): PersistedMonitorConfig => ({
   version: MONITOR_CONFIG_VERSION,
   providerId: "x",
-  queryTerms: [...DEFAULT_MONITOR_QUERY_TERMS],
+  queryTerms: [],
   refreshPolicy: {
     maxCacheAgeMs: DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
   },
@@ -190,7 +190,7 @@ const normalizeConfig = (value: unknown): PersistedMonitorConfig => {
   return {
     version: MONITOR_CONFIG_VERSION,
     providerId: record.providerId === "x" ? "x" : fallback.providerId,
-    queryTerms: queryTerms.length > 0 ? queryTerms : fallback.queryTerms,
+    queryTerms,
     refreshPolicy: {
       maxCacheAgeMs,
     },
@@ -220,7 +220,7 @@ const normalizeCache = (value: unknown): PersistedMonitorCache => {
   return {
     version: MONITOR_CACHE_VERSION,
     providerId: record.providerId === "x" ? "x" : fallback.providerId,
-    queryTerms: queryTerms.length > 0 ? queryTerms : fallback.queryTerms,
+    queryTerms,
     fetchedAt: typeof record.fetchedAt === "string" ? record.fetchedAt : null,
     lastError: typeof record.lastError === "string" ? record.lastError : null,
     posts,

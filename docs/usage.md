@@ -71,7 +71,7 @@ Terminal persistence requires `tmux` on `PATH`.
   - `Configure` for X credentials and query-term management.
 - Query terms are edited as add/remove chips in memory and persisted with `Save Terms`.
 - Save your X bearer token from the `X Connection` panel.
-- Default terms are `AI Engineering`, `Agent Engineering`, `Codex`, `Quad Code`, `skill.md`.
+- New workspaces start with no monitor query terms. Add and save terms before expecting feed results.
 - Backend queries X recent search for the last 7 days, filters retweets, then ranks posts locally by `likeCount`.
 - Feed is trimmed to top 30 posts and cached.
 - `GET /api/monitor/feed` auto-refreshes when cache age exceeds 24 hours.

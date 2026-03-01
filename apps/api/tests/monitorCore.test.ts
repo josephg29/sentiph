@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DEFAULT_MONITOR_QUERY_TERMS,
   isMonitorCacheStale,
   rankAndLimitPostsByLikes,
 } from "../src/monitor/service";
@@ -19,25 +18,23 @@ describe("monitor core logic", () => {
     expect(query).toContain("-is:retweet");
   });
 
-  it("falls back to default query terms when no valid terms are provided", () => {
-    const query = buildXRecentSearchQuery(["", "   "]);
-
-    for (const term of DEFAULT_MONITOR_QUERY_TERMS) {
-      expect(query).toContain(term.includes(" ") ? `"${term}"` : term);
-    }
+  it("throws when no valid query terms are provided", () => {
+    expect(() => buildXRecentSearchQuery(["", "   "])).toThrow(
+      "At least one X query term is required.",
+    );
   });
 
   it("flags cache as stale when older than refresh policy window", () => {
     const now = new Date("2026-02-28T12:00:00.000Z");
-    const defaultQueryTerms = [...DEFAULT_MONITOR_QUERY_TERMS];
+    const configuredQueryTerms = ["Codex"];
 
     expect(
       isMonitorCacheStale({
         now,
         maxCacheAgeMs: 24 * 60 * 60 * 1000,
         lastFetchedAt: null,
-        cachedQueryTerms: defaultQueryTerms,
-        currentQueryTerms: defaultQueryTerms,
+        cachedQueryTerms: configuredQueryTerms,
+        currentQueryTerms: configuredQueryTerms,
       }),
     ).toBe(true);
 
@@ -46,8 +43,8 @@ describe("monitor core logic", () => {
         now,
         maxCacheAgeMs: 24 * 60 * 60 * 1000,
         lastFetchedAt: "2026-02-27T13:00:00.000Z",
-        cachedQueryTerms: defaultQueryTerms,
-        currentQueryTerms: defaultQueryTerms,
+        cachedQueryTerms: configuredQueryTerms,
+        currentQueryTerms: configuredQueryTerms,
       }),
     ).toBe(false);
 
@@ -56,8 +53,8 @@ describe("monitor core logic", () => {
         now,
         maxCacheAgeMs: 24 * 60 * 60 * 1000,
         lastFetchedAt: "2026-02-27T11:59:59.000Z",
-        cachedQueryTerms: defaultQueryTerms,
-        currentQueryTerms: defaultQueryTerms,
+        cachedQueryTerms: configuredQueryTerms,
+        currentQueryTerms: configuredQueryTerms,
       }),
     ).toBe(true);
 

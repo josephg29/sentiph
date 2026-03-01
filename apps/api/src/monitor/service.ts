@@ -14,7 +14,7 @@ import type {
 } from "./types";
 import { createXMonitorProvider } from "./xProvider";
 
-export { DEFAULT_MONITOR_MAX_CACHE_AGE_MS, DEFAULT_MONITOR_QUERY_TERMS } from "./defaults";
+export { DEFAULT_MONITOR_MAX_CACHE_AGE_MS } from "./defaults";
 
 export class MonitorInputError extends Error {}
 
@@ -270,6 +270,17 @@ export const createMonitorService = ({
           providerId: config.providerId,
           queryTerms: [...config.queryTerms],
           lastError: "X credentials are not configured.",
+        };
+        repository.writeCache(nextCache);
+        return toFeedSnapshot(config, nextCache, now);
+      }
+
+      if (config.queryTerms.length === 0) {
+        const nextCache: PersistedMonitorCache = {
+          ...cache,
+          providerId: config.providerId,
+          queryTerms: [...config.queryTerms],
+          lastError: "At least one monitor query term is required.",
         };
         repository.writeCache(nextCache);
         return toFeedSnapshot(config, nextCache, now);

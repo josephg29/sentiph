@@ -7,10 +7,10 @@ import type {
   MonitorUsageSnapshot,
   XMonitorCredentials,
 } from "./types";
-import { DEFAULT_MONITOR_QUERY_TERMS } from "./defaults";
 
 const DEFAULT_X_API_BASE_URL = "https://api.x.com";
 const DEFAULT_X_USAGE_ENDPOINT_PATH = "/2/usage/tweets";
+const VALIDATION_QUERY = "lang:en -is:retweet";
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
@@ -108,13 +108,14 @@ const normalizeQueryTerms = (queryTerms: string[]): string[] => {
     .filter((term) => term.length > 0)
     .map((term) => quoteQueryTerm(term));
 
-  return normalized.length > 0
-    ? [...new Set(normalized)]
-    : DEFAULT_MONITOR_QUERY_TERMS.map((term) => quoteQueryTerm(term));
+  return [...new Set(normalized)];
 };
 
 export const buildXRecentSearchQuery = (queryTerms: string[]): string => {
   const terms = normalizeQueryTerms(queryTerms);
+  if (terms.length === 0) {
+    throw new Error("At least one X query term is required.");
+  }
   return `(${terms.join(" OR ")}) lang:en -is:retweet`;
 };
 
@@ -368,7 +369,7 @@ const validateXCredentials = async ({
       fetchFn,
       baseUrl,
       credentials,
-      query: "Codex lang:en -is:retweet",
+      query: VALIDATION_QUERY,
       startTime,
     });
     return { ok: true };

@@ -100,6 +100,10 @@ Keep the left sidebar mostly neutral (deep slate/gray surfaces) and reserve acce
 
 Persist frontend layout/preferences in the runtime registry JSON (`.octogent/state/tentacles.json`, `uiState`) via API endpoints, not browser-only storage.
 
+### Monitor Query-Term Source Preference
+
+Do not hardcode monitor search/query terms in code. Keep query terms operator-defined and persisted in `.octogent/state/monitor-config.json`, with runtime behavior loading/changing terms only through that filesystem-backed config.
+
 ### Codex Usage Placement Preference
 
 Show Codex usage in the `Active Agents` sidebar footer (bottom of the left sidebar), not in the top chrome bar. Keep it visually consistent with existing terminal/sidebar chrome styling.
