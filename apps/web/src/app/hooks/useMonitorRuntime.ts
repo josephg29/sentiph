@@ -14,6 +14,8 @@ type MonitorConfigPatchRequest = {
   queryTerms?: string[];
   refreshPolicy?: {
     maxCacheAgeMs?: number;
+    maxPosts?: number;
+    searchWindowDays?: 1 | 3 | 7;
   };
   credentials?: {
     bearerToken?: string;

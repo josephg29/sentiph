@@ -26,6 +26,6 @@ export const ConsolePrimaryNav = ({
         </button>
       ))}
     </div>
-    <p className="console-primary-nav-hint">Press 0-6 to navigate · Type context to search</p>
+    <p className="console-primary-nav-hint">Press 0-6 to navigate</p>
   </nav>
 );

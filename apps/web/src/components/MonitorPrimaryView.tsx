@@ -14,6 +14,10 @@ type MonitorPrimaryViewProps = {
   onPatchConfig: (patch: {
     providerId: "x";
     queryTerms?: string[];
+    refreshPolicy?: {
+      maxPosts?: number;
+      searchWindowDays?: 1 | 3 | 7;
+    };
     credentials?: {
       bearerToken?: string;
     };
@@ -33,6 +37,11 @@ const MONITOR_PROVIDER_TABS: Array<{
 const MONITOR_SUBTABS: Array<{ id: MonitorSubtabId; label: string }> = [
   { id: "resources", label: "Resources" },
   { id: "configure", label: "Configure" },
+];
+const MONITOR_SEARCH_WINDOW_OPTIONS: Array<{ value: 7 | 3 | 1; label: string }> = [
+  { value: 7, label: "7D" },
+  { value: 3, label: "3D" },
+  { value: 1, label: "1D" },
 ];
 
 const normalizeTerms = (terms: string[]): string[] => {
@@ -75,6 +84,8 @@ export const MonitorPrimaryView = ({
   const [activeSubtab, setActiveSubtab] = useState<MonitorSubtabId>("resources");
   const [queryTermsDraft, setQueryTermsDraft] = useState<string[]>([]);
   const [queryTermInput, setQueryTermInput] = useState("");
+  const [maxPostsDraft, setMaxPostsDraft] = useState("30");
+  const [searchWindowDaysDraft, setSearchWindowDaysDraft] = useState<7 | 3 | 1>(7);
   const [bearerToken, setBearerToken] = useState("");
 
   useEffect(() => {
@@ -83,6 +94,8 @@ export const MonitorPrimaryView = ({
     }
 
     setQueryTermsDraft(normalizeTerms(monitorConfig.queryTerms));
+    setMaxPostsDraft(String(monitorConfig.refreshPolicy.maxPosts));
+    setSearchWindowDaysDraft(monitorConfig.refreshPolicy.searchWindowDays);
   }, [monitorConfig]);
 
   const usageCapLabel = useMemo(() => {
@@ -115,13 +128,18 @@ export const MonitorPrimaryView = ({
       `Usage cap ${usageCapLabel}`,
       `Used ${usageUsedLabel}`,
       `Remaining ${usageRemainingLabel}`,
+      `Window ${searchWindowDaysDraft}D`,
       `Resets ${formatTimestamp(monitorFeed?.usage?.resetAt ?? null)}`,
     ],
-    [monitorFeed, usageCapLabel, usageRemainingLabel, usageUsedLabel],
+    [monitorFeed, searchWindowDaysDraft, usageCapLabel, usageRemainingLabel, usageUsedLabel],
   );
 
   const credentialsSummary = monitorConfig?.providers.x.credentials;
-  const canSaveQueryTerms = queryTermsDraft.length > 0;
+  const parsedMaxPosts =
+    /^[1-9]\d*$/.test(maxPostsDraft.trim()) ? Number.parseInt(maxPostsDraft.trim(), 10) : null;
+  const canSaveQueryTerms = queryTermsDraft.length > 0 && parsedMaxPosts !== null;
+  const configuredMaxPosts =
+    monitorFeed?.refreshPolicy.maxPosts ?? monitorConfig?.refreshPolicy.maxPosts ?? 30;
 
   const appendQueryTerm = (raw: string) => {
     const nextTerms = normalizeTerms(raw.split(/[\n,]/));
@@ -243,6 +261,9 @@ export const MonitorPrimaryView = ({
                   providerId: "x" as const,
                   validateCredentials: false,
                   ...(nextTerms.length > 0 ? { queryTerms: nextTerms } : {}),
+                  ...(parsedMaxPosts !== null
+                    ? { refreshPolicy: { maxPosts: parsedMaxPosts, searchWindowDays: searchWindowDaysDraft } }
+                    : { refreshPolicy: { searchWindowDays: searchWindowDaysDraft } }),
                   ...(hasCredentialPatch ? { credentials: patchCredentials } : {}),
                 };
 
@@ -321,6 +342,37 @@ export const MonitorPrimaryView = ({
                 Add
               </ActionButton>
             </div>
+            <label htmlFor="monitor-max-posts">Max returned posts</label>
+            <input
+              id="monitor-max-posts"
+              className="monitor-input"
+              inputMode="numeric"
+              min={1}
+              onChange={(event) => {
+                setMaxPostsDraft(event.target.value);
+              }}
+              pattern="[0-9]*"
+              type="text"
+              value={maxPostsDraft}
+            />
+            <label htmlFor="monitor-search-window">Search timeframe</label>
+            <select
+              id="monitor-search-window"
+              className="monitor-input"
+              onChange={(event) => {
+                const nextValue = Number.parseInt(event.target.value, 10);
+                if (nextValue === 1 || nextValue === 3 || nextValue === 7) {
+                  setSearchWindowDaysDraft(nextValue);
+                }
+              }}
+              value={String(searchWindowDaysDraft)}
+            >
+              {MONITOR_SEARCH_WINDOW_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <ActionButton
               aria-label="Save monitor query terms"
               className="monitor-query-save"
@@ -329,6 +381,10 @@ export const MonitorPrimaryView = ({
                 void onPatchConfig({
                   providerId: "x",
                   queryTerms: normalizeTerms(queryTermsDraft),
+                  refreshPolicy:
+                    parsedMaxPosts !== null
+                      ? { maxPosts: parsedMaxPosts, searchWindowDays: searchWindowDaysDraft }
+                      : { searchWindowDays: searchWindowDaysDraft },
                   validateCredentials: false,
                 });
               }}
@@ -337,7 +393,7 @@ export const MonitorPrimaryView = ({
             >
               {isSavingMonitorConfig ? "Saving..." : "Save Terms"}
             </ActionButton>
-            <p>Recent search window is limited to the last 7 days.</p>
+            <p>Search timeframe applies per term and defaults to 7D.</p>
           </section>
         </section>
       ) : (
@@ -345,7 +401,7 @@ export const MonitorPrimaryView = ({
           <section className="monitor-feed" aria-label="Monitor feed results">
             <header>
               <h3>Top posts by likes</h3>
-              <span>{`${monitorFeed?.posts.length ?? 0} / 30`}</span>
+              <span>{`${monitorFeed?.posts.length ?? 0} / ${configuredMaxPosts}`}</span>
             </header>
             {monitorError ? <p className="monitor-error">{monitorError}</p> : null}
             {monitorFeed?.lastError ? <p className="monitor-error">{monitorFeed.lastError}</p> : null}
@@ -357,6 +413,7 @@ export const MonitorPrimaryView = ({
                   <thead>
                     <tr>
                       <th scope="col">Likes</th>
+                      <th scope="col">Term</th>
                       <th scope="col">Author</th>
                       <th scope="col">Post</th>
                       <th scope="col">Created</th>
@@ -366,6 +423,11 @@ export const MonitorPrimaryView = ({
                     {(monitorFeed?.posts ?? []).map((post) => (
                       <tr key={`${post.source}:${post.id}`}>
                         <td>{Math.round(post.likeCount).toLocaleString("en-US")}</td>
+                        <td>
+                          <span className="monitor-term-badge">
+                            {post.matchedQueryTerm ?? "Unknown"}
+                          </span>
+                        </td>
                         <td>@{post.author}</td>
                         <td>
                           <a href={post.permalink} rel="noreferrer" target="_blank">

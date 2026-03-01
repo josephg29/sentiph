@@ -1,5 +1,9 @@
 export { createFileMonitorRepository } from "./repository";
-export { DEFAULT_MONITOR_MAX_CACHE_AGE_MS } from "./defaults";
+export {
+  DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
+  DEFAULT_MONITOR_MAX_POSTS,
+  DEFAULT_MONITOR_SEARCH_WINDOW_DAYS,
+} from "./defaults";
 export {
   MonitorInputError,
   createMonitorService,

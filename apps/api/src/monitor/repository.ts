@@ -1,13 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { DEFAULT_MONITOR_MAX_CACHE_AGE_MS } from "./defaults";
+import {
+  DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
+  DEFAULT_MONITOR_MAX_POSTS,
+  DEFAULT_MONITOR_SEARCH_WINDOW_DAYS,
+} from "./defaults";
 import type { MonitorRepository, PersistedMonitorCache, PersistedMonitorConfig } from "./types";
 
 const MONITOR_CONFIG_VERSION = 1 as const;
 const MONITOR_CACHE_VERSION = 1 as const;
 const MONITOR_CONFIG_RELATIVE_PATH = ".octogent/state/monitor-config.json";
 const MONITOR_CACHE_RELATIVE_PATH = ".octogent/state/monitor-cache.json";
+const VALID_MONITOR_SEARCH_WINDOW_DAYS = new Set([1, 3, 7]);
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
@@ -46,6 +51,10 @@ const normalizeMonitorPost = (value: unknown): PersistedMonitorCache["posts"][nu
       ? Math.max(0, Math.floor(record.likeCount))
       : null;
   const permalink = typeof record.permalink === "string" ? record.permalink : null;
+  const matchedQueryTerm =
+    typeof record.matchedQueryTerm === "string"
+      ? record.matchedQueryTerm
+      : null;
 
   if (
     source !== "x" ||
@@ -67,6 +76,7 @@ const normalizeMonitorPost = (value: unknown): PersistedMonitorCache["posts"][nu
     createdAt,
     likeCount,
     permalink,
+    matchedQueryTerm,
   };
 };
 
@@ -149,6 +159,8 @@ const defaultConfig = (): PersistedMonitorConfig => ({
   queryTerms: [],
   refreshPolicy: {
     maxCacheAgeMs: DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
+    maxPosts: DEFAULT_MONITOR_MAX_POSTS,
+    searchWindowDays: DEFAULT_MONITOR_SEARCH_WINDOW_DAYS,
   },
   providers: {
     x: {
@@ -183,6 +195,23 @@ const normalizeConfig = (value: unknown): PersistedMonitorConfig => {
     refreshPolicyRecord.maxCacheAgeMs > 0
       ? Math.floor(refreshPolicyRecord.maxCacheAgeMs)
       : fallback.refreshPolicy.maxCacheAgeMs;
+  const maxPosts =
+    refreshPolicyRecord &&
+    typeof refreshPolicyRecord.maxPosts === "number" &&
+    Number.isFinite(refreshPolicyRecord.maxPosts) &&
+    refreshPolicyRecord.maxPosts > 0
+      ? Math.floor(refreshPolicyRecord.maxPosts)
+      : fallback.refreshPolicy.maxPosts;
+  const searchWindowDaysRaw =
+    refreshPolicyRecord &&
+    typeof refreshPolicyRecord.searchWindowDays === "number" &&
+    Number.isFinite(refreshPolicyRecord.searchWindowDays)
+      ? Math.floor(refreshPolicyRecord.searchWindowDays)
+      : null;
+  const searchWindowDays =
+    searchWindowDaysRaw !== null && VALID_MONITOR_SEARCH_WINDOW_DAYS.has(searchWindowDaysRaw)
+      ? (searchWindowDaysRaw as 1 | 3 | 7)
+      : fallback.refreshPolicy.searchWindowDays;
 
   const providersRecord = asRecord(record.providers);
   const xProviderRecord = providersRecord ? asRecord(providersRecord.x) : null;
@@ -193,6 +222,8 @@ const normalizeConfig = (value: unknown): PersistedMonitorConfig => {
     queryTerms,
     refreshPolicy: {
       maxCacheAgeMs,
+      maxPosts,
+      searchWindowDays,
     },
     providers: {
       x: {

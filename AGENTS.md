@@ -103,6 +103,8 @@ Persist frontend layout/preferences in the runtime registry JSON (`.octogent/sta
 ### Monitor Query-Term Source Preference
 
 Do not hardcode monitor search/query terms in code. Keep query terms operator-defined and persisted in `.octogent/state/monitor-config.json`, with runtime behavior loading/changing terms only through that filesystem-backed config.
+Run monitor retrieval as separate provider searches per configured query term, and keep returned-post count configurable via persisted monitor refresh policy (not hardcoded top-N in code).
+Keep monitor search timeframe operator-configurable (`7D`/`3D`/`1D`) with `7D` as the persisted default in monitor refresh policy.
 
 ### Codex Usage Placement Preference
 

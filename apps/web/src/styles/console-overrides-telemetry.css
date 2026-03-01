@@ -260,11 +260,6 @@
     white-space: normal;
   }
 
-  .console-shell .console-canvas-controls {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
   .github-overview {
     grid-template-rows: auto auto minmax(220px, 1fr);
   }

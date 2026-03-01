@@ -8,6 +8,7 @@ export type MonitorPost = {
   createdAt: string;
   likeCount: number;
   permalink: string;
+  matchedQueryTerm: string | null;
 };
 
 export type MonitorUsageSnapshot = {
@@ -40,8 +41,12 @@ export type XMonitorCredentials = {
   updatedAt: string;
 };
 
+export type MonitorSearchWindowDays = 1 | 3 | 7;
+
 export type MonitorRefreshPolicy = {
   maxCacheAgeMs: number;
+  maxPosts: number;
+  searchWindowDays: MonitorSearchWindowDays;
 };
 
 export type PersistedMonitorConfig = {
@@ -94,6 +99,8 @@ export type MonitorConfigPatchInput = {
   queryTerms?: string[];
   refreshPolicy?: {
     maxCacheAgeMs?: number;
+    maxPosts?: number;
+    searchWindowDays?: MonitorSearchWindowDays;
   };
   credentials?: unknown;
   validateCredentials?: boolean;
@@ -122,6 +129,8 @@ export type MonitorProviderAdapter = {
   fetchRecentPosts: (args: {
     credentials: unknown;
     queryTerms: string[];
+    postLimit: number;
+    searchWindowDays: MonitorSearchWindowDays;
     now: Date;
   }) => Promise<MonitorPost[]>;
   fetchUsage: (args: { credentials: unknown; now: Date }) => Promise<MonitorUsageSnapshot>;

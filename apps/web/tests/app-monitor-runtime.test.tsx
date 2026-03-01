@@ -54,6 +54,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           providers: {
             x: {
@@ -81,6 +83,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           providers: {
             x: {
@@ -104,6 +108,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           lastFetchedAt: "2026-02-28T12:00:00.000Z",
           staleAfter: "2026-03-01T12:00:00.000Z",
@@ -127,6 +133,7 @@ describe("App Monitor runtime", () => {
               createdAt: "2026-02-28T10:00:00.000Z",
               likeCount: 123,
               permalink: "https://x.com/octogent/status/1",
+              matchedQueryTerm: "Codex",
             },
           ],
         });
@@ -139,6 +146,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           lastFetchedAt: "2026-02-28T12:05:00.000Z",
           staleAfter: "2026-03-01T12:05:00.000Z",
@@ -162,6 +171,7 @@ describe("App Monitor runtime", () => {
               createdAt: "2026-02-28T12:04:00.000Z",
               likeCount: 222,
               permalink: "https://x.com/indy/status/2",
+              matchedQueryTerm: "Agent Ops",
             },
           ],
         });
@@ -189,6 +199,11 @@ describe("App Monitor runtime", () => {
       "page",
     );
     expect(within(monitorView).queryByRole("textbox", { name: "Monitor query terms" })).not.toBeInTheDocument();
+    fireEvent.change(within(monitorView).getByLabelText("Search timeframe"), {
+      target: {
+        value: "3",
+      },
+    });
     fireEvent.change(within(monitorView).getByLabelText("Add monitor query term"), {
       target: {
         value: "Agent Ops",
@@ -204,6 +219,14 @@ describe("App Monitor runtime", () => {
         ),
       ).toBe(true);
     });
+    expect(
+      monitorConfigPatchBodies.some(
+        (body) =>
+          typeof body.refreshPolicy === "object" &&
+          body.refreshPolicy !== null &&
+          (body.refreshPolicy as { searchWindowDays?: number }).searchWindowDays === 3,
+      ),
+    ).toBe(true);
 
     fireEvent.change(within(monitorView).getByLabelText("X bearer token"), {
       target: {
@@ -224,6 +247,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(within(monitorView).getByRole("button", { name: "Resources" }));
     expect(within(monitorView).getByText("Codex is shipping faster loops")).toBeInTheDocument();
+    expect(within(monitorView).getByText("Codex")).toBeInTheDocument();
     fireEvent.click(within(monitorView).getByRole("button", { name: "Refresh monitor feed" }));
 
     expect(await within(monitorView).findByText("Manual refresh delivered this post")).toBeInTheDocument();
@@ -283,6 +307,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           providers: {
             x: {
@@ -308,6 +334,8 @@ describe("App Monitor runtime", () => {
             queryTerms: ["Codex"],
             refreshPolicy: {
               maxCacheAgeMs: 86400000,
+              maxPosts: 30,
+              searchWindowDays: 7,
             },
             lastFetchedAt: "2026-02-26T12:00:00.000Z",
             staleAfter: "2026-02-27T12:00:00.000Z",
@@ -323,6 +351,7 @@ describe("App Monitor runtime", () => {
                 createdAt: "2026-02-26T10:00:00.000Z",
                 likeCount: 10,
                 permalink: "https://x.com/agent/status/1",
+                matchedQueryTerm: "Codex",
               },
             ],
           });
@@ -333,6 +362,8 @@ describe("App Monitor runtime", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           lastFetchedAt: "2026-02-28T12:01:00.000Z",
           staleAfter: "2026-03-01T12:01:00.000Z",
@@ -348,6 +379,7 @@ describe("App Monitor runtime", () => {
               createdAt: "2026-02-28T12:01:00.000Z",
               likeCount: 88,
               permalink: "https://x.com/agent/status/2",
+              matchedQueryTerm: "Codex",
             },
           ],
         });

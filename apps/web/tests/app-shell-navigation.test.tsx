@@ -30,8 +30,8 @@ describe("App shell and navigation", () => {
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
     expect(screen.getByLabelText("Telemetry ticker tape")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Context search input" })).toBeInTheDocument();
-    expect(screen.getByText("Press 0-6 to navigate · Type context to search")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Context search input" })).not.toBeInTheDocument();
+    expect(screen.getByText("Press 0-6 to navigate")).toBeInTheDocument();
   });
 
   it("supports keyboard-first primary navigation with number keys 0-6", async () => {

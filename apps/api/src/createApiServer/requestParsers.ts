@@ -287,9 +287,42 @@ export const parseMonitorConfigPatch = (
       };
     }
 
+    if (
+      refreshPolicyRecord.maxPosts !== undefined &&
+      (typeof refreshPolicyRecord.maxPosts !== "number" ||
+        !Number.isFinite(refreshPolicyRecord.maxPosts) ||
+        refreshPolicyRecord.maxPosts <= 0)
+    ) {
+      return {
+        patch: null,
+        error: "refreshPolicy.maxPosts must be a positive number.",
+      };
+    }
+
+    if (
+      refreshPolicyRecord.searchWindowDays !== undefined &&
+      (typeof refreshPolicyRecord.searchWindowDays !== "number" ||
+        !Number.isFinite(refreshPolicyRecord.searchWindowDays) ||
+        ![1, 3, 7].includes(Math.floor(refreshPolicyRecord.searchWindowDays)))
+    ) {
+      return {
+        patch: null,
+        error: "refreshPolicy.searchWindowDays must be one of: 1, 3, 7.",
+      };
+    }
+
     patch.refreshPolicy = {};
     if (refreshPolicyRecord.maxCacheAgeMs !== undefined) {
       patch.refreshPolicy.maxCacheAgeMs = refreshPolicyRecord.maxCacheAgeMs;
+    }
+    if (refreshPolicyRecord.maxPosts !== undefined) {
+      patch.refreshPolicy.maxPosts = refreshPolicyRecord.maxPosts;
+    }
+    if (refreshPolicyRecord.searchWindowDays !== undefined) {
+      patch.refreshPolicy.searchWindowDays = Math.floor(refreshPolicyRecord.searchWindowDays) as
+        | 1
+        | 3
+        | 7;
     }
   }
 

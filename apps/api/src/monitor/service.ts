@@ -14,7 +14,11 @@ import type {
 } from "./types";
 import { createXMonitorProvider } from "./xProvider";
 
-export { DEFAULT_MONITOR_MAX_CACHE_AGE_MS } from "./defaults";
+export {
+  DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
+  DEFAULT_MONITOR_MAX_POSTS,
+  DEFAULT_MONITOR_SEARCH_WINDOW_DAYS,
+} from "./defaults";
 
 export class MonitorInputError extends Error {}
 
@@ -128,6 +132,8 @@ const sanitizeConfig = (
     queryTerms: [...config.queryTerms],
     refreshPolicy: {
       maxCacheAgeMs: config.refreshPolicy.maxCacheAgeMs,
+      maxPosts: config.refreshPolicy.maxPosts,
+      searchWindowDays: config.refreshPolicy.searchWindowDays,
     },
     providers: {
       x: {
@@ -155,6 +161,8 @@ const toFeedSnapshot = (
     queryTerms: [...config.queryTerms],
     refreshPolicy: {
       maxCacheAgeMs: config.refreshPolicy.maxCacheAgeMs,
+      maxPosts: config.refreshPolicy.maxPosts,
+      searchWindowDays: config.refreshPolicy.searchWindowDays,
     },
     lastFetchedAt: cache.fetchedAt,
     staleAfter: buildStaleAfter(cache.fetchedAt, config.refreshPolicy.maxCacheAgeMs),
@@ -216,6 +224,22 @@ export const createMonitorService = ({
           throw new MonitorInputError("refreshPolicy.maxCacheAgeMs must be a positive number.");
         }
         config.refreshPolicy.maxCacheAgeMs = maxCacheAgeMs;
+      }
+
+      if (patch.refreshPolicy?.maxPosts !== undefined) {
+        const maxPosts = Math.floor(patch.refreshPolicy.maxPosts);
+        if (!Number.isFinite(maxPosts) || maxPosts <= 0) {
+          throw new MonitorInputError("refreshPolicy.maxPosts must be a positive number.");
+        }
+        config.refreshPolicy.maxPosts = maxPosts;
+      }
+
+      if (patch.refreshPolicy?.searchWindowDays !== undefined) {
+        const searchWindowDays = Math.floor(patch.refreshPolicy.searchWindowDays);
+        if (searchWindowDays !== 1 && searchWindowDays !== 3 && searchWindowDays !== 7) {
+          throw new MonitorInputError("refreshPolicy.searchWindowDays must be one of: 1, 3, 7.");
+        }
+        config.refreshPolicy.searchWindowDays = searchWindowDays;
       }
 
       if (patch.credentials !== undefined) {
@@ -291,6 +315,8 @@ export const createMonitorService = ({
           provider.fetchRecentPosts({
             credentials: config.providers.x.credentials,
             queryTerms: config.queryTerms,
+            postLimit: config.refreshPolicy.maxPosts,
+            searchWindowDays: config.refreshPolicy.searchWindowDays,
             now,
           }),
           provider.fetchUsage({
@@ -305,7 +331,7 @@ export const createMonitorService = ({
           queryTerms: [...config.queryTerms],
           fetchedAt: now.toISOString(),
           lastError: null,
-          posts: rankAndLimitPostsByLikes(posts, 30),
+          posts: rankAndLimitPostsByLikes(posts, config.refreshPolicy.maxPosts),
           usage,
         };
 

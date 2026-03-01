@@ -369,6 +369,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+.monitor-term-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 60%, #4e3e12);
+  background: color-mix(in srgb, var(--accent-primary) 16%, #10151d);
+  color: color-mix(in srgb, var(--accent-primary) 86%, #f7e1a4);
+  border-radius: 999px;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .monitor-feed a {
   color: color-mix(in srgb, var(--accent-primary) 78%, #fff3cc 22%);
   text-decoration: none;

@@ -78,6 +78,7 @@ describe("monitor core logic", () => {
       createdAt: `2026-02-${String((index % 28) + 1).padStart(2, "0")}T10:00:00.000Z`,
       likeCount: index,
       permalink: `https://x.com/user/status/${index + 1}`,
+      matchedQueryTerm: "Codex",
     }));
     const firstPost = basePosts[0] as MonitorPost;
     const lastPost = basePosts[31] as MonitorPost;

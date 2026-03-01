@@ -13,12 +13,10 @@ import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardIntera
 import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
 import { useTentacleNameInputFocus } from "./app/hooks/useTentacleNameInputFocus";
 import { useTentacleStateReconciliation } from "./app/hooks/useTentacleStateReconciliation";
-import { normalizeTickerQueryInput } from "./app/hotkeys";
 import { clampSidebarWidth } from "./app/normalizers";
 import type { TentacleView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
-import { ConsoleContextBar } from "./components/ConsoleContextBar";
 import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
@@ -40,10 +38,8 @@ export const App = () => {
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
-  const [tickerQuery, setTickerQuery] = useState("MAIN");
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
-  const tickerInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     applyHydratedUiState,
@@ -153,19 +149,13 @@ export const App = () => {
     patchMonitorConfig,
   } = useMonitorRuntime();
 
-  useConsoleKeyboardShortcuts({
-    setActivePrimaryNav,
-    tickerInputRef,
-  });
+  useConsoleKeyboardShortcuts({ setActivePrimaryNav });
 
   const activeNavItem = useMemo(
     () => PRIMARY_NAV_ITEMS.find((item) => item.index === activePrimaryNav) ?? PRIMARY_NAV_ITEMS[1],
     [activePrimaryNav],
   );
-  const normalizedTicker = useMemo(() => {
-    const trimmed = tickerQuery.trim().toUpperCase();
-    return trimmed.length > 0 ? trimmed : "----";
-  }, [tickerQuery]);
+  const normalizedTicker = "MAIN";
   const {
     githubCommitCount30d,
     sparklinePoints,
@@ -234,15 +224,6 @@ export const App = () => {
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">
-        <ConsoleContextBar
-          activeNavLabel={activeNavItem.label}
-          onTickerQueryChange={(value) => {
-            setTickerQuery(normalizeTickerQueryInput(value));
-          }}
-          tickerInputRef={tickerInputRef}
-          tickerQuery={tickerQuery}
-        />
-
         <div className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}>
           {isAgentsSidebarVisible && (
             <ActiveAgentsSidebar

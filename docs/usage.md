@@ -70,10 +70,12 @@ Terminal persistence requires `tmux` on `PATH`.
   - `Resources` for status, usage budget, and ranked posts.
   - `Configure` for X credentials and query-term management.
 - Query terms are edited as add/remove chips in memory and persisted with `Save Terms`.
+- Max returned post count is configurable from Monitor `Configure` and persisted in monitor config.
+- Search timeframe is configurable to `7D`, `3D`, or `1D` from Monitor `Configure`; default is `7D`.
 - Save your X bearer token from the `X Connection` panel.
 - New workspaces start with no monitor query terms. Add and save terms before expecting feed results.
-- Backend queries X recent search for the last 7 days, filters retweets, then ranks posts locally by `likeCount`.
-- Feed is trimmed to top 30 posts and cached.
+- Backend runs separate X recent-search requests per configured query term for the configured timeframe, filters retweets, then ranks posts locally by `likeCount`.
+- Feed is trimmed to configured max-post count and cached.
 - `GET /api/monitor/feed` auto-refreshes when cache age exceeds 24 hours.
 - Use the Monitor `Refresh` action for a forced manual refresh (`POST /api/monitor/refresh`).
 - Usage metrics in Monitor come from X API usage/cap endpoints (cap, used, remaining, reset), not wallet billing balance.

@@ -66,6 +66,7 @@ export type MonitorPost = {
   createdAt: string;
   likeCount: number;
   permalink: string;
+  matchedQueryTerm: string | null;
 };
 
 export type MonitorCredentialsSummary = {
@@ -83,6 +84,8 @@ export type MonitorConfigSnapshot = {
   queryTerms: string[];
   refreshPolicy: {
     maxCacheAgeMs: number;
+    maxPosts: number;
+    searchWindowDays: 1 | 3 | 7;
   };
   providers: {
     x: {
@@ -96,6 +99,8 @@ export type MonitorFeedSnapshot = {
   queryTerms: string[];
   refreshPolicy: {
     maxCacheAgeMs: number;
+    maxPosts: number;
+    searchWindowDays: 1 | 3 | 7;
   };
   lastFetchedAt: string | null;
   staleAfter: string | null;

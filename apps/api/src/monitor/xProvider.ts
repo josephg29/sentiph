@@ -3,6 +3,7 @@ import type {
   MonitorCredentialsSaveResult,
   MonitorPost,
   MonitorProviderAdapter,
+  MonitorSearchWindowDays,
   MonitorProviderValidationResult,
   MonitorUsageSnapshot,
   XMonitorCredentials,
@@ -11,6 +12,7 @@ import type {
 const DEFAULT_X_API_BASE_URL = "https://api.x.com";
 const DEFAULT_X_USAGE_ENDPOINT_PATH = "/2/usage/tweets";
 const VALIDATION_QUERY = "lang:en -is:retweet";
+const MAX_RECENT_SEARCH_PAGES_PER_TERM = 5;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
@@ -188,7 +190,7 @@ const assertXCredentials = (credentials: unknown): XMonitorCredentials => {
   return parsed;
 };
 
-const parseRecentSearchPayload = (payload: unknown): MonitorPost[] => {
+const parseRecentSearchPayload = (payload: unknown, matchedQueryTerm: string): MonitorPost[] => {
   const record = asRecord(payload);
   if (!record) {
     return [];
@@ -251,6 +253,7 @@ const parseRecentSearchPayload = (payload: unknown): MonitorPost[] => {
       createdAt,
       likeCount: Math.max(0, Math.floor(likeCountRaw)),
       permalink,
+      matchedQueryTerm,
     });
   }
 
@@ -386,37 +389,53 @@ const fetchXRecentPosts = async ({
   baseUrl,
   credentials,
   queryTerms,
+  postLimit,
+  searchWindowDays,
   now,
 }: {
   fetchFn: typeof fetch;
   baseUrl: string;
   credentials: XMonitorCredentials;
   queryTerms: string[];
+  postLimit: number;
+  searchWindowDays: MonitorSearchWindowDays;
   now: Date;
 }): Promise<MonitorPost[]> => {
-  const startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const query = buildXRecentSearchQuery(queryTerms);
+  const startTime = new Date(now.getTime() - searchWindowDays * 24 * 60 * 60 * 1000).toISOString();
+  const normalizedTerms = [...new Set(queryTerms.map((term) => term.trim()).filter((term) => term.length > 0))];
+  if (normalizedTerms.length === 0) {
+    throw new Error("At least one X query term is required.");
+  }
 
-  let nextToken: string | null = null;
-  let pageCount = 0;
+  const normalizedPostLimit = Math.max(1, Math.floor(postLimit));
+  const perTermLimit = Math.max(1, Math.ceil(normalizedPostLimit / normalizedTerms.length));
   const posts: MonitorPost[] = [];
 
-  while (pageCount < 5) {
-    const payload = await fetchRecentSearchPage({
-      fetchFn,
-      baseUrl,
-      credentials,
-      query,
-      startTime,
-      nextToken,
-    });
+  for (const term of normalizedTerms) {
+    let nextToken: string | null = null;
+    let pageCount = 0;
+    let termPostCount = 0;
+    const query = buildXRecentSearchQuery([term]);
 
-    posts.push(...parseRecentSearchPayload(payload));
-    nextToken = parseNextToken(payload);
-    pageCount += 1;
+    while (pageCount < MAX_RECENT_SEARCH_PAGES_PER_TERM && termPostCount < perTermLimit) {
+      const payload = await fetchRecentSearchPage({
+        fetchFn,
+        baseUrl,
+        credentials,
+        query,
+        startTime,
+        nextToken,
+      });
 
-    if (!nextToken) {
-      break;
+      const parsedPosts = parseRecentSearchPayload(payload, term);
+      posts.push(...parsedPosts);
+      termPostCount += parsedPosts.length;
+      nextToken = parseNextToken(payload);
+      pageCount += 1;
+
+      if (!nextToken) {
+        break;
+      }
     }
   }
 
@@ -538,12 +557,14 @@ export const createXMonitorProvider = ({
     });
   },
 
-  fetchRecentPosts({ credentials, queryTerms, now }) {
+  fetchRecentPosts({ credentials, queryTerms, postLimit, searchWindowDays, now }) {
     return fetchXRecentPosts({
       fetchFn,
       baseUrl: apiBaseUrl,
       credentials: assertXCredentials(credentials),
       queryTerms,
+      postLimit,
+      searchWindowDays,
       now,
     });
   },

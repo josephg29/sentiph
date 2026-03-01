@@ -187,6 +187,7 @@ const normalizeMonitorPost = (value: unknown): MonitorPost | null => {
   const createdAt = asString(record.createdAt);
   const permalink = asString(record.permalink);
   const likeCount = asNumber(record.likeCount);
+  const matchedQueryTerm = asString(record.matchedQueryTerm);
 
   if (!id || !text || !author || !createdAt || !permalink || likeCount === null) {
     return null;
@@ -200,6 +201,7 @@ const normalizeMonitorPost = (value: unknown): MonitorPost | null => {
     createdAt,
     permalink,
     likeCount: Math.max(0, Math.floor(likeCount)),
+    matchedQueryTerm,
   };
 };
 
@@ -213,6 +215,10 @@ export const normalizeMonitorConfigSnapshot = (value: unknown): MonitorConfigSna
     ? record.queryTerms.filter((term): term is string => typeof term === "string")
     : [];
   const refreshPolicy = asRecord(record.refreshPolicy);
+  const searchWindowDaysRaw = asNumber(refreshPolicy?.searchWindowDays);
+  const searchWindowDays = searchWindowDaysRaw === 1 || searchWindowDaysRaw === 3 || searchWindowDaysRaw === 7
+    ? searchWindowDaysRaw
+    : 7;
   const providers = asRecord(record.providers);
   const xProvider = providers ? asRecord(providers.x) : null;
   const credentials = xProvider ? asRecord(xProvider.credentials) : null;
@@ -225,6 +231,8 @@ export const normalizeMonitorConfigSnapshot = (value: unknown): MonitorConfigSna
     queryTerms,
     refreshPolicy: {
       maxCacheAgeMs: asNumber(refreshPolicy?.maxCacheAgeMs) ?? 24 * 60 * 60 * 1000,
+      maxPosts: asNumber(refreshPolicy?.maxPosts) ?? 30,
+      searchWindowDays,
     },
     providers: {
       x: {
@@ -252,6 +260,10 @@ export const normalizeMonitorFeedSnapshot = (value: unknown): MonitorFeedSnapsho
     ? record.queryTerms.filter((term): term is string => typeof term === "string")
     : [];
   const refreshPolicy = asRecord(record.refreshPolicy);
+  const searchWindowDaysRaw = asNumber(refreshPolicy?.searchWindowDays);
+  const searchWindowDays = searchWindowDaysRaw === 1 || searchWindowDaysRaw === 3 || searchWindowDaysRaw === 7
+    ? searchWindowDaysRaw
+    : 7;
   const posts = Array.isArray(record.posts)
     ? record.posts
         .map((post) => normalizeMonitorPost(post))
@@ -263,6 +275,8 @@ export const normalizeMonitorFeedSnapshot = (value: unknown): MonitorFeedSnapsho
     queryTerms,
     refreshPolicy: {
       maxCacheAgeMs: asNumber(refreshPolicy?.maxCacheAgeMs) ?? 24 * 60 * 60 * 1000,
+      maxPosts: asNumber(refreshPolicy?.maxPosts) ?? 30,
+      searchWindowDays,
     },
     lastFetchedAt: asString(record.lastFetchedAt),
     staleAfter: asString(record.staleAfter),

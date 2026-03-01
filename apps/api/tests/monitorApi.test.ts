@@ -131,6 +131,10 @@ describe("monitor API routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       providerId: "x",
       queryTerms: [],
+      refreshPolicy: {
+        maxPosts: 30,
+        searchWindowDays: 7,
+      },
     });
   });
 
@@ -156,6 +160,10 @@ describe("monitor API routes", () => {
     await expect(patchResponse.json()).resolves.toMatchObject({
       providerId: "x",
       queryTerms: [],
+      refreshPolicy: {
+        maxPosts: 30,
+        searchWindowDays: 7,
+      },
       providers: {
         x: {
           credentials: {
@@ -205,6 +213,14 @@ describe("monitor API routes", () => {
     const patchPayload = (await patchResponse.json()) as Record<string, unknown>;
     expect(patchPayload.providerId).toBe("x");
     expect(patchPayload.queryTerms).toEqual(["AI Engineering", "Codex"]);
+    expect(
+      (patchPayload.refreshPolicy as { maxPosts?: number; searchWindowDays?: number } | undefined)
+        ?.maxPosts,
+    ).toBe(30);
+    expect(
+      (patchPayload.refreshPolicy as { maxPosts?: number; searchWindowDays?: number } | undefined)
+        ?.searchWindowDays,
+    ).toBe(7);
 
     const providers = patchPayload.providers as Record<string, unknown>;
     const provider = providers.x as Record<string, unknown>;
@@ -249,6 +265,90 @@ describe("monitor API routes", () => {
     });
   });
 
+  it("returns 400 for invalid refreshPolicy.maxPosts in monitor config patch payload", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshPolicy: {
+          maxPosts: 0,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "refreshPolicy.maxPosts must be a positive number.",
+    });
+  });
+
+  it("returns 400 for invalid refreshPolicy.searchWindowDays in monitor config patch payload", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshPolicy: {
+          searchWindowDays: 2,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "refreshPolicy.searchWindowDays must be one of: 1, 3, 7.",
+    });
+  });
+
+  it("persists configurable maxPosts in monitor refresh policy", async () => {
+    const baseUrl = await startServer();
+
+    const patchResponse = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshPolicy: {
+          maxPosts: 12,
+          searchWindowDays: 3,
+        },
+      }),
+    });
+
+    expect(patchResponse.status).toBe(200);
+    await expect(patchResponse.json()).resolves.toMatchObject({
+      refreshPolicy: {
+        maxPosts: 12,
+        searchWindowDays: 3,
+      },
+    });
+
+    const getResponse = await fetch(`${baseUrl}/api/monitor/config`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.json()).resolves.toMatchObject({
+      refreshPolicy: {
+        maxPosts: 12,
+        searchWindowDays: 3,
+      },
+    });
+  });
+
   it("uses non-forced read for feed and forced read for manual refresh", async () => {
     const readFeedCalls: Array<Record<string, unknown>> = [];
     const monitorService = {
@@ -257,6 +357,8 @@ describe("monitor API routes", () => {
         queryTerms: ["Codex"],
         refreshPolicy: {
           maxCacheAgeMs: 24 * 60 * 60 * 1000,
+          maxPosts: 30,
+          searchWindowDays: 7,
         },
         providers: {
           x: {
@@ -282,6 +384,8 @@ describe("monitor API routes", () => {
           queryTerms: ["Codex"],
           refreshPolicy: {
             maxCacheAgeMs: 24 * 60 * 60 * 1000,
+            maxPosts: 30,
+            searchWindowDays: 7,
           },
           lastFetchedAt: "2026-02-28T12:00:00.000Z",
           staleAfter: "2026-03-01T12:00:00.000Z",

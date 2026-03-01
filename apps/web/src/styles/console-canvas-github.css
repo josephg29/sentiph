@@ -1,67 +1,10 @@
 .console-shell .console-main-canvas {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.28rem;
+  grid-template-rows: minmax(0, 1fr);
   padding: 0.34rem;
   background: #050607;
   border-top: 1px solid color-mix(in srgb, #000000 68%, #1f2733);
-}
-
-.console-canvas-controls {
-  border: 1px solid #2b2f36;
-  background: #0b0d10;
-  padding: 0.28rem 0.32rem;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.28rem;
-}
-
-.console-context-label {
-  color: #d6a21a;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.console-context-input {
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #7a5f14);
-  background: #050607;
-  color: #e6e8ec;
-  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
-  font-size: 0.84rem;
-  padding: 0.36rem 0.42rem;
-  min-width: 0;
-}
-
-.console-context-input:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--accent-primary) 82%, #f0cf75);
-  outline-offset: 1px;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
-}
-
-.console-page-chips {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.console-chip {
-  border: 1px solid #2b2f36;
-  background: #12151b;
-  color: #a9b0ba;
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  padding: 0.12rem 0.24rem;
-}
-
-.console-chip--active {
-  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
-  background: var(--accent-primary);
-  color: #111216;
 }
 
 .console-shell .workspace-shell {
