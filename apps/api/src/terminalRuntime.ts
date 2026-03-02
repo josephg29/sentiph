@@ -41,7 +41,6 @@ export const createTerminalRuntime = ({
   const registryPath = join(workspaceCwd, TENTACLE_REGISTRY_RELATIVE_PATH);
   const registryState = loadTentacleRegistry(registryPath);
   const tentacles = registryState.tentacles;
-  let nextTentacleNumber = registryState.nextTentacleNumber;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
@@ -53,7 +52,6 @@ export const createTerminalRuntime = ({
     uiState = pruneUiStateTentacleReferences(uiState, tentacles);
     persistTentacleRegistry(registryPath, {
       tentacles,
-      nextTentacleNumber,
       uiState,
     });
   };
@@ -76,24 +74,28 @@ export const createTerminalRuntime = ({
   });
 
   const allocateTentacleId = () => {
-    while (true) {
-      const candidateTentacleId = `${TENTACLE_ID_PREFIX}${nextTentacleNumber}`;
+    let candidateTentacleNumber = 1;
+    while (candidateTentacleNumber < Number.MAX_SAFE_INTEGER) {
+      const candidateTentacleId = `${TENTACLE_ID_PREFIX}${candidateTentacleNumber}`;
       if (tentacles.has(candidateTentacleId)) {
-        nextTentacleNumber += 1;
+        candidateTentacleNumber += 1;
         continue;
       }
 
       if (tmuxClient.hasSession(tmuxSessionNameForTentacle(candidateTentacleId))) {
-        nextTentacleNumber += 1;
+        candidateTentacleNumber += 1;
         continue;
       }
 
-      break;
+      if (worktreeManager.hasTentacleWorktree(candidateTentacleId)) {
+        candidateTentacleNumber += 1;
+        continue;
+      }
+
+      return candidateTentacleId;
     }
 
-    const tentacleId = `${TENTACLE_ID_PREFIX}${nextTentacleNumber}`;
-    nextTentacleNumber += 1;
-    return tentacleId;
+    throw new Error("Unable to allocate tentacle id.");
   };
 
   const buildRootSnapshot = (tentacle: PersistedTentacle): AgentSnapshot => ({

@@ -67,6 +67,9 @@ export const createWorktreeManager = ({
     }
   };
 
+  const hasTentacleWorktree = (tentacleId: string): boolean =>
+    existsSync(getTentacleWorktreePath(tentacleId));
+
   const removeTentacleWorktree = (
     tentacleId: string,
     options: RemoveTentacleWorktreeOptions = {},
@@ -109,6 +112,7 @@ export const createWorktreeManager = ({
   return {
     getTentacleWorkspaceCwd,
     createTentacleWorktree,
+    hasTentacleWorktree,
     removeTentacleWorktree,
   };
 };

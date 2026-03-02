@@ -76,6 +76,10 @@ Treat `tentacleId` as a stable internal identifier (routing, keys, websocket pat
 
 Tentacle creation should offer two explicit modes: shared main codebase (`workspaceMode: "shared"`) and isolated git worktree (`workspaceMode: "worktree"`). Keep shared as the compatibility default when no mode is provided.
 
+### Tentacle ID Allocation Preference
+
+Allocate new tentacle IDs by computing the smallest available numeric suffix from live state (persisted tentacles, existing worktree directories, and active tmux sessions). Do not rely on a persisted monotonic counter.
+
 ### Confirmation UX Preference
 
 Do not use browser alert/confirm dialogs for destructive actions. Use in-app confirmation UI that matches the retro terminal visual style.

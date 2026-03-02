@@ -94,7 +94,6 @@ export const parseRegistryDocument = (
   registryPath: string,
 ): {
   tentacles: Map<string, PersistedTentacle>;
-  nextTentacleNumber: number;
   uiState: PersistedUiState;
 } => {
   let parsed: unknown;
@@ -121,8 +120,6 @@ export const parseRegistryDocument = (
   }
 
   const tentacles = new Map<string, PersistedTentacle>();
-  let maxTentacleNumber = 0;
-
   for (const item of rawTentacles) {
     if (item === null || typeof item !== "object") {
       throw new Error(`Invalid tentacle entry in registry (${registryPath}).`);
@@ -154,7 +151,6 @@ export const parseRegistryDocument = (
       throw new Error(`Duplicate tentacle id in registry (${registryPath}): ${tentacleId}`);
     }
 
-    maxTentacleNumber = Math.max(maxTentacleNumber, tentacleNumber);
     tentacles.set(tentacleId, {
       tentacleId,
       tentacleName,
@@ -164,17 +160,8 @@ export const parseRegistryDocument = (
     });
   }
 
-  const rawNextTentacleNumber = record.nextTentacleNumber;
-  const nextTentacleNumber =
-    typeof rawNextTentacleNumber === "number" &&
-    Number.isInteger(rawNextTentacleNumber) &&
-    rawNextTentacleNumber >= 1
-      ? rawNextTentacleNumber
-      : 1;
-
   return {
     tentacles,
-    nextTentacleNumber: Math.max(nextTentacleNumber, maxTentacleNumber + 1, 1),
     uiState: pruneUiStateTentacleReferences(parsePersistedUiState(record.uiState), tentacles),
   };
 };
@@ -183,7 +170,6 @@ export const loadTentacleRegistry = (registryPath: string) => {
   if (!existsSync(registryPath)) {
     return {
       tentacles: new Map<string, PersistedTentacle>(),
-      nextTentacleNumber: 1,
       uiState: {} as PersistedUiState,
     };
   }
@@ -196,13 +182,11 @@ export const persistTentacleRegistry = (
   registryPath: string,
   state: {
     tentacles: Map<string, PersistedTentacle>;
-    nextTentacleNumber: number;
     uiState: PersistedUiState;
   },
 ) => {
   const document: TentacleRegistryDocument = {
     version: TENTACLE_REGISTRY_VERSION,
-    nextTentacleNumber: state.nextTentacleNumber,
     tentacles: [...state.tentacles.values()],
     uiState: state.uiState,
   };
