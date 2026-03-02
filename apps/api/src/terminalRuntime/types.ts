@@ -48,7 +48,6 @@ export type PersistedUiState = {
 
 export type TentacleRegistryDocument = {
   version: 2;
-  nextTentacleNumber: number;
   tentacles: PersistedTentacle[];
   uiState?: PersistedUiState;
 };

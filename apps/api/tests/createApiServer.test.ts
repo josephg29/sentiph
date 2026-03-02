@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -581,6 +581,109 @@ describe("createApiServer", () => {
         tentacleWorkspaceMode: "shared",
       }),
     ]);
+  });
+
+  it("reuses the minimum available tentacle number after deletions", async () => {
+    const baseUrl = await startServer();
+
+    const createFirstResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createFirstResponse.status).toBe(201);
+
+    const createSecondResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createSecondResponse.status).toBe(201);
+
+    const deleteFirstResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(deleteFirstResponse.status).toBe(204);
+
+    const createThirdResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createThirdResponse.status).toBe(201);
+    await expect(createThirdResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-1",
+      }),
+    );
+  });
+
+  it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    mkdirSync(join(workspaceCwd, ".octogent", "state"), { recursive: true });
+    writeFileSync(
+      registryPath,
+      `${JSON.stringify(
+        {
+          version: 2,
+          nextTentacleNumber: 19,
+          tentacles: [],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+    await expect(createResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-1",
+      }),
+    );
+  });
+
+  it("skips tentacle ids that already have an existing worktree directory", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    mkdirSync(join(workspaceCwd, ".octogent", "worktrees", "tentacle-1"), {
+      recursive: true,
+    });
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+    await expect(createResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "tentacle-2",
+      }),
+    );
   });
 
   it("creates tmux sessions without detached codex bootstrap command", async () => {
