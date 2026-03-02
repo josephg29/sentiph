@@ -36,7 +36,7 @@ The web and API apps both depend on `@octogent/core`.
   - `upgradeHandler.ts` (WebSocket upgrade gate)
 - `src/terminalRuntime.ts` is orchestration-only for tentacle lifecycle and state.
 - `src/terminalRuntime/*` isolates runtime concerns:
-  - registry persistence, worktree lifecycle, session runtime, tmux/git system clients, protocol/constants/ids.
+  - registry persistence, worktree lifecycle, PTY session runtime, git system clients, protocol/constants/ids.
 - `src/codexUsage.ts` and `src/githubRepoSummary.ts` provide sidebar/status telemetry snapshots.
 - `src/monitor/*` isolates monitor concerns:
   - provider contracts and service orchestration (`service.ts`)
@@ -66,7 +66,7 @@ The web and API apps both depend on `@octogent/core`.
 - Monitor cache persists in `.octogent/state/monitor-cache.json`.
 - Registry document is versioned (`version: 2`) and stores tentacles plus `uiState`.
 - Startup restores tentacles from the registry; no implicit default tentacle is created.
-- Tentacles map to stable tmux sessions: `octogent_<tentacleId>`.
+- Tentacle terminals run as in-process PTY sessions created on websocket demand (no tmux dependency).
 - Worktree tentacles run in `.octogent/worktrees/<tentacleId>` and are created via `git worktree`.
 - UI state persistence is server-backed (`GET/PATCH /api/ui-state`), not browser-local only.
 

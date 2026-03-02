@@ -1,4 +1,4 @@
-import { TENTACLE_ID_PREFIX, TMUX_SESSION_PREFIX } from "./constants";
+import { TENTACLE_ID_PREFIX } from "./constants";
 
 export const parseTentacleNumber = (tentacleId: string): number | null => {
   if (!tentacleId.startsWith(TENTACLE_ID_PREFIX)) {
@@ -16,10 +16,4 @@ export const parseTentacleNumber = (tentacleId: string): number | null => {
   }
 
   return parsed;
-};
-
-export const tmuxSessionNameForTentacle = (tentacleId: string) => {
-  // tmux target parsing treats punctuation as selectors; keep names explicit and stable.
-  const sanitizedTentacleId = tentacleId.replace(/[^A-Za-z0-9_-]/g, "_");
-  return `${TMUX_SESSION_PREFIX}${sanitizedTentacleId}`;
 };

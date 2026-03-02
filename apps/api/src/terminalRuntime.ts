@@ -6,14 +6,13 @@ import type { AgentSnapshot } from "@octogent/core";
 import { WebSocketServer } from "ws";
 
 import { TENTACLE_ID_PREFIX, TENTACLE_REGISTRY_RELATIVE_PATH } from "./terminalRuntime/constants";
-import { tmuxSessionNameForTentacle } from "./terminalRuntime/ids";
 import {
   loadTentacleRegistry,
   persistTentacleRegistry,
   pruneUiStateTentacleReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
-import { createDefaultGitClient, createDefaultTmuxClient } from "./terminalRuntime/systemClients";
+import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import type {
   CreateTerminalRuntimeOptions,
   PersistedTentacle,
@@ -27,13 +26,11 @@ export type {
   GitClient,
   PersistedUiState,
   TentacleWorkspaceMode,
-  TmuxClient,
 } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const createTerminalRuntime = ({
   workspaceCwd,
-  tmuxClient = createDefaultTmuxClient(),
   gitClient = createDefaultGitClient(),
 }: CreateTerminalRuntimeOptions) => {
   const sessions = new Map<string, TerminalSession>();
@@ -45,8 +42,6 @@ export const createTerminalRuntime = ({
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
     process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
-
-  tmuxClient.assertAvailable();
 
   const persistRegistry = () => {
     uiState = pruneUiStateTentacleReferences(uiState, tentacles);
@@ -66,9 +61,7 @@ export const createTerminalRuntime = ({
     websocketServer,
     tentacles,
     sessions,
-    tmuxClient,
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
-    persistRegistry,
     isDebugPtyLogsEnabled,
     ptyLogDir,
   });
@@ -82,7 +75,7 @@ export const createTerminalRuntime = ({
         continue;
       }
 
-      if (tmuxClient.hasSession(tmuxSessionNameForTentacle(candidateTentacleId))) {
+      if (sessions.has(candidateTentacleId)) {
         candidateTentacleNumber += 1;
         continue;
       }
@@ -120,7 +113,6 @@ export const createTerminalRuntime = ({
       tentacleId,
       tentacleName: tentacleName ?? tentacleId,
       createdAt: new Date().toISOString(),
-      codexBootstrapped: false,
       workspaceMode,
     };
 
@@ -131,17 +123,6 @@ export const createTerminalRuntime = ({
 
     tentacles.set(tentacleId, tentacle);
     persistRegistry();
-
-    try {
-      sessionRuntime.ensureTmuxSession(tentacleId);
-    } catch (error) {
-      tentacles.delete(tentacleId);
-      persistRegistry();
-      if (shouldCreateWorktree) {
-        worktreeManager.removeTentacleWorktree(tentacleId, { bestEffort: true });
-      }
-      throw error;
-    }
 
     return buildRootSnapshot(tentacle);
   };
@@ -209,7 +190,6 @@ export const createTerminalRuntime = ({
       }
 
       sessionRuntime.closeSession(tentacleId);
-      tmuxClient.killSession(tmuxSessionNameForTentacle(tentacleId));
       if (tentacle.workspaceMode === "worktree") {
         worktreeManager.removeTentacleWorktree(tentacleId);
       }

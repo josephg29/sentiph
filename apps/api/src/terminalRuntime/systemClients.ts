@@ -2,106 +2,10 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import type { GitClient, TmuxClient } from "./types";
+import type { GitClient } from "./types";
 
 export const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
-
-const readCommandErrorOutput = (error: unknown) => {
-  if (!error || typeof error !== "object") {
-    return "";
-  }
-
-  const stderr = (error as { stderr?: unknown }).stderr;
-  if (typeof stderr === "string") {
-    return stderr;
-  }
-  if (stderr instanceof Buffer) {
-    return stderr.toString("utf8");
-  }
-  return "";
-};
-
-const isMissingTmuxSessionError = (error: unknown) => {
-  if (
-    error &&
-    typeof error === "object" &&
-    typeof (error as { status?: unknown }).status === "number" &&
-    (error as { status: number }).status === 1
-  ) {
-    return true;
-  }
-
-  const output = readCommandErrorOutput(error).toLowerCase();
-  return output.includes("can't find session") || output.includes("no server running");
-};
-
-export const createDefaultTmuxClient = (): TmuxClient => ({
-  assertAvailable() {
-    try {
-      execFileSync("tmux", ["-V"], { stdio: "ignore" });
-    } catch (error) {
-      throw new Error(`tmux is required for terminal runtime: ${toErrorMessage(error)}`);
-    }
-  },
-
-  hasSession(sessionName) {
-    try {
-      execFileSync("tmux", ["has-session", "-t", sessionName], { stdio: "pipe" });
-      return true;
-    } catch (error) {
-      if (isMissingTmuxSessionError(error)) {
-        return false;
-      }
-      throw error;
-    }
-  },
-
-  configureSession(sessionName) {
-    execFileSync("tmux", ["set-option", "-t", sessionName, "status", "off"], {
-      stdio: "pipe",
-    });
-  },
-
-  capturePane(sessionName) {
-    try {
-      return execFileSync(
-        "tmux",
-        ["capture-pane", "-a", "-e", "-p", "-S", "-32768", "-t", sessionName],
-        {
-          encoding: "utf8",
-          stdio: "pipe",
-        },
-      );
-    } catch (error) {
-      if (isMissingTmuxSessionError(error)) {
-        return "";
-      }
-      throw error;
-    }
-  },
-
-  createSession({ sessionName, cwd, command }) {
-    const args = ["new-session", "-d", "-s", sessionName, "-c", cwd];
-    if (command && command.length > 0) {
-      args.push(command);
-    }
-    execFileSync("tmux", args, {
-      stdio: "pipe",
-    });
-  },
-
-  killSession(sessionName) {
-    try {
-      execFileSync("tmux", ["kill-session", "-t", sessionName], { stdio: "pipe" });
-    } catch (error) {
-      if (isMissingTmuxSessionError(error)) {
-        return;
-      }
-      throw error;
-    }
-  },
-});
 
 export const createDefaultGitClient = (): GitClient => ({
   assertAvailable() {

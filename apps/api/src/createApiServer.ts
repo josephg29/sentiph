@@ -11,7 +11,6 @@ import { createTerminalRuntime } from "./terminalRuntime";
 
 export const createApiServer = ({
   workspaceCwd,
-  tmuxClient,
   gitClient,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
@@ -29,9 +28,6 @@ export const createApiServer = ({
   const runtimeOptions: Parameters<typeof createTerminalRuntime>[0] = {
     workspaceCwd: resolvedWorkspaceCwd,
   };
-  if (tmuxClient) {
-    runtimeOptions.tmuxClient = tmuxClient;
-  }
   if (gitClient) {
     runtimeOptions.gitClient = gitClient;
   }

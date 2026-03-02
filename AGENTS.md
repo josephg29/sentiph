@@ -78,7 +78,7 @@ Tentacle creation should offer two explicit modes: shared main codebase (`worksp
 
 ### Tentacle ID Allocation Preference
 
-Allocate new tentacle IDs by computing the smallest available numeric suffix from live state (persisted tentacles, existing worktree directories, and active tmux sessions). Do not rely on a persisted monotonic counter.
+Allocate new tentacle IDs by computing the smallest available numeric suffix from live state (persisted tentacles, existing worktree directories, and active terminal sessions). Do not rely on a persisted monotonic counter.
 
 ### Confirmation UX Preference
 

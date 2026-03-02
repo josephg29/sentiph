@@ -1,5 +1,4 @@
 export const TENTACLE_ID_PREFIX = "tentacle-";
-export const TMUX_SESSION_PREFIX = "octogent_";
 export const TENTACLE_REGISTRY_VERSION = 2;
 export const TENTACLE_REGISTRY_RELATIVE_PATH = ".octogent/state/tentacles.json";
 export const TENTACLE_WORKTREE_RELATIVE_PATH = ".octogent/worktrees";

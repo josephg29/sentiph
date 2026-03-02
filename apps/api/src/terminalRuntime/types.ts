@@ -23,6 +23,7 @@ export type TerminalSession = {
   clients: Set<WebSocket>;
   codexState: CodexRuntimeState;
   stateTracker: CodexStateTracker;
+  isBootstrapCommandSent: boolean;
   statePollTimer?: ReturnType<typeof setInterval>;
   debugLog?: WriteStream;
 };
@@ -33,7 +34,6 @@ export type PersistedTentacle = {
   tentacleId: string;
   tentacleName: string;
   createdAt: string;
-  codexBootstrapped: boolean;
   workspaceMode: TentacleWorkspaceMode;
 };
 
@@ -52,15 +52,6 @@ export type TentacleRegistryDocument = {
   uiState?: PersistedUiState;
 };
 
-export type TmuxClient = {
-  assertAvailable(): void;
-  hasSession(sessionName: string): boolean;
-  configureSession(sessionName: string): void;
-  capturePane(sessionName: string): string;
-  createSession(options: { sessionName: string; cwd: string; command?: string }): void;
-  killSession(sessionName: string): void;
-};
-
 export type GitClient = {
   assertAvailable(): void;
   isRepository(cwd: string): boolean;
@@ -73,7 +64,6 @@ export class RuntimeInputError extends Error {}
 
 export type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;
-  tmuxClient?: TmuxClient;
   gitClient?: GitClient;
 };
 

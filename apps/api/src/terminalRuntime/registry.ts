@@ -129,8 +129,6 @@ export const parseRegistryDocument = (
     const tentacleId = typeof entry.tentacleId === "string" ? entry.tentacleId : null;
     const tentacleName = typeof entry.tentacleName === "string" ? entry.tentacleName : null;
     const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
-    const codexBootstrapped =
-      typeof entry.codexBootstrapped === "boolean" ? entry.codexBootstrapped : true;
 
     if (!tentacleId || !tentacleName || !createdAt) {
       throw new Error(`Incomplete tentacle entry in registry (${registryPath}).`);
@@ -155,7 +153,6 @@ export const parseRegistryDocument = (
       tentacleId,
       tentacleName,
       createdAt,
-      codexBootstrapped,
       workspaceMode,
     });
   }

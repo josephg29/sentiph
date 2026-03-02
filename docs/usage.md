@@ -10,12 +10,10 @@ pnpm dev
 Then open `http://localhost:5173`.
 
 `pnpm dev` starts both the web app and API service. The dev runner auto-selects an available API port starting from `127.0.0.1:8787` and passes it to the web proxy automatically.
-Terminal persistence requires `tmux` on `PATH`.
 
 ## Prerequisites and optional integrations
 
 - Node.js `22+`
-- `tmux` for terminal runtime persistence
 - `git` for worktree tentacles
 - Optional: `gh` CLI (`gh auth login`) for live GitHub telemetry
 - Optional: Codex auth at `~/.codex/auth.json` or `CODEX_HOME/auth.json` for usage bars
@@ -52,7 +50,8 @@ Terminal persistence requires `tmux` on `PATH`.
 - Delete from the right-side `Delete` button in the tentacle header (with an in-app confirmation dialog).
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
-- Tentacle metadata and tmux sessions persist across API restarts, so existing tentacles reconnect to the same terminal session.
+- Tentacle metadata persists across API restarts in `.octogent/state/tentacles.json`.
+- Terminal processes are PTY sessions managed by the API process (no `tmux`); sessions are recreated when reconnecting after a disconnect/restart.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).
 

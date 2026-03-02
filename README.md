@@ -37,7 +37,7 @@ In dev mode:
 
 - `pnpm dev` auto-selects an available API port (starting at `8787`) and injects it into both apps.
 - `apps/web` may auto-select a free Vite port (`5173`, `5174`, `5175`, ...), and still proxies `/api` and terminal websocket traffic to the selected API port.
-- `apps/api` requires `tmux` on `PATH` for terminal persistence.
+- `apps/api` runs tentacle terminals as native PTY processes via `node-pty` (no `tmux` dependency).
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Optional: X developer bearer token/API credentials for Monitor data.
 - Runtime endpoints:
@@ -67,7 +67,7 @@ GitHub Actions runs the same `lint`, `test`, and `build` checks on pushes to `ma
 ## Repo layout
 
 - `apps/web` - web UI shell
-- `apps/api` - runtime API service with tmux-backed persistent tentacle terminals
+- `apps/api` - runtime API service with PTY-backed tentacle terminals
 - `packages/core` - application/domain/ports/adapters core logic
 - `docs` - contributor and architecture documentation
 - `context` - long-term project context and decisions

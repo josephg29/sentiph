@@ -8,19 +8,16 @@ import type { WebSocket, WebSocketServer } from "ws";
 
 import { type CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
 import { TENTACLE_BOOTSTRAP_COMMAND } from "./constants";
-import { tmuxSessionNameForTentacle } from "./ids";
 import { broadcastMessage, getTentacleId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
-import type { PersistedTentacle, TerminalSession, TmuxClient } from "./types";
+import type { PersistedTentacle, TerminalSession } from "./types";
 
 type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
   tentacles: Map<string, PersistedTentacle>;
   sessions: Map<string, TerminalSession>;
-  tmuxClient: TmuxClient;
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
-  persistRegistry: () => void;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
 };
@@ -29,12 +26,32 @@ export const createSessionRuntime = ({
   websocketServer,
   tentacles,
   sessions,
-  tmuxClient,
   getTentacleWorkspaceCwd,
-  persistRegistry,
   isDebugPtyLogsEnabled,
   ptyLogDir,
 }: CreateSessionRuntimeOptions) => {
+  const getShellLaunch = () => {
+    if (process.platform === "win32") {
+      return {
+        command: process.env.ComSpec ?? "cmd.exe",
+        args: [],
+      };
+    }
+
+    const shellFromEnvironment = process.env.SHELL?.trim();
+    if (shellFromEnvironment && shellFromEnvironment.length > 0) {
+      return {
+        command: shellFromEnvironment,
+        args: ["-i"],
+      };
+    }
+
+    return {
+      command: "/bin/bash",
+      args: ["-i"],
+    };
+  };
+
   const createDebugLog = (tentacleId: string) => {
     if (!isDebugPtyLogsEnabled) {
       return undefined;
@@ -89,33 +106,12 @@ export const createSessionRuntime = ({
     return true;
   };
 
-  const ensureTmuxSession = (tentacleId: string) => {
-    const tmuxSessionName = tmuxSessionNameForTentacle(tentacleId);
-    if (tmuxClient.hasSession(tmuxSessionName)) {
-      tmuxClient.configureSession(tmuxSessionName);
-      return;
-    }
-
-    const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
-    if (!existsSync(tentacleCwd)) {
-      throw new Error(`Tentacle working directory does not exist: ${tentacleCwd}`);
-    }
-
-    tmuxClient.createSession({
-      sessionName: tmuxSessionName,
-      cwd: tentacleCwd,
-    });
-    tmuxClient.configureSession(tmuxSessionName);
-  };
-
   const ensureCodexBootstrapped = (tentacleId: string, session: TerminalSession) => {
-    const tentacle = tentacles.get(tentacleId);
-    if (!tentacle || tentacle.codexBootstrapped) {
+    if (session.isBootstrapCommandSent) {
       return;
     }
 
-    tentacle.codexBootstrapped = true;
-    persistRegistry();
+    session.isBootstrapCommandSent = true;
     appendDebugLog(
       session,
       `bootstrap tentacle=${tentacleId} command=${TENTACLE_BOOTSTRAP_COMMAND}`,
@@ -133,20 +129,27 @@ export const createSessionRuntime = ({
       throw new Error(`Unknown tentacle: ${tentacleId}`);
     }
 
-    ensureTmuxSession(tentacleId);
+    const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
+    if (!existsSync(tentacleCwd)) {
+      throw new Error(`Tentacle working directory does not exist: ${tentacleCwd}`);
+    }
+
     ensureNodePtySpawnHelperExecutable();
+    const shellLaunch = getShellLaunch();
 
     let pty: IPty;
     try {
-      pty = spawn("tmux", ["attach-session", "-t", tmuxSessionNameForTentacle(tentacleId)], {
+      pty = spawn(shellLaunch.command, shellLaunch.args, {
         cols: 120,
         rows: 35,
-        cwd: getTentacleWorkspaceCwd(tentacleId),
+        cwd: tentacleCwd,
         env: createShellEnvironment(),
         name: "xterm-256color",
       });
     } catch (error) {
-      throw new Error(`Unable to attach terminal to tmux: ${toErrorMessage(error)}`);
+      throw new Error(
+        `Unable to start terminal shell (${shellLaunch.command}): ${toErrorMessage(error)}`,
+      );
     }
 
     const stateTracker = new CodexStateTracker();
@@ -156,6 +159,7 @@ export const createSessionRuntime = ({
       clients: new Set(),
       codexState: stateTracker.currentState,
       stateTracker,
+      isBootstrapCommandSent: false,
     };
     if (debugLog) {
       session.debugLog = debugLog;
@@ -289,7 +293,6 @@ export const createSessionRuntime = ({
 
   return {
     closeSession,
-    ensureTmuxSession,
     handleUpgrade,
     close,
   };

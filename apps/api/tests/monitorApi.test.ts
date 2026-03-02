@@ -4,46 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createApiServer } from "../src/createApiServer";
-import type { GitClient, TmuxClient } from "../src/terminalRuntime";
-
-class FakeTmuxClient implements TmuxClient {
-  private readonly sessions = new Map<string, { cwd: string; command?: string }>();
-
-  assertAvailable(): void {}
-
-  hasSession(sessionName: string): boolean {
-    return this.sessions.has(sessionName);
-  }
-
-  configureSession(sessionName: string): void {
-    if (!this.sessions.has(sessionName)) {
-      throw new Error(`Unknown session: ${sessionName}`);
-    }
-  }
-
-  capturePane(sessionName: string): string {
-    return this.sessions.has(sessionName) ? "fake tmux snapshot\n" : "";
-  }
-
-  createSession({
-    sessionName,
-    cwd,
-    command,
-  }: {
-    sessionName: string;
-    cwd: string;
-    command?: string;
-  }): void {
-    if (this.sessions.has(sessionName)) {
-      throw new Error(`Session already exists: ${sessionName}`);
-    }
-    this.sessions.set(sessionName, command ? { cwd, command } : { cwd });
-  }
-
-  killSession(sessionName: string): void {
-    this.sessions.delete(sessionName);
-  }
-}
+import type { GitClient } from "../src/terminalRuntime";
 
 class FakeGitClient implements GitClient {
   private readonly worktrees = new Map<
@@ -113,7 +74,6 @@ describe("monitor API routes", () => {
 
     const apiServer = createApiServer({
       workspaceCwd,
-      tmuxClient: options.tmuxClient ?? new FakeTmuxClient(),
       gitClient: options.gitClient ?? new FakeGitClient(),
       ...options,
     });
