@@ -1,5 +1,5 @@
 import { buildTentacleColumns } from "@octogent/core";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type GitHubSubtabId, PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./app/constants";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
@@ -34,6 +34,7 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
+  const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(0);
   const [activeGitHubSubtab, setActiveGitHubSubtab] = useState<GitHubSubtabId>("overview");
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
@@ -65,6 +66,20 @@ export const App = () => {
     () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
     [columns, minimizedTentacleIds],
   );
+
+  useEffect(() => {
+    const visibleTentacleIds = new Set(visibleColumns.map((column) => column.tentacleId));
+    setSelectedTentacleId((currentSelectedTentacleId) => {
+      if (
+        currentSelectedTentacleId !== null &&
+        visibleTentacleIds.has(currentSelectedTentacleId)
+      ) {
+        return currentSelectedTentacleId;
+      }
+
+      return visibleColumns[0]?.tentacleId ?? null;
+    });
+  }, [visibleColumns]);
 
   const readColumns = useCallback(async (signal?: AbortSignal) => {
     const readerOptions: { endpoint: string; signal?: AbortSignal } = {
@@ -295,7 +310,9 @@ export const App = () => {
               onTentacleDividerPointerDown={handleTentacleDividerPointerDown}
               onTentacleHeaderWheel={handleTentacleHeaderWheel}
               onTentacleNameDraftChange={setTentacleNameDraft}
+              onSelectTentacle={setSelectedTentacleId}
               onTentacleStateChange={handleTentacleStateChange}
+              selectedTentacleId={selectedTentacleId}
               tentacleNameDraft={tentacleNameDraft}
               tentacleNameInputRef={tentacleNameInputRef}
               tentacleWidths={tentacleWidths}

@@ -112,6 +112,53 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  position: relative;
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms ease;
+}
+
+.tentacle-column::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid transparent;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.tentacle-column--selected {
+  border-color: color-mix(in srgb, var(--accent-primary) 72%, #ffe4a8 28%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 62%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.tentacle-column--selected::after {
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  opacity: 1;
+  animation: tentacleColumnFocusPulse 2.4s ease-in-out infinite;
+}
+
+.tentacle-column--selected .tentacle-column-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 86%, #ffe4b2 14%) 0%,
+    color-mix(in srgb, var(--accent-primary) 72%, #c17114 28%) 100%
+  );
+}
+
+@keyframes tentacleColumnFocusPulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--accent-primary) 45%, transparent);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent-primary) 58%, transparent);
+  }
 }
 
 .tentacle-divider {
@@ -225,6 +272,20 @@
 
 .tentacle-workspace-badge--shared {
   background: color-mix(in srgb, var(--accent-primary) 78%, #fff5d8 22%);
+}
+
+.tentacle-selection-badge {
+  border: 1px solid color-mix(in srgb, #121212 38%, transparent);
+  background: color-mix(in srgb, #ffe8bd 84%, #ffffff 16%);
+  color: #121212;
+  font-family: var(--font-main);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 0.16rem 0.22rem;
+  white-space: nowrap;
 }
 
 .tentacle-header-actions {

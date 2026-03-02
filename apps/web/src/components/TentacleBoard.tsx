@@ -24,8 +24,10 @@ type TentacleBoardProps = {
   editingTentacleId: string | null;
   tentacleNameDraft: string;
   isDeletingTentacleId: string | null;
+  selectedTentacleId: string | null;
   onTentacleHeaderWheel: (event: ReactWheelEvent<HTMLElement>) => void;
   onTentacleNameDraftChange: (name: string) => void;
+  onSelectTentacle: (tentacleId: string) => void;
   onSubmitTentacleRename: (tentacleId: string, currentTentacleName: string) => void;
   onCancelTentacleRename: () => void;
   onBeginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
@@ -56,8 +58,10 @@ export const TentacleBoard = ({
   editingTentacleId,
   tentacleNameDraft,
   isDeletingTentacleId,
+  selectedTentacleId,
   onTentacleHeaderWheel,
   onTentacleNameDraftChange,
+  onSelectTentacle,
   onSubmitTentacleRename,
   onCancelTentacleRename,
   onBeginTentacleNameEdit,
@@ -99,11 +103,19 @@ export const TentacleBoard = ({
 
       {visibleColumns.map((column, index) => {
         const rightNeighbor = visibleColumns[index + 1];
+        const isSelected = selectedTentacleId === column.tentacleId;
         return (
           <Fragment key={column.tentacleId}>
             <section
-              className="tentacle-column"
+              className={`tentacle-column${isSelected ? " tentacle-column--selected" : ""}`}
+              data-selected={isSelected ? "true" : "false"}
               aria-label={column.tentacleId}
+              onFocusCapture={() => {
+                onSelectTentacle(column.tentacleId);
+              }}
+              onPointerDownCapture={() => {
+                onSelectTentacle(column.tentacleId);
+              }}
               style={{
                 width: `${tentacleWidths[column.tentacleId] ?? TENTACLE_MIN_WIDTH}px`,
               }}
@@ -140,6 +152,7 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
+                      {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </>
                   ) : (
                     <h2>
@@ -157,6 +170,7 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
+                      {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </h2>
                   )}
                 </div>

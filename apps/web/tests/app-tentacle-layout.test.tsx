@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -102,6 +102,46 @@ describe("App tentacle layout interactions", () => {
     await waitFor(() => {
       expect(leftPane).toHaveStyle({ width: "521px" });
       expect(rightPane).toHaveStyle({ width: "473px" });
+    });
+  });
+
+  it("applies a focused visual state to the selected tentacle column", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse([
+        {
+          agentId: "tentacle-1-root",
+          label: "tentacle-1-root",
+          state: "live",
+          tentacleId: "tentacle-1",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+        {
+          agentId: "tentacle-2-root",
+          label: "tentacle-2-root",
+          state: "live",
+          tentacleId: "tentacle-2",
+          createdAt: "2026-02-24T10:05:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    const firstPane = await screen.findByLabelText("tentacle-1");
+    const secondPane = await screen.findByLabelText("tentacle-2");
+
+    expect(firstPane).toHaveClass("tentacle-column--selected");
+    expect(secondPane).not.toHaveClass("tentacle-column--selected");
+    expect(within(firstPane).getByText("Focused")).toBeInTheDocument();
+
+    fireEvent.pointerDown(secondPane);
+
+    await waitFor(() => {
+      expect(secondPane).toHaveClass("tentacle-column--selected");
+      expect(firstPane).not.toHaveClass("tentacle-column--selected");
+      expect(within(secondPane).getByText("Focused")).toBeInTheDocument();
+      expect(within(firstPane).queryByText("Focused")).toBeNull();
     });
   });
 });

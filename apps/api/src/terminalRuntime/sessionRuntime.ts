@@ -225,13 +225,6 @@ export const createSessionRuntime = ({
       session.clients.add(websocket);
       appendDebugLog(session, `ws-open tentacle=${tentacleId} clients=${session.clients.size}`);
       ensureCodexBootstrapped(tentacleId, session);
-      const paneSnapshot = tmuxClient.capturePane(tmuxSessionNameForTentacle(tentacleId));
-      if (paneSnapshot.length > 0) {
-        sendMessage(websocket, {
-          type: "output",
-          data: paneSnapshot,
-        });
-      }
       sendMessage(websocket, {
         type: "state",
         state: session.codexState,

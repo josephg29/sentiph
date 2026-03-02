@@ -162,6 +162,8 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         activeTerminal = terminal;
 
         const wheelListenerTarget = containerRef.current;
+        const viewportWheelTarget =
+          wheelListenerTarget.querySelector<HTMLElement>(".xterm-viewport") ?? wheelListenerTarget;
         const onPointerDown = () => {
           terminal.focus();
           terminal.write(SHOW_CURSOR_ESCAPE);
@@ -173,15 +175,14 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           }
 
           event.preventDefault();
-          event.stopImmediatePropagation();
+          event.stopPropagation();
           terminal.scrollLines(lines);
         };
-        wheelListenerTarget.addEventListener("wheel", onWheel, {
-          capture: true,
-          passive: false,
-        });
         wheelListenerTarget.addEventListener("pointerdown", onPointerDown, {
           capture: true,
+        });
+        viewportWheelTarget.addEventListener("wheel", onWheel, {
+          passive: false,
         });
 
         const sendResize = () => {
@@ -225,7 +226,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         terminal.write(SHOW_CURSOR_ESCAPE);
         cleanupTerminal = () => {
           wheelListenerTarget.removeEventListener("pointerdown", onPointerDown, true);
-          wheelListenerTarget.removeEventListener("wheel", onWheel, true);
+          viewportWheelTarget.removeEventListener("wheel", onWheel);
           observer?.disconnect();
           onDataDisposable.dispose();
           terminal.dispose();

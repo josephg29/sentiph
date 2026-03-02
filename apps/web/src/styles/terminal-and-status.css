@@ -85,6 +85,9 @@
 
 .terminal-mount .xterm-viewport {
   background: var(--terminal-bg);
+  overflow-x: hidden;
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--terminal-scrollbar-thumb) var(--terminal-scrollbar-track);
 }

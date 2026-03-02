@@ -41,6 +41,22 @@ type UseTentacleBoardInteractionsResult = {
   handleTentacleHeaderWheel: (event: ReactWheelEvent<HTMLElement>) => void;
 };
 
+export const measureTentacleBoardViewportWidth = (board: HTMLElement): number | null => {
+  const boardWidth = board.getBoundingClientRect().width;
+  if (!Number.isFinite(boardWidth) || boardWidth <= 0) {
+    return null;
+  }
+
+  const boardStyles = window.getComputedStyle(board);
+  const paddingLeft = Number.parseFloat(boardStyles.paddingLeft);
+  const paddingRight = Number.parseFloat(boardStyles.paddingRight);
+  const horizontalPadding =
+    (Number.isFinite(paddingLeft) ? paddingLeft : 0) +
+    (Number.isFinite(paddingRight) ? paddingRight : 0);
+  const viewportWidth = Math.floor(boardWidth - horizontalPadding);
+  return viewportWidth > 0 ? viewportWidth : null;
+};
+
 export const useTentacleBoardInteractions = ({
   tentaclesRef,
   visibleColumns,
@@ -59,8 +75,13 @@ export const useTentacleBoardInteractions = ({
     }
 
     const measure = () => {
-      const width = Math.floor(tentaclesRef.current?.getBoundingClientRect().width ?? 0);
-      setTentacleViewportWidth(width > 0 ? width : null);
+      const board = tentaclesRef.current;
+      if (!board) {
+        setTentacleViewportWidth(null);
+        return;
+      }
+
+      setTentacleViewportWidth(measureTentacleBoardViewportWidth(board));
     };
 
     measure();
