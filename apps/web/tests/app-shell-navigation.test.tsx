@@ -33,10 +33,10 @@ describe("App shell and navigation", () => {
     expect(screen.queryByRole("textbox", { name: "Context search input" })).not.toBeInTheDocument();
     expect(screen.queryByText("Agent Runtime")).not.toBeInTheDocument();
     expect(await screen.findByText("LIVE")).toBeInTheDocument();
-    expect(screen.getByText("Press 0-4 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 0-3 to navigate")).toBeInTheDocument();
   });
 
-  it("supports keyboard-first primary navigation with number keys 0-4", async () => {
+  it("supports keyboard-first primary navigation with number keys 0-3", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);

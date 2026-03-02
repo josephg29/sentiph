@@ -11,8 +11,7 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 0, label: "Agents" },
   { index: 1, label: "GitHub" },
   { index: 2, label: "Monitor" },
-  { index: 3, label: "Logs" },
-  { index: 4, label: "Settings" },
+  { index: 3, label: "Settings" },
 ] as const;
 
 export const GITHUB_SUBTABS = [{ id: "overview", label: "Overview" }] as const;
