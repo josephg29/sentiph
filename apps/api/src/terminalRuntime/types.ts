@@ -65,6 +65,42 @@ export type PersistedTentacle = {
   workspaceMode: TentacleWorkspaceMode;
 };
 
+export type TentacleGitStatusSnapshot = {
+  tentacleId: string;
+  workspaceMode: TentacleWorkspaceMode;
+  branchName: string;
+  upstreamBranchName: string | null;
+  isDirty: boolean;
+  aheadCount: number;
+  behindCount: number;
+  hasConflicts: boolean;
+  changedFiles: string[];
+  defaultBaseBranchName: string | null;
+};
+
+export type TentaclePullRequestStatus = "none" | "open" | "merged" | "closed";
+
+export type TentaclePullRequestSnapshot = {
+  tentacleId: string;
+  workspaceMode: TentacleWorkspaceMode;
+  status: TentaclePullRequestStatus;
+  number: number | null;
+  url: string | null;
+  title: string | null;
+  baseRef: string | null;
+  headRef: string | null;
+  isDraft: boolean | null;
+  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN" | null;
+  mergeStateStatus: string | null;
+};
+
+export type GitClientPullRequestSnapshot = Omit<
+  TentaclePullRequestSnapshot,
+  "tentacleId" | "workspaceMode" | "status"
+> & {
+  state: "OPEN" | "MERGED" | "CLOSED";
+};
+
 export type PersistedUiState = {
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
@@ -87,6 +123,26 @@ export type GitClient = {
   addWorktree(options: { cwd: string; path: string; branchName: string; baseRef: string }): void;
   removeWorktree(options: { cwd: string; path: string }): void;
   removeBranch(options: { cwd: string; branchName: string }): void;
+  readWorktreeStatus(options: {
+    cwd: string;
+  }): Omit<TentacleGitStatusSnapshot, "tentacleId" | "workspaceMode">;
+  commitAll(options: { cwd: string; message: string }): void;
+  pushCurrentBranch(options: { cwd: string }): void;
+  syncWithBase(options: { cwd: string; baseRef: string }): void;
+  readCurrentBranchPullRequest(options: {
+    cwd: string;
+  }): GitClientPullRequestSnapshot | null;
+  createPullRequest(options: {
+    cwd: string;
+    title: string;
+    body: string;
+    baseRef: string;
+    headRef: string;
+  }): GitClientPullRequestSnapshot | null;
+  mergeCurrentBranchPullRequest(options: {
+    cwd: string;
+    strategy: "squash" | "merge" | "rebase";
+  }): void;
 };
 
 export class RuntimeInputError extends Error {}
@@ -100,6 +156,16 @@ export type TerminalRuntime = {
   listAgentSnapshots(): AgentSnapshot[];
   readUiState(): PersistedUiState;
   patchUiState(patch: PersistedUiState): PersistedUiState;
+  readTentacleGitStatus(tentacleId: string): TentacleGitStatusSnapshot | null;
+  commitTentacleWorktree(tentacleId: string, message: string): TentacleGitStatusSnapshot | null;
+  pushTentacleWorktree(tentacleId: string): TentacleGitStatusSnapshot | null;
+  syncTentacleWorktree(tentacleId: string, baseRef?: string): TentacleGitStatusSnapshot | null;
+  readTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
+  createTentaclePullRequest(
+    tentacleId: string,
+    input: { title: string; body?: string; baseRef?: string },
+  ): TentaclePullRequestSnapshot | null;
+  mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
   createTentacle(options: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;

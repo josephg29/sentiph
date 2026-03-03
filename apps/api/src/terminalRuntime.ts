@@ -13,12 +13,15 @@ import {
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
-import type {
-  CreateTerminalRuntimeOptions,
-  PersistedTentacle,
-  PersistedUiState,
-  TentacleWorkspaceMode,
-  TerminalSession,
+import {
+  RuntimeInputError,
+  type CreateTerminalRuntimeOptions,
+  type PersistedTentacle,
+  type PersistedUiState,
+  type TentacleGitStatusSnapshot,
+  type TentaclePullRequestSnapshot,
+  type TentacleWorkspaceMode,
+  type TerminalSession,
 } from "./terminalRuntime/types";
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
@@ -144,6 +147,107 @@ export const createTerminalRuntime = ({
     return result;
   };
 
+  const resolveWorktreeTentacleContext = (
+    tentacleId: string,
+  ): { tentacle: PersistedTentacle; workspaceCwd: string } | null => {
+    const tentacle = tentacles.get(tentacleId);
+    if (!tentacle) {
+      return null;
+    }
+
+    if (tentacle.workspaceMode !== "worktree") {
+      throw new RuntimeInputError(
+        "Git lifecycle actions are only available for worktree tentacles.",
+      );
+    }
+
+    return {
+      tentacle,
+      workspaceCwd: worktreeManager.getTentacleWorkspaceCwd(tentacleId),
+    };
+  };
+
+  const readWorktreeGitStatus = (
+    tentacleId: string,
+    tentacle: PersistedTentacle,
+    workspaceCwd: string,
+  ): TentacleGitStatusSnapshot => {
+    try {
+      const status = gitClient.readWorktreeStatus({ cwd: workspaceCwd });
+      return {
+        tentacleId,
+        workspaceMode: tentacle.workspaceMode,
+        branchName: status.branchName,
+        upstreamBranchName: status.upstreamBranchName,
+        isDirty: status.isDirty,
+        aheadCount: status.aheadCount,
+        behindCount: status.behindCount,
+        hasConflicts: status.hasConflicts,
+        changedFiles: [...status.changedFiles],
+        defaultBaseBranchName: status.defaultBaseBranchName,
+      };
+    } catch (error) {
+      throw new RuntimeInputError(
+        `Unable to read git status for ${tentacleId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  };
+
+  const toPullRequestStatus = (state: "OPEN" | "MERGED" | "CLOSED") =>
+    state === "OPEN" ? "open" : state === "MERGED" ? "merged" : "closed";
+
+  const emptyPullRequestSnapshot = (
+    tentacleId: string,
+    tentacle: PersistedTentacle,
+  ): TentaclePullRequestSnapshot => ({
+    tentacleId,
+    workspaceMode: tentacle.workspaceMode,
+    status: "none",
+    number: null,
+    url: null,
+    title: null,
+    baseRef: null,
+    headRef: null,
+    isDraft: null,
+    mergeable: null,
+    mergeStateStatus: null,
+  });
+
+  const readWorktreePullRequest = (
+    tentacleId: string,
+    tentacle: PersistedTentacle,
+    workspaceCwd: string,
+  ): TentaclePullRequestSnapshot => {
+    try {
+      const pullRequest = gitClient.readCurrentBranchPullRequest({ cwd: workspaceCwd });
+      if (!pullRequest) {
+        return emptyPullRequestSnapshot(tentacleId, tentacle);
+      }
+
+      return {
+        tentacleId,
+        workspaceMode: tentacle.workspaceMode,
+        status: toPullRequestStatus(pullRequest.state),
+        number: pullRequest.number,
+        url: pullRequest.url,
+        title: pullRequest.title,
+        baseRef: pullRequest.baseRef,
+        headRef: pullRequest.headRef,
+        isDraft: pullRequest.isDraft,
+        mergeable: pullRequest.mergeable,
+        mergeStateStatus: pullRequest.mergeStateStatus,
+      };
+    } catch (error) {
+      throw new RuntimeInputError(
+        `Unable to read pull request for ${tentacleId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  };
+
   return {
     listAgentSnapshots(): AgentSnapshot[] {
       return [...tentacles.values()].map((tentacle) => buildRootSnapshot(tentacle));
@@ -176,6 +280,213 @@ export const createTerminalRuntime = ({
 
       persistRegistry();
       return readUiState();
+    },
+
+    readTentacleGitStatus(tentacleId: string): TentacleGitStatusSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+    },
+
+    commitTentacleWorktree(tentacleId: string, message: string): TentacleGitStatusSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      const trimmedMessage = message.trim();
+      if (trimmedMessage.length === 0) {
+        throw new RuntimeInputError("Commit message cannot be empty.");
+      }
+
+      try {
+        gitClient.commitAll({
+          cwd: context.workspaceCwd,
+          message: trimmedMessage,
+        });
+      } catch (error) {
+        throw new RuntimeInputError(
+          `Unable to commit ${tentacleId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+    },
+
+    pushTentacleWorktree(tentacleId: string): TentacleGitStatusSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      try {
+        gitClient.pushCurrentBranch({
+          cwd: context.workspaceCwd,
+        });
+      } catch (error) {
+        throw new RuntimeInputError(
+          `Unable to push ${tentacleId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
+      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+    },
+
+    syncTentacleWorktree(tentacleId: string, baseRef?: string): TentacleGitStatusSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      const statusBeforeSync = readWorktreeGitStatus(
+        tentacleId,
+        context.tentacle,
+        context.workspaceCwd,
+      );
+      if (statusBeforeSync.isDirty) {
+        throw new RuntimeInputError("Sync requires a clean worktree. Commit or stash changes first.");
+      }
+      if (statusBeforeSync.hasConflicts) {
+        throw new RuntimeInputError("Resolve git conflicts before syncing with base.");
+      }
+
+      const normalizedBaseRef = baseRef?.trim();
+      const effectiveBaseRef =
+        normalizedBaseRef && normalizedBaseRef.length > 0
+          ? normalizedBaseRef
+          : statusBeforeSync.defaultBaseBranchName ?? "main";
+
+      try {
+        gitClient.syncWithBase({
+          cwd: context.workspaceCwd,
+          baseRef: effectiveBaseRef,
+        });
+      } catch (error) {
+        throw new RuntimeInputError(
+          `Unable to sync ${tentacleId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
+      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+    },
+
+    readTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
+    },
+
+    createTentaclePullRequest(
+      tentacleId: string,
+      input: { title: string; body?: string; baseRef?: string },
+    ): TentaclePullRequestSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      const title = input.title.trim();
+      if (title.length === 0) {
+        throw new RuntimeInputError("Pull request title cannot be empty.");
+      }
+
+      const existingPullRequest = readWorktreePullRequest(
+        tentacleId,
+        context.tentacle,
+        context.workspaceCwd,
+      );
+      if (existingPullRequest.status === "open") {
+        throw new RuntimeInputError("An open pull request already exists for this branch.");
+      }
+
+      const status = readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      if (status.hasConflicts) {
+        throw new RuntimeInputError("Resolve git conflicts before creating a pull request.");
+      }
+
+      const normalizedBaseRef = input.baseRef?.trim();
+      const effectiveBaseRef =
+        normalizedBaseRef && normalizedBaseRef.length > 0
+          ? normalizedBaseRef
+          : status.defaultBaseBranchName ?? "main";
+
+      try {
+        const pullRequest = gitClient.createPullRequest({
+          cwd: context.workspaceCwd,
+          title,
+          body: input.body ?? "",
+          baseRef: effectiveBaseRef,
+          headRef: status.branchName,
+        });
+        if (!pullRequest) {
+          return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
+        }
+
+        return {
+          tentacleId,
+          workspaceMode: context.tentacle.workspaceMode,
+          status: toPullRequestStatus(pullRequest.state),
+          number: pullRequest.number,
+          url: pullRequest.url,
+          title: pullRequest.title,
+          baseRef: pullRequest.baseRef,
+          headRef: pullRequest.headRef,
+          isDraft: pullRequest.isDraft,
+          mergeable: pullRequest.mergeable,
+          mergeStateStatus: pullRequest.mergeStateStatus,
+        };
+      } catch (error) {
+        throw new RuntimeInputError(
+          `Unable to create pull request for ${tentacleId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    },
+
+    mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null {
+      const context = resolveWorktreeTentacleContext(tentacleId);
+      if (!context) {
+        return null;
+      }
+
+      const currentPullRequest = readWorktreePullRequest(
+        tentacleId,
+        context.tentacle,
+        context.workspaceCwd,
+      );
+      if (currentPullRequest.status !== "open") {
+        throw new RuntimeInputError("No open pull request found for this branch.");
+      }
+      if (currentPullRequest.isDraft) {
+        throw new RuntimeInputError("Draft pull requests cannot be merged.");
+      }
+      if (currentPullRequest.mergeable === "CONFLICTING") {
+        throw new RuntimeInputError("Pull request has conflicts and cannot be merged.");
+      }
+
+      try {
+        gitClient.mergeCurrentBranchPullRequest({
+          cwd: context.workspaceCwd,
+          strategy: "squash",
+        });
+      } catch (error) {
+        throw new RuntimeInputError(
+          `Unable to merge pull request for ${tentacleId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
     },
 
     createTentacle,

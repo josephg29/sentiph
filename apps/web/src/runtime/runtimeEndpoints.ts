@@ -115,6 +115,66 @@ export const buildTentacleRenameUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, `/api/tentacles/${encodedTentacleId}`);
 };
 
+const buildTentacleGitActionUrl = (
+  tentacleId: string,
+  action: "status" | "commit" | "push" | "sync",
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const path = `/api/tentacles/${encodedTentacleId}/git/${action}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildTentacleGitStatusUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => buildTentacleGitActionUrl(tentacleId, "status", runtimeBaseUrl);
+
+export const buildTentacleGitCommitUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => buildTentacleGitActionUrl(tentacleId, "commit", runtimeBaseUrl);
+
+export const buildTentacleGitPushUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => buildTentacleGitActionUrl(tentacleId, "push", runtimeBaseUrl);
+
+export const buildTentacleGitSyncUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => buildTentacleGitActionUrl(tentacleId, "sync", runtimeBaseUrl);
+
+export const buildTentacleGitPullRequestUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const path = `/api/tentacles/${encodedTentacleId}/git/pr`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildTentacleGitPullRequestMergeUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const path = `/api/tentacles/${encodedTentacleId}/git/pr/merge`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

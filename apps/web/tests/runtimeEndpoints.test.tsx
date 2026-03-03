@@ -7,6 +7,12 @@ import {
   buildMonitorConfigUrl,
   buildMonitorFeedUrl,
   buildMonitorRefreshUrl,
+  buildTentacleGitCommitUrl,
+  buildTentacleGitPushUrl,
+  buildTentacleGitPullRequestMergeUrl,
+  buildTentacleGitPullRequestUrl,
+  buildTentacleGitStatusUrl,
+  buildTentacleGitSyncUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
   buildTerminalSocketUrl,
@@ -96,6 +102,44 @@ describe("runtimeEndpoints", () => {
     expect(buildTentacleRenameUrl("tentacle-main", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/tentacles/tentacle-main",
     );
+  });
+
+  it("builds tentacle git lifecycle URLs on same origin by default", () => {
+    expect(buildTentacleGitStatusUrl("tentacle-main")).toBe(
+      "/api/tentacles/tentacle-main/git/status",
+    );
+    expect(buildTentacleGitCommitUrl("tentacle-main")).toBe(
+      "/api/tentacles/tentacle-main/git/commit",
+    );
+    expect(buildTentacleGitPushUrl("tentacle-main")).toBe("/api/tentacles/tentacle-main/git/push");
+    expect(buildTentacleGitSyncUrl("tentacle-main")).toBe("/api/tentacles/tentacle-main/git/sync");
+    expect(buildTentacleGitPullRequestUrl("tentacle-main")).toBe(
+      "/api/tentacles/tentacle-main/git/pr",
+    );
+    expect(buildTentacleGitPullRequestMergeUrl("tentacle-main")).toBe(
+      "/api/tentacles/tentacle-main/git/pr/merge",
+    );
+  });
+
+  it("builds absolute tentacle git lifecycle URLs when runtime base URL is configured", () => {
+    expect(buildTentacleGitStatusUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main/git/status",
+    );
+    expect(buildTentacleGitCommitUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main/git/commit",
+    );
+    expect(buildTentacleGitPushUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main/git/push",
+    );
+    expect(buildTentacleGitSyncUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main/git/sync",
+    );
+    expect(buildTentacleGitPullRequestUrl("tentacle-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/tentacles/tentacle-main/git/pr",
+    );
+    expect(
+      buildTentacleGitPullRequestMergeUrl("tentacle-main", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/tentacles/tentacle-main/git/pr/merge");
   });
 
   it("builds same-origin websocket URL by default", () => {

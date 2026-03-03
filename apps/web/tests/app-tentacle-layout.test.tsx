@@ -131,9 +131,11 @@ describe("App tentacle layout interactions", () => {
     const firstPane = await screen.findByLabelText("tentacle-1");
     const secondPane = await screen.findByLabelText("tentacle-2");
 
-    expect(firstPane).toHaveClass("tentacle-column--selected");
-    expect(secondPane).not.toHaveClass("tentacle-column--selected");
-    expect(within(firstPane).getByText("Focused")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(firstPane).toHaveClass("tentacle-column--selected");
+      expect(secondPane).not.toHaveClass("tentacle-column--selected");
+      expect(within(firstPane).getByText("Focused")).toBeInTheDocument();
+    });
 
     fireEvent.pointerDown(secondPane);
 

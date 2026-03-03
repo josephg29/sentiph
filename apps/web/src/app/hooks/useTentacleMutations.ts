@@ -4,9 +4,11 @@ import type { Dispatch, SetStateAction } from "react";
 import { buildTentacleRenameUrl, buildTentaclesUrl } from "../../runtime/runtimeEndpoints";
 import type { TentacleView, TentacleWorkspaceMode } from "../types";
 
-type PendingDeleteTentacle = {
+export type PendingDeleteTentacle = {
   tentacleId: string;
   tentacleName: string;
+  workspaceMode: TentacleWorkspaceMode;
+  intent: "delete-tentacle" | "cleanup-worktree";
 };
 
 type UseTentacleMutationsOptions = {
@@ -27,7 +29,14 @@ type UseTentacleMutationsResult = {
   beginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
   submitTentacleRename: (tentacleId: string, currentTentacleName: string) => Promise<void>;
   createTentacle: (workspaceMode: TentacleWorkspaceMode) => Promise<void>;
-  requestDeleteTentacle: (tentacleId: string, tentacleName: string) => void;
+  requestDeleteTentacle: (
+    tentacleId: string,
+    tentacleName: string,
+    options?: {
+      workspaceMode?: TentacleWorkspaceMode;
+      intent?: "delete-tentacle" | "cleanup-worktree";
+    },
+  ) => void;
   confirmDeleteTentacle: () => Promise<void>;
   clearPendingDeleteTentacle: () => void;
   cancelTentacleRename: () => void;
@@ -151,9 +160,21 @@ export const useTentacleMutations = ({
   );
 
   const requestDeleteTentacle = useCallback(
-    (tentacleId: string, tentacleName: string) => {
+    (
+      tentacleId: string,
+      tentacleName: string,
+      options?: {
+        workspaceMode?: TentacleWorkspaceMode;
+        intent?: "delete-tentacle" | "cleanup-worktree";
+      },
+    ) => {
       setLoadError(null);
-      setPendingDeleteTentacle({ tentacleId, tentacleName });
+      setPendingDeleteTentacle({
+        tentacleId,
+        tentacleName,
+        workspaceMode: options?.workspaceMode ?? "shared",
+        intent: options?.intent ?? "delete-tentacle",
+      });
     },
     [setLoadError],
   );

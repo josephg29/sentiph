@@ -312,4 +312,444 @@ describe("App tentacle create/rename/delete actions", () => {
     fireEvent.keyDown(deleteDialog, { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: "Delete confirmation for tentacle-a" })).toBeNull();
   });
+
+  it("shows git actions for worktree tentacles and commits with user message", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse([
+          {
+            agentId: "tentacle-a-root",
+            label: "tentacle-a-root",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            tentacleWorkspaceMode: "shared",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+          {
+            agentId: "tentacle-b-root",
+            label: "tentacle-b-root",
+            state: "live",
+            tentacleId: "tentacle-b",
+            tentacleName: "tentacle-b",
+            tentacleWorkspaceMode: "worktree",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          },
+        ]);
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-b/git/status") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-b",
+          workspaceMode: "worktree",
+          branchName: "octogent/tentacle-b",
+          upstreamBranchName: "origin/octogent/tentacle-b",
+          isDirty: true,
+          aheadCount: 1,
+          behindCount: 0,
+          hasConflicts: false,
+          changedFiles: ["apps/web/src/App.tsx"],
+          defaultBaseBranchName: "main",
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-b/git/commit") && method === "POST") {
+        expect(init?.body).toBe(JSON.stringify({ message: "feat: ship worktree git menu" }));
+        return jsonResponse({
+          tentacleId: "tentacle-b",
+          workspaceMode: "worktree",
+          branchName: "octogent/tentacle-b",
+          upstreamBranchName: "origin/octogent/tentacle-b",
+          isDirty: false,
+          aheadCount: 2,
+          behindCount: 0,
+          hasConflicts: false,
+          changedFiles: [],
+          defaultBaseBranchName: "main",
+        });
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-b");
+    expect(screen.queryByRole("button", { name: "Open git actions for tentacle-a" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-b" }));
+
+    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-b" });
+    expect(within(gitDialog).getByText("octogent/tentacle-b")).toBeInTheDocument();
+    const commitInput = within(gitDialog).getByLabelText("Commit message for tentacle-b");
+    fireEvent.change(commitInput, { target: { value: "feat: ship worktree git menu" } });
+    fireEvent.click(within(gitDialog).getByRole("button", { name: "Commit changes" }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles/tentacle-b/git/commit") &&
+            (calledInit?.method ?? "GET") === "POST",
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("creates and merges pull requests from worktree git actions dialog", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse([
+          {
+            agentId: "tentacle-pr-root",
+            label: "tentacle-pr-root",
+            state: "live",
+            tentacleId: "tentacle-pr",
+            tentacleName: "tentacle-pr",
+            tentacleWorkspaceMode: "worktree",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]);
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-pr/git/status") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-pr",
+          workspaceMode: "worktree",
+          branchName: "octogent/tentacle-pr",
+          upstreamBranchName: "origin/octogent/tentacle-pr",
+          isDirty: false,
+          aheadCount: 1,
+          behindCount: 0,
+          hasConflicts: false,
+          changedFiles: [],
+          defaultBaseBranchName: "main",
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-pr/git/pr") && method === "GET") {
+        const created = fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles/tentacle-pr/git/pr") &&
+            (calledInit?.method ?? "GET") === "POST",
+        );
+
+        return jsonResponse(
+          created
+            ? {
+                tentacleId: "tentacle-pr",
+                workspaceMode: "worktree",
+                status: "open",
+                number: 215,
+                url: "https://github.com/hesamsheikh/octogent/pull/215",
+                title: "feat: add PR lifecycle actions",
+                baseRef: "main",
+                headRef: "octogent/tentacle-pr",
+                isDraft: false,
+                mergeable: "MERGEABLE",
+                mergeStateStatus: "CLEAN",
+              }
+            : {
+                tentacleId: "tentacle-pr",
+                workspaceMode: "worktree",
+                status: "none",
+                number: null,
+                url: null,
+                title: null,
+                baseRef: null,
+                headRef: null,
+                isDraft: null,
+                mergeable: null,
+                mergeStateStatus: null,
+              },
+        );
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-pr/git/pr") && method === "POST") {
+        expect(init?.body).toBe(
+          JSON.stringify({
+            title: "feat: add PR lifecycle actions",
+            body: "Adds create/merge support in tentacle git dialog.",
+            baseRef: "main",
+          }),
+        );
+        return jsonResponse({
+          tentacleId: "tentacle-pr",
+          workspaceMode: "worktree",
+          status: "open",
+          number: 215,
+          url: "https://github.com/hesamsheikh/octogent/pull/215",
+          title: "feat: add PR lifecycle actions",
+          baseRef: "main",
+          headRef: "octogent/tentacle-pr",
+          isDraft: false,
+          mergeable: "MERGEABLE",
+          mergeStateStatus: "CLEAN",
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-pr/git/pr/merge") && method === "POST") {
+        return jsonResponse({
+          tentacleId: "tentacle-pr",
+          workspaceMode: "worktree",
+          status: "merged",
+          number: 215,
+          url: "https://github.com/hesamsheikh/octogent/pull/215",
+          title: "feat: add PR lifecycle actions",
+          baseRef: "main",
+          headRef: "octogent/tentacle-pr",
+          isDraft: false,
+          mergeable: "UNKNOWN",
+          mergeStateStatus: "MERGED",
+        });
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    const tentacleColumn = await screen.findByLabelText("tentacle-pr");
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-pr" }));
+
+    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-pr" });
+    const titleInput = within(gitDialog).getByLabelText("Pull request title for tentacle-pr");
+    fireEvent.change(titleInput, { target: { value: "feat: add PR lifecycle actions" } });
+    fireEvent.change(within(gitDialog).getByLabelText("Pull request body for tentacle-pr"), {
+      target: { value: "Adds create/merge support in tentacle git dialog." },
+    });
+    fireEvent.change(within(gitDialog).getByLabelText("Pull request base for tentacle-pr"), {
+      target: { value: "main" },
+    });
+    fireEvent.click(within(gitDialog).getByRole("button", { name: "Create pull request" }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles/tentacle-pr/git/pr") &&
+            (calledInit?.method ?? "GET") === "POST",
+        ),
+      ).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(within(tentacleColumn).getByText("PR OPEN #215")).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(gitDialog).getByRole("button", { name: "Merge pull request" }));
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/tentacles/tentacle-pr/git/pr/merge") &&
+            (calledInit?.method ?? "GET") === "POST",
+        ),
+      ).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(within(tentacleColumn).getByText("PR MERGED #215")).toBeInTheDocument();
+    });
+  });
+
+  it("shows explicit disable reasons for blocked git actions", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse([
+          {
+            agentId: "tentacle-blocked-root",
+            label: "tentacle-blocked-root",
+            state: "live",
+            tentacleId: "tentacle-blocked",
+            tentacleName: "tentacle-blocked",
+            tentacleWorkspaceMode: "worktree",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]);
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-blocked/git/status") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-blocked",
+          workspaceMode: "worktree",
+          branchName: "octogent/tentacle-blocked",
+          upstreamBranchName: "origin/octogent/tentacle-blocked",
+          isDirty: true,
+          aheadCount: 0,
+          behindCount: 0,
+          hasConflicts: false,
+          changedFiles: ["apps/web/src/App.tsx"],
+          defaultBaseBranchName: "main",
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-blocked/git/pr") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-blocked",
+          workspaceMode: "worktree",
+          status: "open",
+          number: 219,
+          url: "https://github.com/hesamsheikh/octogent/pull/219",
+          title: "feat: blocked lifecycle",
+          baseRef: "main",
+          headRef: "octogent/tentacle-blocked",
+          isDraft: false,
+          mergeable: "CONFLICTING",
+          mergeStateStatus: "DIRTY",
+        });
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-blocked");
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-blocked" }));
+
+    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-blocked" });
+    expect(within(gitDialog).getByRole("button", { name: "Commit changes" })).toBeDisabled();
+    expect(within(gitDialog).getByRole("button", { name: "Sync with base" })).toBeDisabled();
+    expect(within(gitDialog).getByRole("button", { name: "Merge pull request" })).toBeDisabled();
+
+    expect(
+      within(gitDialog).getByText("Commit blocked: enter a commit message."),
+    ).toBeInTheDocument();
+    expect(
+      within(gitDialog).getByText("Sync blocked: worktree has uncommitted changes."),
+    ).toBeInTheDocument();
+    expect(
+      within(gitDialog).getByText("Merge blocked: pull request has merge conflicts."),
+    ).toBeInTheDocument();
+  });
+
+  it("requires explicit confirmation before cleanup of a worktree tentacle", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    let includeWorktreeTentacle = true;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse(
+          includeWorktreeTentacle
+            ? [
+                {
+                  agentId: "tentacle-main-root",
+                  label: "tentacle-main-root",
+                  state: "live",
+                  tentacleId: "tentacle-main",
+                  tentacleName: "tentacle-main",
+                  tentacleWorkspaceMode: "shared",
+                  createdAt: "2026-02-24T10:00:00.000Z",
+                },
+                {
+                  agentId: "tentacle-wt-root",
+                  label: "tentacle-wt-root",
+                  state: "live",
+                  tentacleId: "tentacle-wt",
+                  tentacleName: "tentacle-wt",
+                  tentacleWorkspaceMode: "worktree",
+                  createdAt: "2026-02-24T10:05:00.000Z",
+                },
+              ]
+            : [
+                {
+                  agentId: "tentacle-main-root",
+                  label: "tentacle-main-root",
+                  state: "live",
+                  tentacleId: "tentacle-main",
+                  tentacleName: "tentacle-main",
+                  tentacleWorkspaceMode: "shared",
+                  createdAt: "2026-02-24T10:00:00.000Z",
+                },
+              ],
+        );
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-wt/git/status") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-wt",
+          workspaceMode: "worktree",
+          branchName: "octogent/tentacle-wt",
+          upstreamBranchName: "origin/octogent/tentacle-wt",
+          isDirty: false,
+          aheadCount: 0,
+          behindCount: 0,
+          hasConflicts: false,
+          changedFiles: [],
+          defaultBaseBranchName: "main",
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-wt/git/pr") && method === "GET") {
+        return jsonResponse({
+          tentacleId: "tentacle-wt",
+          workspaceMode: "worktree",
+          status: "none",
+          number: null,
+          url: null,
+          title: null,
+          baseRef: null,
+          headRef: null,
+          isDraft: null,
+          mergeable: null,
+          mergeStateStatus: null,
+        });
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-wt") && method === "DELETE") {
+        includeWorktreeTentacle = false;
+        return new Response(null, { status: 204 });
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-wt");
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-wt" }));
+
+    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-wt" });
+    fireEvent.click(within(gitDialog).getByRole("button", { name: "Cleanup worktree" }));
+
+    const deleteDialog = await screen.findByRole("dialog", {
+      name: "Delete confirmation for tentacle-wt",
+    });
+    expect(
+      within(deleteDialog).getByText("This action removes the worktree directory and local branch."),
+    ).toBeInTheDocument();
+
+    const confirmButton = within(deleteDialog).getByRole("button", {
+      name: "Confirm delete tentacle-wt",
+    });
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(within(deleteDialog).getByLabelText("Type tentacle ID to confirm cleanup"), {
+      target: { value: "tentacle-wt" },
+    });
+    expect(confirmButton).not.toBeDisabled();
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("tentacle-wt")).toBeNull();
+    });
+  });
 });

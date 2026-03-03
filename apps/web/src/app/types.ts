@@ -49,6 +49,33 @@ export type FrontendUiStateSnapshot = {
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
+export type TentacleGitStatusSnapshot = {
+  tentacleId: string;
+  workspaceMode: TentacleWorkspaceMode;
+  branchName: string;
+  upstreamBranchName: string | null;
+  isDirty: boolean;
+  aheadCount: number;
+  behindCount: number;
+  hasConflicts: boolean;
+  changedFiles: string[];
+  defaultBaseBranchName: string | null;
+};
+
+export type TentaclePullRequestSnapshot = {
+  tentacleId: string;
+  workspaceMode: TentacleWorkspaceMode;
+  status: "none" | "open" | "merged" | "closed";
+  number: number | null;
+  url: string | null;
+  title: string | null;
+  baseRef: string | null;
+  headRef: string | null;
+  isDraft: boolean | null;
+  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN" | null;
+  mergeStateStatus: string | null;
+};
+
 export type MonitorUsageSnapshot = {
   status: "ok" | "unavailable" | "error";
   source: "x-api" | "none";

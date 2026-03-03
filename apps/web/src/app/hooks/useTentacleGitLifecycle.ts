@@ -1,0 +1,563 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
+
+import {
+  buildTentacleGitCommitUrl,
+  buildTentacleGitPullRequestMergeUrl,
+  buildTentacleGitPullRequestUrl,
+  buildTentacleGitPushUrl,
+  buildTentacleGitStatusUrl,
+  buildTentacleGitSyncUrl,
+} from "../../runtime/runtimeEndpoints";
+import type {
+  TentacleGitStatusSnapshot,
+  TentaclePullRequestSnapshot,
+  TentacleView,
+} from "../types";
+
+type UseTentacleGitLifecycleOptions = {
+  columns: TentacleView;
+};
+
+type UseTentacleGitLifecycleResult = {
+  gitStatusByTentacleId: Record<string, TentacleGitStatusSnapshot>;
+  gitStatusLoadingByTentacleId: Record<string, boolean>;
+  pullRequestByTentacleId: Record<string, TentaclePullRequestSnapshot>;
+  pullRequestLoadingByTentacleId: Record<string, boolean>;
+  openGitTentacleId: string | null;
+  openGitTentacleStatus: TentacleGitStatusSnapshot | null;
+  openGitTentaclePullRequest: TentaclePullRequestSnapshot | null;
+  gitCommitMessageDraft: string;
+  gitPullRequestTitleDraft: string;
+  gitPullRequestBodyDraft: string;
+  gitPullRequestBaseRefDraft: string;
+  gitDialogError: string | null;
+  isGitDialogLoading: boolean;
+  isGitDialogMutating: boolean;
+  setGitCommitMessageDraft: Dispatch<SetStateAction<string>>;
+  setGitPullRequestTitleDraft: Dispatch<SetStateAction<string>>;
+  setGitPullRequestBodyDraft: Dispatch<SetStateAction<string>>;
+  setGitPullRequestBaseRefDraft: Dispatch<SetStateAction<string>>;
+  openTentacleGitActions: (tentacleId: string) => void;
+  closeTentacleGitActions: () => void;
+  commitTentacleChanges: () => Promise<void>;
+  pushTentacleBranch: () => Promise<void>;
+  syncTentacleBranch: () => Promise<void>;
+  createTentaclePullRequest: () => Promise<void>;
+  mergeTentaclePullRequest: () => Promise<void>;
+};
+
+const parseGitError = async (response: Response, fallback: string) => {
+  try {
+    const payload = (await response.json()) as { error?: unknown };
+    if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+      return payload.error.trim();
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+};
+
+const parseTentacleGitStatus = (payload: unknown): TentacleGitStatusSnapshot | null => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  if (
+    typeof record.tentacleId !== "string" ||
+    (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
+    typeof record.branchName !== "string" ||
+    (record.upstreamBranchName !== null && typeof record.upstreamBranchName !== "string") ||
+    typeof record.isDirty !== "boolean" ||
+    typeof record.aheadCount !== "number" ||
+    typeof record.behindCount !== "number" ||
+    typeof record.hasConflicts !== "boolean" ||
+    !Array.isArray(record.changedFiles) ||
+    !record.changedFiles.every((file) => typeof file === "string") ||
+    (record.defaultBaseBranchName !== null && typeof record.defaultBaseBranchName !== "string")
+  ) {
+    return null;
+  }
+
+  return {
+    tentacleId: record.tentacleId,
+    workspaceMode: record.workspaceMode,
+    branchName: record.branchName,
+    upstreamBranchName: record.upstreamBranchName,
+    isDirty: record.isDirty,
+    aheadCount: record.aheadCount,
+    behindCount: record.behindCount,
+    hasConflicts: record.hasConflicts,
+    changedFiles: [...record.changedFiles],
+    defaultBaseBranchName: record.defaultBaseBranchName,
+  };
+};
+
+const parseTentaclePullRequest = (payload: unknown): TentaclePullRequestSnapshot | null => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  if (
+    typeof record.tentacleId !== "string" ||
+    (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
+    (record.status !== "none" &&
+      record.status !== "open" &&
+      record.status !== "merged" &&
+      record.status !== "closed") ||
+    (record.number !== null && typeof record.number !== "number") ||
+    (record.url !== null && typeof record.url !== "string") ||
+    (record.title !== null && typeof record.title !== "string") ||
+    (record.baseRef !== null && typeof record.baseRef !== "string") ||
+    (record.headRef !== null && typeof record.headRef !== "string") ||
+    (record.isDraft !== null && typeof record.isDraft !== "boolean") ||
+    (record.mergeable !== null &&
+      record.mergeable !== "MERGEABLE" &&
+      record.mergeable !== "CONFLICTING" &&
+      record.mergeable !== "UNKNOWN") ||
+    (record.mergeStateStatus !== null && typeof record.mergeStateStatus !== "string")
+  ) {
+    return null;
+  }
+
+  return {
+    tentacleId: record.tentacleId,
+    workspaceMode: record.workspaceMode,
+    status: record.status,
+    number: record.number,
+    url: record.url,
+    title: record.title,
+    baseRef: record.baseRef,
+    headRef: record.headRef,
+    isDraft: record.isDraft,
+    mergeable: record.mergeable,
+    mergeStateStatus: record.mergeStateStatus,
+  };
+};
+
+export const useTentacleGitLifecycle = ({
+  columns,
+}: UseTentacleGitLifecycleOptions): UseTentacleGitLifecycleResult => {
+  const [gitStatusByTentacleId, setGitStatusByTentacleId] = useState<
+    Record<string, TentacleGitStatusSnapshot>
+  >({});
+  const [gitStatusLoadingByTentacleId, setGitStatusLoadingByTentacleId] = useState<
+    Record<string, boolean>
+  >({});
+  const [gitStatusAttemptedTentacleIds, setGitStatusAttemptedTentacleIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [pullRequestByTentacleId, setPullRequestByTentacleId] = useState<
+    Record<string, TentaclePullRequestSnapshot>
+  >({});
+  const [pullRequestLoadingByTentacleId, setPullRequestLoadingByTentacleId] = useState<
+    Record<string, boolean>
+  >({});
+  const [pullRequestAttemptedTentacleIds, setPullRequestAttemptedTentacleIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [openGitTentacleId, setOpenGitTentacleId] = useState<string | null>(null);
+  const [gitCommitMessageDraft, setGitCommitMessageDraft] = useState("");
+  const [gitPullRequestTitleDraft, setGitPullRequestTitleDraft] = useState("");
+  const [gitPullRequestBodyDraft, setGitPullRequestBodyDraft] = useState("");
+  const [gitPullRequestBaseRefDraft, setGitPullRequestBaseRefDraft] = useState("");
+  const [gitDialogError, setGitDialogError] = useState<string | null>(null);
+  const [isGitDialogMutating, setIsGitDialogMutating] = useState(false);
+
+  const fetchTentacleGitStatus = useCallback(async (tentacleId: string) => {
+    setGitStatusLoadingByTentacleId((current) => ({
+      ...current,
+      [tentacleId]: true,
+    }));
+
+    try {
+      const response = await fetch(buildTentacleGitStatusUrl(tentacleId), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) {
+        const errorMessage = await parseGitError(
+          response,
+          `Unable to fetch git status (${response.status}).`,
+        );
+        throw new Error(errorMessage);
+      }
+
+      const payload = parseTentacleGitStatus(await response.json());
+      if (!payload) {
+        throw new Error("Unable to parse git status response.");
+      }
+
+      setGitStatusByTentacleId((current) => ({
+        ...current,
+        [tentacleId]: payload,
+      }));
+      return payload;
+    } finally {
+      setGitStatusLoadingByTentacleId((current) => ({
+        ...current,
+        [tentacleId]: false,
+      }));
+    }
+  }, []);
+
+  const fetchTentaclePullRequest = useCallback(async (tentacleId: string) => {
+    setPullRequestLoadingByTentacleId((current) => ({
+      ...current,
+      [tentacleId]: true,
+    }));
+
+    try {
+      const response = await fetch(buildTentacleGitPullRequestUrl(tentacleId), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) {
+        const errorMessage = await parseGitError(
+          response,
+          `Unable to fetch pull request status (${response.status}).`,
+        );
+        throw new Error(errorMessage);
+      }
+
+      const payload = parseTentaclePullRequest(await response.json());
+      if (!payload) {
+        throw new Error("Unable to parse pull request response.");
+      }
+
+      setPullRequestByTentacleId((current) => ({
+        ...current,
+        [tentacleId]: payload,
+      }));
+      return payload;
+    } finally {
+      setPullRequestLoadingByTentacleId((current) => ({
+        ...current,
+        [tentacleId]: false,
+      }));
+    }
+  }, []);
+
+  const worktreeTentacleIds = useMemo(
+    () =>
+      columns
+        .filter((column) => column.tentacleWorkspaceMode === "worktree")
+        .map((column) => column.tentacleId),
+    [columns],
+  );
+
+  useEffect(() => {
+    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
+    setGitStatusByTentacleId((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    setGitStatusLoadingByTentacleId((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    setGitStatusAttemptedTentacleIds((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    setPullRequestByTentacleId((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    setPullRequestLoadingByTentacleId((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    setPullRequestAttemptedTentacleIds((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([tentacleId]) => activeTentacleIds.has(tentacleId)),
+      ),
+    );
+    if (openGitTentacleId && !activeTentacleIds.has(openGitTentacleId)) {
+      setOpenGitTentacleId(null);
+      setGitDialogError(null);
+      setGitCommitMessageDraft("");
+      setGitPullRequestTitleDraft("");
+      setGitPullRequestBodyDraft("");
+      setGitPullRequestBaseRefDraft("");
+    }
+  }, [columns, openGitTentacleId]);
+
+  useEffect(() => {
+    for (const tentacleId of worktreeTentacleIds) {
+      if (gitStatusAttemptedTentacleIds[tentacleId]) {
+        continue;
+      }
+
+      setGitStatusAttemptedTentacleIds((current) => ({
+        ...current,
+        [tentacleId]: true,
+      }));
+      void fetchTentacleGitStatus(tentacleId).catch(() => {});
+    }
+  }, [fetchTentacleGitStatus, gitStatusAttemptedTentacleIds, worktreeTentacleIds]);
+
+  useEffect(() => {
+    for (const tentacleId of worktreeTentacleIds) {
+      if (pullRequestAttemptedTentacleIds[tentacleId]) {
+        continue;
+      }
+
+      setPullRequestAttemptedTentacleIds((current) => ({
+        ...current,
+        [tentacleId]: true,
+      }));
+      void fetchTentaclePullRequest(tentacleId).catch(() => {});
+    }
+  }, [fetchTentaclePullRequest, pullRequestAttemptedTentacleIds, worktreeTentacleIds]);
+
+  const openTentacleGitActions = useCallback(
+    (tentacleId: string) => {
+      setOpenGitTentacleId(tentacleId);
+      setGitDialogError(null);
+      setGitCommitMessageDraft("");
+      setGitPullRequestTitleDraft("");
+      setGitPullRequestBodyDraft("");
+      setGitPullRequestBaseRefDraft("");
+
+      void Promise.all([
+        fetchTentacleGitStatus(tentacleId),
+        fetchTentaclePullRequest(tentacleId),
+      ])
+        .then(([statusSnapshot, pullRequestSnapshot]) => {
+          if (pullRequestSnapshot?.baseRef) {
+            setGitPullRequestBaseRefDraft(pullRequestSnapshot.baseRef);
+            return;
+          }
+          if (statusSnapshot.defaultBaseBranchName) {
+            setGitPullRequestBaseRefDraft(statusSnapshot.defaultBaseBranchName);
+            return;
+          }
+          setGitPullRequestBaseRefDraft("main");
+        })
+        .catch((error: unknown) => {
+          setGitDialogError(
+            error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
+          );
+        });
+    },
+    [fetchTentacleGitStatus, fetchTentaclePullRequest],
+  );
+
+  const closeTentacleGitActions = useCallback(() => {
+    setOpenGitTentacleId(null);
+    setGitDialogError(null);
+    setGitCommitMessageDraft("");
+    setGitPullRequestTitleDraft("");
+    setGitPullRequestBodyDraft("");
+    setGitPullRequestBaseRefDraft("");
+  }, []);
+
+  const runGitMutation = useCallback(
+    async (
+      action: "commit" | "push" | "sync",
+      request: { body?: string; headers?: Record<string, string> } = {},
+    ) => {
+      if (!openGitTentacleId) {
+        return;
+      }
+
+      const endpoint =
+        action === "commit"
+          ? buildTentacleGitCommitUrl(openGitTentacleId)
+          : action === "push"
+            ? buildTentacleGitPushUrl(openGitTentacleId)
+            : buildTentacleGitSyncUrl(openGitTentacleId);
+
+      setIsGitDialogMutating(true);
+      setGitDialogError(null);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            ...request.headers,
+          },
+          body: request.body,
+        });
+
+        if (!response.ok) {
+          const errorMessage = await parseGitError(
+            response,
+            `Unable to ${action} (${response.status}).`,
+          );
+          throw new Error(errorMessage);
+        }
+
+        const payload = parseTentacleGitStatus(await response.json());
+        if (!payload) {
+          throw new Error("Unable to parse git lifecycle response.");
+        }
+
+        setGitStatusByTentacleId((current) => ({
+          ...current,
+          [openGitTentacleId]: payload,
+        }));
+      } catch (error) {
+        setGitDialogError(
+          error instanceof Error ? error.message : `Unable to ${action} tentacle worktree.`,
+        );
+      } finally {
+        setIsGitDialogMutating(false);
+      }
+    },
+    [openGitTentacleId],
+  );
+
+  const runPullRequestMutation = useCallback(
+    async (
+      action: "create" | "merge",
+      request: { body?: string; headers?: Record<string, string> } = {},
+    ) => {
+      if (!openGitTentacleId) {
+        return;
+      }
+
+      const endpoint =
+        action === "create"
+          ? buildTentacleGitPullRequestUrl(openGitTentacleId)
+          : buildTentacleGitPullRequestMergeUrl(openGitTentacleId);
+
+      setIsGitDialogMutating(true);
+      setGitDialogError(null);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            ...request.headers,
+          },
+          body: request.body,
+        });
+
+        if (!response.ok) {
+          const errorMessage = await parseGitError(
+            response,
+            `Unable to ${action} pull request (${response.status}).`,
+          );
+          throw new Error(errorMessage);
+        }
+
+        const payload = parseTentaclePullRequest(await response.json());
+        if (!payload) {
+          throw new Error("Unable to parse pull request response.");
+        }
+
+        setPullRequestByTentacleId((current) => ({
+          ...current,
+          [openGitTentacleId]: payload,
+        }));
+      } catch (error) {
+        setGitDialogError(
+          error instanceof Error ? error.message : `Unable to ${action} pull request.`,
+        );
+      } finally {
+        setIsGitDialogMutating(false);
+      }
+    },
+    [openGitTentacleId],
+  );
+
+  const commitTentacleChanges = useCallback(async () => {
+    const message = gitCommitMessageDraft.trim();
+    if (message.length === 0) {
+      setGitDialogError("Commit message cannot be empty.");
+      return;
+    }
+
+    await runGitMutation("commit", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message }),
+    });
+    setGitCommitMessageDraft("");
+  }, [gitCommitMessageDraft, runGitMutation]);
+
+  const pushTentacleBranch = useCallback(async () => {
+    await runGitMutation("push");
+  }, [runGitMutation]);
+
+  const syncTentacleBranch = useCallback(async () => {
+    await runGitMutation("sync");
+  }, [runGitMutation]);
+
+  const createTentaclePullRequest = useCallback(async () => {
+    const title = gitPullRequestTitleDraft.trim();
+    if (title.length === 0) {
+      setGitDialogError("Pull request title cannot be empty.");
+      return;
+    }
+
+    await runPullRequestMutation("create", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        body: gitPullRequestBodyDraft,
+        baseRef: gitPullRequestBaseRefDraft.trim().length > 0 ? gitPullRequestBaseRefDraft.trim() : undefined,
+      }),
+    });
+  }, [gitPullRequestBaseRefDraft, gitPullRequestBodyDraft, gitPullRequestTitleDraft, runPullRequestMutation]);
+
+  const mergeTentaclePullRequest = useCallback(async () => {
+    await runPullRequestMutation("merge");
+  }, [runPullRequestMutation]);
+
+  const openGitTentacleStatus =
+    openGitTentacleId !== null ? gitStatusByTentacleId[openGitTentacleId] ?? null : null;
+  const openGitTentaclePullRequest =
+    openGitTentacleId !== null ? pullRequestByTentacleId[openGitTentacleId] ?? null : null;
+  const isGitDialogLoading =
+    openGitTentacleId !== null
+      ? (gitStatusLoadingByTentacleId[openGitTentacleId] ?? false) ||
+        (pullRequestLoadingByTentacleId[openGitTentacleId] ?? false)
+      : false;
+
+  return {
+    gitStatusByTentacleId,
+    gitStatusLoadingByTentacleId,
+    pullRequestByTentacleId,
+    pullRequestLoadingByTentacleId,
+    openGitTentacleId,
+    openGitTentacleStatus,
+    openGitTentaclePullRequest,
+    gitCommitMessageDraft,
+    gitPullRequestTitleDraft,
+    gitPullRequestBodyDraft,
+    gitPullRequestBaseRefDraft,
+    gitDialogError,
+    isGitDialogLoading,
+    isGitDialogMutating,
+    setGitCommitMessageDraft,
+    setGitPullRequestTitleDraft,
+    setGitPullRequestBodyDraft,
+    setGitPullRequestBaseRefDraft,
+    openTentacleGitActions,
+    closeTentacleGitActions,
+    commitTentacleChanges,
+    pushTentacleBranch,
+    syncTentacleBranch,
+    createTentaclePullRequest,
+    mergeTentaclePullRequest,
+  };
+};

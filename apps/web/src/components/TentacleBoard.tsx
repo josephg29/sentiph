@@ -6,7 +6,12 @@ import {
   type RefObject,
 } from "react";
 
-import type { TentacleView, TentacleWorkspaceMode } from "../app/types";
+import type {
+  TentacleGitStatusSnapshot,
+  TentaclePullRequestSnapshot,
+  TentacleView,
+  TentacleWorkspaceMode,
+} from "../app/types";
 import { TENTACLE_MIN_WIDTH } from "../layout/tentaclePaneSizing";
 import type { CodexState } from "./CodexStateBadge";
 import { EmptyOctopus } from "./EmptyOctopus";
@@ -19,6 +24,10 @@ type TentacleBoardProps = {
   isLoading: boolean;
   columns: TentacleView;
   visibleColumns: TentacleView;
+  gitStatusByTentacleId: Record<string, TentacleGitStatusSnapshot>;
+  gitStatusLoadingByTentacleId: Record<string, boolean>;
+  pullRequestByTentacleId: Record<string, TentaclePullRequestSnapshot>;
+  pullRequestLoadingByTentacleId: Record<string, boolean>;
   loadError: string | null;
   tentacleWidths: Record<string, number>;
   editingTentacleId: string | null;
@@ -32,7 +41,12 @@ type TentacleBoardProps = {
   onCancelTentacleRename: () => void;
   onBeginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
   onMinimizeTentacle: (tentacleId: string) => void;
-  onRequestDeleteTentacle: (tentacleId: string, tentacleName: string) => void;
+  onRequestDeleteTentacle: (
+    tentacleId: string,
+    tentacleName: string,
+    workspaceMode: TentacleWorkspaceMode,
+  ) => void;
+  onOpenTentacleGitActions: (tentacleId: string) => void;
   onTentacleStateChange: (tentacleId: string, state: CodexState) => void;
   onTentacleDividerKeyDown: (
     leftTentacleId: string,
@@ -47,12 +61,81 @@ type TentacleBoardProps = {
 const renderTentacleWorkspaceLabel = (workspaceMode: TentacleWorkspaceMode) =>
   workspaceMode === "worktree" ? "WORKTREE" : "MAIN";
 
+const renderTentacleGitDirtyLabel = (
+  workspaceMode: TentacleWorkspaceMode,
+  gitStatus: TentacleGitStatusSnapshot | undefined,
+  isLoadingGitStatus: boolean,
+) => {
+  if (workspaceMode !== "worktree") {
+    return null;
+  }
+
+  if (isLoadingGitStatus) {
+    return "GIT ...";
+  }
+
+  if (!gitStatus) {
+    return "GIT ?";
+  }
+
+  return gitStatus.isDirty ? "DIRTY" : "CLEAN";
+};
+
+const renderTentacleGitAheadBehindLabel = (
+  workspaceMode: TentacleWorkspaceMode,
+  gitStatus: TentacleGitStatusSnapshot | undefined,
+) => {
+  if (workspaceMode !== "worktree" || !gitStatus) {
+    return null;
+  }
+
+  return `+${gitStatus.aheadCount}/-${gitStatus.behindCount}`;
+};
+
+const renderTentaclePullRequestLabel = (
+  workspaceMode: TentacleWorkspaceMode,
+  pullRequest: TentaclePullRequestSnapshot | undefined,
+  isLoadingPullRequest: boolean,
+) => {
+  if (workspaceMode !== "worktree") {
+    return null;
+  }
+
+  if (isLoadingPullRequest) {
+    return "PR ...";
+  }
+
+  if (!pullRequest || pullRequest.status === "none") {
+    return null;
+  }
+
+  const statusLabel = pullRequest.status.toUpperCase();
+  const numberLabel = pullRequest.number !== null ? ` #${pullRequest.number}` : "";
+  return `PR ${statusLabel}${numberLabel}`;
+};
+
+const renderTentacleGitBadges = (
+  gitDirtyLabel: string | null,
+  gitAheadBehindLabel: string | null,
+  gitPullRequestLabel: string | null,
+) => (
+  <>
+    {gitDirtyLabel && <span className="tentacle-git-status-badge">{gitDirtyLabel}</span>}
+    {gitAheadBehindLabel && <span className="tentacle-git-metric-badge">{gitAheadBehindLabel}</span>}
+    {gitPullRequestLabel && <span className="tentacle-pr-status-badge">{gitPullRequestLabel}</span>}
+  </>
+);
+
 export const TentacleBoard = ({
   tentaclesRef,
   tentacleNameInputRef,
   isLoading,
   columns,
   visibleColumns,
+  gitStatusByTentacleId,
+  gitStatusLoadingByTentacleId,
+  pullRequestByTentacleId,
+  pullRequestLoadingByTentacleId,
   loadError,
   tentacleWidths,
   editingTentacleId,
@@ -67,6 +150,7 @@ export const TentacleBoard = ({
   onBeginTentacleNameEdit,
   onMinimizeTentacle,
   onRequestDeleteTentacle,
+  onOpenTentacleGitActions,
   onTentacleStateChange,
   onTentacleDividerKeyDown,
   onTentacleDividerPointerDown,
@@ -104,6 +188,24 @@ export const TentacleBoard = ({
       {visibleColumns.map((column, index) => {
         const rightNeighbor = visibleColumns[index + 1];
         const isSelected = selectedTentacleId === column.tentacleId;
+        const gitStatus = gitStatusByTentacleId[column.tentacleId];
+        const isLoadingGitStatus = gitStatusLoadingByTentacleId[column.tentacleId] ?? false;
+        const pullRequest = pullRequestByTentacleId[column.tentacleId];
+        const isLoadingPullRequest = pullRequestLoadingByTentacleId[column.tentacleId] ?? false;
+        const gitDirtyLabel = renderTentacleGitDirtyLabel(
+          column.tentacleWorkspaceMode,
+          gitStatus,
+          isLoadingGitStatus,
+        );
+        const gitAheadBehindLabel = renderTentacleGitAheadBehindLabel(
+          column.tentacleWorkspaceMode,
+          gitStatus,
+        );
+        const gitPullRequestLabel = renderTentaclePullRequestLabel(
+          column.tentacleWorkspaceMode,
+          pullRequest,
+          isLoadingPullRequest,
+        );
         return (
           <Fragment key={column.tentacleId}>
             <section
@@ -152,6 +254,7 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
+                      {renderTentacleGitBadges(gitDirtyLabel, gitAheadBehindLabel, gitPullRequestLabel)}
                       {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </>
                   ) : (
@@ -170,6 +273,26 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
+                      {column.tentacleWorkspaceMode === "worktree" && (
+                        <span className="tentacle-git-cluster">
+                          {renderTentacleGitBadges(
+                            gitDirtyLabel,
+                            gitAheadBehindLabel,
+                            gitPullRequestLabel,
+                          )}
+                          <ActionButton
+                            aria-label={`Open git actions for ${column.tentacleId}`}
+                            className="tentacle-git"
+                            onClick={() => {
+                              onOpenTentacleGitActions(column.tentacleId);
+                            }}
+                            size="dense"
+                            variant="info"
+                          >
+                            Git
+                          </ActionButton>
+                        </span>
+                      )}
                       {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </h2>
                   )}
@@ -203,7 +326,11 @@ export const TentacleBoard = ({
                       className="tentacle-delete"
                       disabled={isDeletingTentacleId === column.tentacleId}
                       onClick={() => {
-                        onRequestDeleteTentacle(column.tentacleId, column.tentacleName);
+                        onRequestDeleteTentacle(
+                          column.tentacleId,
+                          column.tentacleName,
+                          column.tentacleWorkspaceMode,
+                        );
                       }}
                       size="dense"
                       variant="danger"

@@ -132,6 +132,11 @@
   color: #f3cf72;
 }
 
+.console-shell .tentacle-git-cluster {
+  background: #1d2734;
+  border-color: #2f4258;
+}
+
 .console-shell .tentacle-header-actions {
   gap: 0.14rem;
 }

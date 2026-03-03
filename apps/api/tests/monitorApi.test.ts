@@ -45,6 +45,68 @@ class FakeGitClient implements GitClient {
   removeBranch({ branchName }: { cwd: string; branchName: string }): void {
     this.branches.delete(branchName);
   }
+
+  readWorktreeStatus(): {
+    branchName: string;
+    upstreamBranchName: string | null;
+    isDirty: boolean;
+    aheadCount: number;
+    behindCount: number;
+    hasConflicts: boolean;
+    changedFiles: string[];
+    defaultBaseBranchName: string | null;
+  } {
+    return {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: null,
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    };
+  }
+
+  commitAll(): void {}
+
+  pushCurrentBranch(): void {}
+
+  syncWithBase(): void {}
+
+  readCurrentBranchPullRequest():
+    | {
+        number: number;
+        url: string;
+        title: string;
+        baseRef: string;
+        headRef: string;
+        state: "OPEN" | "MERGED" | "CLOSED";
+        isDraft: boolean;
+        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+        mergeStateStatus: string | null;
+      }
+    | null {
+    return null;
+  }
+
+  createPullRequest():
+    | {
+        number: number;
+        url: string;
+        title: string;
+        baseRef: string;
+        headRef: string;
+        state: "OPEN" | "MERGED" | "CLOSED";
+        isDraft: boolean;
+        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+        mergeStateStatus: string | null;
+      }
+    | null {
+    return null;
+  }
+
+  mergeCurrentBranchPullRequest(): void {}
 }
 
 describe("monitor API routes", () => {

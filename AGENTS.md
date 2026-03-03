@@ -76,6 +76,16 @@ Treat `tentacleId` as a stable internal identifier (routing, keys, websocket pat
 
 Tentacle creation should offer two explicit modes: shared main codebase (`workspaceMode: "shared"`) and isolated git worktree (`workspaceMode: "worktree"`). Keep shared as the compatibility default when no mode is provided.
 
+### Worktree Git Lifecycle UX Preference
+
+For `workspaceMode: "worktree"` tentacles, keep git lifecycle operations in the tentacle header behind a single `Git` action that opens in-app controls (commit/push/sync and status), instead of scattering multiple standalone header buttons or using browser-native dialogs.
+Keep worktree git badges (dirty/ahead-behind/PR state) visually grouped beside the `Git` button in the tentacle header for quick scanning.
+Keep pull-request lifecycle controls (`create`/`merge` and current PR state) in that same in-app Git actions surface for worktree tentacles.
+Surface pull-request state in the worktree tentacle header badges (`open`/`merged`/`closed` with PR number when available) so operators can scan lifecycle state without opening dialogs.
+When git actions are disabled in the worktree Git dialog, render explicit in-dialog blocked-action reasons instead of leaving disabled states unexplained.
+Reject duplicate pull-request creation server-side when the branch already has an open PR (returning conflict), rather than silently creating/replacing PR state.
+For destructive worktree cleanup, require explicit in-app confirmation by asking the user to type the tentacle ID before enabling the final action.
+
 ### Tentacle ID Allocation Preference
 
 Allocate new tentacle IDs by computing the smallest available numeric suffix from live state (persisted tentacles, existing worktree directories, and active terminal sessions). Do not rely on a persisted monotonic counter.

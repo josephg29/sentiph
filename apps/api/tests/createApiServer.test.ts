@@ -9,6 +9,36 @@ import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";
 import type { GitClient } from "../src/terminalRuntime";
 
 class FakeGitClient implements GitClient {
+  private readonly worktreeStatusByCwd = new Map<
+    string,
+    {
+      branchName: string;
+      upstreamBranchName: string | null;
+      isDirty: boolean;
+      aheadCount: number;
+      behindCount: number;
+      hasConflicts: boolean;
+      changedFiles: string[];
+      defaultBaseBranchName: string | null;
+    }
+  >();
+  private readonly commitsByCwd = new Map<string, string[]>();
+  private readonly pushesByCwd = new Map<string, number>();
+  private readonly syncsByCwd = new Map<string, string[]>();
+  private readonly pullRequestByCwd = new Map<
+    string,
+    {
+      number: number;
+      url: string;
+      title: string;
+      baseRef: string;
+      headRef: string;
+      state: "OPEN" | "MERGED" | "CLOSED";
+      isDraft: boolean;
+      mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+      mergeStateStatus: string | null;
+    } | null
+  >();
   private readonly worktrees = new Map<
     string,
     { branchName: string; baseRef: string; cwd: string }
@@ -16,6 +46,11 @@ class FakeGitClient implements GitClient {
   private readonly branches = new Set<string>();
   private repositoryAvailable = true;
   private failRemoveWorktree = false;
+  private failCommit = false;
+  private failPush = false;
+  private failSync = false;
+  private failCreatePullRequest = false;
+  private failMergePullRequest = false;
 
   assertAvailable(): void {}
 
@@ -40,6 +75,17 @@ class FakeGitClient implements GitClient {
     mkdirSync(path, { recursive: true });
     this.branches.add(branchName);
     this.worktrees.set(path, { cwd, branchName, baseRef });
+    this.worktreeStatusByCwd.set(path, {
+      branchName,
+      upstreamBranchName: null,
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+    this.pullRequestByCwd.set(path, null);
   }
 
   removeWorktree({ path }: { cwd: string; path: string }): void {
@@ -47,6 +93,11 @@ class FakeGitClient implements GitClient {
       throw new Error(`Unable to remove worktree: ${path}`);
     }
     this.worktrees.delete(path);
+    this.worktreeStatusByCwd.delete(path);
+    this.commitsByCwd.delete(path);
+    this.pushesByCwd.delete(path);
+    this.syncsByCwd.delete(path);
+    this.pullRequestByCwd.delete(path);
   }
 
   removeBranch({ branchName }: { cwd: string; branchName: string }): void {
@@ -61,12 +112,267 @@ class FakeGitClient implements GitClient {
     this.failRemoveWorktree = shouldFail;
   }
 
+  setFailCommit(shouldFail: boolean): void {
+    this.failCommit = shouldFail;
+  }
+
+  setFailPush(shouldFail: boolean): void {
+    this.failPush = shouldFail;
+  }
+
+  setFailSync(shouldFail: boolean): void {
+    this.failSync = shouldFail;
+  }
+
+  setFailCreatePullRequest(shouldFail: boolean): void {
+    this.failCreatePullRequest = shouldFail;
+  }
+
+  setFailMergePullRequest(shouldFail: boolean): void {
+    this.failMergePullRequest = shouldFail;
+  }
+
+  setWorktreeStatus(
+    cwd: string,
+    status: {
+      branchName: string;
+      upstreamBranchName: string | null;
+      isDirty: boolean;
+      aheadCount: number;
+      behindCount: number;
+      hasConflicts: boolean;
+      changedFiles: string[];
+      defaultBaseBranchName: string | null;
+    },
+  ): void {
+    this.worktreeStatusByCwd.set(cwd, status);
+  }
+
+  readWorktreeStatus({
+    cwd,
+  }: {
+    cwd: string;
+  }): {
+    branchName: string;
+    upstreamBranchName: string | null;
+    isDirty: boolean;
+    aheadCount: number;
+    behindCount: number;
+    hasConflicts: boolean;
+    changedFiles: string[];
+    defaultBaseBranchName: string | null;
+  } {
+    const status = this.worktreeStatusByCwd.get(cwd);
+    if (!status) {
+      throw new Error(`Missing fake status for ${cwd}`);
+    }
+    return {
+      ...status,
+      changedFiles: [...status.changedFiles],
+    };
+  }
+
+  commitAll({ cwd, message }: { cwd: string; message: string }): void {
+    if (this.failCommit) {
+      throw new Error("Simulated commit failure");
+    }
+
+    const status = this.worktreeStatusByCwd.get(cwd);
+    if (!status) {
+      throw new Error(`Missing fake status for ${cwd}`);
+    }
+    if (!status.isDirty) {
+      throw new Error("No local changes to commit.");
+    }
+
+    const commits = this.commitsByCwd.get(cwd) ?? [];
+    commits.push(message);
+    this.commitsByCwd.set(cwd, commits);
+    this.worktreeStatusByCwd.set(cwd, {
+      ...status,
+      isDirty: false,
+      changedFiles: [],
+      aheadCount: status.aheadCount + 1,
+      hasConflicts: false,
+    });
+  }
+
+  pushCurrentBranch({ cwd }: { cwd: string }): void {
+    if (this.failPush) {
+      throw new Error("Simulated push failure");
+    }
+
+    const status = this.worktreeStatusByCwd.get(cwd);
+    if (!status) {
+      throw new Error(`Missing fake status for ${cwd}`);
+    }
+
+    this.pushesByCwd.set(cwd, (this.pushesByCwd.get(cwd) ?? 0) + 1);
+    this.worktreeStatusByCwd.set(cwd, {
+      ...status,
+      upstreamBranchName: status.upstreamBranchName ?? `origin/${status.branchName}`,
+      aheadCount: 0,
+    });
+  }
+
+  syncWithBase({ cwd, baseRef }: { cwd: string; baseRef: string }): void {
+    if (this.failSync) {
+      throw new Error("Simulated sync failure");
+    }
+
+    const status = this.worktreeStatusByCwd.get(cwd);
+    if (!status) {
+      throw new Error(`Missing fake status for ${cwd}`);
+    }
+    const syncs = this.syncsByCwd.get(cwd) ?? [];
+    syncs.push(baseRef);
+    this.syncsByCwd.set(cwd, syncs);
+    this.worktreeStatusByCwd.set(cwd, {
+      ...status,
+      behindCount: 0,
+      hasConflicts: false,
+    });
+  }
+
+  setWorktreePullRequest(
+    cwd: string,
+    pullRequest:
+      | {
+          number: number;
+          url: string;
+          title: string;
+          baseRef: string;
+          headRef: string;
+          state: "OPEN" | "MERGED" | "CLOSED";
+          isDraft: boolean;
+          mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+          mergeStateStatus: string | null;
+        }
+      | null,
+  ): void {
+    this.pullRequestByCwd.set(cwd, pullRequest);
+  }
+
+  readCurrentBranchPullRequest({
+    cwd,
+  }: {
+    cwd: string;
+  }):
+    | {
+        number: number;
+        url: string;
+        title: string;
+        baseRef: string;
+        headRef: string;
+        state: "OPEN" | "MERGED" | "CLOSED";
+        isDraft: boolean;
+        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+        mergeStateStatus: string | null;
+      }
+    | null {
+    const pullRequest = this.pullRequestByCwd.get(cwd);
+    if (pullRequest === undefined || pullRequest === null) {
+      return null;
+    }
+
+    return {
+      ...pullRequest,
+    };
+  }
+
+  createPullRequest({
+    cwd,
+    title,
+    baseRef,
+    headRef,
+  }: {
+    cwd: string;
+    title: string;
+    body: string;
+    baseRef: string;
+    headRef: string;
+  }):
+    | {
+        number: number;
+        url: string;
+        title: string;
+        baseRef: string;
+        headRef: string;
+        state: "OPEN" | "MERGED" | "CLOSED";
+        isDraft: boolean;
+        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+        mergeStateStatus: string | null;
+      }
+    | null {
+    if (this.failCreatePullRequest) {
+      throw new Error("Simulated create PR failure");
+    }
+
+    const nextNumber = (this.pullRequestByCwd.get(cwd)?.number ?? 100) + 1;
+    const pullRequest = {
+      number: nextNumber,
+      url: `https://github.com/hesamsheikh/octogent/pull/${nextNumber}`,
+      title,
+      baseRef,
+      headRef,
+      state: "OPEN" as const,
+      isDraft: false,
+      mergeable: "MERGEABLE" as const,
+      mergeStateStatus: "CLEAN",
+    };
+    this.pullRequestByCwd.set(cwd, pullRequest);
+    return pullRequest;
+  }
+
+  mergeCurrentBranchPullRequest({
+    cwd,
+  }: {
+    cwd: string;
+    strategy: "squash" | "merge" | "rebase";
+  }): void {
+    if (this.failMergePullRequest) {
+      throw new Error("Simulated merge PR failure");
+    }
+
+    const pullRequest = this.pullRequestByCwd.get(cwd);
+    if (!pullRequest) {
+      throw new Error("No open pull request for this branch.");
+    }
+
+    this.pullRequestByCwd.set(cwd, {
+      ...pullRequest,
+      state: "MERGED",
+      mergeable: "UNKNOWN",
+      mergeStateStatus: "MERGED",
+    });
+  }
+
   getWorktree(path: string): { branchName: string; baseRef: string; cwd: string } | null {
     return this.worktrees.get(path) ?? null;
   }
 
   hasBranch(branchName: string): boolean {
     return this.branches.has(branchName);
+  }
+
+  getLastCommitMessage(cwd: string): string | null {
+    const commits = this.commitsByCwd.get(cwd);
+    if (!commits || commits.length === 0) {
+      return null;
+    }
+    return commits[commits.length - 1] ?? null;
+  }
+
+  getPushCount(cwd: string): number {
+    return this.pushesByCwd.get(cwd) ?? 0;
+  }
+
+  getSyncBaseRefs(cwd: string): string[] {
+    return [...(this.syncsByCwd.get(cwd) ?? [])];
+  }
+
+  getPullRequestState(cwd: string): "OPEN" | "MERGED" | "CLOSED" | null {
+    return this.pullRequestByCwd.get(cwd)?.state ?? null;
   }
 }
 
@@ -743,6 +1049,556 @@ describe("createApiServer", () => {
         }),
       ]),
     );
+  });
+
+  it("returns git status for worktree tentacles", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: true,
+      aheadCount: 2,
+      behindCount: 1,
+      hasConflicts: false,
+      changedFiles: ["apps/web/src/App.tsx", "README.md"],
+      defaultBaseBranchName: "main",
+    });
+
+    const statusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/status`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(statusResponse.status).toBe(200);
+    await expect(statusResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: true,
+      aheadCount: 2,
+      behindCount: 1,
+      hasConflicts: false,
+      changedFiles: ["apps/web/src/App.tsx", "README.md"],
+      defaultBaseBranchName: "main",
+    });
+  });
+
+  it("returns 409 for git status on shared tentacles", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const statusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/status`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(statusResponse.status).toBe(409);
+    await expect(statusResponse.json()).resolves.toEqual({
+      error: "Git lifecycle actions are only available for worktree tentacles.",
+    });
+  });
+
+  it("commits pending worktree changes with a required message", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: true,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: ["apps/web/src/App.tsx"],
+      defaultBaseBranchName: "main",
+    });
+
+    const commitResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/commit`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: "feat: add worktree git actions",
+      }),
+    });
+    expect(commitResponse.status).toBe(200);
+    expect(gitClient.getLastCommitMessage(worktreePath)).toBe("feat: add worktree git actions");
+    await expect(commitResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 1,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+  });
+
+  it("returns 400 for commit when message is empty", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const commitResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/commit`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: "   ",
+      }),
+    });
+    expect(commitResponse.status).toBe(400);
+    expect(gitClient.getLastCommitMessage(worktreePath)).toBeNull();
+    await expect(commitResponse.json()).resolves.toEqual({
+      error: "Commit message cannot be empty.",
+    });
+  });
+
+  it("pushes worktree branch and updates ahead count", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: null,
+      isDirty: false,
+      aheadCount: 3,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+
+    const pushResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/push`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(pushResponse.status).toBe(200);
+    expect(gitClient.getPushCount(worktreePath)).toBe(1);
+    await expect(pushResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+  });
+
+  it("syncs worktree branch with base ref", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 4,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+
+    const syncResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/sync`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        baseRef: "main",
+      }),
+    });
+    expect(syncResponse.status).toBe(200);
+    expect(gitClient.getSyncBaseRefs(worktreePath)).toEqual(["main"]);
+    await expect(syncResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+  });
+
+  it("returns PR status for worktree tentacles", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreePullRequest(worktreePath, {
+      number: 142,
+      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      title: "feat: worktree git lifecycle menu",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      state: "OPEN",
+      isDraft: false,
+      mergeable: "MERGEABLE",
+      mergeStateStatus: "CLEAN",
+    });
+
+    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(prStatusResponse.status).toBe(200);
+    await expect(prStatusResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      status: "open",
+      number: 142,
+      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      title: "feat: worktree git lifecycle menu",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      isDraft: false,
+      mergeable: "MERGEABLE",
+      mergeStateStatus: "CLEAN",
+    });
+  });
+
+  it("creates PR for worktree tentacles and returns PR snapshot", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+
+    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "feat: expose worktree lifecycle actions",
+        body: "Adds PR controls in the tentacle header.",
+        baseRef: "main",
+      }),
+    });
+    expect(createPrResponse.status).toBe(200);
+    await expect(createPrResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      status: "open",
+      number: 101,
+      url: "https://github.com/hesamsheikh/octogent/pull/101",
+      title: "feat: expose worktree lifecycle actions",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      isDraft: false,
+      mergeable: "MERGEABLE",
+      mergeStateStatus: "CLEAN",
+    });
+  });
+
+  it("returns 409 when creating a PR and an open PR already exists for the branch", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreeStatus(worktreePath, {
+      branchName: "octogent/tentacle-1",
+      upstreamBranchName: "origin/octogent/tentacle-1",
+      isDirty: false,
+      aheadCount: 0,
+      behindCount: 0,
+      hasConflicts: false,
+      changedFiles: [],
+      defaultBaseBranchName: "main",
+    });
+    gitClient.setWorktreePullRequest(worktreePath, {
+      number: 142,
+      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      title: "feat: existing worktree lifecycle PR",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      state: "OPEN",
+      isDraft: false,
+      mergeable: "MERGEABLE",
+      mergeStateStatus: "CLEAN",
+    });
+
+    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "feat: should not create duplicate PR",
+        body: "Should fail because the branch already has an open PR.",
+        baseRef: "main",
+      }),
+    });
+    expect(createPrResponse.status).toBe(409);
+    await expect(createPrResponse.json()).resolves.toEqual({
+      error: "An open pull request already exists for this branch.",
+    });
+
+    expect(gitClient.getPullRequestState(worktreePath)).toBe("OPEN");
+  });
+
+  it("merges the current branch PR for worktree tentacles", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const gitClient = new FakeGitClient();
+    const baseUrl = await startServer({
+      workspaceCwd,
+      gitClient,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceMode: "worktree",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    gitClient.setWorktreePullRequest(worktreePath, {
+      number: 190,
+      url: "https://github.com/hesamsheikh/octogent/pull/190",
+      title: "feat: ship worktree lifecycle",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      state: "OPEN",
+      isDraft: false,
+      mergeable: "MERGEABLE",
+      mergeStateStatus: "CLEAN",
+    });
+
+    const mergeResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr/merge`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(mergeResponse.status).toBe(200);
+    expect(gitClient.getPullRequestState(worktreePath)).toBe("MERGED");
+    await expect(mergeResponse.json()).resolves.toEqual({
+      tentacleId: "tentacle-1",
+      workspaceMode: "worktree",
+      status: "merged",
+      number: 190,
+      url: "https://github.com/hesamsheikh/octogent/pull/190",
+      title: "feat: ship worktree lifecycle",
+      baseRef: "main",
+      headRef: "octogent/tentacle-1",
+      isDraft: false,
+      mergeable: "UNKNOWN",
+      mergeStateStatus: "MERGED",
+    });
+  });
+
+  it("returns 409 for PR actions on shared tentacles", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(prStatusResponse.status).toBe(409);
+    await expect(prStatusResponse.json()).resolves.toEqual({
+      error: "Git lifecycle actions are only available for worktree tentacles.",
+    });
   });
 
   it("removes isolated worktree metadata when deleting a worktree tentacle", async () => {
