@@ -21,7 +21,12 @@ type TerminalOutputMessage = {
   data: string;
 };
 
-type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
+type TerminalHistoryMessage = {
+  type: "history";
+  data: string;
+};
+
+type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage | TerminalHistoryMessage;
 const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
 export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTerminalProps) => {
@@ -41,7 +46,10 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
     let activeTerminal: {
       write: (value: string) => void;
       scrollLines: (lineCount: number) => void;
+      clear: () => void;
     } | null = null;
+    let pendingHistoryData: string | null = null;
+    const pendingOutputChunks: string[] = [];
 
     const connect = () => {
       const nextSocket = new WebSocket(buildTerminalSocketUrl(tentacleId));
@@ -83,9 +91,27 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
 
         try {
           const payload = JSON.parse(event.data) as TerminalServerMessage;
+          if (payload.type === "history" && typeof payload.data === "string") {
+            if (activeTerminal) {
+              activeTerminal.clear();
+              activeTerminal.write(payload.data);
+              activeTerminal.write(SHOW_CURSOR_ESCAPE);
+              return;
+            }
+
+            pendingHistoryData = payload.data;
+            pendingOutputChunks.length = 0;
+            return;
+          }
+
           if (payload.type === "output" && typeof payload.data === "string") {
-            activeTerminal?.write(payload.data);
-            activeTerminal?.write(SHOW_CURSOR_ESCAPE);
+            if (activeTerminal) {
+              activeTerminal.write(payload.data);
+              activeTerminal.write(SHOW_CURSOR_ESCAPE);
+              return;
+            }
+
+            pendingOutputChunks.push(payload.data);
             return;
           }
 
@@ -94,8 +120,13 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
             return;
           }
         } catch {
-          activeTerminal?.write(event.data);
-          activeTerminal?.write(SHOW_CURSOR_ESCAPE);
+          if (activeTerminal) {
+            activeTerminal.write(event.data);
+            activeTerminal.write(SHOW_CURSOR_ESCAPE);
+            return;
+          }
+
+          pendingOutputChunks.push(event.data);
         }
       });
     };
@@ -160,6 +191,19 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         fitAddon.fit();
         terminal.focus();
         activeTerminal = terminal;
+
+        if (pendingHistoryData !== null) {
+          terminal.clear();
+          terminal.write(pendingHistoryData);
+          pendingHistoryData = null;
+        }
+        if (pendingOutputChunks.length > 0) {
+          for (const chunk of pendingOutputChunks) {
+            terminal.write(chunk);
+          }
+          pendingOutputChunks.length = 0;
+        }
+        terminal.write(SHOW_CURSOR_ESCAPE);
 
         const wheelListenerTarget = containerRef.current;
         const viewportWheelTarget =

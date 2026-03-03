@@ -16,7 +16,15 @@ export type TerminalOutputMessage = {
   data: string;
 };
 
-export type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage;
+export type TerminalHistoryMessage = {
+  type: "history";
+  data: string;
+};
+
+export type TerminalServerMessage =
+  | TerminalStateMessage
+  | TerminalOutputMessage
+  | TerminalHistoryMessage;
 
 export type TerminalSession = {
   pty: IPty;
@@ -24,7 +32,10 @@ export type TerminalSession = {
   codexState: CodexRuntimeState;
   stateTracker: CodexStateTracker;
   isBootstrapCommandSent: boolean;
+  scrollbackChunks: string[];
+  scrollbackBytes: number;
   statePollTimer?: ReturnType<typeof setInterval>;
+  idleCloseTimer?: ReturnType<typeof setTimeout>;
   debugLog?: WriteStream;
 };
 

@@ -1,0 +1,286 @@
+import { EventEmitter } from "node:events";
+import type { IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { createShellEnvironmentMock, ensureSpawnHelperMock, spawnMock } = vi.hoisted(() => ({
+  createShellEnvironmentMock: vi.fn(() => ({})),
+  ensureSpawnHelperMock: vi.fn(),
+  spawnMock: vi.fn(),
+}));
+
+vi.mock("node-pty", () => ({
+  spawn: spawnMock,
+}));
+
+vi.mock("../src/terminalRuntime/ptyEnvironment", () => ({
+  createShellEnvironment: createShellEnvironmentMock,
+  ensureNodePtySpawnHelperExecutable: ensureSpawnHelperMock,
+}));
+
+import { createSessionRuntime } from "../src/terminalRuntime/sessionRuntime";
+import type { PersistedTentacle, TerminalSession } from "../src/terminalRuntime/types";
+
+class FakePty extends EventEmitter {
+  write = vi.fn();
+  resize = vi.fn();
+  kill = vi.fn();
+
+  onData(listener: (chunk: string) => void) {
+    this.on("data", listener);
+    return {
+      dispose: () => {
+        this.off("data", listener);
+      },
+    };
+  }
+
+  onExit(listener: (event: { exitCode: number; signal: number }) => void) {
+    this.on("exit", listener);
+    return {
+      dispose: () => {
+        this.off("exit", listener);
+      },
+    };
+  }
+
+  emitData(chunk: string) {
+    this.emit("data", chunk);
+  }
+}
+
+class FakeWebSocket extends EventEmitter {
+  readyState = 1;
+  sentMessages: string[] = [];
+  send = vi.fn((payload: string) => {
+    this.sentMessages.push(payload);
+  });
+  close = vi.fn(() => {
+    if (this.readyState !== 1) {
+      return;
+    }
+
+    this.readyState = 3;
+    this.emit("close");
+  });
+}
+
+class FakeWebSocketServer {
+  nextSocket: FakeWebSocket | null = null;
+
+  handleUpgrade = vi.fn(
+    (
+      _request: IncomingMessage,
+      _socket: Duplex,
+      _head: Buffer,
+      callback: (socket: FakeWebSocket) => void,
+    ) => {
+      if (!this.nextSocket) {
+        throw new Error("Missing websocket for upgrade.");
+      }
+
+      const socket = this.nextSocket;
+      this.nextSocket = null;
+      callback(socket);
+    },
+  );
+}
+
+const createUpgradeRequest = (tentacleId: string) =>
+  ({
+    url: `/api/terminals/${tentacleId}/ws`,
+  }) as IncomingMessage;
+
+const parseSentMessages = (socket: FakeWebSocket) =>
+  socket.sentMessages.map((raw) => JSON.parse(raw) as { type: string; data?: string });
+
+describe("createSessionRuntime", () => {
+  beforeEach(() => {
+    createShellEnvironmentMock.mockClear();
+    ensureSpawnHelperMock.mockClear();
+    spawnMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps a session alive across reconnects and replays scrollback history", () => {
+    const tentacleId = "tentacle-1";
+    const tentacles = new Map<string, PersistedTentacle>([
+      [
+        tentacleId,
+        {
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      tentacles,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      sessionIdleGraceMs: 60_000,
+      scrollbackMaxBytes: 1024,
+    });
+
+    const firstSocket = new FakeWebSocket();
+    websocketServer.nextSocket = firstSocket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+
+    pty.emitData("first line\r\n");
+    pty.emitData("second line\r\n");
+    firstSocket.close();
+    expect(sessions.has(tentacleId)).toBe(true);
+
+    const secondSocket = new FakeWebSocket();
+    websocketServer.nextSocket = secondSocket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+
+    const secondMessages = parseSentMessages(secondSocket);
+    expect(secondMessages.find((message) => message.type === "history")).toEqual({
+      type: "history",
+      data: "first line\r\nsecond line\r\n",
+    });
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(pty.write).toHaveBeenCalledTimes(1);
+
+    runtime.close();
+  });
+
+  it("closes idle sessions after the configured grace timeout", () => {
+    vi.useFakeTimers();
+
+    const tentacleId = "tentacle-1";
+    const tentacles = new Map<string, PersistedTentacle>([
+      [
+        tentacleId,
+        {
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      tentacles,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      sessionIdleGraceMs: 1000,
+      scrollbackMaxBytes: 1024,
+    });
+
+    const socket = new FakeWebSocket();
+    websocketServer.nextSocket = socket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+    socket.close();
+
+    expect(sessions.has(tentacleId)).toBe(true);
+    vi.advanceTimersByTime(999);
+    expect(sessions.has(tentacleId)).toBe(true);
+
+    vi.advanceTimersByTime(1);
+    expect(pty.kill).toHaveBeenCalledTimes(1);
+    expect(sessions.has(tentacleId)).toBe(false);
+
+    runtime.close();
+  });
+
+  it("truncates oversize chunks to the configured scrollback size", () => {
+    const tentacleId = "tentacle-1";
+    const tentacles = new Map<string, PersistedTentacle>([
+      [
+        tentacleId,
+        {
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      tentacles,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      sessionIdleGraceMs: 60_000,
+      scrollbackMaxBytes: 8,
+    });
+
+    const firstSocket = new FakeWebSocket();
+    websocketServer.nextSocket = firstSocket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+    pty.emitData("123456789012");
+    firstSocket.close();
+
+    const secondSocket = new FakeWebSocket();
+    websocketServer.nextSocket = secondSocket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+
+    const secondMessages = parseSentMessages(secondSocket);
+    expect(secondMessages.find((message) => message.type === "history")).toEqual({
+      type: "history",
+      data: "56789012",
+    });
+
+    runtime.close();
+  });
+});

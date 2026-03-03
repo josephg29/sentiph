@@ -67,6 +67,8 @@ The web and API apps both depend on `@octogent/core`.
 - Registry document is versioned (`version: 2`) and stores tentacles plus `uiState`.
 - Startup restores tentacles from the registry; no implicit default tentacle is created.
 - Tentacle terminals run as in-process PTY sessions created on websocket demand (no tmux dependency).
+- Disconnecting a terminal websocket does not immediately kill the PTY; sessions remain alive through an idle grace window for reload/reconnect continuity.
+- Reconnect attaches to the same PTY and receives bounded replay of recent output before live stream resumes.
 - Worktree tentacles run in `.octogent/worktrees/<tentacleId>` and are created via `git worktree`.
 - UI state persistence is server-backed (`GET/PATCH /api/ui-state`), not browser-local only.
 

@@ -7,7 +7,11 @@ import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
 import { type CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
-import { TENTACLE_BOOTSTRAP_COMMAND } from "./constants";
+import {
+  TENTACLE_BOOTSTRAP_COMMAND,
+  TERMINAL_SCROLLBACK_MAX_BYTES,
+  TERMINAL_SESSION_IDLE_GRACE_MS,
+} from "./constants";
 import { broadcastMessage, getTentacleId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
@@ -20,6 +24,8 @@ type CreateSessionRuntimeOptions = {
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
+  sessionIdleGraceMs?: number;
+  scrollbackMaxBytes?: number;
 };
 
 export const createSessionRuntime = ({
@@ -29,6 +35,8 @@ export const createSessionRuntime = ({
   getTentacleWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
+  sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
+  scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
 }: CreateSessionRuntimeOptions) => {
   const getShellLaunch = () => {
     if (process.platform === "win32") {
@@ -86,12 +94,56 @@ export const createSessionRuntime = ({
     });
   };
 
+  const clearIdleCloseTimer = (session: TerminalSession) => {
+    if (!session.idleCloseTimer) {
+      return;
+    }
+
+    clearTimeout(session.idleCloseTimer);
+    delete session.idleCloseTimer;
+  };
+
+  const appendScrollback = (session: TerminalSession, chunk: string) => {
+    let nextChunk = chunk;
+    let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
+    if (nextChunkBytes > scrollbackMaxBytes) {
+      const chunkBuffer = Buffer.from(nextChunk, "utf8");
+      nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
+      nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
+      session.scrollbackChunks = [];
+      session.scrollbackBytes = 0;
+    }
+
+    session.scrollbackChunks.push(nextChunk);
+    session.scrollbackBytes += nextChunkBytes;
+    while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
+      const removedChunk = session.scrollbackChunks.shift();
+      if (!removedChunk) {
+        break;
+      }
+
+      session.scrollbackBytes -= Buffer.byteLength(removedChunk, "utf8");
+    }
+  };
+
+  const sendHistory = (websocket: WebSocket, session: TerminalSession) => {
+    if (session.scrollbackChunks.length === 0) {
+      return;
+    }
+
+    sendMessage(websocket, {
+      type: "history",
+      data: session.scrollbackChunks.join(""),
+    });
+  };
+
   const closeSession = (tentacleId: string): boolean => {
     const session = sessions.get(tentacleId);
     if (!session) {
       return false;
     }
 
+    clearIdleCloseTimer(session);
     try {
       session.pty.kill();
     } catch {
@@ -160,6 +212,8 @@ export const createSessionRuntime = ({
       codexState: stateTracker.currentState,
       stateTracker,
       isBootstrapCommandSent: false,
+      scrollbackChunks: [],
+      scrollbackBytes: 0,
     };
     if (debugLog) {
       session.debugLog = debugLog;
@@ -172,6 +226,7 @@ export const createSessionRuntime = ({
 
     session.pty.onData((chunk) => {
       appendDebugLog(session, `pty-output tentacle=${tentacleId} chunk=${JSON.stringify(chunk)}`);
+      appendScrollback(session, chunk);
       const nextState = session.stateTracker.observeChunk(chunk, Date.now());
       broadcastMessage(session, {
         type: "output",
@@ -228,7 +283,9 @@ export const createSessionRuntime = ({
 
       session.clients.add(websocket);
       appendDebugLog(session, `ws-open tentacle=${tentacleId} clients=${session.clients.size}`);
+      clearIdleCloseTimer(session);
       ensureCodexBootstrapped(tentacleId, session);
+      sendHistory(websocket, session);
       sendMessage(websocket, {
         type: "state",
         state: session.codexState,
@@ -277,7 +334,15 @@ export const createSessionRuntime = ({
         session.clients.delete(websocket);
         appendDebugLog(session, `ws-close tentacle=${tentacleId} clients=${session.clients.size}`);
         if (session.clients.size === 0) {
-          closeSession(tentacleId);
+          appendDebugLog(
+            session,
+            `idle-grace-start tentacle=${tentacleId} timeoutMs=${sessionIdleGraceMs}`,
+          );
+          clearIdleCloseTimer(session);
+          session.idleCloseTimer = setTimeout(() => {
+            appendDebugLog(session, `idle-grace-expired tentacle=${tentacleId}`);
+            closeSession(tentacleId);
+          }, sessionIdleGraceMs);
         }
       });
     });

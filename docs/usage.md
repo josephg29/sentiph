@@ -51,7 +51,9 @@ Then open `http://localhost:5173`.
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Tentacle metadata persists across API restarts in `.octogent/state/tentacles.json`.
-- Terminal processes are PTY sessions managed by the API process (no `tmux`); sessions are recreated when reconnecting after a disconnect/restart.
+- Terminal processes are PTY sessions managed by the API process (no `tmux`).
+- Reload/reconnect reattaches to the existing live PTY session and replays recent scrollback.
+- PTY sessions still do not survive API process restarts.
 - The board keeps each tentacle column above a minimum width and scrolls horizontally when columns exceed available space.
 - Resize neighboring tentacles with the divider between columns (drag with pointer or use focused divider with arrow keys).
 
