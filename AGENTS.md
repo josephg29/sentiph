@@ -79,7 +79,7 @@ Tentacle creation should offer two explicit modes: shared main codebase (`worksp
 ### Worktree Git Lifecycle UX Preference
 
 For `workspaceMode: "worktree"` tentacles, keep git lifecycle operations in the tentacle header behind a single `Git` action that opens in-app controls (commit/push/sync and status), instead of scattering multiple standalone header buttons or using browser-native dialogs.
-Keep worktree git badges (dirty/ahead-behind/PR state) visually grouped beside the `Git` button in the tentacle header for quick scanning.
+Keep worktree git badges (dirty/ahead-behind/PR state) visually grouped with the `Git` button in a centered tentacle-header cluster for quick scanning.
 Keep pull-request lifecycle controls (`create`/`merge` and current PR state) in that same in-app Git actions surface for worktree tentacles.
 Surface pull-request state in the worktree tentacle header badges (`open`/`merged`/`closed` with PR number when available) so operators can scan lifecycle state without opening dialogs.
 When git actions are disabled in the worktree Git dialog, render explicit in-dialog blocked-action reasons instead of leaving disabled states unexplained.

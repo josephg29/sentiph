@@ -104,7 +104,7 @@ export const TentacleGitActionsDialog = ({
       >
         <header className="git-actions-header">
           <h2>Worktree Git Actions</h2>
-          <span className="pill">WORKTREE</span>
+          <span className="pill git-actions-worktree-badge">WORKTREE</span>
         </header>
         <div className="git-actions-body">
           <p className="git-actions-message">

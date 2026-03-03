@@ -222,7 +222,11 @@ export const TentacleBoard = ({
                 width: `${tentacleWidths[column.tentacleId] ?? TENTACLE_MIN_WIDTH}px`,
               }}
             >
-              <div className="tentacle-column-header">
+              <div
+                className={`tentacle-column-header${
+                  editingTentacleId === column.tentacleId ? " tentacle-column-header--editing" : ""
+                }`}
+              >
                 <div className="tentacle-column-heading">
                   {editingTentacleId === column.tentacleId ? (
                     <>
@@ -254,7 +258,6 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
-                      {renderTentacleGitBadges(gitDirtyLabel, gitAheadBehindLabel, gitPullRequestLabel)}
                       {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </>
                   ) : (
@@ -273,30 +276,32 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
-                      {column.tentacleWorkspaceMode === "worktree" && (
-                        <span className="tentacle-git-cluster">
-                          {renderTentacleGitBadges(
-                            gitDirtyLabel,
-                            gitAheadBehindLabel,
-                            gitPullRequestLabel,
-                          )}
-                          <ActionButton
-                            aria-label={`Open git actions for ${column.tentacleId}`}
-                            className="tentacle-git"
-                            onClick={() => {
-                              onOpenTentacleGitActions(column.tentacleId);
-                            }}
-                            size="dense"
-                            variant="info"
-                          >
-                            Git
-                          </ActionButton>
-                        </span>
-                      )}
                       {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </h2>
                   )}
                 </div>
+                {editingTentacleId !== column.tentacleId && column.tentacleWorkspaceMode === "worktree" && (
+                  <div className="tentacle-header-git-center">
+                    <span className="tentacle-git-cluster">
+                      {renderTentacleGitBadges(
+                        gitDirtyLabel,
+                        gitAheadBehindLabel,
+                        gitPullRequestLabel,
+                      )}
+                      <ActionButton
+                        aria-label={`Open git actions for ${column.tentacleId}`}
+                        className="tentacle-git"
+                        onClick={() => {
+                          onOpenTentacleGitActions(column.tentacleId);
+                        }}
+                        size="dense"
+                        variant="info"
+                      >
+                        Git
+                      </ActionButton>
+                    </span>
+                  </div>
+                )}
                 {editingTentacleId !== column.tentacleId && (
                   <div className="tentacle-header-actions">
                     <ActionButton
