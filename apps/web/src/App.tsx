@@ -129,22 +129,16 @@ export const App = () => {
     openGitTentacleStatus,
     openGitTentaclePullRequest,
     gitCommitMessageDraft,
-    gitPullRequestTitleDraft,
-    gitPullRequestBodyDraft,
-    gitPullRequestBaseRefDraft,
     gitDialogError,
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
-    setGitPullRequestTitleDraft,
-    setGitPullRequestBodyDraft,
-    setGitPullRequestBaseRefDraft,
     openTentacleGitActions,
     closeTentacleGitActions,
     commitTentacleChanges,
+    commitAndPushTentacleBranch,
     pushTentacleBranch,
     syncTentacleBranch,
-    createTentaclePullRequest,
     mergeTentaclePullRequest,
   } = useTentacleGitLifecycle({
     columns,
@@ -400,9 +394,6 @@ export const App = () => {
           errorMessage={gitDialogError}
           gitCommitMessage={gitCommitMessageDraft}
           gitPullRequest={openGitTentaclePullRequest}
-          gitPullRequestBaseRef={gitPullRequestBaseRefDraft}
-          gitPullRequestBody={gitPullRequestBodyDraft}
-          gitPullRequestTitle={gitPullRequestTitleDraft}
           gitStatus={openGitTentacleStatus}
           isLoading={isGitDialogLoading}
           isMutating={isGitDialogMutating}
@@ -410,16 +401,13 @@ export const App = () => {
           onCommit={() => {
             void commitTentacleChanges();
           }}
-          onCommitMessageChange={setGitCommitMessageDraft}
-          onCreatePullRequest={() => {
-            void createTentaclePullRequest();
+          onCommitAndPush={() => {
+            void commitAndPushTentacleBranch();
           }}
+          onCommitMessageChange={setGitCommitMessageDraft}
           onMergePullRequest={() => {
             void mergeTentaclePullRequest();
           }}
-          onPullRequestBaseRefChange={setGitPullRequestBaseRefDraft}
-          onPullRequestBodyChange={setGitPullRequestBodyDraft}
-          onPullRequestTitleChange={setGitPullRequestTitleDraft}
           onPush={() => {
             void pushTentacleBranch();
           }}

@@ -400,7 +400,7 @@ describe("App tentacle create/rename/delete actions", () => {
     });
   });
 
-  it("creates and merges pull requests from worktree git actions dialog", async () => {
+  it("merges existing pull requests from worktree git actions dialog", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -437,51 +437,6 @@ describe("App tentacle create/rename/delete actions", () => {
       }
 
       if (url.endsWith("/api/tentacles/tentacle-pr/git/pr") && method === "GET") {
-        const created = fetchMock.mock.calls.some(
-          ([calledUrl, calledInit]) =>
-            String(calledUrl).endsWith("/api/tentacles/tentacle-pr/git/pr") &&
-            (calledInit?.method ?? "GET") === "POST",
-        );
-
-        return jsonResponse(
-          created
-            ? {
-                tentacleId: "tentacle-pr",
-                workspaceMode: "worktree",
-                status: "open",
-                number: 215,
-                url: "https://github.com/hesamsheikh/octogent/pull/215",
-                title: "feat: add PR lifecycle actions",
-                baseRef: "main",
-                headRef: "octogent/tentacle-pr",
-                isDraft: false,
-                mergeable: "MERGEABLE",
-                mergeStateStatus: "CLEAN",
-              }
-            : {
-                tentacleId: "tentacle-pr",
-                workspaceMode: "worktree",
-                status: "none",
-                number: null,
-                url: null,
-                title: null,
-                baseRef: null,
-                headRef: null,
-                isDraft: null,
-                mergeable: null,
-                mergeStateStatus: null,
-              },
-        );
-      }
-
-      if (url.endsWith("/api/tentacles/tentacle-pr/git/pr") && method === "POST") {
-        expect(init?.body).toBe(
-          JSON.stringify({
-            title: "feat: add PR lifecycle actions",
-            body: "Adds create/merge support in tentacle git dialog.",
-            baseRef: "main",
-          }),
-        );
         return jsonResponse({
           tentacleId: "tentacle-pr",
           workspaceMode: "worktree",
@@ -522,29 +477,7 @@ describe("App tentacle create/rename/delete actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-pr" }));
 
     const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-pr" });
-    const titleInput = within(gitDialog).getByLabelText("Pull request title for tentacle-pr");
-    fireEvent.change(titleInput, { target: { value: "feat: add PR lifecycle actions" } });
-    fireEvent.change(within(gitDialog).getByLabelText("Pull request body for tentacle-pr"), {
-      target: { value: "Adds create/merge support in tentacle git dialog." },
-    });
-    fireEvent.change(within(gitDialog).getByLabelText("Pull request base for tentacle-pr"), {
-      target: { value: "main" },
-    });
-    fireEvent.click(within(gitDialog).getByRole("button", { name: "Create pull request" }));
-
-    await waitFor(() => {
-      expect(
-        fetchMock.mock.calls.some(
-          ([calledUrl, calledInit]) =>
-            String(calledUrl).endsWith("/api/tentacles/tentacle-pr/git/pr") &&
-            (calledInit?.method ?? "GET") === "POST",
-        ),
-      ).toBe(true);
-    });
-
-    await waitFor(() => {
-      expect(within(tentacleColumn).getByText("PR OPEN #215")).toBeInTheDocument();
-    });
+    expect(within(gitDialog).getByRole("button", { name: "Open pull request in GitHub" })).toBeEnabled();
 
     fireEvent.click(within(gitDialog).getByRole("button", { name: "Merge pull request" }));
     await waitFor(() => {
@@ -623,8 +556,9 @@ describe("App tentacle create/rename/delete actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-blocked" }));
 
     const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-blocked" });
+    fireEvent.click(within(gitDialog).getByRole("button", { name: "Open commit options" }));
     expect(within(gitDialog).getByRole("button", { name: "Commit changes" })).toBeDisabled();
-    expect(within(gitDialog).getByRole("button", { name: "Sync with base" })).toBeDisabled();
+    expect(within(gitDialog).getByRole("menuitem", { name: "Sync with Base" })).toBeDisabled();
     expect(within(gitDialog).getByRole("button", { name: "Merge pull request" })).toBeDisabled();
 
     expect(

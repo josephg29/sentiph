@@ -82,7 +82,11 @@ For `workspaceMode: "worktree"` tentacles, keep git lifecycle operations in the 
 Keep worktree git badges (dirty/ahead-behind/PR state) visually grouped with the `Git` button in a centered tentacle-header cluster for quick scanning.
 Keep the Worktree Git Actions status block compact and high-contrast as a dense definition list (label/value rows), not tile cards.
 Prefer line-diff totals (`+insertions/-deletions`) over changed-file count in Worktree Git Actions stats, and render ahead/behind as colored numbers separated by `/`.
-Keep pull-request lifecycle controls (`create`/`merge` and current PR state) in that same in-app Git actions surface for worktree tentacles.
+Structure the Worktree Git Actions dialog around action rows where each input lives beside its action button, and show blocked reasons inline per action instead of a global disabled-reasons list.
+Model commit UX after VSCode Source Control: message composer plus a split commit button with a dropdown for secondary actions (`commit & push`, `push`, `sync`).
+Keep the split commit control full-width with a filled green primary button, and anchor the dropdown directly under the split control row.
+Do not create pull requests in-app; keep PR creation user-driven in GitHub, while still surfacing PR state and allowing merge when a branch PR exists.
+Keep pull-request lifecycle controls (`merge` and current PR state) in that same in-app Git actions surface for worktree tentacles.
 Surface pull-request state in the worktree tentacle header badges (`open`/`merged`/`closed` with PR number when available) so operators can scan lifecycle state without opening dialogs.
 When git actions are disabled in the worktree Git dialog, render explicit in-dialog blocked-action reasons instead of leaving disabled states unexplained.
 Reject duplicate pull-request creation server-side when the branch already has an open PR (returning conflict), rather than silently creating/replacing PR state.

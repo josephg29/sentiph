@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import type { TentacleGitStatusSnapshot, TentaclePullRequestSnapshot } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
@@ -7,21 +9,15 @@ type TentacleGitActionsDialogProps = {
   gitStatus: TentacleGitStatusSnapshot | null;
   gitPullRequest: TentaclePullRequestSnapshot | null;
   gitCommitMessage: string;
-  gitPullRequestTitle: string;
-  gitPullRequestBody: string;
-  gitPullRequestBaseRef: string;
   isLoading: boolean;
   isMutating: boolean;
   errorMessage: string | null;
   onCommitMessageChange: (value: string) => void;
-  onPullRequestTitleChange: (value: string) => void;
-  onPullRequestBodyChange: (value: string) => void;
-  onPullRequestBaseRefChange: (value: string) => void;
   onClose: () => void;
   onCommit: () => void;
+  onCommitAndPush: () => void;
   onPush: () => void;
   onSync: () => void;
-  onCreatePullRequest: () => void;
   onMergePullRequest: () => void;
   onCleanupWorktree: () => void;
 };
@@ -34,60 +30,63 @@ export const TentacleGitActionsDialog = ({
   gitStatus,
   gitPullRequest,
   gitCommitMessage,
-  gitPullRequestTitle,
-  gitPullRequestBody,
-  gitPullRequestBaseRef,
   isLoading,
   isMutating,
   errorMessage,
   onCommitMessageChange,
-  onPullRequestTitleChange,
-  onPullRequestBodyChange,
-  onPullRequestBaseRefChange,
   onClose,
   onCommit,
+  onCommitAndPush,
   onPush,
   onSync,
-  onCreatePullRequest,
   onMergePullRequest,
   onCleanupWorktree,
 }: TentacleGitActionsDialogProps) => {
-  const isCommitDisabled = isLoading || isMutating || gitCommitMessage.trim().length === 0;
-  const isSyncDisabled = isLoading || isMutating || Boolean(gitStatus?.isDirty);
+  const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoading || isMutating) {
+      setIsCommitMenuOpen(false);
+    }
+  }, [isLoading, isMutating]);
+
+  const globalDisabledReason = isLoading
+    ? "Git lifecycle snapshot is loading."
+    : isMutating
+      ? "Another git action is currently running."
+      : null;
+
+  const commitDisabledReason =
+    globalDisabledReason ??
+    (gitCommitMessage.trim().length === 0 ? "Commit blocked: enter a commit message." : null);
+  const commitAndPushDisabledReason = commitDisabledReason;
+
+  const pushDisabledReason =
+    globalDisabledReason ??
+    ((gitStatus?.aheadCount ?? 0) <= 0 ? "Push blocked: no local commits ahead of upstream." : null);
+
+  const syncDisabledReason =
+    globalDisabledReason ??
+    (Boolean(gitStatus?.isDirty) ? "Sync blocked: worktree has uncommitted changes." : null);
+
   const hasOpenPullRequest = gitPullRequest?.status === "open";
-  const isCreatePullRequestDisabled =
-    isLoading || isMutating || hasOpenPullRequest || gitPullRequestTitle.trim().length === 0;
   const canMergePullRequest =
     hasOpenPullRequest &&
     gitPullRequest?.isDraft !== true &&
     gitPullRequest?.mergeable !== "CONFLICTING";
-  const isMergePullRequestDisabled = isLoading || isMutating || !canMergePullRequest;
+  const mergePullRequestDisabledReason =
+    globalDisabledReason ??
+    (!hasOpenPullRequest
+      ? "Merge blocked: no open pull request."
+      : gitPullRequest?.isDraft === true
+        ? "Merge blocked: pull request is still a draft."
+        : gitPullRequest?.mergeable === "CONFLICTING"
+          ? "Merge blocked: pull request has merge conflicts."
+          : canMergePullRequest
+            ? null
+            : "Merge blocked: pull request is not mergeable yet.");
 
-  const disabledActionReasons: string[] = [];
-  if (isLoading) {
-    disabledActionReasons.push("Git lifecycle snapshot is loading.");
-  } else if (isMutating) {
-    disabledActionReasons.push("Another git action is currently running.");
-  } else {
-    if (gitCommitMessage.trim().length === 0) {
-      disabledActionReasons.push("Commit blocked: enter a commit message.");
-    }
-    if (Boolean(gitStatus?.isDirty)) {
-      disabledActionReasons.push("Sync blocked: worktree has uncommitted changes.");
-    }
-    if (hasOpenPullRequest) {
-      disabledActionReasons.push("Create pull request blocked: an open pull request already exists.");
-    } else if (gitPullRequestTitle.trim().length === 0) {
-      disabledActionReasons.push("Create pull request blocked: enter a pull request title.");
-    }
-    if (!hasOpenPullRequest) {
-      disabledActionReasons.push("Merge blocked: no open pull request.");
-    } else if (gitPullRequest?.isDraft === true) {
-      disabledActionReasons.push("Merge blocked: pull request is still a draft.");
-    } else if (gitPullRequest?.mergeable === "CONFLICTING") {
-      disabledActionReasons.push("Merge blocked: pull request has merge conflicts.");
-    }
-  }
+  const cleanupDisabledReason = globalDisabledReason;
 
   return (
     <div className="git-actions-backdrop" role="presentation">
@@ -95,9 +94,16 @@ export const TentacleGitActionsDialog = ({
         aria-label={`Git actions for ${tentacleId}`}
         className="git-actions-dialog"
         onKeyDown={(event) => {
-          if (event.key === "Escape" && !isMutating) {
-            event.preventDefault();
-            onClose();
+          if (event.key === "Escape") {
+            if (isCommitMenuOpen) {
+              event.preventDefault();
+              setIsCommitMenuOpen(false);
+              return;
+            }
+            if (!isMutating) {
+              event.preventDefault();
+              onClose();
+            }
           }
         }}
         open
@@ -146,111 +152,175 @@ export const TentacleGitActionsDialog = ({
           ) : (
             <p className="git-actions-loading">No git status available.</p>
           )}
-          <label className="git-actions-commit-label" htmlFor="git-actions-commit-input">
-            Commit message
-          </label>
-          <input
-            aria-label={`Commit message for ${tentacleId}`}
-            className="git-actions-commit-input"
-            id="git-actions-commit-input"
-            onChange={(event) => {
-              onCommitMessageChange(event.target.value);
-            }}
-            placeholder="feat: describe your change"
-            type="text"
-            value={gitCommitMessage}
-          />
-          <div className="git-actions-pr-section">
-            <h3>Pull request</h3>
-            <p className="git-actions-pr-status">
-              Status: {gitPullRequest?.status ?? "none"}
-              {gitPullRequest?.number ? ` · #${gitPullRequest.number}` : ""}
-            </p>
-            <label className="git-actions-commit-label" htmlFor="git-actions-pr-title-input">
-              PR title
-            </label>
-            <input
-              aria-label={`Pull request title for ${tentacleId}`}
-              className="git-actions-commit-input"
-              id="git-actions-pr-title-input"
-              onChange={(event) => {
-                onPullRequestTitleChange(event.target.value);
-              }}
-              placeholder="feat: summarize this branch"
-              type="text"
-              value={gitPullRequestTitle}
-            />
-            <label className="git-actions-commit-label" htmlFor="git-actions-pr-body-input">
-              PR body
+
+          <section className="git-actions-commit-panel" aria-label="Source control composer">
+            <label className="git-actions-commit-label" htmlFor="git-actions-commit-input">
+              Message
             </label>
             <textarea
-              aria-label={`Pull request body for ${tentacleId}`}
-              className="git-actions-pr-body-input"
-              id="git-actions-pr-body-input"
+              aria-label={`Commit message for ${tentacleId}`}
+              className="git-actions-message-input"
+              id="git-actions-commit-input"
               onChange={(event) => {
-                onPullRequestBodyChange(event.target.value);
+                onCommitMessageChange(event.target.value);
               }}
+              placeholder="feat: something"
               rows={3}
-              value={gitPullRequestBody}
+              value={gitCommitMessage}
             />
-            <label className="git-actions-commit-label" htmlFor="git-actions-pr-base-input">
-              PR base
-            </label>
-            <input
-              aria-label={`Pull request base for ${tentacleId}`}
-              className="git-actions-commit-input"
-              id="git-actions-pr-base-input"
-              onChange={(event) => {
-                onPullRequestBaseRefChange(event.target.value);
-              }}
-              placeholder="main"
-              type="text"
-              value={gitPullRequestBaseRef}
-            />
-          </div>
-          {errorMessage && <p className="git-actions-error">{errorMessage}</p>}
-          {disabledActionReasons.length > 0 && (
-            <div aria-live="polite" className="git-actions-disabled-reasons">
-              <p>Blocked actions</p>
-              <ul>
-                {disabledActionReasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
+            <div className="git-actions-commit-controls">
+              <ActionButton
+                aria-label="Commit changes"
+                className="git-actions-commit-main"
+                disabled={Boolean(commitDisabledReason)}
+                onClick={onCommit}
+                size="dense"
+                variant="accent"
+              >
+                {isMutating ? "Running..." : "Commit"}
+              </ActionButton>
+              <button
+                aria-expanded={isCommitMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open commit options"
+                className="git-actions-commit-toggle"
+                disabled={Boolean(globalDisabledReason)}
+                onClick={() => {
+                  setIsCommitMenuOpen((current) => !current);
+                }}
+                type="button"
+              >
+                ▾
+              </button>
             </div>
-          )}
+            {isCommitMenuOpen && (
+              <div className="git-actions-commit-menu" role="menu">
+                <button
+                  className="git-actions-commit-menu-item"
+                  disabled={Boolean(commitDisabledReason)}
+                  onClick={() => {
+                    setIsCommitMenuOpen(false);
+                    onCommit();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Commit
+                </button>
+                <button
+                  className="git-actions-commit-menu-item"
+                  disabled={Boolean(commitAndPushDisabledReason)}
+                  onClick={() => {
+                    setIsCommitMenuOpen(false);
+                    onCommitAndPush();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Commit & Push
+                </button>
+                <button
+                  className="git-actions-commit-menu-item"
+                  disabled={Boolean(pushDisabledReason)}
+                  onClick={() => {
+                    setIsCommitMenuOpen(false);
+                    onPush();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Push
+                </button>
+                <button
+                  className="git-actions-commit-menu-item"
+                  disabled={Boolean(syncDisabledReason)}
+                  onClick={() => {
+                    setIsCommitMenuOpen(false);
+                    onSync();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Sync with Base
+                </button>
+              </div>
+            )}
+            {commitDisabledReason && <p className="git-action-reason">{commitDisabledReason}</p>}
+            {pushDisabledReason && <p className="git-action-hint">{pushDisabledReason}</p>}
+            {syncDisabledReason ? (
+              <p className="git-action-hint">{syncDisabledReason}</p>
+            ) : (
+              <p className="git-action-hint">Sync is ready. Use the commit menu to run sync.</p>
+            )}
+          </section>
+
+          <section className="git-actions-pr-section" aria-label="Pull request workflow">
+            <div className="git-actions-pr-header">
+              <h3>Pull request</h3>
+              <p className="git-actions-pr-status">
+                Status: {gitPullRequest?.status ?? "none"}
+                {gitPullRequest?.number ? ` · #${gitPullRequest.number}` : ""}
+              </p>
+            </div>
+            <p className="git-action-hint">
+              Create pull requests directly in GitHub after pushing your branch.
+            </p>
+            <div className="git-actions-pr-buttons">
+              <ActionButton
+                aria-label="Merge pull request"
+                className="git-actions-merge-pr"
+                disabled={Boolean(mergePullRequestDisabledReason)}
+                onClick={onMergePullRequest}
+                size="dense"
+                variant="info"
+              >
+                Merge pull request
+              </ActionButton>
+              <ActionButton
+                aria-label="Open pull request in GitHub"
+                className="git-actions-open-pr"
+                disabled={!gitPullRequest?.url}
+                onClick={() => {
+                  if (!gitPullRequest?.url) {
+                    return;
+                  }
+                  globalThis.open?.(gitPullRequest.url, "_blank", "noopener,noreferrer");
+                }}
+                size="dense"
+                variant="accent"
+              >
+                Open on GitHub
+              </ActionButton>
+            </div>
+            {mergePullRequestDisabledReason && (
+              <p className="git-action-reason">{mergePullRequestDisabledReason}</p>
+            )}
+            {!gitPullRequest?.url && (
+              <p className="git-action-hint">No pull request URL detected for this branch yet.</p>
+            )}
+          </section>
+
+          <div className="git-action-row git-action-row--cleanup">
+            <div className="git-action-content">
+              <p className="git-action-title">Cleanup worktree</p>
+              <p className="git-action-hint">Deletes the worktree directory and branch after confirmation.</p>
+              {cleanupDisabledReason && <p className="git-action-reason">{cleanupDisabledReason}</p>}
+            </div>
+            <ActionButton
+              aria-label="Cleanup worktree"
+              className="git-actions-cleanup"
+              disabled={Boolean(cleanupDisabledReason)}
+              onClick={onCleanupWorktree}
+              size="dense"
+              variant="danger"
+            >
+              Cleanup worktree
+            </ActionButton>
+          </div>
+
+          {errorMessage && <p className="git-actions-error">{errorMessage}</p>}
         </div>
-        <div className="git-actions-buttons">
-          <ActionButton
-            aria-label="Commit changes"
-            className="git-actions-commit"
-            disabled={isCommitDisabled}
-            onClick={onCommit}
-            size="dense"
-            variant="accent"
-          >
-            {isMutating ? "Running..." : "Commit changes"}
-          </ActionButton>
-          <ActionButton
-            aria-label="Push branch"
-            className="git-actions-push"
-            disabled={isLoading || isMutating}
-            onClick={onPush}
-            size="dense"
-            variant="info"
-          >
-            Push branch
-          </ActionButton>
-          <ActionButton
-            aria-label="Sync with base"
-            className="git-actions-sync"
-            disabled={isSyncDisabled}
-            onClick={onSync}
-            size="dense"
-            variant="info"
-          >
-            Sync with base
-          </ActionButton>
+        <div className="git-actions-footer">
           <ActionButton
             aria-label="Close git actions"
             className="git-actions-close"
@@ -260,36 +330,6 @@ export const TentacleGitActionsDialog = ({
             variant="accent"
           >
             Close
-          </ActionButton>
-          <ActionButton
-            aria-label="Create pull request"
-            className="git-actions-create-pr"
-            disabled={isCreatePullRequestDisabled}
-            onClick={onCreatePullRequest}
-            size="dense"
-            variant="accent"
-          >
-            Create pull request
-          </ActionButton>
-          <ActionButton
-            aria-label="Merge pull request"
-            className="git-actions-merge-pr"
-            disabled={isMergePullRequestDisabled}
-            onClick={onMergePullRequest}
-            size="dense"
-            variant="info"
-          >
-            Merge pull request
-          </ActionButton>
-          <ActionButton
-            aria-label="Cleanup worktree"
-            className="git-actions-cleanup"
-            disabled={isLoading || isMutating}
-            onClick={onCleanupWorktree}
-            size="dense"
-            variant="danger"
-          >
-            Cleanup worktree
           </ActionButton>
         </div>
       </dialog>
