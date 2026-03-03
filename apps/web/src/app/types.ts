@@ -15,6 +15,20 @@ export type CodexUsageSnapshot = {
   creditsUnlimited?: boolean | null;
 };
 
+export type ClaudeUsageSnapshot = {
+  status: "ok" | "unavailable" | "error";
+  fetchedAt: string;
+  source: "oauth-api" | "none";
+  message?: string | null;
+  planType?: string | null;
+  primaryUsedPercent?: number | null;
+  primaryResetAt?: string | null;
+  secondaryUsedPercent?: number | null;
+  secondaryResetAt?: string | null;
+  sonnetUsedPercent?: number | null;
+  sonnetResetAt?: string | null;
+};
+
 export type GitHubCommitPoint = {
   date: string;
   count: number;
@@ -42,6 +56,7 @@ export type FrontendUiStateSnapshot = {
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
   isCodexUsageSectionExpanded?: boolean;
+  isClaudeUsageSectionExpanded?: boolean;
   tentacleCompletionSound?: TentacleCompletionSoundId;
   minimizedTentacleIds?: string[];
   tentacleWidths?: Record<string, number>;

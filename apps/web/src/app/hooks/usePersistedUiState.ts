@@ -23,6 +23,8 @@ type UsePersistedUiStateResult = {
   setSidebarWidth: Dispatch<SetStateAction<number>>;
   isActiveAgentsSectionExpanded: boolean;
   setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+  isClaudeUsageSectionExpanded: boolean;
+  setIsClaudeUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isCodexUsageSectionExpanded: boolean;
   setIsCodexUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
   tentacleCompletionSound: TentacleCompletionSoundId;
@@ -44,6 +46,7 @@ export const usePersistedUiState = ({
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
+  const [isClaudeUsageSectionExpanded, setIsClaudeUsageSectionExpanded] = useState(true);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
   const [tentacleCompletionSound, setTentacleCompletionSound] = useState<TentacleCompletionSoundId>(
     DEFAULT_TENTACLE_COMPLETION_SOUND,
@@ -101,6 +104,10 @@ export const usePersistedUiState = ({
         setIsCodexUsageSectionExpanded(snapshot.isCodexUsageSectionExpanded);
       }
 
+      if (snapshot.isClaudeUsageSectionExpanded !== undefined) {
+        setIsClaudeUsageSectionExpanded(snapshot.isClaudeUsageSectionExpanded);
+      }
+
       if (snapshot.tentacleCompletionSound !== undefined) {
         setTentacleCompletionSound(snapshot.tentacleCompletionSound);
       }
@@ -140,6 +147,7 @@ export const usePersistedUiState = ({
       isAgentsSidebarVisible,
       sidebarWidth: clampSidebarWidth(sidebarWidth),
       isActiveAgentsSectionExpanded,
+      isClaudeUsageSectionExpanded,
       isCodexUsageSectionExpanded,
       tentacleCompletionSound,
       minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
@@ -174,6 +182,7 @@ export const usePersistedUiState = ({
     columns,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
+    isClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
     isUiStateHydrated,
     minimizedTentacleIds,
@@ -191,6 +200,8 @@ export const usePersistedUiState = ({
     setSidebarWidth,
     isActiveAgentsSectionExpanded,
     setIsActiveAgentsSectionExpanded,
+    isClaudeUsageSectionExpanded,
+    setIsClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
     setIsCodexUsageSectionExpanded,
     tentacleCompletionSound,

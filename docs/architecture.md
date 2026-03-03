@@ -37,7 +37,7 @@ The web and API apps both depend on `@octogent/core`.
 - `src/terminalRuntime.ts` is orchestration-only for tentacle lifecycle and state.
 - `src/terminalRuntime/*` isolates runtime concerns:
   - registry persistence, worktree lifecycle, PTY session runtime, git system clients, protocol/constants/ids.
-- `src/codexUsage.ts` and `src/githubRepoSummary.ts` provide sidebar/status telemetry snapshots.
+- `src/codexUsage.ts`, `src/claudeUsage.ts`, and `src/githubRepoSummary.ts` provide sidebar/status telemetry snapshots.
 - `src/monitor/*` isolates monitor concerns:
   - provider contracts and service orchestration (`service.ts`)
   - provider adapter implementation (`xProvider.ts`)
@@ -47,6 +47,7 @@ The web and API apps both depend on `@octogent/core`.
 
 - `GET /api/agent-snapshots`
 - `GET /api/codex/usage`
+- `GET /api/claude/usage`
 - `GET /api/github/summary`
 - `GET /api/ui-state`
 - `PATCH /api/ui-state`

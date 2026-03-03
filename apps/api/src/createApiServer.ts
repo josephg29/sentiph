@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 
+import { readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault } from "./claudeUsage";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
@@ -12,6 +13,7 @@ import { createTerminalRuntime } from "./terminalRuntime";
 export const createApiServer = ({
   workspaceCwd,
   gitClient,
+  readClaudeUsageSnapshot = readClaudeUsageSnapshotDefault,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
   monitorService,
@@ -40,6 +42,7 @@ export const createApiServer = ({
     });
   const requestHandler = createApiRequestHandler({
     runtime,
+    readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     monitorService: monitorServiceWithDefault,

@@ -583,6 +583,35 @@ describe("createApiServer", () => {
     await expect(response.json()).resolves.toEqual(codexSnapshot);
   });
 
+  it("returns claude usage snapshot for GET /api/claude/usage", async () => {
+    const claudeSnapshot = {
+      status: "ok",
+      source: "oauth-api",
+      fetchedAt: "2026-03-03T12:00:00.000Z",
+      planType: "pro",
+      primaryUsedPercent: 11,
+      primaryResetAt: "2026-03-03T15:00:00.000Z",
+      secondaryUsedPercent: 27,
+      secondaryResetAt: "2026-03-05T00:00:00.000Z",
+      sonnetUsedPercent: 19,
+      sonnetResetAt: "2026-03-05T00:00:00.000Z",
+    } as const;
+
+    const baseUrl = await startServer({
+      readClaudeUsageSnapshot: async () => claudeSnapshot,
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(claudeSnapshot);
+  });
+
   it("returns github summary for GET /api/github/summary", async () => {
     const githubSummary: GitHubRepoSummarySnapshot = {
       status: "ok",
@@ -624,6 +653,22 @@ describe("createApiServer", () => {
     });
 
     const response = await fetch(`${baseUrl}/api/codex/usage`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns 405 for unsupported methods on /api/claude/usage", async () => {
+    const baseUrl = await startServer({
+      readClaudeUsageSnapshot: async () => ({
+        status: "unavailable",
+        source: "none",
+        fetchedAt: "2026-03-03T12:00:00.000Z",
+      }),
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage`, {
       method: "POST",
     });
 
@@ -744,6 +789,7 @@ describe("createApiServer", () => {
         isAgentsSidebarVisible: false,
         sidebarWidth: 380,
         isActiveAgentsSectionExpanded: false,
+        isClaudeUsageSectionExpanded: false,
         isCodexUsageSectionExpanded: false,
         tentacleCompletionSound: "double-beep",
         minimizedTentacleIds: ["tentacle-1"],
@@ -757,6 +803,7 @@ describe("createApiServer", () => {
       isAgentsSidebarVisible: false,
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
+      isClaudeUsageSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
       tentacleCompletionSound: "double-beep",
       minimizedTentacleIds: ["tentacle-1"],
@@ -786,6 +833,7 @@ describe("createApiServer", () => {
       isAgentsSidebarVisible: false,
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
+      isClaudeUsageSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
       tentacleCompletionSound: "double-beep",
       minimizedTentacleIds: ["tentacle-1"],

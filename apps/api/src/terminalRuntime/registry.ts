@@ -34,6 +34,10 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.isActiveAgentsSectionExpanded = value.isActiveAgentsSectionExpanded;
   }
 
+  if (typeof value.isClaudeUsageSectionExpanded === "boolean") {
+    nextState.isClaudeUsageSectionExpanded = value.isClaudeUsageSectionExpanded;
+  }
+
   if (typeof value.isCodexUsageSectionExpanded === "boolean") {
     nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
   }

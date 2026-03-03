@@ -63,6 +63,14 @@ export const buildCodexUsageUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/codex/usage");
 };
 
+export const buildClaudeUsageUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/claude/usage";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/claude/usage");
+};
+
 export const buildGithubSummaryUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/github/summary";

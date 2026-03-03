@@ -301,6 +301,16 @@ export const parseUiStatePatch = (
     patch.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
+  if (record.isClaudeUsageSectionExpanded !== undefined) {
+    if (typeof record.isClaudeUsageSectionExpanded !== "boolean") {
+      return {
+        patch: null,
+        error: "isClaudeUsageSectionExpanded must be a boolean.",
+      };
+    }
+    patch.isClaudeUsageSectionExpanded = record.isClaudeUsageSectionExpanded;
+  }
+
   if (record.isCodexUsageSectionExpanded !== undefined) {
     if (typeof record.isCodexUsageSectionExpanded !== "boolean") {
       return {

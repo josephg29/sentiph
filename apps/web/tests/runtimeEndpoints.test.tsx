@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAgentSnapshotsUrl,
+  buildClaudeUsageUrl,
   buildCodexUsageUrl,
   buildGithubSummaryUrl,
   buildMonitorConfigUrl,
@@ -47,6 +48,16 @@ describe("runtimeEndpoints", () => {
   it("builds absolute codex usage URL when runtime base URL is configured", () => {
     expect(buildCodexUsageUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/codex/usage",
+    );
+  });
+
+  it("builds claude usage URL on same origin by default", () => {
+    expect(buildClaudeUsageUrl()).toBe("/api/claude/usage");
+  });
+
+  it("builds absolute claude usage URL when runtime base URL is configured", () => {
+    expect(buildClaudeUsageUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/claude/usage",
     );
   });
 

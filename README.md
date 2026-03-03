@@ -22,6 +22,7 @@ Current UI baseline includes:
 - tentacle minimize from header and maximize from the `Active Agents` sidebar
 - minimum-width tentacle columns with horizontal scrolling when space is constrained
 - draggable tentacle splitters that resize adjacent panes
+- sidebar footer usage telemetry for Codex and Claude Code OAuth accounts
 - `[4] Monitor` tab for X topic monitoring (credentials, usage/cap metrics, top posts)
 
 ## Quickstart
@@ -40,8 +41,11 @@ In dev mode:
 - `apps/api` runs tentacle terminals as native PTY processes via `node-pty` (no `tmux` dependency).
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Optional: X developer bearer token/API credentials for Monitor data.
+- Optional: Codex OAuth credentials in `~/.codex/auth.json` and Claude OAuth credentials in `~/.claude/.credentials.json` for sidebar usage telemetry.
 - Runtime endpoints:
   - `GET /api/agent-snapshots`
+  - `GET /api/codex/usage`
+  - `GET /api/claude/usage`
   - `GET /api/monitor/config`
   - `PATCH /api/monitor/config`
   - `GET /api/monitor/feed`

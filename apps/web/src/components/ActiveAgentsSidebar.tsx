@@ -24,6 +24,8 @@ type ActiveAgentsSidebarProps = {
   onSidebarWidthChange: (width: number) => void;
   isActiveAgentsSectionExpanded: boolean;
   onActiveAgentsSectionExpandedChange: (expanded: boolean) => void;
+  isClaudeUsageSectionExpanded: boolean;
+  onClaudeUsageSectionExpandedChange: (expanded: boolean) => void;
   isCodexUsageSectionExpanded: boolean;
   onCodexUsageSectionExpandedChange: (expanded: boolean) => void;
   tentacleStates?: Record<string, CodexState>;
@@ -36,6 +38,12 @@ type ActiveAgentsSidebarProps = {
     creditsUnlimited?: boolean | null;
   } | null;
   codexUsageStatus?: "ok" | "unavailable" | "error" | "loading";
+  claudeUsageSnapshot?: {
+    primaryUsedPercent?: number | null;
+    secondaryUsedPercent?: number | null;
+    sonnetUsedPercent?: number | null;
+  } | null;
+  claudeUsageStatus?: "ok" | "unavailable" | "error" | "loading";
   actionPanel?: ReactNode;
 };
 
@@ -50,6 +58,8 @@ export const ActiveAgentsSidebar = ({
   onSidebarWidthChange,
   isActiveAgentsSectionExpanded,
   onActiveAgentsSectionExpandedChange,
+  isClaudeUsageSectionExpanded,
+  onClaudeUsageSectionExpandedChange,
   isCodexUsageSectionExpanded,
   onCodexUsageSectionExpandedChange,
   tentacleStates = {},
@@ -57,6 +67,8 @@ export const ActiveAgentsSidebar = ({
   onMaximizeTentacle,
   codexUsageSnapshot = null,
   codexUsageStatus = "loading",
+  claudeUsageSnapshot = null,
+  claudeUsageStatus = "loading",
   actionPanel = null,
 }: ActiveAgentsSidebarProps) => {
   const sidebarRef = useRef<HTMLElement | null>(null);
@@ -98,6 +110,27 @@ export const ActiveAgentsSidebar = ({
     }
     return `$${creditsBalance.toFixed(2)}`;
   }, [codexUsageSnapshot]);
+  const claudePrimaryUsagePercent = useMemo(() => {
+    const value = claudeUsageSnapshot?.primaryUsedPercent;
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, value));
+  }, [claudeUsageSnapshot]);
+  const claudeSecondaryUsagePercent = useMemo(() => {
+    const value = claudeUsageSnapshot?.secondaryUsedPercent;
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, value));
+  }, [claudeUsageSnapshot]);
+  const claudeSonnetUsagePercent = useMemo(() => {
+    const value = claudeUsageSnapshot?.sonnetUsedPercent;
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, value));
+  }, [claudeUsageSnapshot]);
 
   const handleResizeMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -329,6 +362,146 @@ export const ActiveAgentsSidebar = ({
                             : codexUsageStatus === "unavailable"
                               ? "Codex usage unavailable."
                               : "Codex usage error."}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+              <section className="active-agents-section active-agents-section--footer">
+                <button
+                  aria-controls="claude-usage-section-panel"
+                  aria-expanded={isClaudeUsageSectionExpanded}
+                  aria-label={
+                    isClaudeUsageSectionExpanded
+                      ? "Collapse Claude token usage section"
+                      : "Expand Claude token usage section"
+                  }
+                  className="active-agents-section-toggle"
+                  data-expanded={isClaudeUsageSectionExpanded ? "true" : "false"}
+                  onClick={() => {
+                    onClaudeUsageSectionExpandedChange(!isClaudeUsageSectionExpanded);
+                  }}
+                  type="button"
+                >
+                  <span className="active-agents-section-title">Claude Code token usage</span>
+                  <span className="active-agents-section-meta">Usage overview</span>
+                  <span className="active-agents-section-chevron" aria-hidden="true">
+                    {isClaudeUsageSectionExpanded ? "▾" : "▸"}
+                  </span>
+                </button>
+
+                {isClaudeUsageSectionExpanded && (
+                  <div className="active-agents-section-panel" id="claude-usage-section-panel">
+                    <div
+                      className={`active-agents-codex-usage active-agents-codex-usage--${claudeUsageStatus}`}
+                    >
+                      {claudeUsageStatus === "ok" ? (
+                        <div
+                          aria-label="Claude token usage bars"
+                          className="active-agents-codex-usage-bars"
+                        >
+                          <div className="active-agents-codex-usage-row">
+                            <span
+                              aria-label="Claude 5H token usage"
+                              aria-valuemax={100}
+                              aria-valuemin={0}
+                              aria-valuenow={
+                                claudePrimaryUsagePercent === null
+                                  ? undefined
+                                  : Math.round(claudePrimaryUsagePercent)
+                              }
+                              aria-valuetext={
+                                claudePrimaryUsagePercent === null
+                                  ? "No usage data"
+                                  : `${Math.round(claudePrimaryUsagePercent)}%`
+                              }
+                              className="active-agents-codex-usage-rail"
+                              role="progressbar"
+                              tabIndex={0}
+                            >
+                              <span
+                                className="active-agents-codex-usage-rail-fill"
+                                style={{ width: `${claudePrimaryUsagePercent ?? 0}%` }}
+                              />
+                            </span>
+                            <p className="active-agents-codex-usage-meta-row">
+                              <span className="active-agents-codex-usage-label">5H tokens</span>
+                              <span className="active-agents-codex-usage-percent">
+                                {claudePrimaryUsagePercent === null
+                                  ? "--"
+                                  : `${Math.round(claudePrimaryUsagePercent)}%`}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="active-agents-codex-usage-row">
+                            <span
+                              aria-label="Claude weekly token usage"
+                              aria-valuemax={100}
+                              aria-valuemin={0}
+                              aria-valuenow={
+                                claudeSecondaryUsagePercent === null
+                                  ? undefined
+                                  : Math.round(claudeSecondaryUsagePercent)
+                              }
+                              aria-valuetext={
+                                claudeSecondaryUsagePercent === null
+                                  ? "No usage data"
+                                  : `${Math.round(claudeSecondaryUsagePercent)}%`
+                              }
+                              className="active-agents-codex-usage-rail"
+                              role="progressbar"
+                              tabIndex={0}
+                            >
+                              <span
+                                className="active-agents-codex-usage-rail-fill"
+                                style={{ width: `${claudeSecondaryUsagePercent ?? 0}%` }}
+                              />
+                            </span>
+                            <p className="active-agents-codex-usage-meta-row">
+                              <span className="active-agents-codex-usage-label">Week tokens</span>
+                              <span className="active-agents-codex-usage-percent">
+                                {claudeSecondaryUsagePercent === null
+                                  ? "--"
+                                  : `${Math.round(claudeSecondaryUsagePercent)}%`}
+                              </span>
+                            </p>
+                          </div>
+                          {claudeSonnetUsagePercent !== null && (
+                            <div className="active-agents-codex-usage-row">
+                              <span
+                                aria-label="Claude Sonnet token usage"
+                                aria-valuemax={100}
+                                aria-valuemin={0}
+                                aria-valuenow={Math.round(claudeSonnetUsagePercent)}
+                                aria-valuetext={`${Math.round(claudeSonnetUsagePercent)}%`}
+                                className="active-agents-codex-usage-rail"
+                                role="progressbar"
+                                tabIndex={0}
+                              >
+                                <span
+                                  className="active-agents-codex-usage-rail-fill"
+                                  style={{ width: `${claudeSonnetUsagePercent}%` }}
+                                />
+                              </span>
+                              <p className="active-agents-codex-usage-meta-row">
+                                <span className="active-agents-codex-usage-label">
+                                  Sonnet tokens
+                                </span>
+                                <span className="active-agents-codex-usage-percent">
+                                  {`${Math.round(claudeSonnetUsagePercent)}%`}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="active-agents-codex-usage-status">
+                          {claudeUsageStatus === "loading"
+                            ? "Waiting for Claude usage..."
+                            : claudeUsageStatus === "unavailable"
+                              ? "Claude usage unavailable."
+                              : "Claude usage error."}
                         </p>
                       )}
                     </div>

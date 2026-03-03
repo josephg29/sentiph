@@ -17,6 +17,7 @@ Then open `http://localhost:5173`.
 - `git` for worktree tentacles
 - Optional: `gh` CLI (`gh auth login`) for live GitHub telemetry
 - Optional: Codex auth at `~/.codex/auth.json` or `CODEX_HOME/auth.json` for usage bars
+- Optional: Claude auth at `~/.claude/.credentials.json` for Claude Code usage bars
 
 ## Active Agents dashboard deck
 
@@ -33,8 +34,11 @@ Then open `http://localhost:5173`.
 - Each tentacle section lists its current agents and state badges.
 - Show/hide from the top bar sidebar icon toggle button.
 - Resize on desktop by dragging the sidebar right border.
-- The `Active Agents` sidebar footer includes a retro terminal-style Codex token usage bar (`5h`, `week`, `credits`) that refreshes every 1 minute.
+- The `Active Agents` sidebar footer includes retro terminal-style usage sections that refresh every 1 minute:
+  - Codex token usage (`5h`, `week`, `credits`)
+  - Claude Code token usage (`5h`, `week`, optional `sonnet`)
 - Codex usage is sourced from local Codex OAuth credentials (`~/.codex/auth.json` or `CODEX_HOME/auth.json`) through `GET /api/codex/usage`.
+- Claude usage is sourced from local Claude OAuth credentials (`~/.claude/.credentials.json`) through `GET /api/claude/usage` and requires the `user:profile` scope.
 - Sidebar visibility/width, section collapse state, minimized tentacles, and pane widths are persisted through `GET/PATCH /api/ui-state` in `.octogent/state/tentacles.json`.
 
 ## Create tentacles

@@ -50,6 +50,8 @@
   border-top: 1px solid var(--sidebar-border);
   background: var(--sidebar-panel);
   padding: 0;
+  display: grid;
+  gap: 0;
 }
 
 .active-agents-section {

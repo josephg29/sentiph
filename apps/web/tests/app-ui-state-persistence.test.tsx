@@ -38,12 +38,21 @@ describe("App UI state persistence", () => {
         });
       }
 
+      if (url.endsWith("/api/claude/usage") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          fetchedAt: "2026-02-24T10:00:00.000Z",
+          source: "none",
+        });
+      }
+
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
           isAgentsSidebarVisible: true,
           sidebarWidth: 380,
           isActiveAgentsSectionExpanded: true,
           isCodexUsageSectionExpanded: false,
+          isClaudeUsageSectionExpanded: false,
           tentacleCompletionSound: "retro-beep",
           minimizedTentacleIds: ["tentacle-a"],
           tentacleWidths: {
@@ -80,6 +89,11 @@ describe("App UI state persistence", () => {
         name: "Expand Codex token usage section",
       }),
     ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole("button", {
+        name: "Expand Claude token usage section",
+      }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("All tentacles minimized")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Maximize tentacle tentacle-a" }));
@@ -90,6 +104,7 @@ describe("App UI state persistence", () => {
       );
     });
     expect(uiStatePatchBodies.at(-1)?.minimizedTentacleIds).toEqual([]);
+    expect(uiStatePatchBodies.at(-1)?.isClaudeUsageSectionExpanded).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
     fireEvent.click(screen.getByRole("radio", { name: /Double beep/i }));

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
@@ -27,6 +28,7 @@ type TerminalRuntime = ReturnType<typeof import("../terminalRuntime").createTerm
 
 type CreateApiRequestHandlerOptions = {
   runtime: TerminalRuntime;
+  readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   monitorService: MonitorService;
@@ -35,6 +37,7 @@ type CreateApiRequestHandlerOptions = {
 
 type RouteHandlerDependencies = {
   runtime: TerminalRuntime;
+  readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   monitorService: MonitorService;
@@ -123,6 +126,24 @@ const handleCodexUsageRoute: ApiRouteHandler = async (
   }
 
   const payload = await readCodexUsageSnapshot();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleClaudeUsageRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { readClaudeUsageSnapshot },
+) => {
+  if (requestUrl.pathname !== "/api/claude/usage") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const payload = await readClaudeUsageSnapshot();
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };
@@ -594,6 +615,7 @@ const handleTentacleItemRoute: ApiRouteHandler = async (
 const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
   handleAgentSnapshotsRoute,
   handleCodexUsageRoute,
+  handleClaudeUsageRoute,
   handleGithubSummaryRoute,
   handleUiStateRoute,
   handleMonitorConfigRoute,
@@ -607,6 +629,7 @@ const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
 
 export const createApiRequestHandler = ({
   runtime,
+  readClaudeUsageSnapshot,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
   monitorService,
@@ -614,6 +637,7 @@ export const createApiRequestHandler = ({
 }: CreateApiRequestHandlerOptions) => {
   const routeDependencies: RouteHandlerDependencies = {
     runtime,
+    readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary,
     monitorService,

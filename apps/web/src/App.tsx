@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type GitHubSubtabId, PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./app/constants";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
+import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
@@ -51,12 +52,14 @@ export const App = () => {
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
+    isClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
     isUiStateHydrated,
     minimizedTentacleIds,
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
+    setIsClaudeUsageSectionExpanded,
     setIsCodexUsageSectionExpanded,
     setIsUiStateHydrated,
     setMinimizedTentacleIds,
@@ -155,6 +158,7 @@ export const App = () => {
   });
 
   const codexUsageSnapshot = useCodexUsagePolling();
+  const claudeUsageSnapshot = useClaudeUsagePolling();
   const backendLivenessStatus = useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
@@ -331,6 +335,8 @@ export const App = () => {
         <div className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}>
           {isAgentsSidebarVisible && (
             <ActiveAgentsSidebar
+              claudeUsageSnapshot={claudeUsageSnapshot}
+              claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
               columns={columns}
               codexUsageSnapshot={codexUsageSnapshot}
               codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
@@ -342,6 +348,8 @@ export const App = () => {
               }}
               isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
               onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
+              isClaudeUsageSectionExpanded={isClaudeUsageSectionExpanded}
+              onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
               isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
               onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
               tentacleStates={tentacleStates}
