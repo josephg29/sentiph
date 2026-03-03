@@ -301,6 +301,26 @@ export const parseUiStatePatch = (
     patch.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
+  if (record.isCodexUsageVisible !== undefined) {
+    if (typeof record.isCodexUsageVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isCodexUsageVisible must be a boolean.",
+      };
+    }
+    patch.isCodexUsageVisible = record.isCodexUsageVisible;
+  }
+
+  if (record.isClaudeUsageVisible !== undefined) {
+    if (typeof record.isClaudeUsageVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isClaudeUsageVisible must be a boolean.",
+      };
+    }
+    patch.isClaudeUsageVisible = record.isClaudeUsageVisible;
+  }
+
   if (record.isClaudeUsageSectionExpanded !== undefined) {
     if (typeof record.isClaudeUsageSectionExpanded !== "boolean") {
       return {

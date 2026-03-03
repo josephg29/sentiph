@@ -72,6 +72,7 @@ The web and API apps both depend on `@octogent/core`.
 - Reconnect attaches to the same PTY and receives bounded replay of recent output before live stream resumes.
 - Worktree tentacles run in `.octogent/worktrees/<tentacleId>` and are created via `git worktree`.
 - UI state persistence is server-backed (`GET/PATCH /api/ui-state`), not browser-local only.
+- Persisted UI state includes sidebar usage footer visibility/collapse preferences for both Codex and Claude sections.
 
 ## Security and transport defaults
 

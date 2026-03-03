@@ -155,6 +155,14 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
+  if (typeof record.isCodexUsageVisible === "boolean") {
+    nextState.isCodexUsageVisible = record.isCodexUsageVisible;
+  }
+
+  if (typeof record.isClaudeUsageVisible === "boolean") {
+    nextState.isClaudeUsageVisible = record.isClaudeUsageVisible;
+  }
+
   if (typeof record.isCodexUsageSectionExpanded === "boolean") {
     nextState.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
   }

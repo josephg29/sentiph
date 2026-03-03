@@ -24,7 +24,9 @@ type ActiveAgentsSidebarProps = {
   onSidebarWidthChange: (width: number) => void;
   isActiveAgentsSectionExpanded: boolean;
   onActiveAgentsSectionExpandedChange: (expanded: boolean) => void;
+  isCodexUsageVisible: boolean;
   isClaudeUsageSectionExpanded: boolean;
+  isClaudeUsageVisible: boolean;
   onClaudeUsageSectionExpandedChange: (expanded: boolean) => void;
   isCodexUsageSectionExpanded: boolean;
   onCodexUsageSectionExpandedChange: (expanded: boolean) => void;
@@ -58,6 +60,8 @@ export const ActiveAgentsSidebar = ({
   onSidebarWidthChange,
   isActiveAgentsSectionExpanded,
   onActiveAgentsSectionExpandedChange,
+  isCodexUsageVisible,
+  isClaudeUsageVisible,
   isClaudeUsageSectionExpanded,
   onClaudeUsageSectionExpandedChange,
   isCodexUsageSectionExpanded,
@@ -148,6 +152,8 @@ export const ActiveAgentsSidebar = ({
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", stopResize);
   };
+
+  const showUsageFooter = isCodexUsageVisible || isClaudeUsageVisible;
 
   return (
     <div className="dashboard-deck-shell">
@@ -253,8 +259,10 @@ export const ActiveAgentsSidebar = ({
                 )}
               </section>
             </div>
-            <footer className="active-agents-footer">
-              <section className="active-agents-section active-agents-section--footer">
+            {showUsageFooter && (
+              <footer className="active-agents-footer">
+                {isCodexUsageVisible && (
+                  <section className="active-agents-section active-agents-section--footer">
                 <button
                   aria-controls="codex-usage-section-panel"
                   aria-expanded={isCodexUsageSectionExpanded}
@@ -368,7 +376,9 @@ export const ActiveAgentsSidebar = ({
                   </div>
                 )}
               </section>
-              <section className="active-agents-section active-agents-section--footer">
+                )}
+                {isClaudeUsageVisible && (
+                  <section className="active-agents-section active-agents-section--footer">
                 <button
                   aria-controls="claude-usage-section-panel"
                   aria-expanded={isClaudeUsageSectionExpanded}
@@ -508,7 +518,9 @@ export const ActiveAgentsSidebar = ({
                   </div>
                 )}
               </section>
-            </footer>
+                )}
+              </footer>
+            )}
           </>
         )}
         <div

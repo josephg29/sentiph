@@ -107,6 +107,8 @@ export type PersistedUiState = {
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
+  isCodexUsageVisible?: boolean;
+  isClaudeUsageVisible?: boolean;
   isClaudeUsageSectionExpanded?: boolean;
   isCodexUsageSectionExpanded?: boolean;
   tentacleCompletionSound?: TentacleCompletionSound;

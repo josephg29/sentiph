@@ -52,14 +52,18 @@ export const App = () => {
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
+    isClaudeUsageVisible,
     isClaudeUsageSectionExpanded,
+    isCodexUsageVisible,
     isCodexUsageSectionExpanded,
     isUiStateHydrated,
     minimizedTentacleIds,
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
+    setIsClaudeUsageVisible,
     setIsClaudeUsageSectionExpanded,
+    setIsCodexUsageVisible,
     setIsCodexUsageSectionExpanded,
     setIsUiStateHydrated,
     setMinimizedTentacleIds,
@@ -348,7 +352,9 @@ export const App = () => {
               }}
               isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
               onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
+              isClaudeUsageVisible={isClaudeUsageVisible}
               isClaudeUsageSectionExpanded={isClaudeUsageSectionExpanded}
+              isCodexUsageVisible={isCodexUsageVisible}
               onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
               isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
               onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
@@ -396,6 +402,10 @@ export const App = () => {
             />
           ) : isSettingsPrimaryView ? (
             <SettingsPrimaryView
+              isClaudeUsageVisible={isClaudeUsageVisible}
+              isCodexUsageVisible={isCodexUsageVisible}
+              onClaudeUsageVisibilityChange={setIsClaudeUsageVisible}
+              onCodexUsageVisibilityChange={setIsCodexUsageVisible}
               onPreviewTentacleCompletionSound={playCompletionSoundPreview}
               onTentacleCompletionSoundChange={setTentacleCompletionSound}
               tentacleCompletionSound={tentacleCompletionSound}

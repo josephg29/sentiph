@@ -267,6 +267,12 @@ export const createTerminalRuntime = ({
       if (patch.isActiveAgentsSectionExpanded !== undefined) {
         uiState.isActiveAgentsSectionExpanded = patch.isActiveAgentsSectionExpanded;
       }
+      if (patch.isCodexUsageVisible !== undefined) {
+        uiState.isCodexUsageVisible = patch.isCodexUsageVisible;
+      }
+      if (patch.isClaudeUsageVisible !== undefined) {
+        uiState.isClaudeUsageVisible = patch.isClaudeUsageVisible;
+      }
       if (patch.isClaudeUsageSectionExpanded !== undefined) {
         uiState.isClaudeUsageSectionExpanded = patch.isClaudeUsageSectionExpanded;
       }

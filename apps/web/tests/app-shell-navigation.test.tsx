@@ -67,6 +67,12 @@ describe("App shell and navigation", () => {
     expect(
       screen.getByRole("radiogroup", { name: "Tentacle completion notification sound" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Show Codex token usage in sidebar" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Show Claude token usage in sidebar" }),
+    ).toBeInTheDocument();
   });
 
   it("previews completion sound when a settings option is selected", async () => {

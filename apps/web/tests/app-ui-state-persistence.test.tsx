@@ -51,6 +51,8 @@ describe("App UI state persistence", () => {
           isAgentsSidebarVisible: true,
           sidebarWidth: 380,
           isActiveAgentsSectionExpanded: true,
+          isCodexUsageVisible: true,
+          isClaudeUsageVisible: true,
           isCodexUsageSectionExpanded: false,
           isClaudeUsageSectionExpanded: false,
           tentacleCompletionSound: "retro-beep",
@@ -105,6 +107,8 @@ describe("App UI state persistence", () => {
     });
     expect(uiStatePatchBodies.at(-1)?.minimizedTentacleIds).toEqual([]);
     expect(uiStatePatchBodies.at(-1)?.isClaudeUsageSectionExpanded).toBe(false);
+    expect(uiStatePatchBodies.at(-1)?.isCodexUsageVisible).toBe(true);
+    expect(uiStatePatchBodies.at(-1)?.isClaudeUsageVisible).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
     fireEvent.click(screen.getByRole("radio", { name: /Double beep/i }));

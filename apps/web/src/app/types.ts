@@ -55,6 +55,8 @@ export type FrontendUiStateSnapshot = {
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
+  isCodexUsageVisible?: boolean;
+  isClaudeUsageVisible?: boolean;
   isCodexUsageSectionExpanded?: boolean;
   isClaudeUsageSectionExpanded?: boolean;
   tentacleCompletionSound?: TentacleCompletionSoundId;
