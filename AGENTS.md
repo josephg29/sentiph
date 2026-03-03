@@ -63,6 +63,7 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 ### Tentacle Focus Mode Preference
 
 For focused/selected tentacles, use border-color change only as the visual cue. Avoid glow halos, pulsing effects, and lift/translate effects.
+Do not render a separate `Focused` badge in the tentacle header.
 
 ### Main Board Consistency Preference
 

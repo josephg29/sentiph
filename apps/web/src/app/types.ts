@@ -39,6 +39,14 @@ export type GitHubCommitSparkPoint = GitHubCommitPoint & {
   y: number;
 };
 
+export type GitHubRecentCommit = {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  authorName: string;
+  authoredAt: string;
+};
+
 export type GitHubRepoSummarySnapshot = {
   status: "ok" | "unavailable" | "error";
   fetchedAt: string;
@@ -49,6 +57,7 @@ export type GitHubRepoSummarySnapshot = {
   openIssueCount?: number | null;
   openPullRequestCount?: number | null;
   commitsPerDay?: GitHubCommitPoint[];
+  recentCommits?: GitHubRecentCommit[];
 };
 
 export type FrontendUiStateSnapshot = {

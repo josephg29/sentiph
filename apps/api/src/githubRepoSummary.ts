@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const COMMIT_SERIES_DAYS = 30;
+const RECENT_COMMIT_LIMIT = 50;
 const GITHUB_REPOSITORY_QUERY =
   "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){nameWithOwner stargazerCount issues(states:OPEN){totalCount} pullRequests(states:OPEN){totalCount}}}";
 
@@ -25,6 +26,14 @@ type GitHubCommitPoint = {
   count: number;
 };
 
+type GitHubRecentCommit = {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  authorName: string;
+  authoredAt: string;
+};
+
 type GitHubSummaryStatus = "ok" | "unavailable" | "error";
 
 export type GitHubRepoSummarySnapshot = {
@@ -37,6 +46,7 @@ export type GitHubRepoSummarySnapshot = {
   openIssueCount?: number | null;
   openPullRequestCount?: number | null;
   commitsPerDay?: GitHubCommitPoint[];
+  recentCommits?: GitHubRecentCommit[];
 };
 
 export type GitHubRepoSummaryDependencies = {
@@ -235,6 +245,51 @@ const readCommitSeries = async (
   }));
 };
 
+const parseRecentCommit = (entry: string): GitHubRecentCommit | null => {
+  const [rawHash, rawShortHash, rawAuthorName, rawAuthoredAt, ...subjectParts] = entry
+    .split("\u001f")
+    .map((part) => part.trim());
+  const rawSubject = subjectParts.join("\u001f").trim();
+
+  if (!rawHash || !rawShortHash || !rawAuthorName || !rawAuthoredAt || !rawSubject) {
+    return null;
+  }
+
+  const authoredAtMs = Date.parse(rawAuthoredAt);
+
+  return {
+    hash: rawHash,
+    shortHash: rawShortHash,
+    subject: rawSubject,
+    authorName: rawAuthorName,
+    authoredAt: Number.isFinite(authoredAtMs) ? new Date(authoredAtMs).toISOString() : rawAuthoredAt,
+  };
+};
+
+const readRecentCommits = async (runCommand: RunCommand, cwd: string, env: NodeJS.ProcessEnv) => {
+  const { stdout } = await runCommand(
+    "git",
+    [
+      "log",
+      `-${RECENT_COMMIT_LIMIT}`,
+      "--date=iso-strict",
+      "--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1e",
+    ],
+    {
+      cwd,
+      env,
+    },
+  );
+
+  return stdout
+    .split("\u001e")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .map((entry) => parseRecentCommit(entry))
+    .filter((commit): commit is GitHubRecentCommit => commit !== null)
+    .slice(0, RECENT_COMMIT_LIMIT);
+};
+
 export const readGithubRepoSummary = async (
   dependencies: GitHubRepoSummaryDependencies = {},
 ): Promise<GitHubRepoSummarySnapshot> => {
@@ -259,9 +314,10 @@ export const readGithubRepoSummary = async (
   }
 
   try {
-    const [stats, commitsPerDay] = await Promise.all([
+    const [stats, commitsPerDay, recentCommits] = await Promise.all([
       readRepositoryStats(runCommand, cwd, env, repository),
       readCommitSeries(runCommand, cwd, env, now),
+      readRecentCommits(runCommand, cwd, env),
     ]);
 
     return {
@@ -273,6 +329,7 @@ export const readGithubRepoSummary = async (
       openIssueCount: stats.openIssueCount,
       openPullRequestCount: stats.openPullRequestCount,
       commitsPerDay,
+      recentCommits,
     };
   } catch (error) {
     const knownFailure = readGhAuthenticationFailure(error);

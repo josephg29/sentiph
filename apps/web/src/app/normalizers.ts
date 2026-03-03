@@ -5,6 +5,7 @@ import type {
   CodexUsageSnapshot,
   FrontendUiStateSnapshot,
   GitHubCommitPoint,
+  GitHubRecentCommit,
   GitHubRepoSummarySnapshot,
   MonitorConfigSnapshot,
   MonitorFeedSnapshot,
@@ -103,6 +104,30 @@ const normalizeGitHubCommitPoint = (value: unknown): GitHubCommitPoint | null =>
   };
 };
 
+const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const hash = asString(record.hash)?.trim();
+  const shortHash = asString(record.shortHash)?.trim();
+  const subject = asString(record.subject)?.trim();
+  const authorName = asString(record.authorName)?.trim();
+  const authoredAt = asString(record.authoredAt)?.trim();
+  if (!hash || !shortHash || !subject || !authorName || !authoredAt) {
+    return null;
+  }
+
+  return {
+    hash,
+    shortHash,
+    subject,
+    authorName,
+    authoredAt,
+  };
+};
+
 export const normalizeGitHubRepoSummarySnapshot = (
   value: unknown,
 ): GitHubRepoSummarySnapshot | null => {
@@ -120,6 +145,10 @@ export const normalizeGitHubRepoSummarySnapshot = (
   const commitsPerDay = rawCommitsPerDay
     .map((point) => normalizeGitHubCommitPoint(point))
     .filter((point): point is GitHubCommitPoint => point !== null);
+  const rawRecentCommits = Array.isArray(record.recentCommits) ? record.recentCommits : [];
+  const recentCommits = rawRecentCommits
+    .map((commit) => normalizeGitHubRecentCommit(commit))
+    .filter((commit): commit is GitHubRecentCommit => commit !== null);
 
   return {
     status,
@@ -131,6 +160,7 @@ export const normalizeGitHubRepoSummarySnapshot = (
     openIssueCount: asNumber(record.openIssueCount),
     openPullRequestCount: asNumber(record.openPullRequestCount),
     commitsPerDay,
+    recentCommits,
   };
 };
 

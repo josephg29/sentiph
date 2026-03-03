@@ -1,7 +1,7 @@
 import { buildTentacleColumns } from "@octogent/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { type GitHubSubtabId, PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./app/constants";
+import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./app/constants";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
@@ -41,7 +41,6 @@ export const App = () => {
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(0);
-  const [activeGitHubSubtab, setActiveGitHubSubtab] = useState<GitHubSubtabId>("overview");
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
@@ -229,6 +228,7 @@ export const App = () => {
     githubStarCountLabel,
     githubOpenIssuesLabel,
     githubOpenPrsLabel,
+    githubRecentCommits,
   } = useGitHubPrimaryViewModel({
     githubRepoSummary,
     hoveredGitHubOverviewPointIndex,
@@ -377,10 +377,10 @@ export const App = () => {
 
           {isGitHubPrimaryView ? (
             <GitHubPrimaryView
-              activeGitHubSubtab={activeGitHubSubtab}
               githubCommitCount30d={githubCommitCount30d}
               githubOpenIssuesLabel={githubOpenIssuesLabel}
               githubOpenPrsLabel={githubOpenPrsLabel}
+              githubRecentCommits={githubRecentCommits}
               githubOverviewGraphPolylinePoints={githubOverviewGraphPolylinePoints}
               githubOverviewGraphSeries={githubOverviewGraphSeries}
               githubOverviewHoverLabel={githubOverviewHoverLabel}
@@ -389,7 +389,6 @@ export const App = () => {
               githubStatusPill={githubStatusPill}
               hoveredGitHubOverviewPointIndex={hoveredGitHubOverviewPointIndex}
               isRefreshingGitHubSummary={isRefreshingGitHubSummary}
-              onGitHubSubtabChange={setActiveGitHubSubtab}
               onHoveredGitHubOverviewPointIndexChange={setHoveredGitHubOverviewPointIndex}
               onRefresh={() => {
                 void refreshGitHubRepoSummary();

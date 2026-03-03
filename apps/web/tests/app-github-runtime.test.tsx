@@ -4,6 +4,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
+const buildRecentCommits = () =>
+  Array.from({ length: 50 }, (_, index) => {
+    const offset = index + 1;
+    const day = String(Math.max(1, 27 - index)).padStart(2, "0");
+    return {
+      hash: `hash-${offset.toString(16).padStart(40, "a")}`,
+      shortHash: `short${offset}`,
+      subject: `recent commit ${offset}`,
+      authorName: "Hesam Sheikh",
+      authoredAt: `2026-02-${day}T10:12:00.000Z`,
+    };
+  });
+
 const mockGithubRuntimeRequests = () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input);
@@ -35,6 +48,7 @@ const mockGithubRuntimeRequests = () => {
           { date: "2026-02-26", count: 6 },
           { date: "2026-02-27", count: 8 },
         ],
+        recentCommits: buildRecentCommits(),
       });
     }
 
@@ -66,7 +80,7 @@ describe("App GitHub runtime views", () => {
     expect(sparkline?.getAttribute("points")).not.toBe("");
   });
 
-  it("renders [1] GitHub with an Overview subtab and hoverable overview graph", async () => {
+  it("renders [1] GitHub overview and hoverable overview graph", async () => {
     mockGithubRuntimeRequests();
 
     const { container } = render(<App />);
@@ -79,17 +93,15 @@ describe("App GitHub runtime views", () => {
     );
 
     const githubView = await screen.findByLabelText("GitHub primary view");
-    expect(
-      within(githubView).getByRole("navigation", { name: "GitHub subtabs" }),
-    ).toBeInTheDocument();
-    expect(within(githubView).getByRole("button", { name: "Overview" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
     expect(within(githubView).getByText("hesamsheikh/octogent")).toBeInTheDocument();
     expect(
       within(githubView).getByRole("button", { name: "Refresh GitHub overview data" }),
     ).toBeInTheDocument();
+    expect(within(githubView).getByText("Recent commits")).toBeInTheDocument();
+    expect(within(githubView).getByText("Showing last 50")).toBeInTheDocument();
+    expect(within(githubView).getByText("recent commit 1")).toBeInTheDocument();
+    expect(within(githubView).getByText("recent commit 50")).toBeInTheDocument();
+    expect(within(githubView).getAllByRole("listitem")).toHaveLength(50);
 
     const graphPoint = container.querySelector(
       ".github-overview-graph-point[aria-label='2026-02-27 · 8 commits']",

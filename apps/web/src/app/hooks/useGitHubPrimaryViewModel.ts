@@ -15,7 +15,11 @@ import {
   buildGitHubStatusPill,
   formatGitHubCommitHoverLabel,
 } from "../githubMetrics";
-import type { GitHubCommitSparkPoint, GitHubRepoSummarySnapshot } from "../types";
+import type {
+  GitHubCommitSparkPoint,
+  GitHubRecentCommit,
+  GitHubRepoSummarySnapshot,
+} from "../types";
 
 type UseGitHubPrimaryViewModelOptions = {
   githubRepoSummary: GitHubRepoSummarySnapshot | null;
@@ -34,6 +38,7 @@ type GitHubPrimaryViewModel = {
   githubStarCountLabel: string;
   githubOpenIssuesLabel: string;
   githubOpenPrsLabel: string;
+  githubRecentCommits: GitHubRecentCommit[];
 };
 
 export const useGitHubPrimaryViewModel = ({
@@ -120,6 +125,7 @@ export const useGitHubPrimaryViewModel = ({
     githubRepoSummary?.openPullRequestCount !== undefined
       ? Math.round(githubRepoSummary.openPullRequestCount).toString()
       : "--";
+  const githubRecentCommits = (githubRepoSummary?.recentCommits ?? []).slice(0, 50);
 
   return {
     githubCommitCount30d,
@@ -132,5 +138,6 @@ export const useGitHubPrimaryViewModel = ({
     githubStarCountLabel,
     githubOpenIssuesLabel,
     githubOpenPrsLabel,
+    githubRecentCommits,
   };
 };

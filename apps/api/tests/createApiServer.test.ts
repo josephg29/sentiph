@@ -626,6 +626,15 @@ describe("createApiServer", () => {
         { date: "2026-02-26", count: 6 },
         { date: "2026-02-27", count: 8 },
       ],
+      recentCommits: [
+        {
+          hash: "d8f2d9b7aa9f53f8fa254d8e0f3a13270435e321",
+          shortHash: "d8f2d9b",
+          subject: "tighten monitor polling backoff strategy",
+          authorName: "Hesam Sheikh",
+          authoredAt: "2026-02-27T10:12:00.000Z",
+        },
+      ],
     };
 
     const baseUrl = await startServer({
