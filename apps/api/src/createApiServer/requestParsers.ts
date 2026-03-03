@@ -1,7 +1,11 @@
 import type { IncomingMessage } from "node:http";
 
 import type { MonitorConfigPatchInput } from "../monitor";
-import type { PersistedUiState, TentacleWorkspaceMode } from "../terminalRuntime";
+import {
+  type PersistedUiState,
+  type TentacleWorkspaceMode,
+  isTentacleCompletionSound,
+} from "../terminalRuntime";
 
 export const MAX_JSON_BODY_BYTES = 1024 * 1024;
 
@@ -164,6 +168,16 @@ export const parseUiStatePatch = (
       };
     }
     patch.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
+  }
+
+  if (record.tentacleCompletionSound !== undefined) {
+    if (!isTentacleCompletionSound(record.tentacleCompletionSound)) {
+      return {
+        patch: null,
+        error: "tentacleCompletionSound must be one of the supported sound identifiers.",
+      };
+    }
+    patch.tentacleCompletionSound = record.tentacleCompletionSound;
   }
 
   if (record.minimizedTentacleIds !== undefined) {

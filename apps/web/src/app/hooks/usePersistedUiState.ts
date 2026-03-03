@@ -3,6 +3,10 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import { DEFAULT_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import {
+  DEFAULT_TENTACLE_COMPLETION_SOUND,
+  type TentacleCompletionSoundId,
+} from "../notificationSounds";
 import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
 import type { FrontendUiStateSnapshot, TentacleView } from "../types";
 
@@ -21,6 +25,8 @@ type UsePersistedUiStateResult = {
   setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isCodexUsageSectionExpanded: boolean;
   setIsCodexUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
+  tentacleCompletionSound: TentacleCompletionSoundId;
+  setTentacleCompletionSound: Dispatch<SetStateAction<TentacleCompletionSoundId>>;
   minimizedTentacleIds: string[];
   setMinimizedTentacleIds: Dispatch<SetStateAction<string[]>>;
   tentacleWidths: Record<string, number>;
@@ -39,6 +45,9 @@ export const usePersistedUiState = ({
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
+  const [tentacleCompletionSound, setTentacleCompletionSound] = useState<TentacleCompletionSoundId>(
+    DEFAULT_TENTACLE_COMPLETION_SOUND,
+  );
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
   const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
@@ -92,6 +101,10 @@ export const usePersistedUiState = ({
         setIsCodexUsageSectionExpanded(snapshot.isCodexUsageSectionExpanded);
       }
 
+      if (snapshot.tentacleCompletionSound !== undefined) {
+        setTentacleCompletionSound(snapshot.tentacleCompletionSound);
+      }
+
       if (snapshot.minimizedTentacleIds) {
         const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
         setMinimizedTentacleIds(
@@ -128,6 +141,7 @@ export const usePersistedUiState = ({
       sidebarWidth: clampSidebarWidth(sidebarWidth),
       isActiveAgentsSectionExpanded,
       isCodexUsageSectionExpanded,
+      tentacleCompletionSound,
       minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
         activeTentacleIds.has(tentacleId),
       ),
@@ -164,6 +178,7 @@ export const usePersistedUiState = ({
     isUiStateHydrated,
     minimizedTentacleIds,
     sidebarWidth,
+    tentacleCompletionSound,
     tentacleWidths,
   ]);
 
@@ -178,6 +193,8 @@ export const usePersistedUiState = ({
     setIsActiveAgentsSectionExpanded,
     isCodexUsageSectionExpanded,
     setIsCodexUsageSectionExpanded,
+    tentacleCompletionSound,
+    setTentacleCompletionSound,
     minimizedTentacleIds,
     setMinimizedTentacleIds,
     tentacleWidths,

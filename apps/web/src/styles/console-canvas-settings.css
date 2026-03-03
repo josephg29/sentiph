@@ -1,0 +1,101 @@
+.console-shell .settings-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.56rem;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.settings-panel {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #090d12;
+  padding: 0.68rem;
+  display: grid;
+  align-content: start;
+  gap: 0.58rem;
+}
+
+.settings-panel-header {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.settings-panel-header h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.02em;
+}
+
+.settings-panel-header p {
+  margin: 0;
+  color: #9eb0c8;
+  font-size: 0.82rem;
+}
+
+.settings-sound-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0.34rem;
+}
+
+.settings-sound-option {
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  cursor: pointer;
+  text-align: left;
+  padding: 0.42rem 0.46rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.settings-sound-option[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
+  background: color-mix(in srgb, var(--accent-primary) 24%, #11161d 76%);
+  color: #f2e6c2;
+}
+
+.settings-sound-option:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 78%, #f0cf75);
+  outline-offset: 1px;
+}
+
+.settings-sound-option-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-sound-option-description {
+  color: #93a4bb;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  line-height: 1.34;
+}
+
+.settings-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  flex-wrap: wrap;
+}
+
+.settings-sound-preview {
+  --action-button-font-size: 0.76rem;
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.4rem;
+}
+
+.settings-saved-pill {
+  border: 1px solid #2f3946;
+  background: #111822;
+  color: #d9e4f6;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.14rem 0.36rem;
+}

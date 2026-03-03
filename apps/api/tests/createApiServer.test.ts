@@ -380,6 +380,26 @@ describe("createApiServer", () => {
     });
   });
 
+  it("returns 400 for unsupported tentacle completion sound values", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/ui-state`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tentacleCompletionSound: "laser-zap",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "tentacleCompletionSound must be one of the supported sound identifiers.",
+    });
+  });
+
   it("restores ui state across API restarts using persisted registry", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
@@ -407,6 +427,7 @@ describe("createApiServer", () => {
         sidebarWidth: 380,
         isActiveAgentsSectionExpanded: false,
         isCodexUsageSectionExpanded: false,
+        tentacleCompletionSound: "double-beep",
         minimizedTentacleIds: ["tentacle-1"],
         tentacleWidths: {
           "tentacle-1": 420,
@@ -419,6 +440,7 @@ describe("createApiServer", () => {
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
+      tentacleCompletionSound: "double-beep",
       minimizedTentacleIds: ["tentacle-1"],
       tentacleWidths: {
         "tentacle-1": 420,
@@ -447,6 +469,7 @@ describe("createApiServer", () => {
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
+      tentacleCompletionSound: "double-beep",
       minimizedTentacleIds: ["tentacle-1"],
       tentacleWidths: {
         "tentacle-1": 420,

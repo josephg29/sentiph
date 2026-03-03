@@ -11,6 +11,7 @@ import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydrati
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardInteractions";
+import { useTentacleCompletionNotification } from "./app/hooks/useTentacleCompletionNotification";
 import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
 import { useTentacleNameInputFocus } from "./app/hooks/useTentacleNameInputFocus";
 import { useTentacleStateReconciliation } from "./app/hooks/useTentacleStateReconciliation";
@@ -24,6 +25,7 @@ import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
 import { GitHubPrimaryView } from "./components/GitHubPrimaryView";
 import { MonitorPrimaryView } from "./components/MonitorPrimaryView";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
+import { SettingsPrimaryView } from "./components/SettingsPrimaryView";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { TentacleBoard } from "./components/TentacleBoard";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
@@ -57,8 +59,10 @@ export const App = () => {
     setIsUiStateHydrated,
     setMinimizedTentacleIds,
     setSidebarWidth,
+    setTentacleCompletionSound,
     setTentacleWidths,
     sidebarWidth,
+    tentacleCompletionSound,
     tentacleWidths,
   } = usePersistedUiState({ columns });
 
@@ -156,6 +160,10 @@ export const App = () => {
     setMinimizedTentacleIds,
     setTentacleStates,
   });
+  const { playCompletionSoundPreview } = useTentacleCompletionNotification(
+    tentacleStates,
+    tentacleCompletionSound,
+  );
   const {
     monitorConfig,
     monitorFeed,
@@ -186,6 +194,7 @@ export const App = () => {
   });
   const isGitHubPrimaryView = activePrimaryNav === 1;
   const isMonitorPrimaryView = activePrimaryNav === 2;
+  const isSettingsPrimaryView = activePrimaryNav === 3;
 
   const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
     setTentacleStates((current) => {
@@ -291,6 +300,12 @@ export const App = () => {
               onSyncFeed={() => {
                 void refreshMonitorFeed(false);
               }}
+            />
+          ) : isSettingsPrimaryView ? (
+            <SettingsPrimaryView
+              onPreviewTentacleCompletionSound={playCompletionSoundPreview}
+              onTentacleCompletionSoundChange={setTentacleCompletionSound}
+              tentacleCompletionSound={tentacleCompletionSound}
             />
           ) : (
             <TentacleBoard

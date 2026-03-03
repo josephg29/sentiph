@@ -10,6 +10,7 @@ import type {
   TentacleRegistryDocument,
   TentacleWorkspaceMode,
 } from "./types";
+import { isTentacleCompletionSound } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -35,6 +36,10 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
 
   if (typeof value.isCodexUsageSectionExpanded === "boolean") {
     nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
+  }
+
+  if (isTentacleCompletionSound(value.tentacleCompletionSound)) {
+    nextState.tentacleCompletionSound = value.tentacleCompletionSound;
   }
 
   if (Array.isArray(value.minimizedTentacleIds)) {

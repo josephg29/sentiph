@@ -1,4 +1,5 @@
 import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./constants";
+import { isTentacleCompletionSoundId } from "./notificationSounds";
 import type {
   CodexUsageSnapshot,
   FrontendUiStateSnapshot,
@@ -128,6 +129,10 @@ export const normalizeFrontendUiStateSnapshot = (
 
   if (typeof record.isCodexUsageSectionExpanded === "boolean") {
     nextState.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
+  }
+
+  if (isTentacleCompletionSoundId(record.tentacleCompletionSound)) {
+    nextState.tentacleCompletionSound = record.tentacleCompletionSound;
   }
 
   if (Array.isArray(record.minimizedTentacleIds)) {

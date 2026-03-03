@@ -79,6 +79,55 @@ describe("App tentacle presence and runtime state", () => {
     });
   });
 
+  it("plays a completion notification only when tentacle state moves from processing to idle", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const play = vi.fn().mockResolvedValue(undefined);
+    const MockAudio = vi.fn(() => ({
+      currentTime: 0,
+      play,
+      preload: "auto",
+    }));
+    vi.stubGlobal("Audio", MockAudio as unknown as typeof Audio);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse([
+        {
+          agentId: "agent-1",
+          label: "core-planner",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+    await screen.findByLabelText("tentacle-a");
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+    });
+
+    const socket = MockWebSocket.instances[0];
+    socket?.emit("message", JSON.stringify({ type: "state", state: "idle" }));
+    socket?.emit("message", JSON.stringify({ type: "state", state: "processing" }));
+
+    await waitFor(() => {
+      expect(play).toHaveBeenCalledTimes(0);
+    });
+
+    socket?.emit("message", JSON.stringify({ type: "state", state: "idle" }));
+    await waitFor(() => {
+      expect(MockAudio).toHaveBeenCalledTimes(1);
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+
+    socket?.emit("message", JSON.stringify({ type: "state", state: "idle" }));
+    await waitFor(() => {
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("closes terminal websocket when app unmounts", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(

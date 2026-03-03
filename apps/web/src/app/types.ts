@@ -1,4 +1,5 @@
 import type { buildTentacleColumns } from "@octogent/core";
+import type { TentacleCompletionSoundId } from "./notificationSounds";
 
 export type TentacleView = Awaited<ReturnType<typeof buildTentacleColumns>>;
 
@@ -41,6 +42,7 @@ export type FrontendUiStateSnapshot = {
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
   isCodexUsageSectionExpanded?: boolean;
+  tentacleCompletionSound?: TentacleCompletionSoundId;
   minimizedTentacleIds?: string[];
   tentacleWidths?: Record<string, number>;
 };

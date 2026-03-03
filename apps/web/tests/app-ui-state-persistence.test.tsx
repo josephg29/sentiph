@@ -44,6 +44,7 @@ describe("App UI state persistence", () => {
           sidebarWidth: 380,
           isActiveAgentsSectionExpanded: true,
           isCodexUsageSectionExpanded: false,
+          tentacleCompletionSound: "retro-beep",
           minimizedTentacleIds: ["tentacle-a"],
           tentacleWidths: {
             "tentacle-a": 450,
@@ -89,5 +90,14 @@ describe("App UI state persistence", () => {
       );
     });
     expect(uiStatePatchBodies.at(-1)?.minimizedTentacleIds).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Double beep/i }));
+
+    await waitFor(() => {
+      expect(
+        uiStatePatchBodies.some((body) => body.tentacleCompletionSound === "double-beep"),
+      ).toBe(true);
+    });
   });
 });

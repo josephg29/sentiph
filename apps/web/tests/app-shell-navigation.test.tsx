@@ -51,6 +51,44 @@ describe("App shell and navigation", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
+  it("renders settings panel when navigating to settings tab", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
+
+    render(<App />);
+    await screen.findByText("No active tentacles");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "[3] Settings",
+      }),
+    );
+
+    expect(await screen.findByLabelText("Settings primary view")).toBeInTheDocument();
+    expect(
+      screen.getByRole("radiogroup", { name: "Tentacle completion notification sound" }),
+    ).toBeInTheDocument();
+  });
+
+  it("previews completion sound when a settings option is selected", async () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const MockAudio = vi.fn(() => ({
+      currentTime: 0,
+      play,
+      preload: "auto",
+    }));
+    vi.stubGlobal("Audio", MockAudio as unknown as typeof Audio);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
+
+    render(<App />);
+    await screen.findByText("No active tentacles");
+
+    fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Retro beep/i }));
+
+    expect(MockAudio).toHaveBeenCalledTimes(1);
+    expect(play).toHaveBeenCalledTimes(1);
+  });
+
   it("shows OFFLINE when backend requests fail", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network down"));
 

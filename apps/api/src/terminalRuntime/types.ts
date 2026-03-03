@@ -30,6 +30,21 @@ export type TerminalSession = {
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
+export const TENTACLE_COMPLETION_SOUND_IDS = [
+  "soft-chime",
+  "retro-beep",
+  "double-beep",
+  "bell",
+  "pop",
+  "silent",
+] as const;
+
+export type TentacleCompletionSound = (typeof TENTACLE_COMPLETION_SOUND_IDS)[number];
+
+export const isTentacleCompletionSound = (value: unknown): value is TentacleCompletionSound =>
+  typeof value === "string" &&
+  TENTACLE_COMPLETION_SOUND_IDS.includes(value as TentacleCompletionSound);
+
 export type PersistedTentacle = {
   tentacleId: string;
   tentacleName: string;
@@ -42,6 +57,7 @@ export type PersistedUiState = {
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
   isCodexUsageSectionExpanded?: boolean;
+  tentacleCompletionSound?: TentacleCompletionSound;
   minimizedTentacleIds?: string[];
   tentacleWidths?: Record<string, number>;
 };

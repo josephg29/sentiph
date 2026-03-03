@@ -145,6 +145,10 @@ Treat scrollbar styling as a universal console concern: apply it through shared 
 
 Keep the terminal surface dark but not pure black; prefer a deep slate background for long-session readability.
 
+### Terminal Gutter Preference
+
+For tentacle window terminals, keep inner mount padding extremely small and asymmetric: a tiny left and bottom gutter, with no top/right padding.
+
 ### Chrome Density Preference
 
 Keep the top chrome bar compact: smaller vertical padding and tighter control spacing over roomy header sizing.

@@ -25,8 +25,10 @@ import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 export type {
   GitClient,
   PersistedUiState,
+  TentacleCompletionSound,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
+export { isTentacleCompletionSound } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const createTerminalRuntime = ({
@@ -136,6 +138,9 @@ export const createTerminalRuntime = ({
     if (normalized.tentacleWidths) {
       result.tentacleWidths = { ...normalized.tentacleWidths };
     }
+    if (normalized.tentacleCompletionSound !== undefined) {
+      result.tentacleCompletionSound = normalized.tentacleCompletionSound;
+    }
     return result;
   };
 
@@ -158,6 +163,9 @@ export const createTerminalRuntime = ({
       }
       if (patch.isCodexUsageSectionExpanded !== undefined) {
         uiState.isCodexUsageSectionExpanded = patch.isCodexUsageSectionExpanded;
+      }
+      if (patch.tentacleCompletionSound !== undefined) {
+        uiState.tentacleCompletionSound = patch.tentacleCompletionSound;
       }
       if (patch.minimizedTentacleIds !== undefined) {
         uiState.minimizedTentacleIds = [...patch.minimizedTentacleIds];

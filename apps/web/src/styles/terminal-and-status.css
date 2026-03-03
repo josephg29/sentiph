@@ -74,7 +74,7 @@
 .terminal-mount {
   min-height: 0;
   overflow: hidden;
-  padding: 2px;
+  padding: 0 0 2px 2px;
   background: color-mix(in srgb, var(--terminal-bg) 78%, #090d13 22%);
 }
 
