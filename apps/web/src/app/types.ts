@@ -57,6 +57,8 @@ export type TentacleGitStatusSnapshot = {
   isDirty: boolean;
   aheadCount: number;
   behindCount: number;
+  insertedLineCount: number;
+  deletedLineCount: number;
   hasConflicts: boolean;
   changedFiles: string[];
   defaultBaseBranchName: string | null;

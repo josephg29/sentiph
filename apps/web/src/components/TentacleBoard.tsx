@@ -1,5 +1,6 @@
 import {
   Fragment,
+  type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -89,7 +90,13 @@ const renderTentacleGitAheadBehindLabel = (
     return null;
   }
 
-  return `+${gitStatus.aheadCount}/-${gitStatus.behindCount}`;
+  return (
+    <>
+      <span className="tentacle-git-ahead-count">{gitStatus.aheadCount}</span>
+      <span className="tentacle-git-metric-separator">/</span>
+      <span className="tentacle-git-behind-count">{gitStatus.behindCount}</span>
+    </>
+  );
 };
 
 const renderTentaclePullRequestLabel = (
@@ -116,7 +123,7 @@ const renderTentaclePullRequestLabel = (
 
 const renderTentacleGitBadges = (
   gitDirtyLabel: string | null,
-  gitAheadBehindLabel: string | null,
+  gitAheadBehindLabel: ReactNode,
   gitPullRequestLabel: string | null,
 ) => (
   <>

@@ -52,6 +52,8 @@ class FakeGitClient implements GitClient {
     isDirty: boolean;
     aheadCount: number;
     behindCount: number;
+    insertedLineCount: number;
+    deletedLineCount: number;
     hasConflicts: boolean;
     changedFiles: string[];
     defaultBaseBranchName: string | null;
@@ -62,6 +64,8 @@ class FakeGitClient implements GitClient {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",

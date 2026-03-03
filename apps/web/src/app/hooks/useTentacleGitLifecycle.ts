@@ -90,6 +90,10 @@ const parseTentacleGitStatus = (payload: unknown): TentacleGitStatusSnapshot | n
     isDirty: record.isDirty,
     aheadCount: record.aheadCount,
     behindCount: record.behindCount,
+    insertedLineCount:
+      typeof record.insertedLineCount === "number" ? record.insertedLineCount : 0,
+    deletedLineCount:
+      typeof record.deletedLineCount === "number" ? record.deletedLineCount : 0,
     hasConflicts: record.hasConflicts,
     changedFiles: [...record.changedFiles],
     defaultBaseBranchName: record.defaultBaseBranchName,

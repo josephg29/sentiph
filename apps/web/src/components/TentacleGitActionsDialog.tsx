@@ -127,16 +127,20 @@ export const TentacleGitActionsDialog = ({
                 <dd>{renderDirtyState(gitStatus.isDirty)}</dd>
               </div>
               <div>
-                <dt>Ahead</dt>
-                <dd>{gitStatus.aheadCount}</dd>
+                <dt>Sync</dt>
+                <dd className="git-actions-sync-metric">
+                  <span className="git-actions-ahead-count">{gitStatus.aheadCount}</span>
+                  <span className="git-actions-metric-separator">/</span>
+                  <span className="git-actions-behind-count">{gitStatus.behindCount}</span>
+                </dd>
               </div>
               <div>
-                <dt>Behind</dt>
-                <dd>{gitStatus.behindCount}</dd>
-              </div>
-              <div>
-                <dt>Changed</dt>
-                <dd>{gitStatus.changedFiles.length}</dd>
+                <dt>Line diff</dt>
+                <dd className="git-actions-line-diff-metric">
+                  <span className="git-actions-insertions-count">+{gitStatus.insertedLineCount}</span>
+                  <span className="git-actions-metric-separator">/</span>
+                  <span className="git-actions-deletions-count">-{gitStatus.deletedLineCount}</span>
+                </dd>
               </div>
             </dl>
           ) : (

@@ -313,11 +313,26 @@
 }
 
 .tentacle-git-metric-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
   background: color-mix(in srgb, #b7d6ff 74%, #ffffff 26%);
 }
 
 .tentacle-pr-status-badge {
   background: color-mix(in srgb, #9ad9ff 70%, #ffffff 30%);
+}
+
+.tentacle-git-ahead-count {
+  color: #0f6b2e;
+}
+
+.tentacle-git-behind-count {
+  color: #8f1f2b;
+}
+
+.tentacle-git-metric-separator {
+  color: color-mix(in srgb, #121212 66%, #ffffff 34%);
 }
 
 .tentacle-git-cluster {
@@ -568,17 +583,18 @@
 .git-actions-status {
   margin: 0;
   display: grid;
-  gap: 0.22rem;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, #2b2b2b);
-  background: color-mix(in srgb, var(--bg-surface-1) 88%, #0f1511);
+  gap: 0;
+  border: 1px solid color-mix(in srgb, #9ee4c0 34%, var(--border-subtle) 66%);
+  background: color-mix(in srgb, #9ee4c0 8%, #0f1511 92%);
 }
 
 .git-actions-status div {
   display: grid;
-  grid-template-columns: 62px 1fr;
-  gap: 0.35rem;
-  padding: 0.34rem 0.42rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  grid-template-columns: 66px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.34rem;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, #9ee4c0 24%, var(--border-subtle) 76%);
 }
 
 .git-actions-status div:last-child {
@@ -587,18 +603,40 @@
 
 .git-actions-status dt {
   margin: 0;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, #9ee4c0 70%, #b8c4ba 30%);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .git-actions-status dd {
   margin: 0;
-  color: var(--text-primary);
+  color: #dff7ea;
   font-size: 0.7rem;
-  line-height: 1.2;
+  line-height: 1.15;
+  font-weight: 600;
   word-break: break-word;
+}
+
+.git-actions-sync-metric,
+.git-actions-line-diff-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.14rem;
+}
+
+.git-actions-ahead-count,
+.git-actions-insertions-count {
+  color: #77e4a5;
+}
+
+.git-actions-behind-count,
+.git-actions-deletions-count {
+  color: #ff8f9c;
+}
+
+.git-actions-metric-separator {
+  color: #8eb3a0;
 }
 
 .git-actions-commit-label {

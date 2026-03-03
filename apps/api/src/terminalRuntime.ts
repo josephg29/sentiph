@@ -182,6 +182,8 @@ export const createTerminalRuntime = ({
         isDirty: status.isDirty,
         aheadCount: status.aheadCount,
         behindCount: status.behindCount,
+        insertedLineCount: status.insertedLineCount,
+        deletedLineCount: status.deletedLineCount,
         hasConflicts: status.hasConflicts,
         changedFiles: [...status.changedFiles],
         defaultBaseBranchName: status.defaultBaseBranchName,

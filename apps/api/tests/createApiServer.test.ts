@@ -17,6 +17,8 @@ class FakeGitClient implements GitClient {
       isDirty: boolean;
       aheadCount: number;
       behindCount: number;
+      insertedLineCount: number;
+      deletedLineCount: number;
       hasConflicts: boolean;
       changedFiles: string[];
       defaultBaseBranchName: string | null;
@@ -81,6 +83,8 @@ class FakeGitClient implements GitClient {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -140,6 +144,8 @@ class FakeGitClient implements GitClient {
       isDirty: boolean;
       aheadCount: number;
       behindCount: number;
+      insertedLineCount: number;
+      deletedLineCount: number;
       hasConflicts: boolean;
       changedFiles: string[];
       defaultBaseBranchName: string | null;
@@ -158,6 +164,8 @@ class FakeGitClient implements GitClient {
     isDirty: boolean;
     aheadCount: number;
     behindCount: number;
+    insertedLineCount: number;
+    deletedLineCount: number;
     hasConflicts: boolean;
     changedFiles: string[];
     defaultBaseBranchName: string | null;
@@ -193,6 +201,8 @@ class FakeGitClient implements GitClient {
       isDirty: false,
       changedFiles: [],
       aheadCount: status.aheadCount + 1,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
     });
   }
@@ -230,6 +240,8 @@ class FakeGitClient implements GitClient {
     this.worktreeStatusByCwd.set(cwd, {
       ...status,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
     });
   }
@@ -1079,6 +1091,8 @@ describe("createApiServer", () => {
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: ["apps/web/src/App.tsx", "README.md"],
       defaultBaseBranchName: "main",
@@ -1099,6 +1113,8 @@ describe("createApiServer", () => {
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: ["apps/web/src/App.tsx", "README.md"],
       defaultBaseBranchName: "main",
@@ -1156,6 +1172,8 @@ describe("createApiServer", () => {
       isDirty: true,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: ["apps/web/src/App.tsx"],
       defaultBaseBranchName: "main",
@@ -1181,6 +1199,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 1,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1254,6 +1274,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 3,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1275,6 +1297,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1309,6 +1333,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 0,
       behindCount: 4,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1334,6 +1360,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1424,6 +1452,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",
@@ -1485,6 +1515,8 @@ describe("createApiServer", () => {
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
+      insertedLineCount: 0,
+      deletedLineCount: 0,
       hasConflicts: false,
       changedFiles: [],
       defaultBaseBranchName: "main",

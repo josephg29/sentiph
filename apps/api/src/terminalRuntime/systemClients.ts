@@ -47,6 +47,24 @@ const parseChangedFile = (line: string) => {
   return payload.slice(renameIndex + renameMarker.length).trim();
 };
 
+const parseDiffNumstatLineCounts = (numstatOutput: string): { insertedLineCount: number; deletedLineCount: number } =>
+  numstatOutput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .reduce(
+      (totals, line) => {
+        const [rawInserted, rawDeleted] = line.split("\t");
+        const parsedInserted = Number.parseInt(rawInserted ?? "0", 10);
+        const parsedDeleted = Number.parseInt(rawDeleted ?? "0", 10);
+        return {
+          insertedLineCount: totals.insertedLineCount + (Number.isFinite(parsedInserted) ? parsedInserted : 0),
+          deletedLineCount: totals.deletedLineCount + (Number.isFinite(parsedDeleted) ? parsedDeleted : 0),
+        };
+      },
+      { insertedLineCount: 0, deletedLineCount: 0 },
+    );
+
 const runGhCommand = (cwd: string, args: string[]): string =>
   execFileSync("gh", args, {
     cwd,
@@ -225,6 +243,7 @@ export const createDefaultGitClient = (): GitClient => ({
 
   readWorktreeStatus({ cwd }) {
     const branchName = runGitCommand(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const hasHeadCommit = readOptionalGitCommand(cwd, ["rev-parse", "--verify", "HEAD"]) !== null;
     const upstreamBranchName = readOptionalGitCommand(cwd, [
       "rev-parse",
       "--abbrev-ref",
@@ -240,6 +259,15 @@ export const createDefaultGitClient = (): GitClient => ({
       .map((line) => parseChangedFile(line))
       .filter((line): line is string => Boolean(line));
     const hasConflicts = statusLines.some((line) => CONFLICT_MARKERS.has(line.slice(0, 2)));
+    const lineDiffNumstat = hasHeadCommit
+      ? readOptionalGitCommand(cwd, ["diff", "--numstat", "HEAD", "--"]) ?? ""
+      : [
+          readOptionalGitCommand(cwd, ["diff", "--numstat", "--cached", "--"]) ?? "",
+          readOptionalGitCommand(cwd, ["diff", "--numstat", "--"]) ?? "",
+        ]
+          .filter((line) => line.length > 0)
+          .join("\n");
+    const { insertedLineCount, deletedLineCount } = parseDiffNumstatLineCounts(lineDiffNumstat);
 
     let aheadCount = 0;
     let behindCount = 0;
@@ -267,6 +295,8 @@ export const createDefaultGitClient = (): GitClient => ({
       isDirty: statusLines.length > 0,
       aheadCount,
       behindCount,
+      insertedLineCount,
+      deletedLineCount,
       hasConflicts,
       changedFiles,
       defaultBaseBranchName,
