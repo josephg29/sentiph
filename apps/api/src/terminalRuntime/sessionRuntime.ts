@@ -38,6 +38,9 @@ export const createSessionRuntime = ({
   sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
   scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
 }: CreateSessionRuntimeOptions) => {
+  const DEFAULT_PTY_COLS = 120;
+  const DEFAULT_PTY_ROWS = 35;
+
   const getShellLaunch = () => {
     if (process.platform === "win32") {
       return {
@@ -192,8 +195,8 @@ export const createSessionRuntime = ({
     let pty: IPty;
     try {
       pty = spawn(shellLaunch.command, shellLaunch.args, {
-        cols: 120,
-        rows: 35,
+        cols: DEFAULT_PTY_COLS,
+        rows: DEFAULT_PTY_ROWS,
         cwd: tentacleCwd,
         env: createShellEnvironment(),
         name: "xterm-256color",
@@ -209,6 +212,8 @@ export const createSessionRuntime = ({
     const session: TerminalSession = {
       pty,
       clients: new Set(),
+      cols: DEFAULT_PTY_COLS,
+      rows: DEFAULT_PTY_ROWS,
       codexState: stateTracker.currentState,
       stateTracker,
       isBootstrapCommandSent: false,
@@ -320,10 +325,15 @@ export const createSessionRuntime = ({
             Number.isFinite(payload.cols) &&
             Number.isFinite(payload.rows)
           ) {
-            session.pty.resize(
-              Math.max(20, Math.floor(payload.cols)),
-              Math.max(10, Math.floor(payload.rows)),
-            );
+            const nextCols = Math.max(20, Math.floor(payload.cols));
+            const nextRows = Math.max(10, Math.floor(payload.rows));
+            if (session.cols === nextCols && session.rows === nextRows) {
+              return;
+            }
+
+            session.cols = nextCols;
+            session.rows = nextRows;
+            session.pty.resize(nextCols, nextRows);
           }
         } catch {
           session.pty.write(text);

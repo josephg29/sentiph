@@ -29,6 +29,8 @@ export type TerminalServerMessage =
 export type TerminalSession = {
   pty: IPty;
   clients: Set<WebSocket>;
+  cols: number;
+  rows: number;
   codexState: CodexRuntimeState;
   stateTracker: CodexStateTracker;
   isBootstrapCommandSent: boolean;

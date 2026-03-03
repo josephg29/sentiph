@@ -283,4 +283,53 @@ describe("createSessionRuntime", () => {
 
     runtime.close();
   });
+
+  it("ignores duplicate resize payloads for the same terminal size", () => {
+    const tentacleId = "tentacle-1";
+    const tentacles = new Map<string, PersistedTentacle>([
+      [
+        tentacleId,
+        {
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      tentacles,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      sessionIdleGraceMs: 60_000,
+      scrollbackMaxBytes: 1024,
+    });
+
+    const socket = new FakeWebSocket();
+    websocketServer.nextSocket = socket;
+    expect(
+      runtime.handleUpgrade(
+        createUpgradeRequest(tentacleId),
+        {} as Duplex,
+        Buffer.alloc(0),
+      ),
+    ).toBe(true);
+
+    socket.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 35 }));
+    socket.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 35 }));
+    socket.emit("message", JSON.stringify({ type: "resize", cols: 121, rows: 35 }));
+
+    expect(pty.resize).toHaveBeenCalledTimes(1);
+    expect(pty.resize).toHaveBeenLastCalledWith(121, 35);
+
+    runtime.close();
+  });
 });

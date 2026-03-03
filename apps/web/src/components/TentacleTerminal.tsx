@@ -42,6 +42,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
     let isCancelled = false;
     let reconnectTimer: number | null = null;
     let socket: WebSocket | null = null;
+    let requestResizeSync = () => {};
     let cleanupTerminal = () => {};
     let activeTerminal: {
       write: (value: string) => void;
@@ -61,6 +62,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           return;
         }
         setConnectionState("connected");
+        requestResizeSync();
       });
 
       nextSocket.addEventListener("close", () => {
@@ -229,8 +231,16 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
           passive: false,
         });
 
+        let resizeDebounceTimer: number | null = null;
+        let lastSentCols = -1;
+        let lastSentRows = -1;
+
         const sendResize = () => {
           if (!socket || socket.readyState !== 1) {
+            return;
+          }
+
+          if (terminal.cols === lastSentCols && terminal.rows === lastSentRows) {
             return;
           }
 
@@ -241,7 +251,20 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
               rows: terminal.rows,
             }),
           );
+          lastSentCols = terminal.cols;
+          lastSentRows = terminal.rows;
         };
+
+        const scheduleResizeSync = () => {
+          if (resizeDebounceTimer !== null) {
+            window.clearTimeout(resizeDebounceTimer);
+          }
+          resizeDebounceTimer = window.setTimeout(() => {
+            resizeDebounceTimer = null;
+            sendResize();
+          }, 60);
+        };
+        requestResizeSync = scheduleResizeSync;
 
         const onDataDisposable = terminal.onData((data) => {
           terminal.write(SHOW_CURSOR_ESCAPE);
@@ -261,16 +284,19 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
         if ("ResizeObserver" in window) {
           observer = new ResizeObserver(() => {
             fitAddon.fit();
-            sendResize();
+            scheduleResizeSync();
           });
           observer.observe(containerRef.current);
         }
 
-        sendResize();
+        scheduleResizeSync();
         terminal.write(SHOW_CURSOR_ESCAPE);
         cleanupTerminal = () => {
           wheelListenerTarget.removeEventListener("pointerdown", onPointerDown, true);
           viewportWheelTarget.removeEventListener("wheel", onWheel);
+          if (resizeDebounceTimer !== null) {
+            window.clearTimeout(resizeDebounceTimer);
+          }
           observer?.disconnect();
           onDataDisposable.dispose();
           terminal.dispose();
@@ -285,6 +311,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
       if (reconnectTimer !== null) {
         window.clearTimeout(reconnectTimer);
       }
+      requestResizeSync = () => {};
       cleanupTerminal();
       socket?.close();
     };
