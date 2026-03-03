@@ -55,6 +55,9 @@ export type FrontendUiStateSnapshot = {
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
+  isRuntimeStatusStripVisible?: boolean;
+  isMonitorVisible?: boolean;
+  isBottomTelemetryVisible?: boolean;
   isCodexUsageVisible?: boolean;
   isClaudeUsageVisible?: boolean;
   isCodexUsageSectionExpanded?: boolean;

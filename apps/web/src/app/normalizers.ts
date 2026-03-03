@@ -155,6 +155,18 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
+  if (typeof record.isRuntimeStatusStripVisible === "boolean") {
+    nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
+  }
+
+  if (typeof record.isMonitorVisible === "boolean") {
+    nextState.isMonitorVisible = record.isMonitorVisible;
+  }
+
+  if (typeof record.isBottomTelemetryVisible === "boolean") {
+    nextState.isBottomTelemetryVisible = record.isBottomTelemetryVisible;
+  }
+
   if (typeof record.isCodexUsageVisible === "boolean") {
     nextState.isCodexUsageVisible = record.isCodexUsageVisible;
   }

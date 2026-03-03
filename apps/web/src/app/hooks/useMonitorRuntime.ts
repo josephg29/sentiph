@@ -37,6 +37,10 @@ type UseMonitorRuntimeResult = {
   patchMonitorConfig: (patch: MonitorConfigPatchRequest) => Promise<boolean>;
 };
 
+type UseMonitorRuntimeOptions = {
+  enabled?: boolean;
+};
+
 const buildMonitorErrorMessage = (fallback: string, error: unknown): string => {
   if (error instanceof Error && error.message.length > 0) {
     return error.message;
@@ -45,7 +49,7 @@ const buildMonitorErrorMessage = (fallback: string, error: unknown): string => {
   return fallback;
 };
 
-export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
+export const useMonitorRuntime = ({ enabled = true }: UseMonitorRuntimeOptions = {}): UseMonitorRuntimeResult => {
   const [monitorConfig, setMonitorConfig] = useState<MonitorConfigSnapshot | null>(null);
   const [monitorFeed, setMonitorFeed] = useState<MonitorFeedSnapshot | null>(null);
   const [isRefreshingMonitorFeed, setIsRefreshingMonitorFeed] = useState(false);
@@ -54,6 +58,10 @@ export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
   const inFlightFeedRef = useRef(false);
 
   const loadMonitorConfig = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
+
     const response = await fetch(buildMonitorConfigUrl(), {
       method: "GET",
       headers: {
@@ -71,9 +79,13 @@ export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
     }
 
     setMonitorConfig(parsed);
-  }, []);
+  }, [enabled]);
 
   const refreshMonitorFeed = useCallback(async (manual = false) => {
+    if (!enabled) {
+      return;
+    }
+
     if (inFlightFeedRef.current) {
       return;
     }
@@ -108,10 +120,14 @@ export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
       inFlightFeedRef.current = false;
       setIsRefreshingMonitorFeed(false);
     }
-  }, []);
+  }, [enabled]);
 
   const patchMonitorConfig = useCallback(
     async (patch: MonitorConfigPatchRequest) => {
+      if (!enabled) {
+        return false;
+      }
+
       setIsSavingMonitorConfig(true);
       try {
         const response = await fetch(buildMonitorConfigUrl(), {
@@ -143,10 +159,20 @@ export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
         setIsSavingMonitorConfig(false);
       }
     },
-    [],
+    [enabled],
   );
 
   useEffect(() => {
+    if (!enabled) {
+      inFlightFeedRef.current = false;
+      setMonitorConfig(null);
+      setMonitorFeed(null);
+      setIsRefreshingMonitorFeed(false);
+      setIsSavingMonitorConfig(false);
+      setMonitorError(null);
+      return;
+    }
+
     let isDisposed = false;
 
     const hydrateMonitor = async () => {
@@ -172,7 +198,7 @@ export const useMonitorRuntime = (): UseMonitorRuntimeResult => {
       isDisposed = true;
       window.clearInterval(timerId);
     };
-  }, [loadMonitorConfig, refreshMonitorFeed]);
+  }, [enabled, loadMonitorConfig, refreshMonitorFeed]);
 
   return {
     monitorConfig,

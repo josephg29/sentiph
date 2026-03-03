@@ -416,4 +416,76 @@ describe("App Monitor runtime", () => {
     expect(within(monitorView).getByText("FRESH")).toBeInTheDocument();
     expect(feedRequestCount).toBeGreaterThanOrEqual(2);
   });
+
+  it("does not call monitor APIs when Monitor is disabled, even if bottom telemetry is enabled", async () => {
+    let monitorConfigCalls = 0;
+    let monitorFeedCalls = 0;
+    let monitorRefreshCalls = 0;
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse([]);
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          source: "none",
+          fetchedAt: "2026-02-28T12:00:00.000Z",
+        });
+      }
+
+      if (url.endsWith("/api/github/summary") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          source: "none",
+          fetchedAt: "2026-02-28T12:00:00.000Z",
+          commitsPerDay: [],
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({
+          isMonitorVisible: false,
+          isBottomTelemetryVisible: true,
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "PATCH") {
+        return jsonResponse({});
+      }
+
+      if (url.endsWith("/api/monitor/config") && method === "GET") {
+        monitorConfigCalls += 1;
+        return jsonResponse({});
+      }
+
+      if (url.endsWith("/api/monitor/feed") && method === "GET") {
+        monitorFeedCalls += 1;
+        return jsonResponse({});
+      }
+
+      if (url.endsWith("/api/monitor/refresh") && method === "POST") {
+        monitorRefreshCalls += 1;
+        return jsonResponse({});
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByText("No active tentacles");
+    expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "[2] Monitor" }));
+    expect(await screen.findByLabelText("Monitor primary view disabled")).toBeInTheDocument();
+
+    expect(monitorConfigCalls).toBe(0);
+    expect(monitorFeedCalls).toBe(0);
+    expect(monitorRefreshCalls).toBe(0);
+  });
 });

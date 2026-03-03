@@ -55,13 +55,13 @@
 }
 
 .settings-sound-option[data-active="true"] {
-  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
-  background: color-mix(in srgb, var(--accent-primary) 24%, #11161d 76%);
-  color: #f2e6c2;
+  border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
+  background: color-mix(in srgb, var(--term-green) 22%, #11161d 78%);
+  color: #d6ffe4;
 }
 
 .settings-sound-option:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--accent-primary) 78%, #f0cf75);
+  outline: 1px solid color-mix(in srgb, var(--term-green) 64%, #6fb78a);
   outline-offset: 1px;
 }
 
@@ -86,6 +86,9 @@
 }
 
 .settings-sound-preview {
+  --action-button-border: color-mix(in srgb, #38b86c 68%, #1a5235);
+  --action-button-bg: color-mix(in srgb, #2fb763 76%, #194e34 24%);
+  --action-button-color: #f4fff8;
   --action-button-font-size: 0.76rem;
   --action-button-padding-y: 0.2rem;
   --action-button-padding-x: 0.4rem;
@@ -123,13 +126,13 @@
 }
 
 .settings-toggle-option[data-active="true"] {
-  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
-  background: color-mix(in srgb, var(--accent-primary) 24%, #11161d 76%);
-  color: #f2e6c2;
+  border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
+  background: color-mix(in srgb, var(--term-green) 22%, #11161d 78%);
+  color: #d6ffe4;
 }
 
 .settings-toggle-option:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--accent-primary) 78%, #f0cf75);
+  outline: 1px solid color-mix(in srgb, var(--term-green) 64%, #6fb78a);
   outline-offset: 1px;
 }
 
@@ -174,14 +177,14 @@
 }
 
 .settings-toggle-option[data-active="true"] .settings-toggle-switch {
-  border-color: color-mix(in srgb, var(--accent-primary) 72%, #695213);
-  background: color-mix(in srgb, var(--accent-primary) 44%, #101926 56%);
+  border-color: color-mix(in srgb, var(--term-green) 62%, #1c4f35);
+  background: color-mix(in srgb, var(--term-green) 40%, #101926 60%);
 }
 
 .settings-toggle-option[data-active="true"] .settings-toggle-thumb {
   transform: translateX(1.08rem);
-  background: #f2e6c2;
-  border-color: color-mix(in srgb, var(--accent-primary) 52%, #6b5210);
+  background: #e5ffee;
+  border-color: color-mix(in srgb, var(--term-green) 56%, #20553a);
 }
 
 .settings-toggle-state {
@@ -194,7 +197,7 @@
 }
 
 .settings-toggle-option[data-active="true"] .settings-toggle-state {
-  color: #e9d9ab;
+  color: #c2f5d4;
 }
 
 @media (max-width: 940px) {

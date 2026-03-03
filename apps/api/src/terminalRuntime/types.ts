@@ -107,6 +107,9 @@ export type PersistedUiState = {
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
+  isRuntimeStatusStripVisible?: boolean;
+  isMonitorVisible?: boolean;
+  isBottomTelemetryVisible?: boolean;
   isCodexUsageVisible?: boolean;
   isClaudeUsageVisible?: boolean;
   isClaudeUsageSectionExpanded?: boolean;

@@ -301,6 +301,36 @@ export const parseUiStatePatch = (
     patch.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
+  if (record.isRuntimeStatusStripVisible !== undefined) {
+    if (typeof record.isRuntimeStatusStripVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isRuntimeStatusStripVisible must be a boolean.",
+      };
+    }
+    patch.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
+  }
+
+  if (record.isMonitorVisible !== undefined) {
+    if (typeof record.isMonitorVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isMonitorVisible must be a boolean.",
+      };
+    }
+    patch.isMonitorVisible = record.isMonitorVisible;
+  }
+
+  if (record.isBottomTelemetryVisible !== undefined) {
+    if (typeof record.isBottomTelemetryVisible !== "boolean") {
+      return {
+        patch: null,
+        error: "isBottomTelemetryVisible must be a boolean.",
+      };
+    }
+    patch.isBottomTelemetryVisible = record.isBottomTelemetryVisible;
+  }
+
   if (record.isCodexUsageVisible !== undefined) {
     if (typeof record.isCodexUsageVisible !== "boolean") {
       return {

@@ -51,6 +51,9 @@ describe("App UI state persistence", () => {
           isAgentsSidebarVisible: true,
           sidebarWidth: 380,
           isActiveAgentsSectionExpanded: true,
+          isRuntimeStatusStripVisible: false,
+          isMonitorVisible: false,
+          isBottomTelemetryVisible: false,
           isCodexUsageVisible: true,
           isClaudeUsageVisible: true,
           isCodexUsageSectionExpanded: false,
@@ -107,6 +110,9 @@ describe("App UI state persistence", () => {
     });
     expect(uiStatePatchBodies.at(-1)?.minimizedTentacleIds).toEqual([]);
     expect(uiStatePatchBodies.at(-1)?.isClaudeUsageSectionExpanded).toBe(false);
+    expect(uiStatePatchBodies.at(-1)?.isRuntimeStatusStripVisible).toBe(false);
+    expect(uiStatePatchBodies.at(-1)?.isMonitorVisible).toBe(false);
+    expect(uiStatePatchBodies.at(-1)?.isBottomTelemetryVisible).toBe(false);
     expect(uiStatePatchBodies.at(-1)?.isCodexUsageVisible).toBe(true);
     expect(uiStatePatchBodies.at(-1)?.isClaudeUsageVisible).toBe(true);
 

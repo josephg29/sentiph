@@ -52,19 +52,25 @@ export const App = () => {
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
+    isBottomTelemetryVisible,
     isClaudeUsageVisible,
     isClaudeUsageSectionExpanded,
     isCodexUsageVisible,
     isCodexUsageSectionExpanded,
+    isMonitorVisible,
+    isRuntimeStatusStripVisible,
     isUiStateHydrated,
     minimizedTentacleIds,
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
+    setIsBottomTelemetryVisible,
     setIsClaudeUsageVisible,
     setIsClaudeUsageSectionExpanded,
     setIsCodexUsageVisible,
     setIsCodexUsageSectionExpanded,
+    setIsMonitorVisible,
+    setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
     setMinimizedTentacleIds,
     setSidebarWidth,
@@ -206,7 +212,9 @@ export const App = () => {
     isSavingMonitorConfig,
     refreshMonitorFeed,
     patchMonitorConfig,
-  } = useMonitorRuntime();
+  } = useMonitorRuntime({
+    enabled: isUiStateHydrated && isMonitorVisible,
+  });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
 
@@ -320,15 +328,17 @@ export const App = () => {
         }}
       />
 
-      <RuntimeStatusStrip
-        githubCommitCount30d={githubCommitCount30d}
-        githubOpenIssuesLabel={githubOpenIssuesLabel}
-        githubOpenPrsLabel={githubOpenPrsLabel}
-        githubRepoLabel={githubRepoLabel}
-        githubStarCountLabel={githubStarCountLabel}
-        githubStatusPill={githubStatusPill}
-        sparklinePoints={sparklinePoints}
-      />
+      {isRuntimeStatusStripVisible && (
+        <RuntimeStatusStrip
+          githubCommitCount30d={githubCommitCount30d}
+          githubOpenIssuesLabel={githubOpenIssuesLabel}
+          githubOpenPrsLabel={githubOpenPrsLabel}
+          githubRepoLabel={githubRepoLabel}
+          githubStarCountLabel={githubStarCountLabel}
+          githubStatusPill={githubStatusPill}
+          sparklinePoints={sparklinePoints}
+        />
+      )}
 
       <ConsolePrimaryNav
         activePrimaryNav={activePrimaryNav}
@@ -386,26 +396,41 @@ export const App = () => {
               }}
             />
           ) : isMonitorPrimaryView ? (
-            <MonitorPrimaryView
-              isRefreshingMonitorFeed={isRefreshingMonitorFeed}
-              isSavingMonitorConfig={isSavingMonitorConfig}
-              monitorConfig={monitorConfig}
-              monitorError={monitorError}
-              monitorFeed={monitorFeed}
-              onPatchConfig={patchMonitorConfig}
-              onRefresh={() => {
-                void refreshMonitorFeed(true);
-              }}
-              onSyncFeed={() => {
-                void refreshMonitorFeed(false);
-              }}
-            />
+            isMonitorVisible ? (
+              <MonitorPrimaryView
+                isRefreshingMonitorFeed={isRefreshingMonitorFeed}
+                isSavingMonitorConfig={isSavingMonitorConfig}
+                monitorConfig={monitorConfig}
+                monitorError={monitorError}
+                monitorFeed={monitorFeed}
+                onPatchConfig={patchMonitorConfig}
+                onRefresh={() => {
+                  void refreshMonitorFeed(true);
+                }}
+                onSyncFeed={() => {
+                  void refreshMonitorFeed(false);
+                }}
+              />
+            ) : (
+              <section className="monitor-view" aria-label="Monitor primary view disabled">
+                <section className="monitor-panel monitor-panel--configure">
+                  <h3>Monitor is disabled</h3>
+                  <p>Enable Monitor workspace view in Settings to restore this panel.</p>
+                </section>
+              </section>
+            )
           ) : isSettingsPrimaryView ? (
             <SettingsPrimaryView
+              isBottomTelemetryVisible={isBottomTelemetryVisible}
               isClaudeUsageVisible={isClaudeUsageVisible}
               isCodexUsageVisible={isCodexUsageVisible}
+              isMonitorVisible={isMonitorVisible}
+              isRuntimeStatusStripVisible={isRuntimeStatusStripVisible}
+              onBottomTelemetryVisibilityChange={setIsBottomTelemetryVisible}
               onClaudeUsageVisibilityChange={setIsClaudeUsageVisible}
               onCodexUsageVisibilityChange={setIsCodexUsageVisible}
+              onMonitorVisibilityChange={setIsMonitorVisible}
+              onRuntimeStatusStripVisibilityChange={setIsRuntimeStatusStripVisible}
               onPreviewTentacleCompletionSound={playCompletionSoundPreview}
               onTentacleCompletionSoundChange={setTentacleCompletionSound}
               tentacleCompletionSound={tentacleCompletionSound}
@@ -456,7 +481,7 @@ export const App = () => {
         </div>
       </section>
 
-      <TelemetryTape monitorFeed={monitorFeed} />
+      {isMonitorVisible && isBottomTelemetryVisible && <TelemetryTape monitorFeed={monitorFeed} />}
     </div>
   );
 };

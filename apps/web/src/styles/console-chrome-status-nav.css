@@ -5,6 +5,7 @@
 }
 
 .console-shell .chrome {
+  grid-row: 1;
   border-bottom: 1px solid color-mix(in srgb, var(--term-red) 65%, #1a0608);
   background: linear-gradient(180deg, #9d1119 0%, var(--term-red) 100%);
   padding: 0.28rem 0.45rem;
@@ -105,6 +106,7 @@
 }
 
 .console-shell .console-status-strip {
+  grid-row: 2;
   border-bottom: 1px solid var(--border-subtle);
   background: #050607;
   display: grid;
@@ -245,6 +247,7 @@
 }
 
 .console-shell .console-primary-nav {
+  grid-row: 3;
   border-bottom: 1px solid color-mix(in srgb, #1b4f75 40%, #071321 60%);
   background: linear-gradient(180deg, #11346a 0%, #0d2a57 100%);
   display: grid;
@@ -252,6 +255,14 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.24rem 0.48rem;
+}
+
+.console-shell .console-main-canvas {
+  grid-row: 4;
+}
+
+.console-shell .console-telemetry-tape {
+  grid-row: 5;
 }
 
 .console-primary-nav-tabs {

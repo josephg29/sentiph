@@ -73,6 +73,9 @@ describe("App shell and navigation", () => {
     expect(
       screen.getByRole("switch", { name: "Show Claude token usage in sidebar" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show runtime status strip" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show Monitor workspace view" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show bottom telemetry tape" })).toBeInTheDocument();
   });
 
   it("previews completion sound when a settings option is selected", async () => {

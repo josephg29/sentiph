@@ -10,7 +10,7 @@ describe("App usage visibility settings", () => {
     resetAppTestHarness();
   });
 
-  it("allows toggling Codex and Claude usage sections from settings and persists visibility", async () => {
+  it("allows toggling runtime strip, usage, monitor, and bottom telemetry settings from Settings and persists visibility", async () => {
     const uiStatePatchBodies: Array<Record<string, unknown>> = [];
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -44,6 +44,9 @@ describe("App usage visibility settings", () => {
 
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
+          isRuntimeStatusStripVisible: true,
+          isMonitorVisible: true,
+          isBottomTelemetryVisible: true,
           isCodexUsageVisible: true,
           isClaudeUsageVisible: true,
           isCodexUsageSectionExpanded: true,
@@ -74,16 +77,24 @@ describe("App usage visibility settings", () => {
     expect(within(sidebar).getByText("Claude Code token usage")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show runtime status strip" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show bottom telemetry tape" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Show Monitor workspace view" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show Codex token usage in sidebar" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show Claude token usage in sidebar" }));
 
+    expect(screen.queryByLabelText("Runtime status strip")).toBeNull();
     expect(within(sidebar).queryByText("Codex token usage")).toBeNull();
     expect(within(sidebar).queryByText("Claude Code token usage")).toBeNull();
+    expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
     await waitFor(() => {
       expect(
         uiStatePatchBodies.some(
           (body) =>
+            body.isRuntimeStatusStripVisible === false &&
+            body.isMonitorVisible === false &&
+            body.isBottomTelemetryVisible === false &&
             body.isCodexUsageVisible === false && body.isClaudeUsageVisible === false,
         ),
       ).toBe(true);

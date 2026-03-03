@@ -60,6 +60,10 @@ Keep `src/styles.css` as an import manifest and split CSS into focused modules u
 
 For pane-based UI layout, keep each tentacle as a full-height column. Spawned agents for that tentacle should stack vertically within the same column (below the tentacle/root pane), while other tentacle columns remain on the left and right sides.
 
+### Tentacle Focus Mode Preference
+
+For focused/selected tentacles, use border-color change only as the visual cue. Avoid glow halos, pulsing effects, and lift/translate effects.
+
 ### Main Board Consistency Preference
 
 In major UI redesigns, keep the main content board as identical side-by-side tentacle windows. Preserve horizontal scrolling and divider-based resizing behavior across redesigns.
@@ -139,6 +143,11 @@ Keep monitor search timeframe operator-configurable (`7D`/`3D`/`1D`) with `7D` a
 Show Codex usage in the `Active Agents` sidebar footer (bottom of the left sidebar), not in the top chrome bar. Keep it visually consistent with existing terminal/sidebar chrome styling.
 Use a retro terminal-style token usage bar presentation (meter rows for short-window and weekly usage plus credits).
 
+### Settings Visibility Controls Preference
+
+Expose runtime status strip visibility, monitor workspace visibility, and bottom telemetry ticker visibility as explicit toggles in the Settings page, and persist all in frontend `uiState`.
+When toggling optional shell sections (status strip/telemetry), anchor shell regions to explicit CSS grid rows to avoid layout shifts from DOM-order auto-placement.
+
 ### Preserve Existing Patterns
 
 Before implementing a feature, read similar existing code to understand established patterns (component structure, state management, API design). Match the existing style and architecture unless there's a compelling reason to deviate.
@@ -171,7 +180,7 @@ Keep the terminal surface dark but not pure black; prefer a deep slate backgroun
 
 ### Terminal Gutter Preference
 
-For tentacle window terminals, keep inner mount padding extremely small and asymmetric: a tiny left and bottom gutter, with no top/right padding.
+For tentacle window terminals, keep the window surface flush with no inner mount padding.
 
 ### Chrome Density Preference
 

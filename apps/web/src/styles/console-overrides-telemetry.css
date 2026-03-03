@@ -74,7 +74,7 @@
 
 .console-shell .tentacles {
   background: #050607;
-  padding: 0.26rem;
+  padding: 0;
   gap: 0;
 }
 
@@ -96,6 +96,10 @@
 .console-shell .tentacle-column {
   border: 1px solid #2b2f36;
   background: #0b0d10;
+}
+
+.console-shell .tentacle-column--selected {
+  border-color: color-mix(in srgb, var(--accent-primary) 70%, #f0d08c 30%);
 }
 
 .console-shell .tentacle-divider {

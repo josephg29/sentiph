@@ -265,7 +265,6 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
-                      {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </>
                   ) : (
                     <h2>
@@ -283,7 +282,6 @@ export const TentacleBoard = ({
                       >
                         {renderTentacleWorkspaceLabel(column.tentacleWorkspaceMode)}
                       </span>
-                      {isSelected && <span className="tentacle-selection-badge">Focused</span>}
                     </h2>
                   )}
                 </div>

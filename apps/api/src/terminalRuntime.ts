@@ -267,6 +267,15 @@ export const createTerminalRuntime = ({
       if (patch.isActiveAgentsSectionExpanded !== undefined) {
         uiState.isActiveAgentsSectionExpanded = patch.isActiveAgentsSectionExpanded;
       }
+      if (patch.isRuntimeStatusStripVisible !== undefined) {
+        uiState.isRuntimeStatusStripVisible = patch.isRuntimeStatusStripVisible;
+      }
+      if (patch.isMonitorVisible !== undefined) {
+        uiState.isMonitorVisible = patch.isMonitorVisible;
+      }
+      if (patch.isBottomTelemetryVisible !== undefined) {
+        uiState.isBottomTelemetryVisible = patch.isBottomTelemetryVisible;
+      }
       if (patch.isCodexUsageVisible !== undefined) {
         uiState.isCodexUsageVisible = patch.isCodexUsageVisible;
       }

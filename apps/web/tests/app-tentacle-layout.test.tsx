@@ -134,7 +134,8 @@ describe("App tentacle layout interactions", () => {
     await waitFor(() => {
       expect(firstPane).toHaveClass("tentacle-column--selected");
       expect(secondPane).not.toHaveClass("tentacle-column--selected");
-      expect(within(firstPane).getByText("Focused")).toBeInTheDocument();
+      expect(firstPane).toHaveAttribute("data-selected", "true");
+      expect(secondPane).toHaveAttribute("data-selected", "false");
     });
 
     fireEvent.pointerDown(secondPane);
@@ -142,8 +143,8 @@ describe("App tentacle layout interactions", () => {
     await waitFor(() => {
       expect(secondPane).toHaveClass("tentacle-column--selected");
       expect(firstPane).not.toHaveClass("tentacle-column--selected");
-      expect(within(secondPane).getByText("Focused")).toBeInTheDocument();
-      expect(within(firstPane).queryByText("Focused")).toBeNull();
+      expect(secondPane).toHaveAttribute("data-selected", "true");
+      expect(firstPane).toHaveAttribute("data-selected", "false");
     });
   });
 });
