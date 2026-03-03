@@ -120,6 +120,10 @@ For tentacle action workflows (for example worktree Git actions and delete/clean
 
 Keep the left sidebar mostly neutral (deep slate/gray surfaces) and reserve accent color for active/focus indicators, meter fills, and warning/error states instead of large header backgrounds.
 
+### Sidebar Padding Preference
+
+Keep the left sidebar container flush with no outer padding (body, action panel, and footer wrappers should be edge-to-edge).
+
 ### Frontend UI Persistence Preference
 
 Persist frontend layout/preferences in the runtime registry JSON (`.octogent/state/tentacles.json`, `uiState`) via API endpoints, not browser-only storage.

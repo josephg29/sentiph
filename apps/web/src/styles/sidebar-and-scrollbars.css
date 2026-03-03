@@ -32,7 +32,7 @@
 .active-agents-body {
   min-height: 0;
   overflow: auto;
-  padding: 0.56rem;
+  padding: 0;
   display: grid;
   align-content: start;
   gap: 0.52rem;
@@ -41,7 +41,7 @@
 .active-agents-action-panel {
   min-height: 0;
   overflow: auto;
-  padding: 0.56rem;
+  padding: 0;
   display: grid;
   align-content: start;
 }
@@ -49,7 +49,7 @@
 .active-agents-footer {
   border-top: 1px solid var(--sidebar-border);
   background: var(--sidebar-panel);
-  padding: 0.5rem 0.56rem 0.56rem;
+  padding: 0;
 }
 
 .active-agents-section {
