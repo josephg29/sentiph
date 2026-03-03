@@ -112,6 +112,10 @@ In the Active Agents sidebar, root agent rows should use the same `idle`/`proces
 
 Structure the left sidebar as reusable sections with collapsible headers. Keep section headers visually prominent and use slightly roomier paddings to improve scanability.
 
+### Sidebar Action Panel Preference
+
+For tentacle action workflows (for example worktree Git actions and delete/cleanup confirmations), render the interaction inside the left sidebar as an action panel instead of modal/backdrop overlays. The action panel should replace the default sidebar sections while active and include a close control at the top that returns the sidebar to its default state.
+
 ### Sidebar Visual Contrast Preference
 
 Keep the left sidebar mostly neutral (deep slate/gray surfaces) and reserve accent color for active/focus indicators, meter fills, and warning/error states instead of large header backgrounds.

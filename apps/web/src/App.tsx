@@ -223,6 +223,62 @@ export const App = () => {
   const isSettingsPrimaryView = activePrimaryNav === 3;
   const openGitTentacleColumn =
     openGitTentacleId !== null ? columns.find((column) => column.tentacleId === openGitTentacleId) : null;
+  const sidebarActionPanel = pendingDeleteTentacle ? (
+    <DeleteTentacleDialog
+      isDeletingTentacleId={isDeletingTentacleId}
+      onCancel={clearPendingDeleteTentacle}
+      onConfirmDelete={() => {
+        void confirmDeleteTentacle();
+      }}
+      pendingDeleteTentacle={pendingDeleteTentacle}
+    />
+  ) : openGitTentacleColumn && openGitTentacleColumn.tentacleWorkspaceMode === "worktree" ? (
+    <TentacleGitActionsDialog
+      errorMessage={gitDialogError}
+      gitCommitMessage={gitCommitMessageDraft}
+      gitPullRequest={openGitTentaclePullRequest}
+      gitStatus={openGitTentacleStatus}
+      isLoading={isGitDialogLoading}
+      isMutating={isGitDialogMutating}
+      onClose={closeTentacleGitActions}
+      onCommit={() => {
+        void commitTentacleChanges();
+      }}
+      onCommitAndPush={() => {
+        void commitAndPushTentacleBranch();
+      }}
+      onCommitMessageChange={setGitCommitMessageDraft}
+      onMergePullRequest={() => {
+        void mergeTentaclePullRequest();
+      }}
+      onPush={() => {
+        void pushTentacleBranch();
+      }}
+      onSync={() => {
+        void syncTentacleBranch();
+      }}
+      onCleanupWorktree={() => {
+        requestDeleteTentacle(
+          openGitTentacleColumn.tentacleId,
+          openGitTentacleColumn.tentacleName,
+          {
+            workspaceMode: openGitTentacleColumn.tentacleWorkspaceMode,
+            intent: "cleanup-worktree",
+          },
+        );
+        closeTentacleGitActions();
+      }}
+      tentacleId={openGitTentacleColumn.tentacleId}
+      tentacleName={openGitTentacleColumn.tentacleName}
+    />
+  ) : null;
+
+  useEffect(() => {
+    if (sidebarActionPanel === null || isAgentsSidebarVisible) {
+      return;
+    }
+    setIsAgentsSidebarVisible(true);
+  }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, sidebarActionPanel]);
 
   const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
     setTentacleStates((current) => {
@@ -291,6 +347,7 @@ export const App = () => {
               tentacleStates={tentacleStates}
               minimizedTentacleIds={minimizedTentacleIds}
               onMaximizeTentacle={handleMaximizeTentacle}
+              actionPanel={sidebarActionPanel}
             />
           )}
 
@@ -349,8 +406,13 @@ export const App = () => {
               onBeginTentacleNameEdit={beginTentacleNameEdit}
               onCancelTentacleRename={cancelTentacleRename}
               onMinimizeTentacle={handleMinimizeTentacle}
-              onOpenTentacleGitActions={openTentacleGitActions}
+              onOpenTentacleGitActions={(tentacleId) => {
+                setIsAgentsSidebarVisible(true);
+                openTentacleGitActions(tentacleId);
+              }}
               onRequestDeleteTentacle={(tentacleId, tentacleName, workspaceMode) => {
+                setIsAgentsSidebarVisible(true);
+                closeTentacleGitActions();
                 requestDeleteTentacle(tentacleId, tentacleName, {
                   workspaceMode,
                   intent: "delete-tentacle",
@@ -377,58 +439,6 @@ export const App = () => {
       </section>
 
       <TelemetryTape monitorFeed={monitorFeed} />
-
-      {pendingDeleteTentacle && (
-        <DeleteTentacleDialog
-          isDeletingTentacleId={isDeletingTentacleId}
-          onCancel={clearPendingDeleteTentacle}
-          onConfirmDelete={() => {
-            void confirmDeleteTentacle();
-          }}
-          pendingDeleteTentacle={pendingDeleteTentacle}
-        />
-      )}
-
-      {openGitTentacleColumn && openGitTentacleColumn.tentacleWorkspaceMode === "worktree" && (
-        <TentacleGitActionsDialog
-          errorMessage={gitDialogError}
-          gitCommitMessage={gitCommitMessageDraft}
-          gitPullRequest={openGitTentaclePullRequest}
-          gitStatus={openGitTentacleStatus}
-          isLoading={isGitDialogLoading}
-          isMutating={isGitDialogMutating}
-          onClose={closeTentacleGitActions}
-          onCommit={() => {
-            void commitTentacleChanges();
-          }}
-          onCommitAndPush={() => {
-            void commitAndPushTentacleBranch();
-          }}
-          onCommitMessageChange={setGitCommitMessageDraft}
-          onMergePullRequest={() => {
-            void mergeTentaclePullRequest();
-          }}
-          onPush={() => {
-            void pushTentacleBranch();
-          }}
-          onSync={() => {
-            void syncTentacleBranch();
-          }}
-          onCleanupWorktree={() => {
-            requestDeleteTentacle(
-              openGitTentacleColumn.tentacleId,
-              openGitTentacleColumn.tentacleName,
-              {
-                workspaceMode: openGitTentacleColumn.tentacleWorkspaceMode,
-                intent: "cleanup-worktree",
-              },
-            );
-            closeTentacleGitActions();
-          }}
-          tentacleId={openGitTentacleColumn.tentacleId}
-          tentacleName={openGitTentacleColumn.tentacleName}
-        />
-      )}
     </div>
   );
 };

@@ -376,18 +376,8 @@
   --action-button-color: #ff9a9a;
 }
 
-.delete-confirm-backdrop {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, #000000 70%, transparent);
-  display: grid;
-  place-items: center;
-  padding: 1.35rem;
-  z-index: 100;
-}
-
 .delete-confirm-dialog {
-  width: min(460px, 100%);
+  width: 100%;
   border: 1px solid color-mix(in srgb, var(--term-red) 42%, var(--border-subtle) 58%);
   background: color-mix(in srgb, var(--bg-surface-1) 90%, #090909);
   box-shadow: 0 0 0 1px #000000, 0 0 22px color-mix(in srgb, var(--term-red) 24%, transparent);
@@ -412,6 +402,12 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1.2;
+}
+
+.delete-confirm-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
 }
 
 .delete-confirm-body {
@@ -515,18 +511,8 @@
   --action-button-letter-spacing: 0.07em;
 }
 
-.git-actions-backdrop {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, #000000 68%, transparent);
-  display: grid;
-  place-items: center;
-  padding: 1.35rem;
-  z-index: 100;
-}
-
 .git-actions-dialog {
-  width: min(540px, 100%);
+  width: 100%;
   border: 1px solid color-mix(in srgb, #9ee4c0 56%, var(--border-subtle) 44%);
   background: color-mix(in srgb, var(--bg-surface-1) 90%, #090d0a);
   box-shadow: 0 0 0 1px #000000, 0 0 24px color-mix(in srgb, #9ee4c0 26%, transparent);
@@ -551,6 +537,12 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1.2;
+}
+
+.git-actions-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
 }
 
 .git-actions-worktree-badge {
@@ -886,12 +878,6 @@
   font-size: 0.62rem;
 }
 
-.git-actions-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 0.62rem 0.62rem;
-}
-
 .git-actions-commit,
 .git-actions-push,
 .git-actions-sync,
@@ -929,6 +915,11 @@
   --action-button-border: color-mix(in srgb, #ff8f8f 65%, #2f1313);
   --action-button-bg: color-mix(in srgb, #a83a3a 42%, #120909);
   --action-button-color: #ffd4d4;
+}
+
+.delete-confirm-close {
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.38rem;
 }
 
 .delete-confirm-cancel:hover:not(:disabled) {

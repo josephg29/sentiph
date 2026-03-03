@@ -38,6 +38,14 @@
   gap: 0.52rem;
 }
 
+.active-agents-action-panel {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.56rem;
+  display: grid;
+  align-content: start;
+}
+
 .active-agents-footer {
   border-top: 1px solid var(--sidebar-border);
   background: var(--sidebar-panel);

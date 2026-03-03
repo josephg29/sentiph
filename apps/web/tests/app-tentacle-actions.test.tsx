@@ -277,9 +277,10 @@ describe("App tentacle create/rename/delete actions", () => {
     expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-b" }));
-    const deleteDialog = screen.getByRole("dialog", { name: "Delete confirmation for tentacle-b" });
-    expect(deleteDialog).toBeInTheDocument();
-    expect(within(deleteDialog).getByText("This action cannot be undone.")).toBeInTheDocument();
+    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for tentacle-b");
+    expect(deletePanel).toBeInTheDocument();
+    expect(within(deletePanel).getByText("This action cannot be undone.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Delete confirmation for tentacle-b" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete tentacle-b" }));
 
     await waitFor(() => {
@@ -288,7 +289,7 @@ describe("App tentacle create/rename/delete actions", () => {
     });
   });
 
-  it("closes the delete confirmation dialog with Escape", async () => {
+  it("closes the delete confirmation panel with Escape", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       jsonResponse([
         {
@@ -304,13 +305,17 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
     await screen.findByLabelText("tentacle-a");
+    const sidebar = screen.getByLabelText("Active Agents sidebar");
 
     fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-a" }));
-    const deleteDialog = screen.getByRole("dialog", { name: "Delete confirmation for tentacle-a" });
-    expect(deleteDialog).toBeInTheDocument();
+    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for tentacle-a");
+    expect(deletePanel).toBeInTheDocument();
+    expect(
+      within(deletePanel).getByRole("button", { name: "Close sidebar action panel" }),
+    ).toBeInTheDocument();
 
-    fireEvent.keyDown(deleteDialog, { key: "Escape" });
-    expect(screen.queryByRole("dialog", { name: "Delete confirmation for tentacle-a" })).toBeNull();
+    fireEvent.keyDown(deletePanel, { key: "Escape" });
+    expect(screen.queryByLabelText("Delete confirmation for tentacle-a")).toBeNull();
   });
 
   it("shows git actions for worktree tentacles and commits with user message", async () => {
@@ -380,14 +385,19 @@ describe("App tentacle create/rename/delete actions", () => {
     render(<App />);
 
     await screen.findByLabelText("tentacle-b");
+    const sidebar = screen.getByLabelText("Active Agents sidebar");
     expect(screen.queryByRole("button", { name: "Open git actions for tentacle-a" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-b" }));
 
-    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-b" });
-    expect(within(gitDialog).getByText("octogent/tentacle-b")).toBeInTheDocument();
-    const commitInput = within(gitDialog).getByLabelText("Commit message for tentacle-b");
+    const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-b");
+    expect(screen.queryByRole("dialog", { name: "Git actions for tentacle-b" })).toBeNull();
+    expect(
+      within(gitPanel).getByRole("button", { name: "Close sidebar action panel" }),
+    ).toBeInTheDocument();
+    expect(within(gitPanel).getByText("octogent/tentacle-b")).toBeInTheDocument();
+    const commitInput = within(gitPanel).getByLabelText("Commit message for tentacle-b");
     fireEvent.change(commitInput, { target: { value: "feat: ship worktree git menu" } });
-    fireEvent.click(within(gitDialog).getByRole("button", { name: "Commit changes" }));
+    fireEvent.click(within(gitPanel).getByRole("button", { name: "Commit changes" }));
 
     await waitFor(() => {
       expect(
@@ -474,12 +484,13 @@ describe("App tentacle create/rename/delete actions", () => {
     render(<App />);
 
     const tentacleColumn = await screen.findByLabelText("tentacle-pr");
+    const sidebar = screen.getByLabelText("Active Agents sidebar");
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-pr" }));
 
-    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-pr" });
-    expect(within(gitDialog).getByRole("button", { name: "Open pull request in GitHub" })).toBeEnabled();
+    const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-pr");
+    expect(within(gitPanel).getByRole("button", { name: "Open pull request in GitHub" })).toBeEnabled();
 
-    fireEvent.click(within(gitDialog).getByRole("button", { name: "Merge pull request" }));
+    fireEvent.click(within(gitPanel).getByRole("button", { name: "Merge pull request" }));
     await waitFor(() => {
       expect(
         fetchMock.mock.calls.some(
@@ -553,22 +564,23 @@ describe("App tentacle create/rename/delete actions", () => {
     render(<App />);
 
     await screen.findByLabelText("tentacle-blocked");
+    const sidebar = screen.getByLabelText("Active Agents sidebar");
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-blocked" }));
 
-    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-blocked" });
-    fireEvent.click(within(gitDialog).getByRole("button", { name: "Open commit options" }));
-    expect(within(gitDialog).getByRole("button", { name: "Commit changes" })).toBeDisabled();
-    expect(within(gitDialog).getByRole("menuitem", { name: "Sync with Base" })).toBeDisabled();
-    expect(within(gitDialog).getByRole("button", { name: "Merge pull request" })).toBeDisabled();
+    const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-blocked");
+    fireEvent.click(within(gitPanel).getByRole("button", { name: "Open commit options" }));
+    expect(within(gitPanel).getByRole("button", { name: "Commit changes" })).toBeDisabled();
+    expect(within(gitPanel).getByRole("menuitem", { name: "Sync with Base" })).toBeDisabled();
+    expect(within(gitPanel).getByRole("button", { name: "Merge pull request" })).toBeDisabled();
 
     expect(
-      within(gitDialog).getByText("Commit blocked: enter a commit message."),
+      within(gitPanel).getByText("Commit blocked: enter a commit message."),
     ).toBeInTheDocument();
     expect(
-      within(gitDialog).getByText("Sync blocked: worktree has uncommitted changes."),
+      within(gitPanel).getByText("Sync blocked: worktree has uncommitted changes."),
     ).toBeInTheDocument();
     expect(
-      within(gitDialog).getByText("Merge blocked: pull request has merge conflicts."),
+      within(gitPanel).getByText("Merge blocked: pull request has merge conflicts."),
     ).toBeInTheDocument();
   });
 
@@ -659,14 +671,13 @@ describe("App tentacle create/rename/delete actions", () => {
     render(<App />);
 
     await screen.findByLabelText("tentacle-wt");
+    const sidebar = screen.getByLabelText("Active Agents sidebar");
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-wt" }));
 
-    const gitDialog = await screen.findByRole("dialog", { name: "Git actions for tentacle-wt" });
-    fireEvent.click(within(gitDialog).getByRole("button", { name: "Cleanup worktree" }));
+    const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-wt");
+    fireEvent.click(within(gitPanel).getByRole("button", { name: "Cleanup worktree" }));
 
-    const deleteDialog = await screen.findByRole("dialog", {
-      name: "Delete confirmation for tentacle-wt",
-    });
+    const deleteDialog = await within(sidebar).findByLabelText("Delete confirmation for tentacle-wt");
     expect(
       within(deleteDialog).getByText("This action removes the worktree directory and local branch."),
     ).toBeInTheDocument();
