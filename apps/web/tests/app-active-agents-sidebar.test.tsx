@@ -15,26 +15,42 @@ describe("App active agents sidebar", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
+          agentId: "tentacle-a-root",
+          label: "tentacle-a-root",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+        {
           agentId: "agent-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
-          createdAt: "2026-02-24T10:00:00.000Z",
+          parentAgentId: "tentacle-a-root",
+          createdAt: "2026-02-24T10:01:00.000Z",
         },
         {
           agentId: "agent-2",
           label: longWorkerLabel,
           state: "idle",
           tentacleId: "tentacle-a",
-          parentAgentId: "agent-1",
+          parentAgentId: "tentacle-a-root",
           createdAt: "2026-02-24T10:05:00.000Z",
+        },
+        {
+          agentId: "tentacle-b-root",
+          label: "tentacle-b-root",
+          state: "live",
+          tentacleId: "tentacle-b",
+          createdAt: "2026-02-24T11:00:00.000Z",
         },
         {
           agentId: "agent-3",
           label: "reviewer",
           state: "idle",
           tentacleId: "tentacle-b",
-          createdAt: "2026-02-24T11:00:00.000Z",
+          parentAgentId: "tentacle-b-root",
+          createdAt: "2026-02-24T11:01:00.000Z",
         },
       ]),
     );
@@ -51,13 +67,10 @@ describe("App active agents sidebar", () => {
     expect(within(tentacleAGroup).getByText(longWorkerLabel)).toBeInTheDocument();
     expect(within(tentacleBGroup).getByText("reviewer")).toBeInTheDocument();
 
-    const rootAgentRow = within(tentacleAGroup).getByText("core-planner").closest("li");
-    expect(rootAgentRow).toHaveClass("active-agents-agent-row", "active-agents-agent-row--root");
-
     const childAgentLabel = within(tentacleAGroup).getByText(longWorkerLabel);
     expect(childAgentLabel).toHaveAttribute("title", longWorkerLabel);
     const childAgentRow = childAgentLabel.closest("li");
-    expect(childAgentRow).toHaveClass("active-agents-agent-row", "active-agents-agent-row--child");
+    expect(childAgentRow).toHaveClass("active-agents-agent-row");
   });
 
   it("collapses and expands the active agents sidebar section", async () => {

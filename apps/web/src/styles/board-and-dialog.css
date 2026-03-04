@@ -132,6 +132,29 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+.tentacle-terminals-empty {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--terminal-bg) 78%, #0a1018 22%);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.tentacle-terminals-empty p {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.tentacle-create-first-terminal {
+  min-width: 6.2rem;
+}
+
 .tentacle-column--selected {
   border-color: color-mix(in srgb, var(--accent-primary) 72%, #ffe4a8 28%);
 }

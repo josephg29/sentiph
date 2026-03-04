@@ -68,6 +68,9 @@ type TentacleBoardProps = {
 const renderTentacleWorkspaceLabel = (workspaceMode: TentacleWorkspaceMode) =>
   workspaceMode === "worktree" ? "WORKTREE" : "MAIN";
 
+const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
+  agentId === `${tentacleId}-root`;
+
 const renderTentacleGitDirtyLabel = (
   workspaceMode: TentacleWorkspaceMode,
   gitStatus: TentacleGitStatusSnapshot | undefined,
@@ -205,6 +208,9 @@ export const TentacleBoard = ({
       {visibleColumns.map((column, index) => {
         const rightNeighbor = visibleColumns[index + 1];
         const isSelected = selectedTentacleId === column.tentacleId;
+        const visibleTerminals = column.agents.filter(
+          (agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId),
+        );
         const gitStatus = gitStatusByTentacleId[column.tentacleId];
         const isLoadingGitStatus = gitStatusLoadingByTentacleId[column.tentacleId] ?? false;
         const pullRequest = pullRequestByTentacleId[column.tentacleId];
@@ -362,32 +368,49 @@ export const TentacleBoard = ({
                 )}
               </div>
               <div className="tentacle-terminals">
-                {column.agents.map((agent) => (
-                  <TentacleTerminal
-                    key={agent.agentId}
-                    terminalId={agent.agentId}
-                    onAddAbove={() => {
-                      onCreateTentacleAgent(column.tentacleId, agent.agentId, "up");
-                    }}
-                    onAddBelow={() => {
-                      onCreateTentacleAgent(column.tentacleId, agent.agentId, "down");
-                    }}
-                    onDelete={
-                      agent.parentAgentId !== undefined
-                        ? () => {
-                            onDeleteTentacleAgent(column.tentacleId, agent.agentId);
-                          }
-                        : undefined
-                    }
-                    onCodexStateChange={
-                      agent.parentAgentId === undefined
-                        ? (state) => {
-                            onTentacleStateChange(column.tentacleId, state);
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                {visibleTerminals.length === 0 ? (
+                  <div className="tentacle-terminals-empty">
+                    <p>No terminals in this tentacle.</p>
+                    <ActionButton
+                      aria-label={`Create first terminal in ${column.tentacleId}`}
+                      className="tentacle-create-first-terminal"
+                      onClick={() => {
+                        onCreateTentacleAgent(
+                          column.tentacleId,
+                          `${column.tentacleId}-root`,
+                          "down",
+                        );
+                      }}
+                      size="dense"
+                      variant="accent"
+                    >
+                      New Terminal
+                    </ActionButton>
+                  </div>
+                ) : (
+                  visibleTerminals.map((agent, terminalIndex) => (
+                    <TentacleTerminal
+                      key={agent.agentId}
+                      terminalId={agent.agentId}
+                      onAddAbove={() => {
+                        onCreateTentacleAgent(column.tentacleId, agent.agentId, "up");
+                      }}
+                      onAddBelow={() => {
+                        onCreateTentacleAgent(column.tentacleId, agent.agentId, "down");
+                      }}
+                      onDelete={() => {
+                        onDeleteTentacleAgent(column.tentacleId, agent.agentId);
+                      }}
+                      onCodexStateChange={
+                        terminalIndex === 0
+                          ? (state) => {
+                              onTentacleStateChange(column.tentacleId, state);
+                            }
+                          : undefined
+                      }
+                    />
+                  ))
+                )}
               </div>
             </section>
 

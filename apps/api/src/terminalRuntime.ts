@@ -641,7 +641,7 @@ export const createTerminalRuntime = ({
         tentacleId,
         label: nextAgentId,
         createdAt: new Date().toISOString(),
-        parentAgentId: anchorAgentId,
+        parentAgentId: rootAgentId,
         order: 0,
       };
 

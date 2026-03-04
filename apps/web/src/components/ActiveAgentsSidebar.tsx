@@ -52,6 +52,9 @@ type ActiveAgentsSidebarProps = {
 const clampSidebarWidth = (width: number): number =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
+const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
+  agentId === `${tentacleId}-root`;
+
 export const ActiveAgentsSidebar = ({
   columns,
   isLoading,
@@ -78,12 +81,13 @@ export const ActiveAgentsSidebar = ({
   const sidebarRef = useRef<HTMLElement | null>(null);
   const resolveAgentCodexState = (
     tentacleId: string,
-    agent: { parentAgentId?: string; state: AgentState },
+    agentState: AgentState,
+    isPrimaryVisibleTerminal: boolean,
   ): CodexState => {
-    if (agent.parentAgentId === undefined) {
-      return tentacleStates[tentacleId] ?? fallbackCodexStateByAgentState[agent.state];
+    if (isPrimaryVisibleTerminal) {
+      return tentacleStates[tentacleId] ?? fallbackCodexStateByAgentState[agentState];
     }
-    return fallbackCodexStateByAgentState[agent.state];
+    return fallbackCodexStateByAgentState[agentState];
   };
 
   const primaryUsagePercent = useMemo(() => {
@@ -201,7 +205,10 @@ export const ActiveAgentsSidebar = ({
 
                     {!isLoading &&
                       columns.map((column) => {
-                        const agentCountLabel = column.agents.length === 1 ? "agent" : "agents";
+                        const visibleAgents = column.agents.filter(
+                          (agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId),
+                        );
+                        const agentCountLabel = visibleAgents.length === 1 ? "agent" : "agents";
                         return (
                           <section
                             key={column.tentacleId}
@@ -213,7 +220,7 @@ export const ActiveAgentsSidebar = ({
                                 <h3>{column.tentacleName}</h3>
                               </div>
                               <span className="active-agents-group-count">
-                                {column.agents.length} {agentCountLabel}
+                                {visibleAgents.length} {agentCountLabel}
                               </span>
                               {minimizedTentacleIds.includes(column.tentacleId) && (
                                 <ActionButton
@@ -230,20 +237,20 @@ export const ActiveAgentsSidebar = ({
                               )}
                             </div>
                             <ul>
-                              {column.agents.map((agent) => (
+                              {visibleAgents.map((agent, index) => (
                                 <li
-                                  className={`active-agents-agent-row ${
-                                    agent.parentAgentId === undefined
-                                      ? "active-agents-agent-row--root"
-                                      : "active-agents-agent-row--child"
-                                  }`}
+                                  className="active-agents-agent-row"
                                   key={agent.agentId}
                                 >
                                   <span className="active-agents-agent-label" title={agent.label}>
                                     {agent.label}
                                   </span>
                                   <CodexStateBadge
-                                    state={resolveAgentCodexState(column.tentacleId, agent)}
+                                    state={resolveAgentCodexState(
+                                      column.tentacleId,
+                                      agent.state,
+                                      index === 0,
+                                    )}
                                   />
                                 </li>
                               ))}

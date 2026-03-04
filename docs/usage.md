@@ -55,8 +55,9 @@ Then open `http://localhost:5173`.
 - Maximize minimized tentacles from `Maximize` buttons in the `Active Agents` sidebar.
 - Delete from the right-side `Delete` button in the tentacle header (with an in-app confirmation dialog).
 - Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
-- Each terminal header includes compact add icons (`>_↑` and `>_↓`) to spawn another terminal agent in the same tentacle column above/below that terminal.
-- Each terminal header includes a trash-icon delete control; it is enabled for spawned child terminals and disabled for the root terminal.
+- Each terminal header includes compact add icons (`>_↑` and `>_↓`) to spawn another terminal in the same tentacle column above/below that terminal.
+- Terminal headers include a trash-icon delete control and every visible terminal is deletable.
+- Empty tentacles show a `New Terminal` button in the terminal area to start the first terminal session.
 - Child terminal agent order is persisted, so stacked terminal placement survives refreshes and API restarts.
 - Isolated worktree tentacles require `git` and a git repository at the workspace root.
 - Tentacle metadata persists across API restarts in `.octogent/state/tentacles.json`.
