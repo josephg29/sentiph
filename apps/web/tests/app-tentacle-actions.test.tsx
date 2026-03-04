@@ -40,11 +40,27 @@ describe("App tentacle create/rename/delete actions", () => {
                   createdAt: "2026-02-24T10:00:00.000Z",
                 },
                 {
+                  agentId: "tentacle-1-agent-1",
+                  label: "tentacle-1-agent-1",
+                  state: "live",
+                  tentacleId: "tentacle-1",
+                  parentAgentId: "tentacle-1-root",
+                  createdAt: "2026-02-24T10:00:30.000Z",
+                },
+                {
                   agentId: "tentacle-2-root",
                   label: "tentacle-2-root",
                   state: "live",
                   tentacleId: "tentacle-2",
                   createdAt: "2026-02-24T10:05:00.000Z",
+                },
+                {
+                  agentId: "tentacle-2-agent-1",
+                  label: "tentacle-2-agent-1",
+                  state: "live",
+                  tentacleId: "tentacle-2",
+                  parentAgentId: "tentacle-2-root",
+                  createdAt: "2026-02-24T10:05:30.000Z",
                 },
               ]
             : [
@@ -54,6 +70,14 @@ describe("App tentacle create/rename/delete actions", () => {
                   state: "live",
                   tentacleId: "tentacle-1",
                   createdAt: "2026-02-24T10:00:00.000Z",
+                },
+                {
+                  agentId: "tentacle-1-agent-1",
+                  label: "tentacle-1-agent-1",
+                  state: "live",
+                  tentacleId: "tentacle-1",
+                  parentAgentId: "tentacle-1-root",
+                  createdAt: "2026-02-24T10:00:30.000Z",
                 },
               ],
         );
@@ -89,7 +113,7 @@ describe("App tentacle create/rename/delete actions", () => {
     expect(within(sidebar).getByLabelText("Active agents in tentacle-2")).toBeInTheDocument();
     await waitFor(() => {
       expect(
-        MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2-root/ws")),
+        MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2-agent-1/ws")),
       ).toBe(true);
     });
   });

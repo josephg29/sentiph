@@ -197,9 +197,9 @@ export const createTerminalRuntime = ({
     createdAt: agent.createdAt,
   });
 
-  const createTentacle = ({
-    tentacleName,
-    workspaceMode = "shared",
+    const createTentacle = ({
+      tentacleName,
+      workspaceMode = "shared",
   }: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
@@ -218,7 +218,18 @@ export const createTerminalRuntime = ({
     }
 
     tentacles.set(tentacleId, tentacle);
-    setTentacleAgentList(tentacleId, []);
+    const rootAgentId = buildRootAgentId(tentacleId);
+    const initialAgentId = allocateTentacleAgentId(tentacleId);
+    setTentacleAgentList(tentacleId, [
+      {
+        agentId: initialAgentId,
+        tentacleId,
+        label: initialAgentId,
+        createdAt: new Date().toISOString(),
+        parentAgentId: rootAgentId,
+        order: 0,
+      },
+    ]);
     persistRegistry();
 
     return buildRootSnapshot(tentacle);
