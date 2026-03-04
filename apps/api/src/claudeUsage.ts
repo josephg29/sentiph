@@ -133,6 +133,33 @@ const resolveUsageWindow = (
   return asRecord(rateLimits?.[key]);
 };
 
+const readErrorMessage = (value: unknown): string | null => {
+  const payload = asRecord(value);
+  if (!payload) {
+    return null;
+  }
+
+  const directMessage = asString(payload.message);
+  if (directMessage) {
+    return directMessage;
+  }
+
+  const errorPayload = asRecord(payload.error);
+  return asString(errorPayload?.message);
+};
+
+const readUsageErrorMessage = async (response: Response): Promise<string | null> => {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  try {
+    if (contentType.includes("application/json")) {
+      return readErrorMessage((await response.json()) as unknown);
+    }
+    return asString(await response.text());
+  } catch {
+    return null;
+  }
+};
+
 const mapUsageSnapshot = (usageJson: unknown, now: Date): ClaudeUsageSnapshot => {
   const usagePayload = asRecord(usageJson);
   if (!usagePayload) {
@@ -226,9 +253,24 @@ export const readClaudeUsageSnapshot = async (
     }
 
     if (!usageResponse.ok) {
+      const usageErrorMessage = await readUsageErrorMessage(usageResponse);
+      if (usageResponse.status === 429) {
+        const retryAfterSeconds = asString(usageResponse.headers.get("retry-after"));
+        const retrySuffix =
+          retryAfterSeconds && retryAfterSeconds.length > 0
+            ? ` Retry after ${retryAfterSeconds}s.`
+            : "";
+        return unavailableSnapshot(
+          now,
+          usageErrorMessage ?? `Claude OAuth usage API is rate limited.${retrySuffix}`,
+        );
+      }
+
       return unavailableSnapshot(
         now,
-        `Claude OAuth usage request failed (HTTP ${usageResponse.status}).`,
+        usageErrorMessage
+          ? `${usageErrorMessage} (HTTP ${usageResponse.status}).`
+          : `Claude OAuth usage request failed (HTTP ${usageResponse.status}).`,
         "error",
       );
     }

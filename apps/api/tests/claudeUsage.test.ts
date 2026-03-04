@@ -129,4 +129,35 @@ describe("readClaudeUsageSnapshot", () => {
     expect(snapshot.status).toBe("unavailable");
     expect(snapshot.message).toMatch(/expired|unauthorized/i);
   });
+
+  it("returns unavailable on oauth rate limit response", async () => {
+    const snapshot = await readClaudeUsageSnapshot({
+      now: () => new Date("2026-03-03T12:00:00.000Z"),
+      readFileText: async () =>
+        JSON.stringify({
+          claudeAiOauth: {
+            accessToken: "oauth-token",
+            scopes: ["user:profile"],
+          },
+        }),
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              type: "rate_limit_error",
+              message: "Rate limited. Please try again later.",
+            },
+          }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+    });
+
+    expect(snapshot.status).toBe("unavailable");
+    expect(snapshot.message).toMatch(/rate limit|rate limited/i);
+  });
 });
