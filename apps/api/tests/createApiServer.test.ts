@@ -1054,6 +1054,62 @@ describe("createApiServer", () => {
         tentacleId: "tentacle-1",
       }),
     ]);
+
+    const deleteAgentResponse = await fetch(
+      `${baseUrl}/api/tentacles/tentacle-1/agents/tentacle-1-agent-1`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+    expect(deleteAgentResponse.status).toBe(204);
+
+    const listAfterDeleteResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listAfterDeleteResponse.status).toBe(200);
+    await expect(listAfterDeleteResponse.json()).resolves.toEqual([
+      expect.objectContaining({
+        agentId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+      }),
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-2",
+        tentacleId: "tentacle-1",
+        parentAgentId: "tentacle-1-root",
+      }),
+    ]);
+  });
+
+  it("returns 409 when deleting the root terminal through the agent endpoint", async () => {
+    const baseUrl = await startServer();
+
+    const createTentacleResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createTentacleResponse.status).toBe(201);
+
+    const deleteRootResponse = await fetch(
+      `${baseUrl}/api/tentacles/tentacle-1/agents/tentacle-1-root`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+    expect(deleteRootResponse.status).toBe(409);
+    await expect(deleteRootResponse.json()).resolves.toEqual({
+      error: "Root terminal cannot be deleted from terminal controls.",
+    });
   });
 
   it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {

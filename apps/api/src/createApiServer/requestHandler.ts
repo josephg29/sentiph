@@ -354,6 +354,7 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
 
 const TENTACLE_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)$/;
 const TENTACLE_AGENT_COLLECTION_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/agents$/;
+const TENTACLE_AGENT_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/agents\/([^/]+)$/;
 const TENTACLE_GIT_ACTION_PATH_PATTERN =
   /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
 const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
@@ -613,6 +614,47 @@ const handleTentacleAgentCollectionRoute: ApiRouteHandler = async (
   }
 };
 
+const handleTentacleAgentItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const agentItemMatch = requestUrl.pathname.match(TENTACLE_AGENT_ITEM_PATH_PATTERN);
+  if (!agentItemMatch) {
+    return false;
+  }
+
+  if (request.method !== "DELETE") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(agentItemMatch[1] ?? "");
+  const agentId = decodeURIComponent(agentItemMatch[2] ?? "");
+  try {
+    const deleted = runtime.deleteTentacleAgent({
+      tentacleId,
+      agentId,
+    });
+    if (deleted === null) {
+      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+      return true;
+    }
+    if (!deleted) {
+      writeJson(response, 404, { error: "Terminal agent not found." }, corsOrigin);
+      return true;
+    }
+
+    writeNoContent(response, 204, corsOrigin);
+    return true;
+  } catch (error) {
+    if (error instanceof RuntimeInputError) {
+      writeJson(response, 409, { error: error.message }, corsOrigin);
+      return true;
+    }
+    throw error;
+  }
+};
+
 const handleTentacleItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
@@ -684,6 +726,7 @@ const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
   handleMonitorRefreshRoute,
   handleTentaclesCollectionRoute,
   handleTentacleAgentCollectionRoute,
+  handleTentacleAgentItemRoute,
   handleTentacleGitRoute,
   handleTentacleGitPullRequestRoute,
   handleTentacleItemRoute,

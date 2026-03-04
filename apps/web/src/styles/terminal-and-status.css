@@ -100,6 +100,26 @@
   line-height: 1;
 }
 
+.terminal-delete {
+  --action-button-color: #ff8f8f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.44rem;
+  height: 1.2rem;
+  padding: 0;
+}
+
+.terminal-delete:disabled {
+  cursor: not-allowed;
+}
+
+.terminal-delete-icon {
+  width: 0.86rem;
+  height: 0.86rem;
+  display: block;
+}
+
 .terminal-state-badge {
   font-size: 0.65rem;
   border-color: rgba(0, 0, 0, 0.45);

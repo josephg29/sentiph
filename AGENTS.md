@@ -183,6 +183,10 @@ Keep the terminal surface dark but not pure black; prefer a deep slate backgroun
 
 For tentacle window terminals, keep the window surface flush with no inner mount padding.
 
+### Terminal Header Controls Preference
+
+Use compact icon-first controls in terminal headers: add actions should stay glyph-based (`>_↑`/`>_↓`) with readable sizing/padding, and delete should use a trash icon that remains visible across terminals while staying disabled for the root terminal.
+
 ### Chrome Density Preference
 
 Keep the top chrome bar compact: smaller vertical padding and tighter control spacing over roomy header sizing.

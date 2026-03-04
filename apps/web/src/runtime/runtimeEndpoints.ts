@@ -136,6 +136,21 @@ export const buildTentacleAgentsUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildTentacleAgentUrl = (
+  tentacleId: string,
+  agentId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const encodedAgentId = encodeURIComponent(agentId);
+  const path = `/api/tentacles/${encodedTentacleId}/agents/${encodedAgentId}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 const buildTentacleGitActionUrl = (
   tentacleId: string,
   action: "status" | "commit" | "push" | "sync",

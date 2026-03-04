@@ -167,12 +167,26 @@ describe("App tentacle create/rename/delete actions", () => {
         }
       }
 
+      if (url.endsWith("/api/tentacles/tentacle-a/agents/tentacle-a-agent-1") && method === "DELETE") {
+        const index = snapshots.findIndex((snapshot) => snapshot.agentId === "tentacle-a-agent-1");
+        if (index >= 0) {
+          snapshots.splice(index, 1);
+        }
+        for (const snapshot of snapshots) {
+          if (snapshot.parentAgentId === "tentacle-a-agent-1") {
+            snapshot.parentAgentId = "tentacle-a-root";
+          }
+        }
+        return new Response(null, { status: 204 });
+      }
+
       return notFoundResponse();
     });
 
     render(<App />);
 
     await screen.findByLabelText("tentacle-a");
+    expect(screen.getByRole("button", { name: "Delete terminal tentacle-a-root" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Add terminal below tentacle-a-root" }));
     await screen.findByRole("button", { name: "Add terminal below tentacle-a-agent-1" });
@@ -188,6 +202,16 @@ describe("App tentacle create/rename/delete actions", () => {
         "Terminal tentacle-a-agent-2",
         "Terminal tentacle-a-agent-1",
       ]);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete terminal tentacle-a-agent-1" }));
+
+    await waitFor(() => {
+      const mountedTerminalLabels = screen
+        .getAllByLabelText(/^Terminal /)
+        .map((element) => element.getAttribute("aria-label"));
+      expect(mountedTerminalLabels).toEqual(["Terminal tentacle-a-root", "Terminal tentacle-a-agent-2"]);
+      expect(screen.queryByRole("button", { name: "Delete terminal tentacle-a-agent-1" })).toBeNull();
     });
   });
 

@@ -54,6 +54,7 @@ type TentacleBoardProps = {
     anchorAgentId: string,
     placement: "up" | "down",
   ) => void;
+  onDeleteTentacleAgent: (tentacleId: string, agentId: string) => void;
   onTentacleDividerKeyDown: (
     leftTentacleId: string,
     rightTentacleId: string,
@@ -167,6 +168,7 @@ export const TentacleBoard = ({
   onOpenTentacleGitActions,
   onTentacleStateChange,
   onCreateTentacleAgent,
+  onDeleteTentacleAgent,
   onTentacleDividerKeyDown,
   onTentacleDividerPointerDown,
 }: TentacleBoardProps) => {
@@ -370,6 +372,13 @@ export const TentacleBoard = ({
                     onAddBelow={() => {
                       onCreateTentacleAgent(column.tentacleId, agent.agentId, "down");
                     }}
+                    onDelete={
+                      agent.parentAgentId !== undefined
+                        ? () => {
+                            onDeleteTentacleAgent(column.tentacleId, agent.agentId);
+                          }
+                        : undefined
+                    }
                     onCodexStateChange={
                       agent.parentAgentId === undefined
                         ? (state) => {

@@ -193,6 +193,7 @@ export type TerminalRuntime = {
     anchorAgentId: string;
     placement: "up" | "down";
   }): AgentSnapshot | null;
+  deleteTentacleAgent(options: { tentacleId: string; agentId: string }): boolean | null;
   renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null;
   deleteTentacle(tentacleId: string): boolean;
   handleUpgrade(

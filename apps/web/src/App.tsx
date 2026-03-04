@@ -114,6 +114,7 @@ export const App = () => {
     confirmDeleteTentacle,
     createTentacle,
     createTentacleAgent,
+    deleteTentacleAgent,
     editingTentacleId,
     isCreatingTentacle,
     isDeletingTentacleId,
@@ -474,6 +475,12 @@ export const App = () => {
                   tentacleId,
                   anchorAgentId,
                   placement,
+                });
+              }}
+              onDeleteTentacleAgent={(tentacleId, agentId) => {
+                void deleteTentacleAgent({
+                  tentacleId,
+                  agentId,
                 });
               }}
               selectedTentacleId={selectedTentacleId}

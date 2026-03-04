@@ -668,6 +668,45 @@ export const createTerminalRuntime = ({
       return toTentacleAgentSnapshot(nextAgent);
     },
 
+    deleteTentacleAgent({
+      tentacleId,
+      agentId,
+    }: {
+      tentacleId: string;
+      agentId: string;
+    }): boolean | null {
+      const tentacle = tentacles.get(tentacleId);
+      if (!tentacle) {
+        return null;
+      }
+
+      const rootAgentId = buildRootAgentId(tentacleId);
+      if (agentId === rootAgentId) {
+        throw new RuntimeInputError("Root terminal cannot be deleted from terminal controls.");
+      }
+
+      const existingAgents = getTentacleAgentList(tentacleId);
+      if (!existingAgents.some((agent) => agent.agentId === agentId)) {
+        return false;
+      }
+
+      const nextAgents = existingAgents
+        .filter((agent) => agent.agentId !== agentId)
+        .map((agent) =>
+          agent.parentAgentId === agentId
+            ? {
+                ...agent,
+                parentAgentId: rootAgentId,
+              }
+            : agent,
+        );
+
+      sessionRuntime.closeSession(agentId);
+      setTentacleAgentList(tentacleId, nextAgents);
+      persistRegistry();
+      return true;
+    },
+
     renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null {
       const tentacle = tentacles.get(tentacleId);
       if (!tentacle) {

@@ -79,19 +79,31 @@ describe("TentacleTerminal", () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
     const onAddAbove = vi.fn();
     const onAddBelow = vi.fn();
+    const onDelete = vi.fn();
 
     render(
       <TentacleTerminal
         terminalId="tentacle-a-root"
         onAddAbove={onAddAbove}
         onAddBelow={onAddBelow}
+        onDelete={onDelete}
       />,
     );
 
     screen.getByRole("button", { name: "Add terminal above tentacle-a-root" }).click();
     screen.getByRole("button", { name: "Add terminal below tentacle-a-root" }).click();
+    screen.getByRole("button", { name: "Delete terminal tentacle-a-root" }).click();
 
     expect(onAddAbove).toHaveBeenCalledTimes(1);
     expect(onAddBelow).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a disabled delete control when no delete handler is provided", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    render(<TentacleTerminal terminalId="tentacle-a-root" />);
+
+    expect(screen.getByRole("button", { name: "Delete terminal tentacle-a-root" })).toBeDisabled();
   });
 });

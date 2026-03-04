@@ -8,6 +8,7 @@ import {
   buildMonitorConfigUrl,
   buildMonitorFeedUrl,
   buildMonitorRefreshUrl,
+  buildTentacleAgentUrl,
   buildTentacleAgentsUrl,
   buildTentacleGitCommitUrl,
   buildTentacleGitPullRequestMergeUrl,
@@ -124,6 +125,22 @@ describe("runtimeEndpoints", () => {
     expect(buildTentacleAgentsUrl("tentacle-main", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/tentacles/tentacle-main/agents",
     );
+  });
+
+  it("builds tentacle child-agent item URL on same origin by default", () => {
+    expect(buildTentacleAgentUrl("tentacle-main", "tentacle-main-agent-2")).toBe(
+      "/api/tentacles/tentacle-main/agents/tentacle-main-agent-2",
+    );
+  });
+
+  it("builds absolute tentacle child-agent item URL when runtime base URL is configured", () => {
+    expect(
+      buildTentacleAgentUrl(
+        "tentacle-main",
+        "tentacle-main-agent-2",
+        "https://runtime.example.com",
+      ),
+    ).toBe("https://runtime.example.com/api/tentacles/tentacle-main/agents/tentacle-main-agent-2");
   });
 
   it("builds tentacle git lifecycle URLs on same origin by default", () => {

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import {
+  buildTentacleAgentUrl,
   buildTentacleAgentsUrl,
   buildTentacleRenameUrl,
   buildTentaclesUrl,
@@ -38,6 +39,7 @@ type UseTentacleMutationsResult = {
     anchorAgentId: string;
     placement: "up" | "down";
   }) => Promise<void>;
+  deleteTentacleAgent: (input: { tentacleId: string; agentId: string }) => Promise<void>;
   requestDeleteTentacle: (
     tentacleId: string,
     tentacleName: string,
@@ -205,6 +207,30 @@ export const useTentacleMutations = ({
     [readColumns, setColumns, setLoadError],
   );
 
+  const deleteTentacleAgent = useCallback(
+    async ({ tentacleId, agentId }: { tentacleId: string; agentId: string }) => {
+      try {
+        setLoadError(null);
+        const response = await fetch(buildTentacleAgentUrl(tentacleId, agentId), {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to delete tentacle agent (${response.status})`);
+        }
+
+        const nextColumns = await readColumns();
+        setColumns(nextColumns);
+      } catch {
+        setLoadError("Unable to delete terminal agent.");
+      }
+    },
+    [readColumns, setColumns, setLoadError],
+  );
+
   const requestDeleteTentacle = useCallback(
     (
       tentacleId: string,
@@ -292,6 +318,7 @@ export const useTentacleMutations = ({
     submitTentacleRename,
     createTentacle,
     createTentacleAgent,
+    deleteTentacleAgent,
     requestDeleteTentacle,
     confirmDeleteTentacle,
     clearPendingDeleteTentacle,

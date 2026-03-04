@@ -11,6 +11,7 @@ type TentacleTerminalProps = {
   terminalId: string;
   onAddAbove?: () => void;
   onAddBelow?: () => void;
+  onDelete?: () => void;
   onCodexStateChange?: (state: CodexState) => void;
 };
 
@@ -42,10 +43,20 @@ const TerminalAddIcon = ({ direction }: { direction: "up" | "down" }) => {
   );
 };
 
+const TerminalDeleteIcon = () => (
+  <svg aria-hidden="true" className="terminal-delete-icon" viewBox="0 0 16 16">
+    <path
+      d="M5 2h6l.7 1.5H14v1H2v-1h2.3L5 2Zm-1 4h8l-.6 7.2c-.1 1-.9 1.8-1.9 1.8H6.5c-1 0-1.8-.8-1.9-1.8L4 6Zm2 1v6h1V7H6Zm3 0v6h1V7H9Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export const TentacleTerminal = ({
   terminalId,
   onAddAbove,
   onAddBelow,
+  onDelete,
   onCodexStateChange,
 }: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -361,6 +372,19 @@ export const TentacleTerminal = ({
             variant="info"
           >
             <TerminalAddIcon direction="down" />
+          </ActionButton>
+          <ActionButton
+            aria-label={`Delete terminal ${terminalId}`}
+            className="terminal-delete"
+            disabled={!onDelete}
+            onClick={() => {
+              onDelete?.();
+            }}
+            size="compact"
+            title={onDelete ? "Delete terminal" : "Root terminal cannot be deleted"}
+            variant="danger"
+          >
+            <TerminalDeleteIcon />
           </ActionButton>
           <CodexStateBadge state={codexState} />
         </div>
