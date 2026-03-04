@@ -48,7 +48,7 @@ describe("App board scroll behavior", () => {
 
     const board = await screen.findByLabelText("Tentacle board");
     const headerNameButton = await screen.findByRole("button", { name: "tentacle-a" });
-    const terminal = await screen.findByTestId("terminal-tentacle-a");
+    const terminal = await screen.findByTestId("terminal-agent-1");
 
     expect(board.scrollLeft).toBe(0);
 

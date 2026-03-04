@@ -44,7 +44,7 @@ export const buildTentacleColumns = async (
           return leftIsRoot ? -1 : 1;
         }
 
-        return byCreatedAtAscending(left.createdAt, right.createdAt);
+        return 0;
       });
 
       return {

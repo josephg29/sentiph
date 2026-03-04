@@ -6,12 +6,13 @@ import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
 import { RuntimeInputError, type TentacleWorkspaceMode } from "../terminalRuntime";
 import {
-  parseTentacleCommitMessage,
+  RequestBodyTooLargeError,
   parseMonitorConfigPatch,
+  parseTentacleAgentCreateInput,
+  parseTentacleCommitMessage,
+  parseTentacleName,
   parseTentaclePullRequestCreateInput,
   parseTentacleSyncBaseRef,
-  RequestBodyTooLargeError,
-  parseTentacleName,
   parseTentacleWorkspaceMode,
   parseUiStatePatch,
   readJsonBody,
@@ -232,7 +233,12 @@ const handleMonitorConfigRoute: ApiRouteHandler = async (
 
   const patchResult = parseMonitorConfigPatch(bodyReadResult.payload);
   if (patchResult.error || !patchResult.patch) {
-    writeJson(response, 400, { error: patchResult.error ?? "Invalid monitor config patch." }, corsOrigin);
+    writeJson(
+      response,
+      400,
+      { error: patchResult.error ?? "Invalid monitor config patch." },
+      corsOrigin,
+    );
     return true;
   }
 
@@ -347,7 +353,9 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
 };
 
 const TENTACLE_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)$/;
-const TENTACLE_GIT_ACTION_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
+const TENTACLE_AGENT_COLLECTION_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/agents$/;
+const TENTACLE_GIT_ACTION_PATH_PATTERN =
+  /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
 const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
 const TENTACLE_GIT_PULL_REQUEST_MERGE_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr\/merge$/;
 
@@ -552,6 +560,59 @@ const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
   }
 };
 
+const handleTentacleAgentCollectionRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const agentCollectionMatch = requestUrl.pathname.match(TENTACLE_AGENT_COLLECTION_PATH_PATTERN);
+  if (!agentCollectionMatch) {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const createInput = parseTentacleAgentCreateInput(bodyReadResult.payload);
+  if (createInput.error || !createInput.anchorAgentId || !createInput.placement) {
+    writeJson(
+      response,
+      400,
+      { error: createInput.error ?? "Invalid tentacle agent input." },
+      corsOrigin,
+    );
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(agentCollectionMatch[1] ?? "");
+  try {
+    const payload = runtime.createTentacleAgent({
+      tentacleId,
+      anchorAgentId: createInput.anchorAgentId,
+      placement: createInput.placement,
+    });
+    if (!payload) {
+      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 201, payload, corsOrigin);
+    return true;
+  } catch (error) {
+    if (error instanceof RuntimeInputError) {
+      writeJson(response, 400, { error: error.message }, corsOrigin);
+      return true;
+    }
+    throw error;
+  }
+};
+
 const handleTentacleItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
@@ -622,6 +683,7 @@ const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
   handleMonitorFeedRoute,
   handleMonitorRefreshRoute,
   handleTentaclesCollectionRoute,
+  handleTentacleAgentCollectionRoute,
   handleTentacleGitRoute,
   handleTentacleGitPullRequestRoute,
   handleTentacleItemRoute,

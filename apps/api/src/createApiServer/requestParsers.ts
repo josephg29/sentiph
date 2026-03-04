@@ -258,6 +258,45 @@ export const parseTentaclePullRequestCreateInput = (
   };
 };
 
+export const parseTentacleAgentCreateInput = (
+  payload: unknown,
+): {
+  anchorAgentId: string | null;
+  placement: "up" | "down" | null;
+  error: string | null;
+} => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return {
+      anchorAgentId: null,
+      placement: null,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const record = payload as Record<string, unknown>;
+  if (typeof record.anchorAgentId !== "string" || record.anchorAgentId.trim().length === 0) {
+    return {
+      anchorAgentId: null,
+      placement: null,
+      error: "anchorAgentId must be a non-empty string.",
+    };
+  }
+
+  if (record.placement !== "up" && record.placement !== "down") {
+    return {
+      anchorAgentId: null,
+      placement: null,
+      error: "placement must be either 'up' or 'down'.",
+    };
+  }
+
+  return {
+    anchorAgentId: record.anchorAgentId.trim(),
+    placement: record.placement,
+    error: null,
+  };
+};
+
 export const parseUiStatePatch = (
   payload: unknown,
 ): { patch: PersistedUiState | null; error: string | null } => {
@@ -542,7 +581,11 @@ export const parseMonitorConfigPatch = (
   }
 
   if (record.credentials !== undefined) {
-    if (record.credentials === null || typeof record.credentials !== "object" || Array.isArray(record.credentials)) {
+    if (
+      record.credentials === null ||
+      typeof record.credentials !== "object" ||
+      Array.isArray(record.credentials)
+    ) {
       return {
         patch: null,
         error: "credentials must be an object.",

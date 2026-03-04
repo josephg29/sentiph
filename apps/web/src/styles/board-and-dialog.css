@@ -116,6 +116,22 @@
   transition: border-color 180ms ease;
 }
 
+.tentacle-terminals {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tentacle-terminals .tentacle-terminal {
+  min-height: 0;
+  flex: 1 1 0;
+}
+
+.tentacle-terminals .tentacle-terminal + .tentacle-terminal {
+  border-top: 1px solid var(--border-subtle);
+}
+
 .tentacle-column--selected {
   border-color: color-mix(in srgb, var(--accent-primary) 72%, #ffe4a8 28%);
 }

@@ -123,6 +123,19 @@ export const buildTentacleRenameUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, `/api/tentacles/${encodedTentacleId}`);
 };
 
+export const buildTentacleAgentsUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const path = `/api/tentacles/${encodedTentacleId}/agents`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 const buildTentacleGitActionUrl = (
   tentacleId: string,
   action: "status" | "commit" | "push" | "sync",

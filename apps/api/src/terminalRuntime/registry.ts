@@ -6,6 +6,7 @@ import { parseTentacleNumber } from "./ids";
 import { toErrorMessage } from "./systemClients";
 import type {
   PersistedTentacle,
+  PersistedTentacleAgent,
   PersistedUiState,
   TentacleRegistryDocument,
   TentacleWorkspaceMode,
@@ -123,6 +124,7 @@ export const parseRegistryDocument = (
   registryPath: string,
 ): {
   tentacles: Map<string, PersistedTentacle>;
+  tentacleAgents: Map<string, PersistedTentacleAgent[]>;
   uiState: PersistedUiState;
 } => {
   let parsed: unknown;
@@ -186,8 +188,75 @@ export const parseRegistryDocument = (
     });
   }
 
+  const tentacleAgents = new Map<string, PersistedTentacleAgent[]>();
+  if (Array.isArray(record.agents)) {
+    const seenAgentIds = new Set<string>();
+    for (const item of record.agents) {
+      if (item === null || typeof item !== "object") {
+        throw new Error(`Invalid tentacle agent entry in registry (${registryPath}).`);
+      }
+
+      const entry = item as Record<string, unknown>;
+      const agentId = typeof entry.agentId === "string" ? entry.agentId : null;
+      const tentacleId = typeof entry.tentacleId === "string" ? entry.tentacleId : null;
+      const label = typeof entry.label === "string" ? entry.label : null;
+      const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+      const parentAgentId = typeof entry.parentAgentId === "string" ? entry.parentAgentId : null;
+
+      if (!agentId || !tentacleId || !label || !createdAt || !parentAgentId) {
+        throw new Error(`Incomplete tentacle agent entry in registry (${registryPath}).`);
+      }
+
+      if (seenAgentIds.has(agentId)) {
+        throw new Error(`Duplicate tentacle agent id in registry (${registryPath}): ${agentId}`);
+      }
+      seenAgentIds.add(agentId);
+
+      if (!tentacles.has(tentacleId)) {
+        continue;
+      }
+
+      const rawOrder = entry.order;
+      const order =
+        typeof rawOrder === "number" && Number.isFinite(rawOrder) && rawOrder >= 0
+          ? Math.floor(rawOrder)
+          : Number.MAX_SAFE_INTEGER;
+      const nextAgents = tentacleAgents.get(tentacleId) ?? [];
+      nextAgents.push({
+        agentId,
+        tentacleId,
+        label,
+        createdAt,
+        parentAgentId,
+        order,
+      });
+      tentacleAgents.set(tentacleId, nextAgents);
+    }
+  }
+
+  for (const [tentacleId, agents] of tentacleAgents.entries()) {
+    const normalizedAgents = [...agents]
+      .sort((left, right) => {
+        if (left.order !== right.order) {
+          return left.order - right.order;
+        }
+        const leftTime = new Date(left.createdAt).getTime();
+        const rightTime = new Date(right.createdAt).getTime();
+        if (leftTime !== rightTime) {
+          return leftTime - rightTime;
+        }
+        return left.agentId.localeCompare(right.agentId);
+      })
+      .map((agent, index) => ({
+        ...agent,
+        order: index,
+      }));
+    tentacleAgents.set(tentacleId, normalizedAgents);
+  }
+
   return {
     tentacles,
+    tentacleAgents,
     uiState: pruneUiStateTentacleReferences(parsePersistedUiState(record.uiState), tentacles),
   };
 };
@@ -196,6 +265,7 @@ export const loadTentacleRegistry = (registryPath: string) => {
   if (!existsSync(registryPath)) {
     return {
       tentacles: new Map<string, PersistedTentacle>(),
+      tentacleAgents: new Map<string, PersistedTentacleAgent[]>(),
       uiState: {} as PersistedUiState,
     };
   }
@@ -208,12 +278,14 @@ export const persistTentacleRegistry = (
   registryPath: string,
   state: {
     tentacles: Map<string, PersistedTentacle>;
+    tentacleAgents: Map<string, PersistedTentacleAgent[]>;
     uiState: PersistedUiState;
   },
 ) => {
   const document: TentacleRegistryDocument = {
     version: TENTACLE_REGISTRY_VERSION,
     tentacles: [...state.tentacles.values()],
+    agents: [...state.tentacleAgents.values()].flat().map((agent) => ({ ...agent })),
     uiState: state.uiState,
   };
 

@@ -1,7 +1,7 @@
 import {
   Fragment,
-  type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
   type RefObject,
@@ -49,6 +49,11 @@ type TentacleBoardProps = {
   ) => void;
   onOpenTentacleGitActions: (tentacleId: string) => void;
   onTentacleStateChange: (tentacleId: string, state: CodexState) => void;
+  onCreateTentacleAgent: (
+    tentacleId: string,
+    anchorAgentId: string,
+    placement: "up" | "down",
+  ) => void;
   onTentacleDividerKeyDown: (
     leftTentacleId: string,
     rightTentacleId: string,
@@ -128,7 +133,9 @@ const renderTentacleGitBadges = (
 ) => (
   <>
     {gitDirtyLabel && <span className="tentacle-git-status-badge">{gitDirtyLabel}</span>}
-    {gitAheadBehindLabel && <span className="tentacle-git-metric-badge">{gitAheadBehindLabel}</span>}
+    {gitAheadBehindLabel && (
+      <span className="tentacle-git-metric-badge">{gitAheadBehindLabel}</span>
+    )}
     {gitPullRequestLabel && <span className="tentacle-pr-status-badge">{gitPullRequestLabel}</span>}
   </>
 );
@@ -159,6 +166,7 @@ export const TentacleBoard = ({
   onRequestDeleteTentacle,
   onOpenTentacleGitActions,
   onTentacleStateChange,
+  onCreateTentacleAgent,
   onTentacleDividerKeyDown,
   onTentacleDividerPointerDown,
 }: TentacleBoardProps) => {
@@ -285,28 +293,29 @@ export const TentacleBoard = ({
                     </h2>
                   )}
                 </div>
-                {editingTentacleId !== column.tentacleId && column.tentacleWorkspaceMode === "worktree" && (
-                  <div className="tentacle-header-git-center">
-                    <span className="tentacle-git-cluster">
-                      {renderTentacleGitBadges(
-                        gitDirtyLabel,
-                        gitAheadBehindLabel,
-                        gitPullRequestLabel,
-                      )}
-                      <ActionButton
-                        aria-label={`Open git actions for ${column.tentacleId}`}
-                        className="tentacle-git"
-                        onClick={() => {
-                          onOpenTentacleGitActions(column.tentacleId);
-                        }}
-                        size="dense"
-                        variant="info"
-                      >
-                        Git
-                      </ActionButton>
-                    </span>
-                  </div>
-                )}
+                {editingTentacleId !== column.tentacleId &&
+                  column.tentacleWorkspaceMode === "worktree" && (
+                    <div className="tentacle-header-git-center">
+                      <span className="tentacle-git-cluster">
+                        {renderTentacleGitBadges(
+                          gitDirtyLabel,
+                          gitAheadBehindLabel,
+                          gitPullRequestLabel,
+                        )}
+                        <ActionButton
+                          aria-label={`Open git actions for ${column.tentacleId}`}
+                          className="tentacle-git"
+                          onClick={() => {
+                            onOpenTentacleGitActions(column.tentacleId);
+                          }}
+                          size="dense"
+                          variant="info"
+                        >
+                          Git
+                        </ActionButton>
+                      </span>
+                    </div>
+                  )}
                 {editingTentacleId !== column.tentacleId && (
                   <div className="tentacle-header-actions">
                     <ActionButton
@@ -350,12 +359,27 @@ export const TentacleBoard = ({
                   </div>
                 )}
               </div>
-              <TentacleTerminal
-                tentacleId={column.tentacleId}
-                onCodexStateChange={(state) => {
-                  onTentacleStateChange(column.tentacleId, state);
-                }}
-              />
+              <div className="tentacle-terminals">
+                {column.agents.map((agent) => (
+                  <TentacleTerminal
+                    key={agent.agentId}
+                    terminalId={agent.agentId}
+                    onAddAbove={() => {
+                      onCreateTentacleAgent(column.tentacleId, agent.agentId, "up");
+                    }}
+                    onAddBelow={() => {
+                      onCreateTentacleAgent(column.tentacleId, agent.agentId, "down");
+                    }}
+                    onCodexStateChange={
+                      agent.parentAgentId === undefined
+                        ? (state) => {
+                            onTentacleStateChange(column.tentacleId, state);
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
             </section>
 
             {rightNeighbor && (

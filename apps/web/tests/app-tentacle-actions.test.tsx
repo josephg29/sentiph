@@ -88,9 +88,106 @@ describe("App tentacle create/rename/delete actions", () => {
     expect(within(sidebar).getByLabelText("Active agents in tentacle-1")).toBeInTheDocument();
     expect(within(sidebar).getByLabelText("Active agents in tentacle-2")).toBeInTheDocument();
     await waitFor(() => {
-      expect(MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2/ws"))).toBe(
-        true,
-      );
+      expect(
+        MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2-root/ws")),
+      ).toBe(true);
+    });
+  });
+
+  it("creates child terminal agents above or below a selected terminal", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const snapshots: Array<{
+      agentId: string;
+      label: string;
+      state: "live";
+      tentacleId: string;
+      tentacleName: string;
+      createdAt: string;
+      parentAgentId?: string;
+    }> = [
+      {
+        agentId: "tentacle-a-root",
+        label: "tentacle-a-root",
+        state: "live",
+        tentacleId: "tentacle-a",
+        tentacleName: "tentacle-a",
+        createdAt: "2026-02-24T10:00:00.000Z",
+      },
+    ];
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+        return jsonResponse(snapshots);
+      }
+
+      if (url.endsWith("/api/tentacles/tentacle-a/agents") && method === "POST") {
+        const payload = JSON.parse(String(init?.body ?? "{}")) as {
+          anchorAgentId?: string;
+          placement?: string;
+        };
+
+        if (payload.anchorAgentId === "tentacle-a-root" && payload.placement === "down") {
+          snapshots.push({
+            agentId: "tentacle-a-agent-1",
+            label: "tentacle-a-agent-1",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            createdAt: "2026-02-24T10:01:00.000Z",
+            parentAgentId: "tentacle-a-root",
+          });
+          return jsonResponse(
+            {
+              agentId: "tentacle-a-agent-1",
+            },
+            201,
+          );
+        }
+
+        if (payload.anchorAgentId === "tentacle-a-agent-1" && payload.placement === "up") {
+          snapshots.splice(1, 0, {
+            agentId: "tentacle-a-agent-2",
+            label: "tentacle-a-agent-2",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            createdAt: "2026-02-24T10:02:00.000Z",
+            parentAgentId: "tentacle-a-root",
+          });
+          return jsonResponse(
+            {
+              agentId: "tentacle-a-agent-2",
+            },
+            201,
+          );
+        }
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("tentacle-a");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add terminal below tentacle-a-root" }));
+    await screen.findByRole("button", { name: "Add terminal below tentacle-a-agent-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add terminal above tentacle-a-agent-1" }));
+
+    await waitFor(() => {
+      const mountedTerminalLabels = screen
+        .getAllByLabelText(/^Terminal /)
+        .map((element) => element.getAttribute("aria-label"));
+      expect(mountedTerminalLabels).toEqual([
+        "Terminal tentacle-a-root",
+        "Terminal tentacle-a-agent-2",
+        "Terminal tentacle-a-agent-1",
+      ]);
     });
   });
 
@@ -488,7 +585,9 @@ describe("App tentacle create/rename/delete actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-pr" }));
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-pr");
-    expect(within(gitPanel).getByRole("button", { name: "Open pull request in GitHub" })).toBeEnabled();
+    expect(
+      within(gitPanel).getByRole("button", { name: "Open pull request in GitHub" }),
+    ).toBeEnabled();
 
     fireEvent.click(within(gitPanel).getByRole("button", { name: "Merge pull request" }));
     await waitFor(() => {
@@ -677,9 +776,13 @@ describe("App tentacle create/rename/delete actions", () => {
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-wt");
     fireEvent.click(within(gitPanel).getByRole("button", { name: "Cleanup worktree" }));
 
-    const deleteDialog = await within(sidebar).findByLabelText("Delete confirmation for tentacle-wt");
+    const deleteDialog = await within(sidebar).findByLabelText(
+      "Delete confirmation for tentacle-wt",
+    );
     expect(
-      within(deleteDialog).getByText("This action removes the worktree directory and local branch."),
+      within(deleteDialog).getByText(
+        "This action removes the worktree directory and local branch.",
+      ),
     ).toBeInTheDocument();
 
     const confirmButton = within(deleteDialog).getByRole("button", {

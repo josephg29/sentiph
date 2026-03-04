@@ -14,10 +14,11 @@ import {
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import {
-  RuntimeInputError,
   type CreateTerminalRuntimeOptions,
   type PersistedTentacle,
+  type PersistedTentacleAgent,
   type PersistedUiState,
+  RuntimeInputError,
   type TentacleGitStatusSnapshot,
   type TentaclePullRequestSnapshot,
   type TentacleWorkspaceMode,
@@ -43,6 +44,7 @@ export const createTerminalRuntime = ({
   const registryPath = join(workspaceCwd, TENTACLE_REGISTRY_RELATIVE_PATH);
   const registryState = loadTentacleRegistry(registryPath);
   const tentacles = registryState.tentacles;
+  const tentacleAgents = registryState.tentacleAgents;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
@@ -50,8 +52,14 @@ export const createTerminalRuntime = ({
 
   const persistRegistry = () => {
     uiState = pruneUiStateTentacleReferences(uiState, tentacles);
+    for (const tentacleId of [...tentacleAgents.keys()]) {
+      if (!tentacles.has(tentacleId)) {
+        tentacleAgents.delete(tentacleId);
+      }
+    }
     persistTentacleRegistry(registryPath, {
       tentacles,
+      tentacleAgents,
       uiState,
     });
   };
@@ -62,10 +70,66 @@ export const createTerminalRuntime = ({
     tentacles,
   });
 
+  const buildRootAgentId = (tentacleId: string) => `${tentacleId}-root`;
+
+  const getTentacleAgentList = (tentacleId: string): PersistedTentacleAgent[] =>
+    tentacleAgents.get(tentacleId) ?? [];
+
+  const setTentacleAgentList = (tentacleId: string, agents: PersistedTentacleAgent[]) => {
+    tentacleAgents.set(
+      tentacleId,
+      agents.map((agent, index) => ({
+        ...agent,
+        order: index,
+      })),
+    );
+  };
+
+  const findTentacleByAgentId = (agentId: string): string | null => {
+    for (const [tentacleId, agents] of tentacleAgents.entries()) {
+      if (agents.some((agent) => agent.agentId === agentId)) {
+        return tentacleId;
+      }
+    }
+    return null;
+  };
+
+  const resolveTerminalSession = (
+    terminalId: string,
+  ): { sessionId: string; tentacleId: string } | null => {
+    if (tentacles.has(terminalId)) {
+      return {
+        sessionId: buildRootAgentId(terminalId),
+        tentacleId: terminalId,
+      };
+    }
+
+    if (terminalId.endsWith("-root")) {
+      const tentacleId = terminalId.slice(0, -"-root".length);
+      if (tentacles.has(tentacleId)) {
+        return {
+          sessionId: terminalId,
+          tentacleId,
+        };
+      }
+    }
+
+    const childTentacleId = findTentacleByAgentId(terminalId);
+    if (childTentacleId) {
+      return {
+        sessionId: terminalId,
+        tentacleId: childTentacleId,
+      };
+    }
+
+    return null;
+  };
+
   const sessionRuntime = createSessionRuntime({
     websocketServer,
     tentacles,
     sessions,
+    resolveTerminalSession,
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
     isDebugPtyLogsEnabled,
     ptyLogDir,
@@ -96,14 +160,41 @@ export const createTerminalRuntime = ({
     throw new Error("Unable to allocate tentacle id.");
   };
 
+  const allocateTentacleAgentId = (tentacleId: string) => {
+    const existingAgentIds = new Set(
+      getTentacleAgentList(tentacleId).map((agent) => agent.agentId),
+    );
+    let candidateAgentNumber = 1;
+    while (candidateAgentNumber < Number.MAX_SAFE_INTEGER) {
+      const candidateAgentId = `${tentacleId}-agent-${candidateAgentNumber}`;
+      if (existingAgentIds.has(candidateAgentId) || sessions.has(candidateAgentId)) {
+        candidateAgentNumber += 1;
+        continue;
+      }
+
+      return candidateAgentId;
+    }
+
+    throw new Error("Unable to allocate tentacle agent id.");
+  };
+
   const buildRootSnapshot = (tentacle: PersistedTentacle): AgentSnapshot => ({
-    agentId: `${tentacle.tentacleId}-root`,
-    label: `${tentacle.tentacleId}-root`,
+    agentId: buildRootAgentId(tentacle.tentacleId),
+    label: buildRootAgentId(tentacle.tentacleId),
     state: "live",
     tentacleId: tentacle.tentacleId,
     tentacleName: tentacle.tentacleName,
     tentacleWorkspaceMode: tentacle.workspaceMode,
     createdAt: tentacle.createdAt,
+  });
+
+  const toTentacleAgentSnapshot = (agent: PersistedTentacleAgent): AgentSnapshot => ({
+    agentId: agent.agentId,
+    label: agent.label,
+    state: "live",
+    tentacleId: agent.tentacleId,
+    parentAgentId: agent.parentAgentId,
+    createdAt: agent.createdAt,
   });
 
   const createTentacle = ({
@@ -127,6 +218,7 @@ export const createTerminalRuntime = ({
     }
 
     tentacles.set(tentacleId, tentacle);
+    setTentacleAgentList(tentacleId, []);
     persistRegistry();
 
     return buildRootSnapshot(tentacle);
@@ -252,7 +344,15 @@ export const createTerminalRuntime = ({
 
   return {
     listAgentSnapshots(): AgentSnapshot[] {
-      return [...tentacles.values()].map((tentacle) => buildRootSnapshot(tentacle));
+      const snapshots: AgentSnapshot[] = [];
+      for (const tentacle of tentacles.values()) {
+        snapshots.push(buildRootSnapshot(tentacle));
+        const agents = getTentacleAgentList(tentacle.tentacleId);
+        for (const agent of agents) {
+          snapshots.push(toTentacleAgentSnapshot(agent));
+        }
+      }
+      return snapshots;
     },
 
     readUiState,
@@ -369,7 +469,9 @@ export const createTerminalRuntime = ({
         context.workspaceCwd,
       );
       if (statusBeforeSync.isDirty) {
-        throw new RuntimeInputError("Sync requires a clean worktree. Commit or stash changes first.");
+        throw new RuntimeInputError(
+          "Sync requires a clean worktree. Commit or stash changes first.",
+        );
       }
       if (statusBeforeSync.hasConflicts) {
         throw new RuntimeInputError("Resolve git conflicts before syncing with base.");
@@ -379,7 +481,7 @@ export const createTerminalRuntime = ({
       const effectiveBaseRef =
         normalizedBaseRef && normalizedBaseRef.length > 0
           ? normalizedBaseRef
-          : statusBeforeSync.defaultBaseBranchName ?? "main";
+          : (statusBeforeSync.defaultBaseBranchName ?? "main");
 
       try {
         gitClient.syncWithBase({
@@ -436,7 +538,7 @@ export const createTerminalRuntime = ({
       const effectiveBaseRef =
         normalizedBaseRef && normalizedBaseRef.length > 0
           ? normalizedBaseRef
-          : status.defaultBaseBranchName ?? "main";
+          : (status.defaultBaseBranchName ?? "main");
 
       try {
         const pullRequest = gitClient.createPullRequest({
@@ -511,6 +613,61 @@ export const createTerminalRuntime = ({
 
     createTentacle,
 
+    createTentacleAgent({
+      tentacleId,
+      anchorAgentId,
+      placement,
+    }: {
+      tentacleId: string;
+      anchorAgentId: string;
+      placement: "up" | "down";
+    }): AgentSnapshot | null {
+      const tentacle = tentacles.get(tentacleId);
+      if (!tentacle) {
+        return null;
+      }
+
+      const rootAgentId = buildRootAgentId(tentacleId);
+      const existingAgents = getTentacleAgentList(tentacleId);
+      const orderedAgentIds = [rootAgentId, ...existingAgents.map((agent) => agent.agentId)];
+      const anchorIndex = orderedAgentIds.indexOf(anchorAgentId);
+      if (anchorIndex === -1) {
+        throw new RuntimeInputError("Anchor agent was not found in this tentacle.");
+      }
+
+      const nextAgentId = allocateTentacleAgentId(tentacleId);
+      const nextAgent: PersistedTentacleAgent = {
+        agentId: nextAgentId,
+        tentacleId,
+        label: nextAgentId,
+        createdAt: new Date().toISOString(),
+        parentAgentId: anchorAgentId,
+        order: 0,
+      };
+
+      const insertionIndex = placement === "up" ? anchorIndex : anchorIndex + 1;
+      const boundedInsertionIndex = Math.max(1, insertionIndex);
+      const nextOrderedAgentIds = [...orderedAgentIds];
+      nextOrderedAgentIds.splice(boundedInsertionIndex, 0, nextAgentId);
+      const nextChildOrder = nextOrderedAgentIds.slice(1);
+      const nextAgentById = new Map(
+        [...existingAgents, nextAgent].map((agent) => [agent.agentId, agent] as const),
+      );
+      setTentacleAgentList(
+        tentacleId,
+        nextChildOrder.map((agentId) => {
+          const agent = nextAgentById.get(agentId);
+          if (!agent) {
+            throw new RuntimeInputError("Unable to reorder tentacle agents.");
+          }
+          return agent;
+        }),
+      );
+      persistRegistry();
+
+      return toTentacleAgentSnapshot(nextAgent);
+    },
+
     renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null {
       const tentacle = tentacles.get(tentacleId);
       if (!tentacle) {
@@ -528,10 +685,15 @@ export const createTerminalRuntime = ({
         return false;
       }
 
-      sessionRuntime.closeSession(tentacleId);
+      const rootAgentId = buildRootAgentId(tentacleId);
+      sessionRuntime.closeSession(rootAgentId);
+      for (const agent of getTentacleAgentList(tentacleId)) {
+        sessionRuntime.closeSession(agent.agentId);
+      }
       if (tentacle.workspaceMode === "worktree") {
         worktreeManager.removeTentacleWorktree(tentacleId);
       }
+      tentacleAgents.delete(tentacleId);
       tentacles.delete(tentacleId);
       persistRegistry();
       return true;

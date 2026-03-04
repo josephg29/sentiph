@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
-import { buildTentacleRenameUrl, buildTentaclesUrl } from "../../runtime/runtimeEndpoints";
+import {
+  buildTentacleAgentsUrl,
+  buildTentacleRenameUrl,
+  buildTentaclesUrl,
+} from "../../runtime/runtimeEndpoints";
 import type { TentacleView, TentacleWorkspaceMode } from "../types";
 
 export type PendingDeleteTentacle = {
@@ -29,6 +33,11 @@ type UseTentacleMutationsResult = {
   beginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
   submitTentacleRename: (tentacleId: string, currentTentacleName: string) => Promise<void>;
   createTentacle: (workspaceMode: TentacleWorkspaceMode) => Promise<void>;
+  createTentacleAgent: (input: {
+    tentacleId: string;
+    anchorAgentId: string;
+    placement: "up" | "down";
+  }) => Promise<void>;
   requestDeleteTentacle: (
     tentacleId: string,
     tentacleName: string,
@@ -159,6 +168,43 @@ export const useTentacleMutations = ({
     [beginTentacleNameEdit, readColumns, setColumns, setLoadError, setMinimizedTentacleIds],
   );
 
+  const createTentacleAgent = useCallback(
+    async ({
+      tentacleId,
+      anchorAgentId,
+      placement,
+    }: {
+      tentacleId: string;
+      anchorAgentId: string;
+      placement: "up" | "down";
+    }) => {
+      try {
+        setLoadError(null);
+        const response = await fetch(buildTentacleAgentsUrl(tentacleId), {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            anchorAgentId,
+            placement,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to create tentacle agent (${response.status})`);
+        }
+
+        const nextColumns = await readColumns();
+        setColumns(nextColumns);
+      } catch {
+        setLoadError("Unable to create a new terminal agent.");
+      }
+    },
+    [readColumns, setColumns, setLoadError],
+  );
+
   const requestDeleteTentacle = useCallback(
     (
       tentacleId: string,
@@ -245,6 +291,7 @@ export const useTentacleMutations = ({
     beginTentacleNameEdit,
     submitTentacleRename,
     createTentacle,
+    createTentacleAgent,
     requestDeleteTentacle,
     confirmDeleteTentacle,
     clearPendingDeleteTentacle,

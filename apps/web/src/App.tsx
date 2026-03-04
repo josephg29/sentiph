@@ -11,9 +11,9 @@ import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
-import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardInteractions";
 import { useTentacleCompletionNotification } from "./app/hooks/useTentacleCompletionNotification";
+import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
 import { useTentacleNameInputFocus } from "./app/hooks/useTentacleNameInputFocus";
 import { useTentacleStateReconciliation } from "./app/hooks/useTentacleStateReconciliation";
@@ -88,10 +88,7 @@ export const App = () => {
   useEffect(() => {
     const visibleTentacleIds = new Set(visibleColumns.map((column) => column.tentacleId));
     setSelectedTentacleId((currentSelectedTentacleId) => {
-      if (
-        currentSelectedTentacleId !== null &&
-        visibleTentacleIds.has(currentSelectedTentacleId)
-      ) {
+      if (currentSelectedTentacleId !== null && visibleTentacleIds.has(currentSelectedTentacleId)) {
         return currentSelectedTentacleId;
       }
 
@@ -116,6 +113,7 @@ export const App = () => {
     clearPendingDeleteTentacle,
     confirmDeleteTentacle,
     createTentacle,
+    createTentacleAgent,
     editingTentacleId,
     isCreatingTentacle,
     isDeletingTentacleId,
@@ -238,7 +236,9 @@ export const App = () => {
   const isMonitorPrimaryView = activePrimaryNav === 2;
   const isSettingsPrimaryView = activePrimaryNav === 3;
   const openGitTentacleColumn =
-    openGitTentacleId !== null ? columns.find((column) => column.tentacleId === openGitTentacleId) : null;
+    openGitTentacleId !== null
+      ? columns.find((column) => column.tentacleId === openGitTentacleId)
+      : null;
   const sidebarActionPanel = pendingDeleteTentacle ? (
     <DeleteTentacleDialog
       isDeletingTentacleId={isDeletingTentacleId}
@@ -469,6 +469,13 @@ export const App = () => {
               onTentacleNameDraftChange={setTentacleNameDraft}
               onSelectTentacle={setSelectedTentacleId}
               onTentacleStateChange={handleTentacleStateChange}
+              onCreateTentacleAgent={(tentacleId, anchorAgentId, placement) => {
+                void createTentacleAgent({
+                  tentacleId,
+                  anchorAgentId,
+                  placement,
+                });
+              }}
               selectedTentacleId={selectedTentacleId}
               tentacleNameDraft={tentacleNameDraft}
               tentacleNameInputRef={tentacleNameInputRef}

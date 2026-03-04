@@ -48,7 +48,7 @@ describe("TentacleTerminal", () => {
   it("renders codex badge and updates it from websocket state events", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    render(<TentacleTerminal tentacleId="tentacle-a" />);
+    render(<TentacleTerminal terminalId="tentacle-a" />);
 
     expect(screen.getByText("IDLE")).toBeInTheDocument();
 
@@ -73,5 +73,25 @@ describe("TentacleTerminal", () => {
       const badge = screen.getByText("IDLE");
       expect(badge).toHaveClass("pill", "idle");
     });
+  });
+
+  it("renders add controls and calls the requested insert handlers", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    const onAddAbove = vi.fn();
+    const onAddBelow = vi.fn();
+
+    render(
+      <TentacleTerminal
+        terminalId="tentacle-a-root"
+        onAddAbove={onAddAbove}
+        onAddBelow={onAddBelow}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Add terminal above tentacle-a-root" }).click();
+    screen.getByRole("button", { name: "Add terminal below tentacle-a-root" }).click();
+
+    expect(onAddAbove).toHaveBeenCalledTimes(1);
+    expect(onAddBelow).toHaveBeenCalledTimes(1);
   });
 });

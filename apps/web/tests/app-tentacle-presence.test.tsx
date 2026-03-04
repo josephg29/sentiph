@@ -35,11 +35,11 @@ describe("App tentacle presence and runtime state", () => {
     expect(within(tentacleColumn).getByText("WORKTREE")).toBeInTheDocument();
     expect(within(tentacleColumn).queryByText("core-planner")).toBeNull();
     expect(within(sidebar).getByText("core-planner")).toBeInTheDocument();
-    expect(screen.getByTestId("terminal-tentacle-a")).toBeInTheDocument();
+    expect(screen.getByTestId("terminal-agent-1")).toBeInTheDocument();
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
-    expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/tentacle-a/ws");
+    expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/agent-1/ws");
   });
 
   it("keeps sidebar root badge synced with the terminal idle/processing state", async () => {

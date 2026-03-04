@@ -3,11 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type CodexState, CodexStateBadge, isCodexState } from "./CodexStateBadge";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
+import { ActionButton } from "./ui/ActionButton";
 
 import "xterm/css/xterm.css";
 
 type TentacleTerminalProps = {
-  tentacleId: string;
+  terminalId: string;
+  onAddAbove?: () => void;
+  onAddBelow?: () => void;
   onCodexStateChange?: (state: CodexState) => void;
 };
 
@@ -29,7 +32,22 @@ type TerminalHistoryMessage = {
 type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage | TerminalHistoryMessage;
 const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
-export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTerminalProps) => {
+const TerminalAddIcon = ({ direction }: { direction: "up" | "down" }) => {
+  const arrow = direction === "up" ? "↑" : "↓";
+  return (
+    <span aria-hidden="true" className="terminal-add-icon">
+      <span className="terminal-add-icon-prompt">&gt;_</span>
+      <span className="terminal-add-icon-arrow">{arrow}</span>
+    </span>
+  );
+};
+
+export const TentacleTerminal = ({
+  terminalId,
+  onAddAbove,
+  onAddBelow,
+  onCodexStateChange,
+}: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [codexState, setCodexState] = useState<CodexState>("idle");
@@ -53,7 +71,7 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
     const pendingOutputChunks: string[] = [];
 
     const connect = () => {
-      const nextSocket = new WebSocket(buildTerminalSocketUrl(tentacleId));
+      const nextSocket = new WebSocket(buildTerminalSocketUrl(terminalId));
       socket = nextSocket;
       setConnectionState("connecting");
 
@@ -315,19 +333,43 @@ export const TentacleTerminal = ({ tentacleId, onCodexStateChange }: TentacleTer
       cleanupTerminal();
       socket?.close();
     };
-  }, [tentacleId]);
+  }, [terminalId]);
 
   return (
     <div className="tentacle-terminal">
       <div className="terminal-header" data-connection-state={connectionState}>
         <span className="terminal-title">terminal</span>
-        <CodexStateBadge state={codexState} />
+        <div className="terminal-header-actions">
+          <ActionButton
+            aria-label={`Add terminal above ${terminalId}`}
+            className="terminal-add terminal-add-up"
+            onClick={() => {
+              onAddAbove?.();
+            }}
+            size="compact"
+            variant="info"
+          >
+            <TerminalAddIcon direction="up" />
+          </ActionButton>
+          <ActionButton
+            aria-label={`Add terminal below ${terminalId}`}
+            className="terminal-add terminal-add-down"
+            onClick={() => {
+              onAddBelow?.();
+            }}
+            size="compact"
+            variant="info"
+          >
+            <TerminalAddIcon direction="down" />
+          </ActionButton>
+          <CodexStateBadge state={codexState} />
+        </div>
       </div>
       <div
         ref={containerRef}
         className="terminal-mount"
-        data-testid={`terminal-${tentacleId}`}
-        aria-label={`Terminal ${tentacleId}`}
+        data-testid={`terminal-${terminalId}`}
+        aria-label={`Terminal ${terminalId}`}
       />
     </div>
   );

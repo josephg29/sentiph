@@ -248,19 +248,17 @@ class FakeGitClient implements GitClient {
 
   setWorktreePullRequest(
     cwd: string,
-    pullRequest:
-      | {
-          number: number;
-          url: string;
-          title: string;
-          baseRef: string;
-          headRef: string;
-          state: "OPEN" | "MERGED" | "CLOSED";
-          isDraft: boolean;
-          mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
-          mergeStateStatus: string | null;
-        }
-      | null,
+    pullRequest: {
+      number: number;
+      url: string;
+      title: string;
+      baseRef: string;
+      headRef: string;
+      state: "OPEN" | "MERGED" | "CLOSED";
+      isDraft: boolean;
+      mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+      mergeStateStatus: string | null;
+    } | null,
   ): void {
     this.pullRequestByCwd.set(cwd, pullRequest);
   }
@@ -269,19 +267,17 @@ class FakeGitClient implements GitClient {
     cwd,
   }: {
     cwd: string;
-  }):
-    | {
-        number: number;
-        url: string;
-        title: string;
-        baseRef: string;
-        headRef: string;
-        state: "OPEN" | "MERGED" | "CLOSED";
-        isDraft: boolean;
-        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
-        mergeStateStatus: string | null;
-      }
-    | null {
+  }): {
+    number: number;
+    url: string;
+    title: string;
+    baseRef: string;
+    headRef: string;
+    state: "OPEN" | "MERGED" | "CLOSED";
+    isDraft: boolean;
+    mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+    mergeStateStatus: string | null;
+  } | null {
     const pullRequest = this.pullRequestByCwd.get(cwd);
     if (pullRequest === undefined || pullRequest === null) {
       return null;
@@ -303,19 +299,17 @@ class FakeGitClient implements GitClient {
     body: string;
     baseRef: string;
     headRef: string;
-  }):
-    | {
-        number: number;
-        url: string;
-        title: string;
-        baseRef: string;
-        headRef: string;
-        state: "OPEN" | "MERGED" | "CLOSED";
-        isDraft: boolean;
-        mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
-        mergeStateStatus: string | null;
-      }
-    | null {
+  }): {
+    number: number;
+    url: string;
+    title: string;
+    baseRef: string;
+    headRef: string;
+    state: "OPEN" | "MERGED" | "CLOSED";
+    isDraft: boolean;
+    mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+    mergeStateStatus: string | null;
+  } | null {
     if (this.failCreatePullRequest) {
       throw new Error("Simulated create PR failure");
     }
@@ -988,6 +982,78 @@ describe("createApiServer", () => {
         tentacleId: "tentacle-1",
       }),
     );
+  });
+
+  it("creates child terminal agents above or below an anchor terminal", async () => {
+    const baseUrl = await startServer();
+
+    const createTentacleResponse = await fetch(`${baseUrl}/api/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createTentacleResponse.status).toBe(201);
+
+    const addBelowRootResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/agents`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        anchorAgentId: "tentacle-1-root",
+        placement: "down",
+      }),
+    });
+    expect(addBelowRootResponse.status).toBe(201);
+    await expect(addBelowRootResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-1",
+        tentacleId: "tentacle-1",
+      }),
+    );
+
+    const addAboveChildResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/agents`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        anchorAgentId: "tentacle-1-agent-1",
+        placement: "up",
+      }),
+    });
+    expect(addAboveChildResponse.status).toBe(201);
+    await expect(addAboveChildResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-2",
+        tentacleId: "tentacle-1",
+      }),
+    );
+
+    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({
+        agentId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+      }),
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-2",
+        tentacleId: "tentacle-1",
+      }),
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-1",
+        tentacleId: "tentacle-1",
+      }),
+    ]);
   });
 
   it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {
@@ -1968,5 +2034,4 @@ describe("createApiServer", () => {
       }),
     ]);
   });
-
 });

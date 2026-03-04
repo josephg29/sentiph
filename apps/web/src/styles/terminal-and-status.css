@@ -1,5 +1,4 @@
 .tentacle-terminal {
-  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -64,6 +63,41 @@
 .terminal-title {
   color: inherit;
   letter-spacing: 0.08em;
+}
+
+.terminal-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+}
+
+.terminal-add {
+  --action-button-color: #f8c26a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.56rem;
+  height: 1.2rem;
+  padding: 0.04rem 0.08rem;
+}
+
+.terminal-add-icon {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.07rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.73rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.terminal-add-icon-prompt {
+  letter-spacing: 0;
+}
+
+.terminal-add-icon-arrow {
+  font-size: 0.7rem;
+  line-height: 1;
 }
 
 .terminal-state-badge {

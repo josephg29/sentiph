@@ -21,6 +21,10 @@ type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
   tentacles: Map<string, PersistedTentacle>;
   sessions: Map<string, TerminalSession>;
+  resolveTerminalSession?: (terminalId: string) => {
+    sessionId: string;
+    tentacleId: string;
+  } | null;
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
@@ -32,6 +36,7 @@ export const createSessionRuntime = ({
   websocketServer,
   tentacles,
   sessions,
+  resolveTerminalSession,
   getTentacleWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
@@ -63,13 +68,13 @@ export const createSessionRuntime = ({
     };
   };
 
-  const createDebugLog = (tentacleId: string) => {
+  const createDebugLog = (sessionId: string) => {
     if (!isDebugPtyLogsEnabled) {
       return undefined;
     }
 
     mkdirSync(ptyLogDir, { recursive: true });
-    const filename = `${tentacleId}-${Date.now()}.log`;
+    const filename = `${sessionId}-${Date.now()}.log`;
     return createWriteStream(join(ptyLogDir, filename), {
       flags: "a",
       encoding: "utf8",
@@ -82,7 +87,7 @@ export const createSessionRuntime = ({
 
   const emitStateIfChanged = (
     session: TerminalSession,
-    tentacleId: string,
+    sessionId: string,
     nextState: CodexRuntimeState | null,
   ) => {
     if (!nextState || nextState === session.codexState) {
@@ -90,12 +95,24 @@ export const createSessionRuntime = ({
     }
 
     session.codexState = nextState;
-    appendDebugLog(session, `state-change tentacle=${tentacleId} state=${nextState}`);
+    appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
     broadcastMessage(session, {
       type: "state",
       state: nextState,
     });
   };
+
+  const resolveSession =
+    resolveTerminalSession ??
+    ((terminalId: string) => {
+      if (!tentacles.has(terminalId)) {
+        return null;
+      }
+      return {
+        sessionId: terminalId,
+        tentacleId: terminalId,
+      };
+    });
 
   const clearIdleCloseTimer = (session: TerminalSession) => {
     if (!session.idleCloseTimer) {
@@ -103,7 +120,7 @@ export const createSessionRuntime = ({
     }
 
     clearTimeout(session.idleCloseTimer);
-    delete session.idleCloseTimer;
+    session.idleCloseTimer = undefined;
   };
 
   const appendScrollback = (session: TerminalSession, chunk: string) => {
@@ -140,8 +157,8 @@ export const createSessionRuntime = ({
     });
   };
 
-  const closeSession = (tentacleId: string): boolean => {
-    const session = sessions.get(tentacleId);
+  const closeSession = (sessionId: string): boolean => {
+    const session = sessions.get(sessionId);
     if (!session) {
       return false;
     }
@@ -157,25 +174,22 @@ export const createSessionRuntime = ({
       clearInterval(session.statePollTimer);
     }
     session.debugLog?.end();
-    sessions.delete(tentacleId);
+    sessions.delete(sessionId);
     return true;
   };
 
-  const ensureCodexBootstrapped = (tentacleId: string, session: TerminalSession) => {
+  const ensureCodexBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
       return;
     }
 
     session.isBootstrapCommandSent = true;
-    appendDebugLog(
-      session,
-      `bootstrap tentacle=${tentacleId} command=${TENTACLE_BOOTSTRAP_COMMAND}`,
-    );
+    appendDebugLog(session, `bootstrap session=${sessionId} command=${TENTACLE_BOOTSTRAP_COMMAND}`);
     session.pty.write(`${TENTACLE_BOOTSTRAP_COMMAND}\r`);
   };
 
-  const ensureSession = (tentacleId: string) => {
-    const existingSession = sessions.get(tentacleId);
+  const ensureSession = (sessionId: string, tentacleId: string) => {
+    const existingSession = sessions.get(sessionId);
     if (existingSession) {
       return existingSession;
     }
@@ -208,7 +222,7 @@ export const createSessionRuntime = ({
     }
 
     const stateTracker = new CodexStateTracker();
-    const debugLog = createDebugLog(tentacleId);
+    const debugLog = createDebugLog(sessionId);
     const session: TerminalSession = {
       pty,
       clients: new Set(),
@@ -224,20 +238,20 @@ export const createSessionRuntime = ({
       session.debugLog = debugLog;
     }
 
-    appendDebugLog(session, `session-start tentacle=${tentacleId}`);
+    appendDebugLog(session, `session-start session=${sessionId} tentacle=${tentacleId}`);
     session.statePollTimer = setInterval(() => {
-      emitStateIfChanged(session, tentacleId, session.stateTracker.poll(Date.now()));
+      emitStateIfChanged(session, sessionId, session.stateTracker.poll(Date.now()));
     }, 300);
 
     session.pty.onData((chunk) => {
-      appendDebugLog(session, `pty-output tentacle=${tentacleId} chunk=${JSON.stringify(chunk)}`);
+      appendDebugLog(session, `pty-output session=${sessionId} chunk=${JSON.stringify(chunk)}`);
       appendScrollback(session, chunk);
       const nextState = session.stateTracker.observeChunk(chunk, Date.now());
       broadcastMessage(session, {
         type: "output",
         data: chunk,
       });
-      emitStateIfChanged(session, tentacleId, nextState);
+      emitStateIfChanged(session, sessionId, nextState);
     });
 
     session.pty.onExit(({ exitCode, signal }) => {
@@ -254,29 +268,35 @@ export const createSessionRuntime = ({
 
       appendDebugLog(
         session,
-        `session-exit tentacle=${tentacleId} code=${exitCode} signal=${signal}`,
+        `session-exit session=${sessionId} code=${exitCode} signal=${signal}`,
       );
       if (session.statePollTimer) {
         clearInterval(session.statePollTimer);
       }
       session.debugLog?.end();
-      sessions.delete(tentacleId);
+      sessions.delete(sessionId);
     });
 
-    sessions.set(tentacleId, session);
+    sessions.set(sessionId, session);
     return session;
   };
 
   const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
-    const tentacleId = getTentacleId(request);
-    if (!tentacleId || !tentacles.has(tentacleId)) {
+    const terminalId = getTentacleId(request);
+    if (!terminalId) {
       return false;
     }
+
+    const resolvedSession = resolveSession(terminalId);
+    if (!resolvedSession) {
+      return false;
+    }
+    const { sessionId, tentacleId } = resolvedSession;
 
     websocketServer.handleUpgrade(request, socket, head, (websocket: WebSocket) => {
       let session: TerminalSession;
       try {
-        session = ensureSession(tentacleId);
+        session = ensureSession(sessionId, tentacleId);
       } catch (error) {
         sendMessage(websocket, {
           type: "output",
@@ -287,9 +307,9 @@ export const createSessionRuntime = ({
       }
 
       session.clients.add(websocket);
-      appendDebugLog(session, `ws-open tentacle=${tentacleId} clients=${session.clients.size}`);
+      appendDebugLog(session, `ws-open session=${sessionId} clients=${session.clients.size}`);
       clearIdleCloseTimer(session);
-      ensureCodexBootstrapped(tentacleId, session);
+      ensureCodexBootstrapped(sessionId, session);
       sendHistory(websocket, session);
       sendMessage(websocket, {
         type: "state",
@@ -307,13 +327,13 @@ export const createSessionRuntime = ({
           if (payload.type === "input" && typeof payload.data === "string") {
             appendDebugLog(
               session,
-              `ws-input tentacle=${tentacleId} data=${JSON.stringify(payload.data)}`,
+              `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
             );
             session.pty.write(payload.data);
             if (/[\r\n]/.test(payload.data)) {
               emitStateIfChanged(
                 session,
-                tentacleId,
+                sessionId,
                 session.stateTracker.observeSubmit(Date.now()),
               );
             }
@@ -342,16 +362,16 @@ export const createSessionRuntime = ({
 
       websocket.on("close", () => {
         session.clients.delete(websocket);
-        appendDebugLog(session, `ws-close tentacle=${tentacleId} clients=${session.clients.size}`);
+        appendDebugLog(session, `ws-close session=${sessionId} clients=${session.clients.size}`);
         if (session.clients.size === 0) {
           appendDebugLog(
             session,
-            `idle-grace-start tentacle=${tentacleId} timeoutMs=${sessionIdleGraceMs}`,
+            `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`,
           );
           clearIdleCloseTimer(session);
           session.idleCloseTimer = setTimeout(() => {
-            appendDebugLog(session, `idle-grace-expired tentacle=${tentacleId}`);
-            closeSession(tentacleId);
+            appendDebugLog(session, `idle-grace-expired session=${sessionId}`);
+            closeSession(sessionId);
           }, sessionIdleGraceMs);
         }
       });
@@ -361,8 +381,8 @@ export const createSessionRuntime = ({
   };
 
   const close = () => {
-    for (const tentacleId of sessions.keys()) {
-      closeSession(tentacleId);
+    for (const sessionId of sessions.keys()) {
+      closeSession(sessionId);
     }
   };
 

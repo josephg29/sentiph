@@ -65,6 +65,15 @@ export type PersistedTentacle = {
   workspaceMode: TentacleWorkspaceMode;
 };
 
+export type PersistedTentacleAgent = {
+  agentId: string;
+  tentacleId: string;
+  label: string;
+  createdAt: string;
+  parentAgentId: string;
+  order: number;
+};
+
 export type TentacleGitStatusSnapshot = {
   tentacleId: string;
   workspaceMode: TentacleWorkspaceMode;
@@ -122,6 +131,7 @@ export type PersistedUiState = {
 export type TentacleRegistryDocument = {
   version: 2;
   tentacles: PersistedTentacle[];
+  agents?: PersistedTentacleAgent[];
   uiState?: PersistedUiState;
 };
 
@@ -178,6 +188,11 @@ export type TerminalRuntime = {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
   }): AgentSnapshot;
+  createTentacleAgent(options: {
+    tentacleId: string;
+    anchorAgentId: string;
+    placement: "up" | "down";
+  }): AgentSnapshot | null;
   renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null;
   deleteTentacle(tentacleId: string): boolean;
   handleUpgrade(
