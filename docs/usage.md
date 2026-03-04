@@ -41,6 +41,7 @@ Then open `http://localhost:5173`.
 - Codex usage is sourced from local Codex OAuth credentials (`~/.codex/auth.json` or `CODEX_HOME/auth.json`) through `GET /api/codex/usage`.
 - Claude usage is sourced from local Claude OAuth credentials (`~/.claude/.credentials.json`) through `GET /api/claude/usage` and requires the `user:profile` scope.
 - If Claude OAuth usage is rate limited by Anthropic (`HTTP 429`), the UI degrades to an unavailable state instead of hard error.
+- Usage sections surface backend `message` text for unavailable/error states when provided.
 - Sidebar visibility/width, section collapse state, minimized tentacles, and pane widths are persisted through `GET/PATCH /api/ui-state` in `.octogent/state/tentacles.json`.
 
 ## Create tentacles
@@ -54,7 +55,7 @@ Then open `http://localhost:5173`.
 - Minimize from the right-side `Minimize` button in the tentacle header.
 - Maximize minimized tentacles from `Maximize` buttons in the `Active Agents` sidebar.
 - Delete from the right-side `Delete` button in the tentacle header (with an in-app confirmation dialog).
-- Each new tentacle starts with a root coding terminal session bootstrapped with `codex`.
+- Each new tentacle starts with an initial coding terminal session bootstrapped with `codex`.
 - Each terminal header includes compact add icons (`>_↑` and `>_↓`) to spawn another terminal in the same tentacle column above/below that terminal.
 - Terminal headers include a trash-icon delete control and every visible terminal is deletable.
 - Empty tentacles show a `New Terminal` button in the terminal area to start the first terminal session.

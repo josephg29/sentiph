@@ -185,7 +185,7 @@ For tentacle window terminals, keep the window surface flush with no inner mount
 
 ### Terminal Header Controls Preference
 
-Use compact icon-first controls in terminal headers: add actions should stay glyph-based (`>_↑`/`>_↓`) with readable sizing/padding, and delete should use a trash icon that remains visible across terminals while staying disabled for the root terminal.
+Use compact icon-first controls in terminal headers: add actions should stay glyph-based (`>_↑`/`>_↓`) with readable sizing/padding, delete should use a trash icon, and all user-visible terminals should be peer-level and deletable.
 
 ### Chrome Density Preference
 

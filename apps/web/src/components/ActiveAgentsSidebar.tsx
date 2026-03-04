@@ -34,6 +34,7 @@ type ActiveAgentsSidebarProps = {
   minimizedTentacleIds?: string[];
   onMaximizeTentacle?: (tentacleId: string) => void;
   codexUsageSnapshot?: {
+    message?: string | null;
     primaryUsedPercent?: number | null;
     secondaryUsedPercent?: number | null;
     creditsBalance?: number | null;
@@ -41,6 +42,7 @@ type ActiveAgentsSidebarProps = {
   } | null;
   codexUsageStatus?: "ok" | "unavailable" | "error" | "loading";
   claudeUsageSnapshot?: {
+    message?: string | null;
     primaryUsedPercent?: number | null;
     secondaryUsedPercent?: number | null;
     sonnetUsedPercent?: number | null;
@@ -51,6 +53,30 @@ type ActiveAgentsSidebarProps = {
 
 const clampSidebarWidth = (width: number): number =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
+
+const resolveUsageStatusMessage = ({
+  status,
+  message,
+  waitingLabel,
+  unavailableLabel,
+  errorLabel,
+}: {
+  status: "ok" | "unavailable" | "error" | "loading";
+  message: string | null | undefined;
+  waitingLabel: string;
+  unavailableLabel: string;
+  errorLabel: string;
+}) => {
+  if (status === "loading") {
+    return waitingLabel;
+  }
+
+  if ((status === "unavailable" || status === "error") && message && message.trim().length > 0) {
+    return message.trim();
+  }
+
+  return status === "unavailable" ? unavailableLabel : errorLabel;
+};
 
 const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
   agentId === `${tentacleId}-root`;
@@ -372,11 +398,13 @@ export const ActiveAgentsSidebar = ({
                         </div>
                       ) : (
                         <p className="active-agents-codex-usage-status">
-                          {codexUsageStatus === "loading"
-                            ? "Waiting for Codex usage..."
-                            : codexUsageStatus === "unavailable"
-                              ? "Codex usage unavailable."
-                              : "Codex usage error."}
+                          {resolveUsageStatusMessage({
+                            status: codexUsageStatus,
+                            message: codexUsageSnapshot?.message,
+                            waitingLabel: "Waiting for Codex usage...",
+                            unavailableLabel: "Codex usage unavailable.",
+                            errorLabel: "Codex usage error.",
+                          })}
                         </p>
                       )}
                     </div>
@@ -514,11 +542,13 @@ export const ActiveAgentsSidebar = ({
                         </div>
                       ) : (
                         <p className="active-agents-codex-usage-status">
-                          {claudeUsageStatus === "loading"
-                            ? "Waiting for Claude usage..."
-                            : claudeUsageStatus === "unavailable"
-                              ? "Claude usage unavailable."
-                              : "Claude usage error."}
+                          {resolveUsageStatusMessage({
+                            status: claudeUsageStatus,
+                            message: claudeUsageSnapshot?.message,
+                            waitingLabel: "Waiting for Claude usage...",
+                            unavailableLabel: "Claude usage unavailable.",
+                            errorLabel: "Claude usage error.",
+                          })}
                         </p>
                       )}
                     </div>

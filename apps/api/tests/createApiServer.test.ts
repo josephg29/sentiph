@@ -929,18 +929,32 @@ describe("createApiServer", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        tentacleId: "tentacle-1",
-        tentacleName: "planner",
-        tentacleWorkspaceMode: "shared",
-      }),
-      expect.objectContaining({
-        tentacleId: "tentacle-2",
-        tentacleName: "reviewer",
-        tentacleWorkspaceMode: "shared",
-      }),
-    ]);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agentId: "tentacle-1-root",
+          tentacleId: "tentacle-1",
+          tentacleName: "planner",
+          tentacleWorkspaceMode: "shared",
+        }),
+        expect.objectContaining({
+          agentId: "tentacle-1-agent-1",
+          tentacleId: "tentacle-1",
+          parentAgentId: "tentacle-1-root",
+        }),
+        expect.objectContaining({
+          agentId: "tentacle-2-root",
+          tentacleId: "tentacle-2",
+          tentacleName: "reviewer",
+          tentacleWorkspaceMode: "shared",
+        }),
+        expect.objectContaining({
+          agentId: "tentacle-2-agent-1",
+          tentacleId: "tentacle-2",
+          parentAgentId: "tentacle-2-root",
+        }),
+      ]),
+    );
   });
 
   it("reuses the minimum available tentacle number after deletions", async () => {
@@ -1009,7 +1023,7 @@ describe("createApiServer", () => {
     expect(addBelowRootResponse.status).toBe(201);
     await expect(addBelowRootResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        agentId: "tentacle-1-agent-1",
+        agentId: "tentacle-1-agent-2",
         tentacleId: "tentacle-1",
       }),
     );
@@ -1028,7 +1042,7 @@ describe("createApiServer", () => {
     expect(addAboveChildResponse.status).toBe(201);
     await expect(addAboveChildResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        agentId: "tentacle-1-agent-2",
+        agentId: "tentacle-1-agent-3",
         tentacleId: "tentacle-1",
       }),
     );
@@ -1047,6 +1061,10 @@ describe("createApiServer", () => {
       }),
       expect.objectContaining({
         agentId: "tentacle-1-agent-2",
+        tentacleId: "tentacle-1",
+      }),
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-3",
         tentacleId: "tentacle-1",
       }),
       expect.objectContaining({
@@ -1080,6 +1098,11 @@ describe("createApiServer", () => {
       }),
       expect.objectContaining({
         agentId: "tentacle-1-agent-2",
+        tentacleId: "tentacle-1",
+        parentAgentId: "tentacle-1-root",
+      }),
+      expect.objectContaining({
+        agentId: "tentacle-1-agent-3",
         tentacleId: "tentacle-1",
         parentAgentId: "tentacle-1-root",
       }),
@@ -1915,11 +1938,19 @@ describe("createApiServer", () => {
       },
     });
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        tentacleId: "tentacle-1",
-      }),
-    ]);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agentId: "tentacle-1-root",
+          tentacleId: "tentacle-1",
+        }),
+        expect.objectContaining({
+          agentId: "tentacle-1-agent-1",
+          tentacleId: "tentacle-1",
+          parentAgentId: "tentacle-1-root",
+        }),
+      ]),
+    );
   });
 
   it("returns 400 when workspace mode is invalid", async () => {
@@ -2083,11 +2114,19 @@ describe("createApiServer", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        tentacleId: "tentacle-1",
-        tentacleName: "planner",
-      }),
-    ]);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agentId: "tentacle-1-root",
+          tentacleId: "tentacle-1",
+          tentacleName: "planner",
+        }),
+        expect.objectContaining({
+          agentId: "tentacle-1-agent-1",
+          tentacleId: "tentacle-1",
+          parentAgentId: "tentacle-1-root",
+        }),
+      ]),
+    );
   });
 });
