@@ -35,9 +35,11 @@ type TentacleBoardProps = {
   tentacleNameDraft: string;
   isDeletingTentacleId: string | null;
   selectedTentacleId: string | null;
+  selectedTerminalId: string | null;
   onTentacleHeaderWheel: (event: ReactWheelEvent<HTMLElement>) => void;
   onTentacleNameDraftChange: (name: string) => void;
   onSelectTentacle: (tentacleId: string) => void;
+  onSelectTerminal: (terminalId: string) => void;
   onSubmitTentacleRename: (tentacleId: string, currentTentacleName: string) => void;
   onCancelTentacleRename: () => void;
   onBeginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
@@ -160,9 +162,11 @@ export const TentacleBoard = ({
   tentacleNameDraft,
   isDeletingTentacleId,
   selectedTentacleId,
+  selectedTerminalId,
   onTentacleHeaderWheel,
   onTentacleNameDraftChange,
   onSelectTentacle,
+  onSelectTerminal,
   onSubmitTentacleRename,
   onCancelTentacleRename,
   onBeginTentacleNameEdit,
@@ -397,6 +401,7 @@ export const TentacleBoard = ({
                       key={agent.agentId}
                       terminalId={agent.agentId}
                       terminalLabel={agent.label}
+                      isSelected={selectedTerminalId === agent.agentId}
                       onAddAbove={() => {
                         onCreateTentacleAgent(column.tentacleId, agent.agentId, "up");
                       }}
@@ -406,6 +411,7 @@ export const TentacleBoard = ({
                       onDelete={() => {
                         onDeleteTentacleAgent(column.tentacleId, agent.agentId);
                       }}
+                      onSelectTerminal={onSelectTerminal}
                       onCodexStateChange={
                         terminalIndex === 0
                           ? (state) => {

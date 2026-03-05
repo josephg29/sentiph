@@ -62,8 +62,7 @@ For pane-based UI layout, keep each tentacle as a full-height column. Spawned ag
 
 ### Tentacle Focus Mode Preference
 
-For focused/selected tentacles, use border-color change only as the visual cue. Avoid glow halos, pulsing effects, and lift/translate effects.
-Do not render a separate `Focused` badge in the tentacle header.
+Disable focused/selected tentacle visual cues for now (no border highlight, glow, pulse, lift, or badge in the header).
 
 ### Main Board Consistency Preference
 
@@ -192,6 +191,10 @@ Render each terminal header title from the terminal's agent label/ID (for exampl
 
 When a tentacle has multiple terminal panes, each pane must keep a minimum height of 50% of the tentacle body (header excluded) instead of shrinking below readability.
 If additional panes exceed available height, the tentacle terminal stack should scroll vertically.
+
+### Terminal Focus Mode Preference
+
+Highlight the active terminal by switching only that terminal header to the accent orange styling (no pane glow, halo, lift, or extra badge).
 
 ### Chrome Density Preference
 

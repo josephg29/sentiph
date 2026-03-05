@@ -162,10 +162,6 @@
   min-width: 6.2rem;
 }
 
-.tentacle-column--selected {
-  border-color: color-mix(in srgb, var(--accent-primary) 72%, #ffe4a8 28%);
-}
-
 .tentacle-divider {
   flex: 0 0 6px;
   cursor: col-resize;

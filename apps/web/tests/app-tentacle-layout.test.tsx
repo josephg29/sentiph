@@ -214,4 +214,59 @@ describe("App tentacle layout interactions", () => {
     const tentacleColumn = await screen.findByLabelText("tentacle-z");
     expect(within(tentacleColumn).getByText("tentacle-z-agent-1")).toBeInTheDocument();
   });
+
+  it("applies focused visual state to the selected terminal pane", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse([
+        {
+          agentId: "tentacle-a-root",
+          label: "tentacle-a-root",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+        {
+          agentId: "tentacle-a-agent-1",
+          label: "tentacle-a-agent-1",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:01:00.000Z",
+        },
+        {
+          agentId: "tentacle-a-agent-2",
+          label: "tentacle-a-agent-2",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:02:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    const firstTerminal = await screen.findByLabelText("Terminal tentacle-a-agent-1");
+    const secondTerminal = await screen.findByLabelText("Terminal tentacle-a-agent-2");
+    const firstPane = firstTerminal.closest(".tentacle-terminal");
+    const secondPane = secondTerminal.closest(".tentacle-terminal");
+
+    expect(firstPane).not.toBeNull();
+    expect(secondPane).not.toBeNull();
+
+    await waitFor(() => {
+      expect(firstPane).toHaveClass("tentacle-terminal--selected");
+      expect(firstPane).toHaveAttribute("data-selected", "true");
+      expect(secondPane).not.toHaveClass("tentacle-terminal--selected");
+      expect(secondPane).toHaveAttribute("data-selected", "false");
+    });
+
+    fireEvent.pointerDown(secondTerminal);
+
+    await waitFor(() => {
+      expect(secondPane).toHaveClass("tentacle-terminal--selected");
+      expect(secondPane).toHaveAttribute("data-selected", "true");
+      expect(firstPane).not.toHaveClass("tentacle-terminal--selected");
+      expect(firstPane).toHaveAttribute("data-selected", "false");
+    });
+  });
 });

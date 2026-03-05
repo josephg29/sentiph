@@ -98,10 +98,6 @@
   background: #0b0d10;
 }
 
-.console-shell .tentacle-column--selected {
-  border-color: color-mix(in srgb, var(--accent-primary) 70%, #f0d08c 30%);
-}
-
 .console-shell .tentacle-divider {
   flex-basis: 6px;
   border-left: 1px solid #2b2f36;
@@ -153,6 +149,20 @@
   background: linear-gradient(180deg, #26456f 0%, #1d3554 100%);
   border-bottom: 1px solid #2b2f36;
   color: #e6e8ec;
+}
+
+.console-shell .tentacle-terminal--selected .terminal-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
+    color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
+  );
+  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  color: #121212;
+}
+
+.console-shell .tentacle-terminal--selected .terminal-title {
+  color: #121212;
 }
 
 .console-shell .terminal-title {

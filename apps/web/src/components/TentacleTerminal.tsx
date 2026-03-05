@@ -10,9 +10,11 @@ import "xterm/css/xterm.css";
 type TentacleTerminalProps = {
   terminalId: string;
   terminalLabel?: string;
+  isSelected?: boolean;
   onAddAbove?: () => void;
   onAddBelow?: () => void;
   onDelete?: () => void;
+  onSelectTerminal?: (terminalId: string) => void;
   onCodexStateChange?: (state: CodexState) => void;
 };
 
@@ -56,9 +58,11 @@ const TerminalDeleteIcon = () => (
 export const TentacleTerminal = ({
   terminalId,
   terminalLabel,
+  isSelected,
   onAddAbove,
   onAddBelow,
   onDelete,
+  onSelectTerminal,
   onCodexStateChange,
 }: TentacleTerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -350,7 +354,16 @@ export const TentacleTerminal = ({
   }, [terminalId]);
 
   return (
-    <div className="tentacle-terminal">
+    <div
+      className={`tentacle-terminal${isSelected ? " tentacle-terminal--selected" : ""}`}
+      data-selected={isSelected ? "true" : "false"}
+      onFocusCapture={() => {
+        onSelectTerminal?.(terminalId);
+      }}
+      onPointerDownCapture={() => {
+        onSelectTerminal?.(terminalId);
+      }}
+    >
       <div className="terminal-header" data-connection-state={connectionState}>
         <span className="terminal-title">{terminalTitle}</span>
         <div className="terminal-header-actions">

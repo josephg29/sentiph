@@ -34,12 +34,16 @@ import { TentacleGitActionsDialog } from "./components/TentacleGitActionsDialog"
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
 import { buildAgentSnapshotsUrl } from "./runtime/runtimeEndpoints";
 
+const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
+  agentId === `${tentacleId}-root`;
+
 export const App = () => {
   const [columns, setColumns] = useState<TentacleView>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
+  const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(0);
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
@@ -95,6 +99,55 @@ export const App = () => {
       return visibleColumns[0]?.tentacleId ?? null;
     });
   }, [visibleColumns]);
+
+  useEffect(() => {
+    const firstVisibleTerminalId =
+      visibleColumns
+        .flatMap((column) =>
+          column.agents
+            .filter((agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId))
+            .map((agent) => agent.agentId),
+        )
+        .at(0) ?? null;
+
+    const selectedTentacleVisibleTerminalIds =
+      selectedTentacleId === null
+        ? []
+        : (visibleColumns
+            .find((column) => column.tentacleId === selectedTentacleId)
+            ?.agents.filter(
+              (agent) => !isInternalRootTerminal(selectedTentacleId, agent.agentId),
+            )
+            .map((agent) => agent.agentId) ?? []);
+
+    setSelectedTerminalId((currentSelectedTerminalId) => {
+      if (selectedTentacleVisibleTerminalIds.length > 0) {
+        if (
+          currentSelectedTerminalId !== null &&
+          selectedTentacleVisibleTerminalIds.includes(currentSelectedTerminalId)
+        ) {
+          return currentSelectedTerminalId;
+        }
+        return selectedTentacleVisibleTerminalIds[0] ?? null;
+      }
+
+      const activeVisibleTerminalIds = new Set(
+        visibleColumns.flatMap((column) =>
+          column.agents
+            .filter((agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId))
+            .map((agent) => agent.agentId),
+        ),
+      );
+      if (
+        currentSelectedTerminalId !== null &&
+        activeVisibleTerminalIds.has(currentSelectedTerminalId)
+      ) {
+        return currentSelectedTerminalId;
+      }
+
+      return firstVisibleTerminalId;
+    });
+  }, [selectedTentacleId, visibleColumns]);
 
   const readColumns = useCallback(async (signal?: AbortSignal) => {
     const readerOptions: { endpoint: string; signal?: AbortSignal } = {
@@ -469,6 +522,7 @@ export const App = () => {
               onTentacleHeaderWheel={handleTentacleHeaderWheel}
               onTentacleNameDraftChange={setTentacleNameDraft}
               onSelectTentacle={setSelectedTentacleId}
+              onSelectTerminal={setSelectedTerminalId}
               onTentacleStateChange={handleTentacleStateChange}
               onCreateTentacleAgent={(tentacleId, anchorAgentId, placement) => {
                 void createTentacleAgent({
@@ -484,6 +538,7 @@ export const App = () => {
                 });
               }}
               selectedTentacleId={selectedTentacleId}
+              selectedTerminalId={selectedTerminalId}
               tentacleNameDraft={tentacleNameDraft}
               tentacleNameInputRef={tentacleNameInputRef}
               tentacleWidths={tentacleWidths}
