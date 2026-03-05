@@ -229,6 +229,7 @@ export const TentacleBoard = ({
           pullRequest,
           isLoadingPullRequest,
         );
+        const isStackedTerminalLayout = visibleTerminals.length > 1;
         return (
           <Fragment key={column.tentacleId}>
             <section
@@ -367,7 +368,10 @@ export const TentacleBoard = ({
                   </div>
                 )}
               </div>
-              <div className="tentacle-terminals">
+              <div
+                className={`tentacle-terminals${isStackedTerminalLayout ? " tentacle-terminals--stacked" : ""}`}
+                data-terminal-count={visibleTerminals.length}
+              >
                 {visibleTerminals.length === 0 ? (
                   <div className="tentacle-terminals-empty">
                     <p>No terminals in this tentacle.</p>
@@ -392,6 +396,7 @@ export const TentacleBoard = ({
                     <TentacleTerminal
                       key={agent.agentId}
                       terminalId={agent.agentId}
+                      terminalLabel={agent.label}
                       onAddAbove={() => {
                         onCreateTentacleAgent(column.tentacleId, agent.agentId, "up");
                       }}

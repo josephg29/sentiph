@@ -9,6 +9,7 @@ import "xterm/css/xterm.css";
 
 type TentacleTerminalProps = {
   terminalId: string;
+  terminalLabel?: string;
   onAddAbove?: () => void;
   onAddBelow?: () => void;
   onDelete?: () => void;
@@ -54,6 +55,7 @@ const TerminalDeleteIcon = () => (
 
 export const TentacleTerminal = ({
   terminalId,
+  terminalLabel,
   onAddAbove,
   onAddBelow,
   onDelete,
@@ -62,6 +64,7 @@ export const TentacleTerminal = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [codexState, setCodexState] = useState<CodexState>("idle");
+  const terminalTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
 
   useEffect(() => {
     onCodexStateChange?.(codexState);
@@ -349,7 +352,7 @@ export const TentacleTerminal = ({
   return (
     <div className="tentacle-terminal">
       <div className="terminal-header" data-connection-state={connectionState}>
-        <span className="terminal-title">terminal</span>
+        <span className="terminal-title">{terminalTitle}</span>
         <div className="terminal-header-actions">
           <ActionButton
             aria-label={`Add terminal above ${terminalId}`}

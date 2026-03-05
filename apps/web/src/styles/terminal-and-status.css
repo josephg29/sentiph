@@ -63,6 +63,7 @@
 .terminal-title {
   color: inherit;
   letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .terminal-header-actions {

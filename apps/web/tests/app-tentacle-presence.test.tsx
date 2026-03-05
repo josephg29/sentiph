@@ -33,7 +33,7 @@ describe("App tentacle presence and runtime state", () => {
     expect(tentacleColumn).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rename tentacle tentacle-a" })).toBeInTheDocument();
     expect(within(tentacleColumn).getByText("WORKTREE")).toBeInTheDocument();
-    expect(within(tentacleColumn).queryByText("core-planner")).toBeNull();
+    expect(within(tentacleColumn).getByText("core-planner")).toBeInTheDocument();
     expect(within(sidebar).getByText("core-planner")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-agent-1")).toBeInTheDocument();
     await waitFor(() => {

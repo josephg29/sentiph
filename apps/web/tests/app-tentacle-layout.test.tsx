@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -146,5 +146,72 @@ describe("App tentacle layout interactions", () => {
       expect(secondPane).toHaveAttribute("data-selected", "true");
       expect(firstPane).toHaveAttribute("data-selected", "false");
     });
+  });
+
+  it("marks multi-terminal tentacles as stacked so panes can keep minimum height", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse([
+        {
+          agentId: "tentacle-a-root",
+          label: "tentacle-a-root",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+        {
+          agentId: "tentacle-a-1",
+          label: "tentacle-a-1",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:01:00.000Z",
+        },
+        {
+          agentId: "tentacle-a-2",
+          label: "tentacle-a-2",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:02:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    await screen.findByLabelText("Terminal tentacle-a-1");
+    await screen.findByLabelText("Terminal tentacle-a-2");
+
+    const terminalsContainer = document.querySelector(".tentacle-terminals");
+    expect(terminalsContainer).not.toBeNull();
+    expect(terminalsContainer).toHaveClass("tentacle-terminals--stacked");
+    expect(terminalsContainer).toHaveAttribute("data-terminal-count", "2");
+  });
+
+  it("shows each terminal label in the terminal header", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse([
+        {
+          agentId: "tentacle-z-root",
+          label: "tentacle-z-root",
+          state: "live",
+          tentacleId: "tentacle-z",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+        {
+          agentId: "tentacle-z-agent-1",
+          label: "tentacle-z-agent-1",
+          state: "live",
+          tentacleId: "tentacle-z",
+          createdAt: "2026-02-24T10:01:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    await screen.findByLabelText("Terminal tentacle-z-agent-1");
+    const tentacleColumn = await screen.findByLabelText("tentacle-z");
+    expect(within(tentacleColumn).getByText("tentacle-z-agent-1")).toBeInTheDocument();
   });
 });

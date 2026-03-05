@@ -186,6 +186,12 @@ For tentacle window terminals, keep the window surface flush with no inner mount
 ### Terminal Header Controls Preference
 
 Use compact icon-first controls in terminal headers: add actions should stay glyph-based (`>_↑`/`>_↓`) with readable sizing/padding, delete should use a trash icon, and all user-visible terminals should be peer-level and deletable.
+Render each terminal header title from the terminal's agent label/ID (for example `tentacle-1-agent-1`) rather than a generic `terminal` placeholder.
+
+### Terminal Stack Sizing Preference
+
+When a tentacle has multiple terminal panes, each pane must keep a minimum height of 50% of the tentacle body (header excluded) instead of shrinking below readability.
+If additional panes exceed available height, the tentacle terminal stack should scroll vertically.
 
 ### Chrome Density Preference
 

@@ -120,12 +120,19 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .tentacle-terminals .tentacle-terminal {
   min-height: 0;
-  flex: 1 1 0;
+  flex: 1 1 auto;
+}
+
+.tentacle-terminals--stacked .tentacle-terminal {
+  flex: 0 0 50%;
+  min-height: 50%;
 }
 
 .tentacle-terminals .tentacle-terminal + .tentacle-terminal {
