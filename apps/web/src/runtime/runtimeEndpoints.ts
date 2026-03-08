@@ -111,6 +111,41 @@ export const buildMonitorRefreshUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) =>
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/refresh");
 };
 
+export const buildConversationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/conversations";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/conversations");
+};
+
+export const buildConversationSessionUrl = (
+  sessionId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedSessionId = encodeURIComponent(sessionId);
+  const path = `/api/conversations/${encodedSessionId}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildConversationExportUrl = (
+  sessionId: string,
+  format: "json" | "md",
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedSessionId = encodeURIComponent(sessionId);
+  const path = `/api/conversations/${encodedSessionId}/export?format=${format}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildTentacleRenameUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

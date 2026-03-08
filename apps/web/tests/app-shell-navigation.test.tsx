@@ -33,20 +33,20 @@ describe("App shell and navigation", () => {
     expect(screen.queryByRole("textbox", { name: "Context search input" })).not.toBeInTheDocument();
     expect(screen.queryByText("Agent Runtime")).not.toBeInTheDocument();
     expect(await screen.findByText("LIVE")).toBeInTheDocument();
-    expect(screen.getByText("Press 0-3 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 0-4 to navigate")).toBeInTheDocument();
   });
 
-  it("supports keyboard-first primary navigation with number keys 0-3", async () => {
+  it("supports keyboard-first primary navigation with number keys 0-4", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
     await screen.findByText("No active tentacles");
 
-    fireEvent.keyDown(window, { key: "2" });
+    fireEvent.keyDown(window, { key: "4" });
 
     expect(
       screen.getByRole("button", {
-        name: "[2] Monitor",
+        name: "[4] Conversations",
       }),
     ).toHaveAttribute("aria-current", "page");
   });
@@ -76,6 +76,21 @@ describe("App shell and navigation", () => {
     expect(screen.getByRole("switch", { name: "Show runtime status strip" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show Monitor workspace view" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show bottom telemetry tape" })).toBeInTheDocument();
+  });
+
+  it("renders conversations panel when navigating to conversations tab", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
+
+    render(<App />);
+    await screen.findByText("No active tentacles");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "[4] Conversations",
+      }),
+    );
+
+    expect(await screen.findByLabelText("Conversations primary view")).toBeInTheDocument();
   });
 
   it("previews completion sound when a settings option is selected", async () => {

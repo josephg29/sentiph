@@ -67,6 +67,17 @@ const writeJson = (
   response.end(JSON.stringify(payload));
 };
 
+const writeText = (
+  response: ServerResponse,
+  status: number,
+  payload: string,
+  contentType: string,
+  corsOrigin: string | null,
+) => {
+  response.writeHead(status, withCors({ "Content-Type": contentType }, corsOrigin));
+  response.end(payload);
+};
+
 const writeNoContent = (response: ServerResponse, status: number, corsOrigin: string | null) => {
   response.writeHead(status, withCors({}, corsOrigin));
   response.end();
@@ -295,6 +306,94 @@ const handleMonitorRefreshRoute: ApiRouteHandler = async (
     refreshIfStale: true,
   });
   writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const CONVERSATION_ITEM_PATH_PATTERN = /^\/api\/conversations\/([^/]+)$/;
+const CONVERSATION_EXPORT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/export$/;
+
+const handleConversationsCollectionRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== "/api/conversations") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const payload = runtime.listConversationSessions();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleConversationItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(CONVERSATION_ITEM_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const sessionId = decodeURIComponent(match[1] ?? "");
+  const payload = runtime.readConversationSession(sessionId);
+  if (!payload) {
+    writeJson(response, 404, { error: "Conversation session not found." }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleConversationExportRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(CONVERSATION_EXPORT_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const sessionId = decodeURIComponent(match[1] ?? "");
+  const format = requestUrl.searchParams.get("format");
+  if (format !== "json" && format !== "md") {
+    writeJson(response, 400, { error: "Unsupported conversation export format." }, corsOrigin);
+    return true;
+  }
+
+  if (format === "json") {
+    const payload = runtime.readConversationSession(sessionId);
+    if (!payload) {
+      writeJson(response, 404, { error: "Conversation session not found." }, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 200, payload, corsOrigin);
+    return true;
+  }
+
+  const payload = runtime.exportConversationSession(sessionId, "md");
+  if (payload === null) {
+    writeJson(response, 404, { error: "Conversation session not found." }, corsOrigin);
+    return true;
+  }
+
+  writeText(response, 200, payload, "text/markdown; charset=utf-8", corsOrigin);
   return true;
 };
 
@@ -542,8 +641,8 @@ const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
 
     const payload = runtime.createTentaclePullRequest(tentacleId, {
       title: pullRequestInput.title,
-      body: pullRequestInput.body,
-      baseRef: pullRequestInput.baseRef ?? undefined,
+      ...(pullRequestInput.body.length > 0 ? { body: pullRequestInput.body } : {}),
+      ...(pullRequestInput.baseRef !== null ? { baseRef: pullRequestInput.baseRef } : {}),
     });
     if (!payload) {
       writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
@@ -724,6 +823,9 @@ const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
   handleMonitorConfigRoute,
   handleMonitorFeedRoute,
   handleMonitorRefreshRoute,
+  handleConversationsCollectionRoute,
+  handleConversationExportRoute,
+  handleConversationItemRoute,
   handleTentaclesCollectionRoute,
   handleTentacleAgentCollectionRoute,
   handleTentacleAgentItemRoute,

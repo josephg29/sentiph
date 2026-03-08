@@ -169,3 +169,38 @@ export type MonitorFeedSnapshot = {
   posts: MonitorPost[];
   usage: MonitorUsageSnapshot | null;
 };
+
+export type ConversationTurn = {
+  turnId: string;
+  role: "user" | "assistant";
+  content: string;
+  startedAt: string;
+  endedAt: string;
+};
+
+export type ConversationTranscriptEvent = {
+  eventId: string;
+  sessionId: string;
+  tentacleId: string;
+  timestamp: string;
+  type: "session_start" | "input_submit" | "output_chunk" | "state_change" | "session_end";
+};
+
+export type ConversationSessionSummary = {
+  sessionId: string;
+  tentacleId: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  lastEventAt: string | null;
+  eventCount: number;
+  turnCount: number;
+  userTurnCount: number;
+  assistantTurnCount: number;
+  lastUserTurnPreview: string | null;
+  lastAssistantTurnPreview: string | null;
+};
+
+export type ConversationSessionDetail = ConversationSessionSummary & {
+  turns: ConversationTurn[];
+  events: ConversationTranscriptEvent[];
+};

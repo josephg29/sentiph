@@ -1,0 +1,224 @@
+.console-shell .conversations-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.56rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.52rem;
+}
+
+.conversations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.56rem;
+  flex-wrap: wrap;
+}
+
+.conversations-header-copy {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.conversations-header-copy h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.03em;
+}
+
+.conversations-header-copy p {
+  margin: 0;
+  color: #9eb0c8;
+  font-size: 0.78rem;
+}
+
+.conversations-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  flex-wrap: wrap;
+}
+
+.conversations-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.86fr) minmax(0, 1.6fr);
+  gap: 0.52rem;
+}
+
+.conversations-sessions,
+.conversations-transcript {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #090d12;
+}
+
+.conversations-sessions {
+  padding: 0.36rem;
+}
+
+.conversations-session-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 0.22rem;
+}
+
+.conversations-session-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  padding: 0.34rem 0.4rem;
+  display: grid;
+  gap: 0.12rem;
+  cursor: pointer;
+}
+
+.conversations-session-item strong {
+  color: #e6ebf3;
+  font-size: 0.8rem;
+}
+
+.conversations-session-item span {
+  color: #98a9c0;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.71rem;
+}
+
+.conversations-session-item[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
+  background: color-mix(in srgb, #19140b 38%, #11161d 62%);
+}
+
+.conversations-session-item:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #e9c56c);
+  outline-offset: 1px;
+}
+
+.conversations-transcript {
+  padding: 0.42rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.36rem;
+}
+
+.conversations-transcript-header {
+  border-bottom: 1px solid #1f2733;
+  padding-bottom: 0.32rem;
+  display: grid;
+  gap: 0.24rem;
+}
+
+.conversations-transcript-header h3 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.88rem;
+}
+
+.conversations-transcript-header dl {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.74rem;
+  flex-wrap: wrap;
+}
+
+.conversations-transcript-header dt {
+  color: #8393ab;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.conversations-transcript-header dd {
+  margin: 0;
+  color: #d2dae8;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.conversations-turn-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 0.32rem;
+}
+
+.conversations-turn {
+  border: 1px solid #2b2f36;
+  background: #10151d;
+  padding: 0.34rem 0.4rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.conversations-turn[data-role="assistant"] {
+  border-color: color-mix(in srgb, #5ca7ff 40%, #2b2f36);
+}
+
+.conversations-turn[data-role="user"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 46%, #2b2f36);
+}
+
+.conversations-turn header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.44rem;
+}
+
+.conversations-turn header span {
+  color: #dbe4f4;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.conversations-turn header time {
+  color: #8b9eb8;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+}
+
+.conversations-turn pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #d4dce9;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  line-height: 1.36;
+}
+
+.conversations-empty,
+.conversations-error {
+  margin: 0;
+  color: #9eb0c8;
+  font-size: 0.8rem;
+}
+
+.conversations-error {
+  color: #ffb0b0;
+}
+
+@media (max-width: 980px) {
+  .conversations-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(200px, auto) minmax(0, 1fr);
+  }
+}

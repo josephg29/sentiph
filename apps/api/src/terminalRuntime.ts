@@ -5,7 +5,16 @@ import type { Duplex } from "node:stream";
 import type { AgentSnapshot } from "@octogent/core";
 import { WebSocketServer } from "ws";
 
-import { TENTACLE_ID_PREFIX, TENTACLE_REGISTRY_RELATIVE_PATH } from "./terminalRuntime/constants";
+import {
+  TENTACLE_ID_PREFIX,
+  TENTACLE_REGISTRY_RELATIVE_PATH,
+  TENTACLE_TRANSCRIPT_RELATIVE_PATH,
+} from "./terminalRuntime/constants";
+import {
+  conversationExportMarkdown,
+  listConversationSessions,
+  readConversationSession,
+} from "./terminalRuntime/conversations";
 import {
   loadTentacleRegistry,
   persistTentacleRegistry,
@@ -49,6 +58,7 @@ export const createTerminalRuntime = ({
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
     process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
+  const transcriptDirectoryPath = join(workspaceCwd, TENTACLE_TRANSCRIPT_RELATIVE_PATH);
 
   const persistRegistry = () => {
     uiState = pruneUiStateTentacleReferences(uiState, tentacles);
@@ -133,6 +143,7 @@ export const createTerminalRuntime = ({
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
     isDebugPtyLogsEnabled,
     ptyLogDir,
+    transcriptDirectoryPath,
   });
 
   const allocateTentacleId = () => {
@@ -197,9 +208,9 @@ export const createTerminalRuntime = ({
     createdAt: agent.createdAt,
   });
 
-    const createTentacle = ({
-      tentacleName,
-      workspaceMode = "shared",
+  const createTentacle = ({
+    tentacleName,
+    workspaceMode = "shared",
   }: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
@@ -364,6 +375,27 @@ export const createTerminalRuntime = ({
         }
       }
       return snapshots;
+    },
+
+    listConversationSessions() {
+      return listConversationSessions(transcriptDirectoryPath);
+    },
+
+    readConversationSession(sessionId: string) {
+      return readConversationSession(transcriptDirectoryPath, sessionId);
+    },
+
+    exportConversationSession(sessionId: string, format: "json" | "md") {
+      const conversation = readConversationSession(transcriptDirectoryPath, sessionId);
+      if (!conversation) {
+        return null;
+      }
+
+      if (format === "json") {
+        return `${JSON.stringify(conversation, null, 2)}\n`;
+      }
+
+      return conversationExportMarkdown(conversation);
     },
 
     readUiState,

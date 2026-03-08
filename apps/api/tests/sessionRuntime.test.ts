@@ -1,5 +1,8 @@
 import { EventEmitter } from "node:events";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -96,6 +99,14 @@ const parseSentMessages = (socket: FakeWebSocket) =>
   socket.sentMessages.map((raw) => JSON.parse(raw) as { type: string; data?: string });
 
 describe("createSessionRuntime", () => {
+  const temporaryDirectories: string[] = [];
+
+  const createTemporaryDirectory = () => {
+    const directory = mkdtempSync(join(tmpdir(), "octogent-session-runtime-test-"));
+    temporaryDirectories.push(directory);
+    return directory;
+  };
+
   beforeEach(() => {
     createShellEnvironmentMock.mockClear();
     ensureSpawnHelperMock.mockClear();
@@ -104,6 +115,10 @@ describe("createSessionRuntime", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    for (const directory of temporaryDirectories) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+    temporaryDirectories.length = 0;
   });
 
   it("keeps a session alive across reconnects and replays scrollback history", () => {
@@ -122,6 +137,7 @@ describe("createSessionRuntime", () => {
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
@@ -131,6 +147,7 @@ describe("createSessionRuntime", () => {
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
       sessionIdleGraceMs: 60_000,
       scrollbackMaxBytes: 1024,
     });
@@ -138,11 +155,7 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     pty.emitData("first line\r\n");
@@ -153,11 +166,7 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -189,6 +198,7 @@ describe("createSessionRuntime", () => {
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
@@ -198,6 +208,7 @@ describe("createSessionRuntime", () => {
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
       sessionIdleGraceMs: 1000,
       scrollbackMaxBytes: 1024,
     });
@@ -205,11 +216,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
     socket.close();
 
@@ -240,6 +247,7 @@ describe("createSessionRuntime", () => {
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
@@ -249,6 +257,7 @@ describe("createSessionRuntime", () => {
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
       sessionIdleGraceMs: 60_000,
       scrollbackMaxBytes: 8,
     });
@@ -256,11 +265,7 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
     pty.emitData("123456789012");
     firstSocket.close();
@@ -268,11 +273,7 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -300,6 +301,7 @@ describe("createSessionRuntime", () => {
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
@@ -309,6 +311,7 @@ describe("createSessionRuntime", () => {
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
       sessionIdleGraceMs: 60_000,
       scrollbackMaxBytes: 1024,
     });
@@ -316,11 +319,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(
-        createUpgradeRequest(tentacleId),
-        {} as Duplex,
-        Buffer.alloc(0),
-      ),
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 35 }));
@@ -331,5 +330,70 @@ describe("createSessionRuntime", () => {
     expect(pty.resize).toHaveBeenLastCalledWith(121, 35);
 
     runtime.close();
+  });
+
+  it("writes normalized transcript events for each terminal session", async () => {
+    const tentacleId = "tentacle-1";
+    const tentacles = new Map<string, PersistedTentacle>([
+      [
+        tentacleId,
+        {
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      tentacles,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
+      sessionIdleGraceMs: 60_000,
+      scrollbackMaxBytes: 1024,
+    });
+
+    const socket = new FakeWebSocket();
+    websocketServer.nextSocket = socket;
+    expect(
+      runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
+    ).toBe(true);
+
+    socket.emit("message", JSON.stringify({ type: "input", data: "echo hi\r" }));
+    pty.emitData("\u001b[31mred\u001b[0m\r\n");
+    runtime.close();
+
+    const transcriptPath = join(transcriptDirectoryPath, `${encodeURIComponent(tentacleId)}.jsonl`);
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (existsSync(transcriptPath)) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    const transcriptEvents = readFileSync(transcriptPath, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as { type: string; text?: string; reason?: string });
+
+    expect(transcriptEvents.some((event) => event.type === "session_start")).toBe(true);
+    expect(transcriptEvents.some((event) => event.type === "input_submit")).toBe(true);
+    expect(
+      transcriptEvents.some((event) => event.type === "output_chunk" && event.text === "red\n"),
+    ).toBe(true);
+    expect(
+      transcriptEvents.some(
+        (event) => event.type === "session_end" && event.reason === "session_close",
+      ),
+    ).toBe(true);
   });
 });

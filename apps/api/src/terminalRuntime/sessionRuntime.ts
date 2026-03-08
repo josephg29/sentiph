@@ -12,6 +12,14 @@ import {
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
+import {
+  type ConversationTranscriptEvent,
+  type ConversationTranscriptEventPayload,
+  ensureTranscriptDirectory,
+  extractInputSubmitTexts,
+  normalizeTranscriptOutputChunk,
+  transcriptFilenameForSession,
+} from "./conversations";
 import { broadcastMessage, getTentacleId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
@@ -28,6 +36,7 @@ type CreateSessionRuntimeOptions = {
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
+  transcriptDirectoryPath: string;
   sessionIdleGraceMs?: number;
   scrollbackMaxBytes?: number;
 };
@@ -40,6 +49,7 @@ export const createSessionRuntime = ({
   getTentacleWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
+  transcriptDirectoryPath,
   sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
   scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
 }: CreateSessionRuntimeOptions) => {
@@ -85,6 +95,54 @@ export const createSessionRuntime = ({
     session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
   };
 
+  const createTranscriptLog = (sessionId: string) => {
+    ensureTranscriptDirectory(transcriptDirectoryPath);
+    const filename = transcriptFilenameForSession(sessionId);
+    const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
+      flags: "a",
+      encoding: "utf8",
+    });
+    stream.on("error", () => {
+      // Keep terminal flow alive even if transcript writes fail.
+    });
+    return stream;
+  };
+
+  const appendTranscriptEvent = (
+    session: TerminalSession,
+    sessionId: string,
+    event: ConversationTranscriptEventPayload,
+  ) => {
+    if (!session.transcriptLog) {
+      return;
+    }
+
+    const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
+    session.transcriptEventCount = nextEventCount;
+    const payload: ConversationTranscriptEvent = {
+      ...event,
+      eventId: `${sessionId}:${nextEventCount}`,
+      sessionId,
+      tentacleId: session.tentacleId,
+    } as ConversationTranscriptEvent;
+    session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
+  };
+
+  const closeTranscript = (
+    session: TerminalSession,
+    sessionId: string,
+    event: ConversationTranscriptEventPayload,
+  ) => {
+    if (session.hasTranscriptEnded) {
+      return;
+    }
+
+    appendTranscriptEvent(session, sessionId, event);
+    session.hasTranscriptEnded = true;
+    session.transcriptLog?.end();
+    session.transcriptLog = undefined;
+  };
+
   const emitStateIfChanged = (
     session: TerminalSession,
     sessionId: string,
@@ -96,6 +154,11 @@ export const createSessionRuntime = ({
 
     session.codexState = nextState;
     appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
+    appendTranscriptEvent(session, sessionId, {
+      type: "state_change",
+      state: nextState,
+      timestamp: new Date().toISOString(),
+    });
     broadcastMessage(session, {
       type: "state",
       state: nextState,
@@ -164,6 +227,11 @@ export const createSessionRuntime = ({
     }
 
     clearIdleCloseTimer(session);
+    closeTranscript(session, sessionId, {
+      type: "session_end",
+      reason: "session_close",
+      timestamp: new Date().toISOString(),
+    });
     try {
       session.pty.kill();
     } catch {
@@ -223,7 +291,9 @@ export const createSessionRuntime = ({
 
     const stateTracker = new CodexStateTracker();
     const debugLog = createDebugLog(sessionId);
+    const transcriptLog = createTranscriptLog(sessionId);
     const session: TerminalSession = {
+      tentacleId,
       pty,
       clients: new Set(),
       cols: DEFAULT_PTY_COLS,
@@ -233,12 +303,20 @@ export const createSessionRuntime = ({
       isBootstrapCommandSent: false,
       scrollbackChunks: [],
       scrollbackBytes: 0,
+      transcriptEventCount: 0,
+      pendingInput: "",
+      hasTranscriptEnded: false,
     };
     if (debugLog) {
       session.debugLog = debugLog;
     }
+    session.transcriptLog = transcriptLog;
 
     appendDebugLog(session, `session-start session=${sessionId} tentacle=${tentacleId}`);
+    appendTranscriptEvent(session, sessionId, {
+      type: "session_start",
+      timestamp: new Date().toISOString(),
+    });
     session.statePollTimer = setInterval(() => {
       emitStateIfChanged(session, sessionId, session.stateTracker.poll(Date.now()));
     }, 300);
@@ -246,6 +324,15 @@ export const createSessionRuntime = ({
     session.pty.onData((chunk) => {
       appendDebugLog(session, `pty-output session=${sessionId} chunk=${JSON.stringify(chunk)}`);
       appendScrollback(session, chunk);
+      const normalizedOutput = normalizeTranscriptOutputChunk(chunk);
+      if (normalizedOutput.trim().length > 0) {
+        appendTranscriptEvent(session, sessionId, {
+          type: "output_chunk",
+          chunkId: `${sessionId}-chunk-${Date.now()}-${session.transcriptEventCount ?? 0}`,
+          text: normalizedOutput,
+          timestamp: new Date().toISOString(),
+        });
+      }
       const nextState = session.stateTracker.observeChunk(chunk, Date.now());
       broadcastMessage(session, {
         type: "output",
@@ -270,6 +357,13 @@ export const createSessionRuntime = ({
         session,
         `session-exit session=${sessionId} code=${exitCode} signal=${signal}`,
       );
+      closeTranscript(session, sessionId, {
+        type: "session_end",
+        reason: "pty_exit",
+        ...(Number.isFinite(exitCode) ? { exitCode } : {}),
+        ...(Number.isFinite(signal) ? { signal } : {}),
+        timestamp: new Date().toISOString(),
+      });
       if (session.statePollTimer) {
         clearInterval(session.statePollTimer);
       }
@@ -329,6 +423,19 @@ export const createSessionRuntime = ({
               session,
               `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
             );
+            const { nextPendingInput, submittedTexts } = extractInputSubmitTexts(
+              session.pendingInput ?? "",
+              payload.data,
+            );
+            session.pendingInput = nextPendingInput;
+            submittedTexts.forEach((submittedText, index) => {
+              appendTranscriptEvent(session, sessionId, {
+                type: "input_submit",
+                submitId: `${sessionId}-submit-${Date.now()}-${index}`,
+                text: submittedText,
+                timestamp: new Date().toISOString(),
+              });
+            });
             session.pty.write(payload.data);
             if (/[\r\n]/.test(payload.data)) {
               emitStateIfChanged(

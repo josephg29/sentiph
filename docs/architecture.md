@@ -55,6 +55,9 @@ The web and API apps both depend on `@octogent/core`.
 - `PATCH /api/monitor/config`
 - `GET /api/monitor/feed`
 - `POST /api/monitor/refresh`
+- `GET /api/conversations`
+- `GET /api/conversations/:sessionId`
+- `GET /api/conversations/:sessionId/export?format=json|md`
 - `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
 - `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
 - `DELETE /api/tentacles/:tentacleId`
@@ -63,6 +66,7 @@ The web and API apps both depend on `@octogent/core`.
 ## Persistence and runtime model
 
 - Tentacle and UI state persist in `.octogent/state/tentacles.json`.
+- Conversation transcripts persist in `.octogent/state/transcripts/<sessionId>.jsonl`.
 - Monitor config persists in `.octogent/state/monitor-config.json`.
 - Monitor cache persists in `.octogent/state/monitor-cache.json`.
 - Registry document is versioned (`version: 2`) and stores tentacles plus `uiState`.
@@ -73,6 +77,8 @@ The web and API apps both depend on `@octogent/core`.
 - Worktree tentacles run in `.octogent/worktrees/<tentacleId>` and are created via `git worktree`.
 - UI state persistence is server-backed (`GET/PATCH /api/ui-state`), not browser-local only.
 - Persisted UI state includes sidebar usage footer visibility/collapse preferences for both Codex and Claude sections.
+- Transcript capture is runtime-event-first (`session_start`, `input_submit`, `output_chunk`, `state_change`, `session_end`) with output normalization that strips ANSI/control sequences.
+- Conversation assembly is deterministic: user turns on submit, assistant turns from processing/output, assistant finalization on `processing -> idle` or `session_end`.
 
 ## Security and transport defaults
 

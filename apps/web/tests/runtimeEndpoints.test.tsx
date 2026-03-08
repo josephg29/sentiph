@@ -4,6 +4,9 @@ import {
   buildAgentSnapshotsUrl,
   buildClaudeUsageUrl,
   buildCodexUsageUrl,
+  buildConversationExportUrl,
+  buildConversationSessionUrl,
+  buildConversationsUrl,
   buildGithubSummaryUrl,
   buildMonitorConfigUrl,
   buildMonitorFeedUrl,
@@ -83,6 +86,31 @@ describe("runtimeEndpoints", () => {
 
   it("builds monitor refresh URL on same origin by default", () => {
     expect(buildMonitorRefreshUrl()).toBe("/api/monitor/refresh");
+  });
+
+  it("builds conversations URLs on same origin by default", () => {
+    expect(buildConversationsUrl()).toBe("/api/conversations");
+    expect(buildConversationSessionUrl("tentacle-1-root")).toBe(
+      "/api/conversations/tentacle-1-root",
+    );
+    expect(buildConversationExportUrl("tentacle-1-root", "json")).toBe(
+      "/api/conversations/tentacle-1-root/export?format=json",
+    );
+    expect(buildConversationExportUrl("tentacle-1-root", "md")).toBe(
+      "/api/conversations/tentacle-1-root/export?format=md",
+    );
+  });
+
+  it("builds absolute conversations URLs when runtime base URL is configured", () => {
+    expect(buildConversationsUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/conversations",
+    );
+    expect(buildConversationSessionUrl("tentacle-1-root", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/conversations/tentacle-1-root",
+    );
+    expect(
+      buildConversationExportUrl("tentacle-1-root", "json", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/conversations/tentacle-1-root/export?format=json");
   });
 
   it("builds absolute monitor URLs when runtime base URL is configured", () => {

@@ -421,6 +421,21 @@ describe("createApiServer", () => {
       ? httpBaseUrl.replace("https://", "wss://")
       : httpBaseUrl.replace("http://", "ws://");
 
+  const writeConversationTranscript = (
+    workspaceCwd: string,
+    sessionId: string,
+    events: unknown[],
+  ) => {
+    const transcriptDirectory = join(workspaceCwd, ".octogent", "state", "transcripts");
+    mkdirSync(transcriptDirectory, { recursive: true });
+    const transcriptPath = join(transcriptDirectory, `${encodeURIComponent(sessionId)}.jsonl`);
+    writeFileSync(
+      transcriptPath,
+      `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+      "utf8",
+    );
+  };
+
   it("returns snapshots for GET /api/agent-snapshots", async () => {
     const baseUrl = await startServer();
 
@@ -433,6 +448,217 @@ describe("createApiServer", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([]);
+  });
+
+  it("returns session summaries for GET /api/conversations", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    writeConversationTranscript(workspaceCwd, "tentacle-1-root", [
+      {
+        type: "session_start",
+        eventId: "tentacle-1-root:1",
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        timestamp: "2026-03-05T10:00:00.000Z",
+      },
+      {
+        type: "input_submit",
+        eventId: "tentacle-1-root:2",
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        submitId: "submit-1",
+        text: "build export",
+        timestamp: "2026-03-05T10:00:01.000Z",
+      },
+      {
+        type: "state_change",
+        eventId: "tentacle-1-root:3",
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        state: "processing",
+        timestamp: "2026-03-05T10:00:02.000Z",
+      },
+      {
+        type: "output_chunk",
+        eventId: "tentacle-1-root:4",
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        chunkId: "chunk-1",
+        text: "implemented",
+        timestamp: "2026-03-05T10:00:03.000Z",
+      },
+      {
+        type: "session_end",
+        eventId: "tentacle-1-root:5",
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        reason: "pty_exit",
+        exitCode: 0,
+        signal: 0,
+        timestamp: "2026-03-05T10:00:04.000Z",
+      },
+    ]);
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const response = await fetch(`${baseUrl}/api/conversations`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      {
+        sessionId: "tentacle-1-root",
+        tentacleId: "tentacle-1",
+        startedAt: "2026-03-05T10:00:00.000Z",
+        endedAt: "2026-03-05T10:00:04.000Z",
+        lastEventAt: "2026-03-05T10:00:04.000Z",
+        eventCount: 5,
+        turnCount: 2,
+        userTurnCount: 1,
+        assistantTurnCount: 1,
+        lastUserTurnPreview: "build export",
+        lastAssistantTurnPreview: "implemented",
+      },
+    ]);
+  });
+
+  it("returns assembled conversation details and export payloads", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    writeConversationTranscript(workspaceCwd, "tentacle-2-agent-1", [
+      {
+        type: "session_start",
+        eventId: "tentacle-2-agent-1:1",
+        sessionId: "tentacle-2-agent-1",
+        tentacleId: "tentacle-2",
+        timestamp: "2026-03-05T11:00:00.000Z",
+      },
+      {
+        type: "input_submit",
+        eventId: "tentacle-2-agent-1:2",
+        sessionId: "tentacle-2-agent-1",
+        tentacleId: "tentacle-2",
+        submitId: "submit-1",
+        text: "summarize",
+        timestamp: "2026-03-05T11:00:01.000Z",
+      },
+      {
+        type: "state_change",
+        eventId: "tentacle-2-agent-1:3",
+        sessionId: "tentacle-2-agent-1",
+        tentacleId: "tentacle-2",
+        state: "processing",
+        timestamp: "2026-03-05T11:00:02.000Z",
+      },
+      {
+        type: "output_chunk",
+        eventId: "tentacle-2-agent-1:4",
+        sessionId: "tentacle-2-agent-1",
+        tentacleId: "tentacle-2",
+        chunkId: "chunk-1",
+        text: "summary ready",
+        timestamp: "2026-03-05T11:00:03.000Z",
+      },
+      {
+        type: "state_change",
+        eventId: "tentacle-2-agent-1:5",
+        sessionId: "tentacle-2-agent-1",
+        tentacleId: "tentacle-2",
+        state: "idle",
+        timestamp: "2026-03-05T11:00:04.000Z",
+      },
+    ]);
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const detailResponse = await fetch(`${baseUrl}/api/conversations/tentacle-2-agent-1`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(detailResponse.status).toBe(200);
+    await expect(detailResponse.json()).resolves.toMatchObject({
+      sessionId: "tentacle-2-agent-1",
+      turnCount: 2,
+      turns: [
+        {
+          role: "user",
+          content: "summarize",
+        },
+        {
+          role: "assistant",
+          content: "summary ready",
+        },
+      ],
+    });
+
+    const jsonExportResponse = await fetch(
+      `${baseUrl}/api/conversations/tentacle-2-agent-1/export?format=json`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+    expect(jsonExportResponse.status).toBe(200);
+    await expect(jsonExportResponse.json()).resolves.toMatchObject({
+      sessionId: "tentacle-2-agent-1",
+      turnCount: 2,
+    });
+
+    const markdownExportResponse = await fetch(
+      `${baseUrl}/api/conversations/tentacle-2-agent-1/export?format=md`,
+      {
+        method: "GET",
+      },
+    );
+    expect(markdownExportResponse.status).toBe(200);
+    expect(markdownExportResponse.headers.get("content-type")).toContain("text/markdown");
+    await expect(markdownExportResponse.text()).resolves.toContain(
+      "# Conversation tentacle-2-agent-1",
+    );
+  });
+
+  it("returns 400 for unsupported conversation export format", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    writeConversationTranscript(workspaceCwd, "tentacle-3-agent-1", [
+      {
+        type: "session_start",
+        eventId: "tentacle-3-agent-1:1",
+        sessionId: "tentacle-3-agent-1",
+        tentacleId: "tentacle-3",
+        timestamp: "2026-03-05T12:00:00.000Z",
+      },
+    ]);
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const response = await fetch(
+      `${baseUrl}/api/conversations/tentacle-3-agent-1/export?format=txt`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Unsupported conversation export format.",
+    });
   });
 
   it("rejects non-local browser origins for HTTP endpoints", async () => {

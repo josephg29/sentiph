@@ -5,6 +5,7 @@ import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
 import type { CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
+import type { ConversationSessionDetail, ConversationSessionSummary } from "./conversations";
 
 export type TerminalStateMessage = {
   type: "state";
@@ -27,6 +28,7 @@ export type TerminalServerMessage =
   | TerminalHistoryMessage;
 
 export type TerminalSession = {
+  tentacleId: string;
   pty: IPty;
   clients: Set<WebSocket>;
   cols: number;
@@ -37,8 +39,12 @@ export type TerminalSession = {
   scrollbackChunks: string[];
   scrollbackBytes: number;
   statePollTimer?: ReturnType<typeof setInterval>;
-  idleCloseTimer?: ReturnType<typeof setTimeout>;
+  idleCloseTimer?: ReturnType<typeof setTimeout> | undefined;
   debugLog?: WriteStream;
+  transcriptLog?: WriteStream | undefined;
+  transcriptEventCount?: number;
+  pendingInput?: string;
+  hasTranscriptEnded?: boolean;
 };
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
@@ -172,6 +178,9 @@ export type CreateTerminalRuntimeOptions = {
 
 export type TerminalRuntime = {
   listAgentSnapshots(): AgentSnapshot[];
+  listConversationSessions(): ConversationSessionSummary[];
+  readConversationSession(sessionId: string): ConversationSessionDetail | null;
+  exportConversationSession(sessionId: string, format: "json" | "md"): string | null;
   readUiState(): PersistedUiState;
   patchUiState(patch: PersistedUiState): PersistedUiState;
   readTentacleGitStatus(tentacleId: string): TentacleGitStatusSnapshot | null;

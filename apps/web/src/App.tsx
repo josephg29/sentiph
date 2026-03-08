@@ -6,6 +6,7 @@ import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
+import { useConversationsRuntime } from "./app/hooks/useConversationsRuntime";
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
@@ -23,6 +24,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
+import { ConversationsPrimaryView } from "./components/ConversationsPrimaryView";
 import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
 import { GitHubPrimaryView } from "./components/GitHubPrimaryView";
 import { MonitorPrimaryView } from "./components/MonitorPrimaryView";
@@ -115,9 +117,7 @@ export const App = () => {
         ? []
         : (visibleColumns
             .find((column) => column.tentacleId === selectedTentacleId)
-            ?.agents.filter(
-              (agent) => !isInternalRootTerminal(selectedTentacleId, agent.agentId),
-            )
+            ?.agents.filter((agent) => !isInternalRootTerminal(selectedTentacleId, agent.agentId))
             .map((agent) => agent.agentId) ?? []);
 
     setSelectedTerminalId((currentSelectedTerminalId) => {
@@ -266,6 +266,20 @@ export const App = () => {
   } = useMonitorRuntime({
     enabled: isUiStateHydrated && isMonitorVisible,
   });
+  const {
+    sessions: conversationSessions,
+    selectedSessionId,
+    selectedSession,
+    isLoadingSessions: isLoadingConversationSessions,
+    isLoadingSelectedSession,
+    isExporting: isExportingConversation,
+    errorMessage: conversationsErrorMessage,
+    selectSession,
+    refreshSessions,
+    exportSession,
+  } = useConversationsRuntime({
+    enabled: isUiStateHydrated && activePrimaryNav === 4,
+  });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
 
@@ -289,6 +303,7 @@ export const App = () => {
   const isGitHubPrimaryView = activePrimaryNav === 1;
   const isMonitorPrimaryView = activePrimaryNav === 2;
   const isSettingsPrimaryView = activePrimaryNav === 3;
+  const isConversationsPrimaryView = activePrimaryNav === 4;
   const openGitTentacleColumn =
     openGitTentacleId !== null
       ? columns.find((column) => column.tentacleId === openGitTentacleId)
@@ -487,6 +502,41 @@ export const App = () => {
               onPreviewTentacleCompletionSound={playCompletionSoundPreview}
               onTentacleCompletionSoundChange={setTentacleCompletionSound}
               tentacleCompletionSound={tentacleCompletionSound}
+            />
+          ) : isConversationsPrimaryView ? (
+            <ConversationsPrimaryView
+              errorMessage={conversationsErrorMessage}
+              isExporting={isExportingConversation}
+              isLoadingSelectedSession={isLoadingSelectedSession}
+              isLoadingSessions={isLoadingConversationSessions}
+              onExport={(format) => {
+                if (!selectedSessionId) {
+                  return;
+                }
+
+                void exportSession(selectedSessionId, format).then((result) => {
+                  if (!result) {
+                    return;
+                  }
+
+                  const blob = new Blob([result.content], { type: result.contentType });
+                  const objectUrl = URL.createObjectURL(blob);
+                  const anchor = document.createElement("a");
+                  anchor.href = objectUrl;
+                  anchor.download = result.filename;
+                  document.body.append(anchor);
+                  anchor.click();
+                  anchor.remove();
+                  URL.revokeObjectURL(objectUrl);
+                });
+              }}
+              onRefresh={() => {
+                void refreshSessions();
+              }}
+              onSelectSession={selectSession}
+              selectedSession={selectedSession}
+              selectedSessionId={selectedSessionId}
+              sessions={conversationSessions}
             />
           ) : (
             <TentacleBoard
