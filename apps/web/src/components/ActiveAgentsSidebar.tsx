@@ -434,7 +434,7 @@ export const ActiveAgentsSidebar = ({
                   }}
                   type="button"
                 >
-                  <span className="active-agents-section-title">Claude Code token usage</span>
+                  <span className="active-agents-section-title">Claude token usage</span>
                   <span className="active-agents-section-meta">Usage overview</span>
                   <span className="active-agents-section-chevron" aria-hidden="true">
                     {isClaudeUsageSectionExpanded ? "▾" : "▸"}

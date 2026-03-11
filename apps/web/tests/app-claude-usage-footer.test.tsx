@@ -48,7 +48,7 @@ describe("App claude usage footer", () => {
     render(<App />);
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    expect(within(sidebar).getByText("Claude Code token usage")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Claude token usage")).toBeInTheDocument();
     expect(within(sidebar).getByText("5H tokens")).toBeInTheDocument();
     expect(within(sidebar).getByText("Week tokens")).toBeInTheDocument();
     expect(within(sidebar).getByText("Sonnet tokens")).toBeInTheDocument();

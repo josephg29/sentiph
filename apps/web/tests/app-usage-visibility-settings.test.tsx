@@ -74,7 +74,7 @@ describe("App usage visibility settings", () => {
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(within(sidebar).getByText("Codex token usage")).toBeInTheDocument();
-    expect(within(sidebar).getByText("Claude Code token usage")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Claude token usage")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show runtime status strip" }));
@@ -85,7 +85,7 @@ describe("App usage visibility settings", () => {
 
     expect(screen.queryByLabelText("Runtime status strip")).toBeNull();
     expect(within(sidebar).queryByText("Codex token usage")).toBeNull();
-    expect(within(sidebar).queryByText("Claude Code token usage")).toBeNull();
+    expect(within(sidebar).queryByText("Claude token usage")).toBeNull();
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
     await waitFor(() => {

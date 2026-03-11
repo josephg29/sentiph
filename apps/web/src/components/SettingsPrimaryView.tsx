@@ -198,7 +198,7 @@ export const SettingsPrimaryView = ({
           type="button"
         >
           <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Claude Code token usage</span>
+            <span className="settings-toggle-label">Claude token usage</span>
             <span className="settings-toggle-description">Active Agents sidebar footer</span>
           </span>
           <span className="settings-toggle-switch" aria-hidden="true">
