@@ -298,7 +298,9 @@ export const useTentacleGitLifecycle = ({
         ...current,
         [tentacleId]: true,
       }));
-      void fetchTentacleGitStatus(tentacleId).catch(() => {});
+      void fetchTentacleGitStatus(tentacleId).catch((error: unknown) => {
+        console.warn(`[git] Failed to fetch status for tentacle ${tentacleId}:`, error);
+      });
     }
   }, [fetchTentacleGitStatus, gitStatusAttemptedTentacleIds, worktreeTentacleIds]);
 
@@ -312,7 +314,9 @@ export const useTentacleGitLifecycle = ({
         ...current,
         [tentacleId]: true,
       }));
-      void fetchTentaclePullRequest(tentacleId).catch(() => {});
+      void fetchTentaclePullRequest(tentacleId).catch((error: unknown) => {
+        console.warn(`[git] Failed to fetch pull request for tentacle ${tentacleId}:`, error);
+      });
     }
   }, [fetchTentaclePullRequest, pullRequestAttemptedTentacleIds, worktreeTentacleIds]);
 

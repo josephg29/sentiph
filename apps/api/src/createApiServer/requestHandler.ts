@@ -814,25 +814,48 @@ const handleTentacleItemRoute: ApiRouteHandler = async (
   return true;
 };
 
-const API_ROUTE_HANDLERS: readonly ApiRouteHandler[] = [
-  handleAgentSnapshotsRoute,
-  handleCodexUsageRoute,
-  handleClaudeUsageRoute,
-  handleGithubSummaryRoute,
-  handleUiStateRoute,
-  handleMonitorConfigRoute,
-  handleMonitorFeedRoute,
-  handleMonitorRefreshRoute,
-  handleConversationsCollectionRoute,
-  handleConversationExportRoute,
-  handleConversationItemRoute,
-  handleTentaclesCollectionRoute,
-  handleTentacleAgentCollectionRoute,
-  handleTentacleAgentItemRoute,
-  handleTentacleGitRoute,
-  handleTentacleGitPullRequestRoute,
-  handleTentacleItemRoute,
-];
+const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
+  ["agent-snapshots", [handleAgentSnapshotsRoute]],
+  ["codex", [handleCodexUsageRoute]],
+  ["claude", [handleClaudeUsageRoute]],
+  ["github", [handleGithubSummaryRoute]],
+  ["ui-state", [handleUiStateRoute]],
+  [
+    "monitor",
+    [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute],
+  ],
+  [
+    "conversations",
+    [
+      handleConversationsCollectionRoute,
+      handleConversationExportRoute,
+      handleConversationItemRoute,
+    ],
+  ],
+  [
+    "tentacles",
+    [
+      handleTentaclesCollectionRoute,
+      handleTentacleAgentCollectionRoute,
+      handleTentacleAgentItemRoute,
+      handleTentacleGitRoute,
+      handleTentacleGitPullRequestRoute,
+      handleTentacleItemRoute,
+    ],
+  ],
+]);
+
+const extractRoutePrefix = (pathname: string): string | null => {
+  const segments = pathname.split("/");
+  if (segments.length < 3 || segments[1] !== "api") {
+    return null;
+  }
+  return segments[2] ?? null;
+};
+
+const logRequest = (method: string, path: string, status: number, startTime: number) => {
+  console.log(`[API] ${method} ${path} ${status} ${Date.now() - startTime}ms`);
+};
 
 export const createApiRequestHandler = ({
   runtime,
@@ -851,17 +874,27 @@ export const createApiRequestHandler = ({
   };
 
   return async (request: IncomingMessage, response: ServerResponse) => {
+    const startTime = Date.now();
+    let statusCode = 0;
+    const originalWriteHead = response.writeHead.bind(response);
+    response.writeHead = ((...args: Parameters<typeof response.writeHead>) => {
+      statusCode = typeof args[0] === "number" ? args[0] : 0;
+      return originalWriteHead(...args);
+    }) as typeof response.writeHead;
+
     const originHeader = readHeaderValue(request.headers.origin);
     const hostHeader = readHeaderValue(request.headers.host);
     const corsOrigin = getRequestCorsOrigin(originHeader, allowRemoteAccess);
 
     if (!isAllowedHostHeader(hostHeader, allowRemoteAccess)) {
       writeJson(response, 403, { error: "Host not allowed." }, null);
+      logRequest(request.method ?? "?", request.url ?? "/", 403, startTime);
       return;
     }
 
     if (!isAllowedOriginHeader(originHeader, allowRemoteAccess)) {
       writeJson(response, 403, { error: "Origin not allowed." }, null);
+      logRequest(request.method ?? "?", request.url ?? "/", 403, startTime);
       return;
     }
 
@@ -870,6 +903,7 @@ export const createApiRequestHandler = ({
 
       if (request.method === "OPTIONS") {
         writeNoContent(response, 204, corsOrigin);
+        logRequest(request.method ?? "OPTIONS", requestUrl.pathname, statusCode, startTime);
         return;
       }
 
@@ -879,13 +913,20 @@ export const createApiRequestHandler = ({
         requestUrl,
         corsOrigin,
       };
-      for (const handleRoute of API_ROUTE_HANDLERS) {
-        if (await handleRoute(routeContext, routeDependencies)) {
-          return;
+
+      const prefix = extractRoutePrefix(requestUrl.pathname);
+      const handlers = prefix !== null ? API_ROUTE_MAP.get(prefix) : undefined;
+      if (handlers) {
+        for (const handleRoute of handlers) {
+          if (await handleRoute(routeContext, routeDependencies)) {
+            logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
+            return;
+          }
         }
       }
 
       writeJson(response, 404, { error: "Not found" }, corsOrigin);
+      logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
     } catch {
       writeJson(
         response,
@@ -895,6 +936,7 @@ export const createApiRequestHandler = ({
         },
         corsOrigin,
       );
+      logRequest(request.method ?? "?", request.url ?? "/", statusCode, startTime);
     }
   };
 };

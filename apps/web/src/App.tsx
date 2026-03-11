@@ -1,7 +1,7 @@
 import { buildTentacleColumns } from "@octogent/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./app/constants";
+import type { PrimaryNavIndex } from "./app/constants";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
@@ -24,15 +24,10 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { CodexState } from "./components/CodexStateBadge";
 import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
-import { ConversationsPrimaryView } from "./components/ConversationsPrimaryView";
-import { DeleteTentacleDialog } from "./components/DeleteTentacleDialog";
-import { GitHubPrimaryView } from "./components/GitHubPrimaryView";
-import { MonitorPrimaryView } from "./components/MonitorPrimaryView";
+import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
-import { SettingsPrimaryView } from "./components/SettingsPrimaryView";
+import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { TelemetryTape } from "./components/TelemetryTape";
-import { TentacleBoard } from "./components/TentacleBoard";
-import { TentacleGitActionsDialog } from "./components/TentacleGitActionsDialog";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
 import { buildAgentSnapshotsUrl } from "./runtime/runtimeEndpoints";
 
@@ -300,70 +295,43 @@ export const App = () => {
     hoveredGitHubOverviewPointIndex,
     setHoveredGitHubOverviewPointIndex,
   });
-  const isGitHubPrimaryView = activePrimaryNav === 1;
-  const isMonitorPrimaryView = activePrimaryNav === 2;
-  const isSettingsPrimaryView = activePrimaryNav === 3;
-  const isConversationsPrimaryView = activePrimaryNav === 4;
-  const openGitTentacleColumn =
-    openGitTentacleId !== null
-      ? columns.find((column) => column.tentacleId === openGitTentacleId)
-      : null;
-  const sidebarActionPanel = pendingDeleteTentacle ? (
-    <DeleteTentacleDialog
-      isDeletingTentacleId={isDeletingTentacleId}
-      onCancel={clearPendingDeleteTentacle}
-      onConfirmDelete={() => {
-        void confirmDeleteTentacle();
-      }}
+  const hasSidebarActionPanel =
+    pendingDeleteTentacle !== null ||
+    (openGitTentacleId !== null &&
+      columns.find((column) => column.tentacleId === openGitTentacleId)?.tentacleWorkspaceMode ===
+        "worktree");
+
+  const sidebarActionPanel = hasSidebarActionPanel ? (
+    <SidebarActionPanel
       pendingDeleteTentacle={pendingDeleteTentacle}
-    />
-  ) : openGitTentacleColumn && openGitTentacleColumn.tentacleWorkspaceMode === "worktree" ? (
-    <TentacleGitActionsDialog
-      errorMessage={gitDialogError}
-      gitCommitMessage={gitCommitMessageDraft}
-      gitPullRequest={openGitTentaclePullRequest}
-      gitStatus={openGitTentacleStatus}
-      isLoading={isGitDialogLoading}
-      isMutating={isGitDialogMutating}
-      onClose={closeTentacleGitActions}
-      onCommit={() => {
-        void commitTentacleChanges();
-      }}
-      onCommitAndPush={() => {
-        void commitAndPushTentacleBranch();
-      }}
-      onCommitMessageChange={setGitCommitMessageDraft}
-      onMergePullRequest={() => {
-        void mergeTentaclePullRequest();
-      }}
-      onPush={() => {
-        void pushTentacleBranch();
-      }}
-      onSync={() => {
-        void syncTentacleBranch();
-      }}
-      onCleanupWorktree={() => {
-        requestDeleteTentacle(
-          openGitTentacleColumn.tentacleId,
-          openGitTentacleColumn.tentacleName,
-          {
-            workspaceMode: openGitTentacleColumn.tentacleWorkspaceMode,
-            intent: "cleanup-worktree",
-          },
-        );
-        closeTentacleGitActions();
-      }}
-      tentacleId={openGitTentacleColumn.tentacleId}
-      tentacleName={openGitTentacleColumn.tentacleName}
+      isDeletingTentacleId={isDeletingTentacleId}
+      clearPendingDeleteTentacle={clearPendingDeleteTentacle}
+      confirmDeleteTentacle={confirmDeleteTentacle}
+      openGitTentacleId={openGitTentacleId}
+      columns={columns}
+      openGitTentacleStatus={openGitTentacleStatus}
+      openGitTentaclePullRequest={openGitTentaclePullRequest}
+      gitCommitMessageDraft={gitCommitMessageDraft}
+      gitDialogError={gitDialogError}
+      isGitDialogLoading={isGitDialogLoading}
+      isGitDialogMutating={isGitDialogMutating}
+      setGitCommitMessageDraft={setGitCommitMessageDraft}
+      closeTentacleGitActions={closeTentacleGitActions}
+      commitTentacleChanges={commitTentacleChanges}
+      commitAndPushTentacleBranch={commitAndPushTentacleBranch}
+      pushTentacleBranch={pushTentacleBranch}
+      syncTentacleBranch={syncTentacleBranch}
+      mergeTentaclePullRequest={mergeTentaclePullRequest}
+      requestDeleteTentacle={requestDeleteTentacle}
     />
   ) : null;
 
   useEffect(() => {
-    if (sidebarActionPanel === null || isAgentsSidebarVisible) {
+    if (!hasSidebarActionPanel || isAgentsSidebarVisible) {
       return;
     }
     setIsAgentsSidebarVisible(true);
-  }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, sidebarActionPanel]);
+  }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
 
   const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
     setTentacleStates((current) => {
@@ -444,72 +412,62 @@ export const App = () => {
             />
           )}
 
-          {isGitHubPrimaryView ? (
-            <GitHubPrimaryView
-              githubCommitCount30d={githubCommitCount30d}
-              githubOpenIssuesLabel={githubOpenIssuesLabel}
-              githubOpenPrsLabel={githubOpenPrsLabel}
-              githubRecentCommits={githubRecentCommits}
-              githubOverviewGraphPolylinePoints={githubOverviewGraphPolylinePoints}
-              githubOverviewGraphSeries={githubOverviewGraphSeries}
-              githubOverviewHoverLabel={githubOverviewHoverLabel}
-              githubRepoLabel={githubRepoLabel}
-              githubStarCountLabel={githubStarCountLabel}
-              githubStatusPill={githubStatusPill}
-              hoveredGitHubOverviewPointIndex={hoveredGitHubOverviewPointIndex}
-              isRefreshingGitHubSummary={isRefreshingGitHubSummary}
-              onHoveredGitHubOverviewPointIndexChange={setHoveredGitHubOverviewPointIndex}
-              onRefresh={() => {
+          <PrimaryViewRouter
+            activePrimaryNav={activePrimaryNav}
+            isMonitorVisible={isMonitorVisible}
+            githubPrimaryViewProps={{
+              githubCommitCount30d,
+              githubOpenIssuesLabel,
+              githubOpenPrsLabel,
+              githubRecentCommits,
+              githubOverviewGraphPolylinePoints,
+              githubOverviewGraphSeries,
+              githubOverviewHoverLabel,
+              githubRepoLabel,
+              githubStarCountLabel,
+              githubStatusPill,
+              hoveredGitHubOverviewPointIndex,
+              isRefreshingGitHubSummary,
+              onHoveredGitHubOverviewPointIndexChange: setHoveredGitHubOverviewPointIndex,
+              onRefresh: () => {
                 void refreshGitHubRepoSummary();
-              }}
-            />
-          ) : isMonitorPrimaryView ? (
-            isMonitorVisible ? (
-              <MonitorPrimaryView
-                isRefreshingMonitorFeed={isRefreshingMonitorFeed}
-                isSavingMonitorConfig={isSavingMonitorConfig}
-                monitorConfig={monitorConfig}
-                monitorError={monitorError}
-                monitorFeed={monitorFeed}
-                onPatchConfig={patchMonitorConfig}
-                onRefresh={() => {
-                  void refreshMonitorFeed(true);
-                }}
-                onSyncFeed={() => {
-                  void refreshMonitorFeed(false);
-                }}
-              />
-            ) : (
-              <section className="monitor-view" aria-label="Monitor primary view disabled">
-                <section className="monitor-panel monitor-panel--configure">
-                  <h3>Monitor is disabled</h3>
-                  <p>Enable Monitor workspace view in Settings to restore this panel.</p>
-                </section>
-              </section>
-            )
-          ) : isSettingsPrimaryView ? (
-            <SettingsPrimaryView
-              isBottomTelemetryVisible={isBottomTelemetryVisible}
-              isClaudeUsageVisible={isClaudeUsageVisible}
-              isCodexUsageVisible={isCodexUsageVisible}
-              isMonitorVisible={isMonitorVisible}
-              isRuntimeStatusStripVisible={isRuntimeStatusStripVisible}
-              onBottomTelemetryVisibilityChange={setIsBottomTelemetryVisible}
-              onClaudeUsageVisibilityChange={setIsClaudeUsageVisible}
-              onCodexUsageVisibilityChange={setIsCodexUsageVisible}
-              onMonitorVisibilityChange={setIsMonitorVisible}
-              onRuntimeStatusStripVisibilityChange={setIsRuntimeStatusStripVisible}
-              onPreviewTentacleCompletionSound={playCompletionSoundPreview}
-              onTentacleCompletionSoundChange={setTentacleCompletionSound}
-              tentacleCompletionSound={tentacleCompletionSound}
-            />
-          ) : isConversationsPrimaryView ? (
-            <ConversationsPrimaryView
-              errorMessage={conversationsErrorMessage}
-              isExporting={isExportingConversation}
-              isLoadingSelectedSession={isLoadingSelectedSession}
-              isLoadingSessions={isLoadingConversationSessions}
-              onExport={(format) => {
+              },
+            }}
+            monitorPrimaryViewProps={{
+              isRefreshingMonitorFeed,
+              isSavingMonitorConfig,
+              monitorConfig,
+              monitorError,
+              monitorFeed,
+              onPatchConfig: patchMonitorConfig,
+              onRefresh: () => {
+                void refreshMonitorFeed(true);
+              },
+              onSyncFeed: () => {
+                void refreshMonitorFeed(false);
+              },
+            }}
+            settingsPrimaryViewProps={{
+              isBottomTelemetryVisible,
+              isClaudeUsageVisible,
+              isCodexUsageVisible,
+              isMonitorVisible,
+              isRuntimeStatusStripVisible,
+              onBottomTelemetryVisibilityChange: setIsBottomTelemetryVisible,
+              onClaudeUsageVisibilityChange: setIsClaudeUsageVisible,
+              onCodexUsageVisibilityChange: setIsCodexUsageVisible,
+              onMonitorVisibilityChange: setIsMonitorVisible,
+              onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
+              onPreviewTentacleCompletionSound: playCompletionSoundPreview,
+              onTentacleCompletionSoundChange: setTentacleCompletionSound,
+              tentacleCompletionSound,
+            }}
+            conversationsPrimaryViewProps={{
+              errorMessage: conversationsErrorMessage,
+              isExporting: isExportingConversation,
+              isLoadingSelectedSession,
+              isLoadingSessions: isLoadingConversationSessions,
+              onExport: (format) => {
                 if (!selectedSessionId) {
                   return;
                 }
@@ -529,73 +487,72 @@ export const App = () => {
                   anchor.remove();
                   URL.revokeObjectURL(objectUrl);
                 });
-              }}
-              onRefresh={() => {
+              },
+              onRefresh: () => {
                 void refreshSessions();
-              }}
-              onSelectSession={selectSession}
-              selectedSession={selectedSession}
-              selectedSessionId={selectedSessionId}
-              sessions={conversationSessions}
-            />
-          ) : (
-            <TentacleBoard
-              columns={columns}
-              editingTentacleId={editingTentacleId}
-              gitStatusByTentacleId={gitStatusByTentacleId}
-              gitStatusLoadingByTentacleId={gitStatusLoadingByTentacleId}
-              pullRequestByTentacleId={pullRequestByTentacleId}
-              pullRequestLoadingByTentacleId={pullRequestLoadingByTentacleId}
-              isDeletingTentacleId={isDeletingTentacleId}
-              isLoading={isLoading}
-              loadError={loadError}
-              onBeginTentacleNameEdit={beginTentacleNameEdit}
-              onCancelTentacleRename={cancelTentacleRename}
-              onMinimizeTentacle={handleMinimizeTentacle}
-              onOpenTentacleGitActions={(tentacleId) => {
+              },
+              onSelectSession: selectSession,
+              selectedSession,
+              selectedSessionId,
+              sessions: conversationSessions,
+            }}
+            tentacleBoardProps={{
+              columns,
+              editingTentacleId,
+              gitStatusByTentacleId,
+              gitStatusLoadingByTentacleId,
+              pullRequestByTentacleId,
+              pullRequestLoadingByTentacleId,
+              isDeletingTentacleId,
+              isLoading,
+              loadError,
+              onBeginTentacleNameEdit: beginTentacleNameEdit,
+              onCancelTentacleRename: cancelTentacleRename,
+              onMinimizeTentacle: handleMinimizeTentacle,
+              onOpenTentacleGitActions: (tentacleId) => {
                 setIsAgentsSidebarVisible(true);
                 openTentacleGitActions(tentacleId);
-              }}
-              onRequestDeleteTentacle={(tentacleId, tentacleName, workspaceMode) => {
+              },
+              onRequestDeleteTentacle: (tentacleId, tentacleName, workspaceMode) => {
                 setIsAgentsSidebarVisible(true);
                 closeTentacleGitActions();
                 requestDeleteTentacle(tentacleId, tentacleName, {
                   workspaceMode,
                   intent: "delete-tentacle",
                 });
-              }}
-              onSubmitTentacleRename={(tentacleId, currentTentacleName) => {
+              },
+              onSubmitTentacleRename: (tentacleId, currentTentacleName) => {
                 void submitTentacleRename(tentacleId, currentTentacleName);
-              }}
-              onTentacleDividerKeyDown={handleTentacleDividerKeyDown}
-              onTentacleDividerPointerDown={handleTentacleDividerPointerDown}
-              onTentacleHeaderWheel={handleTentacleHeaderWheel}
-              onTentacleNameDraftChange={setTentacleNameDraft}
-              onSelectTentacle={setSelectedTentacleId}
-              onSelectTerminal={setSelectedTerminalId}
-              onTentacleStateChange={handleTentacleStateChange}
-              onCreateTentacleAgent={(tentacleId, anchorAgentId, placement) => {
+              },
+              onTentacleDividerKeyDown: handleTentacleDividerKeyDown,
+              onTentacleDividerPointerDown: handleTentacleDividerPointerDown,
+              onTentacleHeaderWheel: handleTentacleHeaderWheel,
+              onTentacleNameDraftChange: setTentacleNameDraft,
+              onSelectTentacle: setSelectedTentacleId,
+              onSelectTerminal: setSelectedTerminalId,
+              onTentacleStateChange: handleTentacleStateChange,
+              onCreateTentacleAgent: (tentacleId, anchorAgentId, placement) => {
                 void createTentacleAgent({
                   tentacleId,
                   anchorAgentId,
                   placement,
                 });
-              }}
-              onDeleteTentacleAgent={(tentacleId, agentId) => {
+              },
+              onDeleteTentacleAgent: (tentacleId, agentId) => {
                 void deleteTentacleAgent({
                   tentacleId,
                   agentId,
                 });
-              }}
-              selectedTentacleId={selectedTentacleId}
-              selectedTerminalId={selectedTerminalId}
-              tentacleNameDraft={tentacleNameDraft}
-              tentacleNameInputRef={tentacleNameInputRef}
-              tentacleWidths={tentacleWidths}
-              tentaclesRef={tentaclesRef}
-              visibleColumns={visibleColumns}
-            />
-          )}
+              },
+              selectedTentacleId,
+              selectedTerminalId,
+              tentacleNameDraft,
+              tentacleNameInputRef,
+              tentacleWidths,
+              tentaclesRef,
+              visibleColumns,
+            }}
+          />
         </div>
       </section>
 

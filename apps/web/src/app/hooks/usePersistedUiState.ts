@@ -212,6 +212,8 @@ export const usePersistedUiState = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+      }).catch((error: unknown) => {
+        console.warn("[ui-state] Failed to persist UI state:", error);
       });
     }, UI_STATE_SAVE_DEBOUNCE_MS);
 
