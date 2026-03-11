@@ -184,7 +184,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[2] Monitor",
+        name: "[3] Monitor",
       }),
     );
 
@@ -398,7 +398,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[2] Monitor",
+        name: "[3] Monitor",
       }),
     );
 
@@ -481,7 +481,7 @@ describe("App Monitor runtime", () => {
     await screen.findByText("No active tentacles");
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "[2] Monitor" }));
+    fireEvent.click(screen.getByRole("button", { name: "[3] Monitor" }));
     expect(await screen.findByLabelText("Monitor primary view disabled")).toBeInTheDocument();
 
     expect(monitorConfigCalls).toBe(0);

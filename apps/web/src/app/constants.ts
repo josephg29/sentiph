@@ -8,11 +8,11 @@ export const MAX_SIDEBAR_WIDTH = 520;
 export const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
 
 export const PRIMARY_NAV_ITEMS = [
-  { index: 0, label: "Agents" },
-  { index: 1, label: "GitHub" },
-  { index: 2, label: "Monitor" },
-  { index: 3, label: "Settings" },
+  { index: 1, label: "Agents" },
+  { index: 2, label: "GitHub" },
+  { index: 3, label: "Monitor" },
   { index: 4, label: "Conversations" },
+  { index: 5, label: "Settings" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;

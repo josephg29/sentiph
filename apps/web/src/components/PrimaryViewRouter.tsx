@@ -70,11 +70,11 @@ export const PrimaryViewRouter = ({
   conversationsPrimaryViewProps,
   tentacleBoardProps,
 }: PrimaryViewRouterProps) => {
-  if (activePrimaryNav === 1) {
+  if (activePrimaryNav === 2) {
     return <GitHubPrimaryView {...githubPrimaryViewProps} />;
   }
 
-  if (activePrimaryNav === 2) {
+  if (activePrimaryNav === 3) {
     if (isMonitorVisible) {
       return <MonitorPrimaryView {...monitorPrimaryViewProps} />;
     }
@@ -88,12 +88,12 @@ export const PrimaryViewRouter = ({
     );
   }
 
-  if (activePrimaryNav === 3) {
-    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
-  }
-
   if (activePrimaryNav === 4) {
     return <ConversationsPrimaryView {...conversationsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 5) {
+    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 
   return <TentacleBoard {...tentacleBoardProps} />;

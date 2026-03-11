@@ -7,15 +7,16 @@ import {
 } from "../src/app/hotkeys";
 
 describe("hotkeys helpers", () => {
-  it("parses primary nav keys from 0 to 4", () => {
-    expect(parsePrimaryNavKey("0")).toBe(0);
+  it("parses primary nav keys from 1 to 5", () => {
+    expect(parsePrimaryNavKey("1")).toBe(1);
     expect(parsePrimaryNavKey("2")).toBe(2);
     expect(parsePrimaryNavKey("3")).toBe(3);
-    expect(parsePrimaryNavKey("4")).toBe(4);
+    expect(parsePrimaryNavKey("5")).toBe(5);
   });
 
   it("returns null for unsupported nav keys", () => {
-    expect(parsePrimaryNavKey("5")).toBeNull();
+    expect(parsePrimaryNavKey("0")).toBeNull();
+    expect(parsePrimaryNavKey("6")).toBeNull();
     expect(parsePrimaryNavKey("x")).toBeNull();
     expect(parsePrimaryNavKey("/")).toBeNull();
   });

@@ -85,7 +85,7 @@ describe("App GitHub runtime views", () => {
     expect(sparkline?.getAttribute("points")).not.toBe("");
   });
 
-  it("renders [1] GitHub overview and hoverable overview graph", async () => {
+  it("renders [2] GitHub overview and hoverable overview graph", async () => {
     mockGithubRuntimeRequests();
 
     const { container } = render(<App />);
@@ -93,7 +93,7 @@ describe("App GitHub runtime views", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[1] GitHub",
+        name: "[2] GitHub",
       }),
     );
 

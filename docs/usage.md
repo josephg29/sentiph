@@ -37,7 +37,7 @@ Then open `http://localhost:5173`.
 - The `Active Agents` sidebar footer includes retro terminal-style usage sections that refresh every 1 minute:
   - Codex token usage (`5h`, `week`, `credits`)
   - Claude token usage (`5h`, `week`, optional `sonnet`)
-- In `[3] Settings`, usage telemetry visibility switches let you show/hide the Codex and Claude footer sections independently.
+- In `[5] Settings`, usage telemetry visibility switches let you show/hide the Codex and Claude footer sections independently.
 - Codex usage is sourced from local Codex OAuth credentials (`~/.codex/auth.json` or `CODEX_HOME/auth.json`) through `GET /api/codex/usage`.
 - Claude usage is sourced from local Claude OAuth credentials (`~/.claude/.credentials.json`) through `GET /api/claude/usage` and requires the `user:profile` scope.
 - If Claude OAuth usage is rate limited by Anthropic (`HTTP 429`), the UI degrades to an unavailable state instead of hard error.

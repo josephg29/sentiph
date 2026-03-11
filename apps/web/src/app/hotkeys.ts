@@ -1,6 +1,6 @@
 import type { PrimaryNavIndex } from "./constants";
 
-const PRIMARY_NAV_KEY_PATTERN = /^[0-4]$/;
+const PRIMARY_NAV_KEY_PATTERN = /^[1-5]$/;
 const MAX_TICKER_QUERY_LENGTH = 16;
 const TICKER_QUERY_ALLOWED_PATTERN = /[^A-Z0-9._/-]/g;
 

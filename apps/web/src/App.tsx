@@ -41,7 +41,7 @@ export const App = () => {
   const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
   const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
-  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(0);
+  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);

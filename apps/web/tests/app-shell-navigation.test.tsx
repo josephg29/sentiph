@@ -33,10 +33,10 @@ describe("App shell and navigation", () => {
     expect(screen.queryByRole("textbox", { name: "Context search input" })).not.toBeInTheDocument();
     expect(screen.queryByText("Agent Runtime")).not.toBeInTheDocument();
     expect(await screen.findByText("LIVE")).toBeInTheDocument();
-    expect(screen.getByText("Press 0-4 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 1-5 to navigate")).toBeInTheDocument();
   });
 
-  it("supports keyboard-first primary navigation with number keys 0-4", async () => {
+  it("supports keyboard-first primary navigation with number keys 1-5", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
@@ -59,7 +59,7 @@ describe("App shell and navigation", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[3] Settings",
+        name: "[5] Settings",
       }),
     );
 
@@ -106,7 +106,7 @@ describe("App shell and navigation", () => {
     render(<App />);
     await screen.findByText("No active tentacles");
 
-    fireEvent.click(screen.getByRole("button", { name: "[3] Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "[5] Settings" }));
     fireEvent.click(screen.getByRole("radio", { name: /Retro beep/i }));
 
     expect(MockAudio).toHaveBeenCalledTimes(1);
