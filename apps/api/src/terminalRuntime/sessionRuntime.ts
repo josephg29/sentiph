@@ -17,8 +17,6 @@ import {
   type ConversationTranscriptEvent,
   type ConversationTranscriptEventPayload,
   ensureTranscriptDirectory,
-  extractInputSubmitTexts,
-  normalizeTranscriptOutputChunk,
   transcriptFilenameForSession,
 } from "./conversations";
 import { broadcastMessage, getTentacleId, sendMessage } from "./protocol";
@@ -329,15 +327,6 @@ export const createSessionRuntime = ({
     session.pty.onData((chunk) => {
       appendDebugLog(session, `pty-output session=${sessionId} chunk=${JSON.stringify(chunk)}`);
       appendScrollback(session, chunk);
-      const normalizedOutput = normalizeTranscriptOutputChunk(chunk);
-      if (normalizedOutput.trim().length > 0) {
-        appendTranscriptEvent(session, sessionId, {
-          type: "output_chunk",
-          chunkId: `${sessionId}-chunk-${Date.now()}-${session.transcriptEventCount ?? 0}`,
-          text: normalizedOutput,
-          timestamp: new Date().toISOString(),
-        });
-      }
       const nextState = session.stateTracker.observeChunk(chunk, Date.now());
       broadcastMessage(session, {
         type: "output",
@@ -428,19 +417,6 @@ export const createSessionRuntime = ({
               session,
               `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
             );
-            const { nextPendingInput, submittedTexts } = extractInputSubmitTexts(
-              session.pendingInput ?? "",
-              payload.data,
-            );
-            session.pendingInput = nextPendingInput;
-            submittedTexts.forEach((submittedText, index) => {
-              appendTranscriptEvent(session, sessionId, {
-                type: "input_submit",
-                submitId: `${sessionId}-submit-${Date.now()}-${index}`,
-                text: submittedText,
-                timestamp: new Date().toISOString(),
-              });
-            });
             session.pty.write(payload.data);
             if (/[\r\n]/.test(payload.data)) {
               emitStateIfChanged(

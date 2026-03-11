@@ -386,10 +386,6 @@ describe("createSessionRuntime", () => {
       .map((line) => JSON.parse(line) as { type: string; text?: string; reason?: string });
 
     expect(transcriptEvents.some((event) => event.type === "session_start")).toBe(true);
-    expect(transcriptEvents.some((event) => event.type === "input_submit")).toBe(true);
-    expect(
-      transcriptEvents.some((event) => event.type === "output_chunk" && event.text === "red\n"),
-    ).toBe(true);
     expect(
       transcriptEvents.some(
         (event) => event.type === "session_end" && event.reason === "session_close",

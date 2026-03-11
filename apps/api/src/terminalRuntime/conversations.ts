@@ -3,12 +3,6 @@ import { join } from "node:path";
 
 import type { CodexRuntimeState } from "../codexStateDetection";
 
-const ESCAPE_CODE = 27;
-const BEL_CODE = 7;
-const CSI_MARKER = 91;
-const OSC_MARKER = 93;
-const ST_MARKER = 92;
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -93,123 +87,6 @@ export type ConversationSessionDetail = ConversationSessionSummary & {
   events: ConversationTranscriptEvent[];
 };
 
-type ActiveAssistantTurn = {
-  content: string;
-  startedAt: string;
-  endedAt: string;
-};
-
-const stripAnsiAndControlSequences = (value: string) => {
-  let cleaned = "";
-
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    if (code !== ESCAPE_CODE) {
-      cleaned += value[index] ?? "";
-      continue;
-    }
-
-    const marker = value.charCodeAt(index + 1);
-    if (marker === CSI_MARKER) {
-      index += 2;
-      while (index < value.length) {
-        const csiCode = value.charCodeAt(index);
-        if (csiCode >= 64 && csiCode <= 126) {
-          break;
-        }
-        index += 1;
-      }
-      continue;
-    }
-
-    if (marker === OSC_MARKER) {
-      index += 2;
-      while (index < value.length) {
-        const oscCode = value.charCodeAt(index);
-        if (oscCode === BEL_CODE) {
-          break;
-        }
-        if (oscCode === ESCAPE_CODE && value.charCodeAt(index + 1) === ST_MARKER) {
-          index += 1;
-          break;
-        }
-        index += 1;
-      }
-      continue;
-    }
-
-    index += 1;
-  }
-
-  return cleaned;
-};
-
-const stripLineEditingControls = (value: string) => {
-  let result = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const current = value[index] ?? "";
-    const code = current.charCodeAt(0);
-    if (code === 8 || code === 127) {
-      result = result.slice(0, -1);
-      continue;
-    }
-
-    if (code < 32 && code !== 9) {
-      continue;
-    }
-
-    result += current;
-  }
-
-  return result;
-};
-
-export const normalizeTranscriptOutputChunk = (chunk: string): string =>
-  stripAnsiAndControlSequences(chunk).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-const normalizeInputSubmitText = (raw: string): string =>
-  stripLineEditingControls(stripAnsiAndControlSequences(raw)).trim();
-
-export const extractInputSubmitTexts = (
-  pendingInput: string,
-  inputChunk: string,
-): {
-  nextPendingInput: string;
-  submittedTexts: string[];
-} => {
-  const combined = `${pendingInput}${inputChunk}`;
-  if (combined.length === 0) {
-    return {
-      nextPendingInput: "",
-      submittedTexts: [],
-    };
-  }
-
-  const rawSubmittedLines: string[] = [];
-  let segmentStart = 0;
-
-  for (let index = 0; index < combined.length; index += 1) {
-    const char = combined[index];
-    if (char !== "\r" && char !== "\n") {
-      continue;
-    }
-
-    rawSubmittedLines.push(combined.slice(segmentStart, index));
-    if (char === "\r" && combined[index + 1] === "\n") {
-      index += 1;
-    }
-    segmentStart = index + 1;
-  }
-
-  const submittedTexts = rawSubmittedLines
-    .map((line) => normalizeInputSubmitText(line))
-    .filter((line) => line.length > 0);
-
-  return {
-    nextPendingInput: combined.slice(segmentStart),
-    submittedTexts,
-  };
-};
 
 export const transcriptFilenameForSession = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.jsonl`;
@@ -315,99 +192,6 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   return null;
 };
 
-const createAssistantTurn = (timestamp: string): ActiveAssistantTurn => ({
-  content: "",
-  startedAt: timestamp,
-  endedAt: timestamp,
-});
-
-const pushTurn = (
-  turns: ConversationTurn[],
-  turn: Omit<ConversationTurn, "turnId">,
-): ConversationTurn[] => {
-  const turnId = `turn-${turns.length + 1}`;
-  turns.push({
-    turnId,
-    ...turn,
-  });
-  return turns;
-};
-
-const finalizeAssistantTurn = (
-  turns: ConversationTurn[],
-  activeAssistantTurn: ActiveAssistantTurn | null,
-  timestamp: string,
-): ActiveAssistantTurn | null => {
-  if (!activeAssistantTurn) {
-    return null;
-  }
-
-  const content = activeAssistantTurn.content.trim();
-  if (content.length > 0) {
-    pushTurn(turns, {
-      role: "assistant",
-      content,
-      startedAt: activeAssistantTurn.startedAt,
-      endedAt: timestamp,
-    });
-  }
-
-  return null;
-};
-
-export const assembleConversationTurns = (
-  events: ConversationTranscriptEvent[],
-): ConversationTurn[] => {
-  const turns: ConversationTurn[] = [];
-  let activeAssistantTurn: ActiveAssistantTurn | null = null;
-
-  for (const event of events) {
-    if (event.type === "input_submit") {
-      activeAssistantTurn = finalizeAssistantTurn(turns, activeAssistantTurn, event.timestamp);
-      const content = event.text.trim();
-      if (content.length > 0) {
-        pushTurn(turns, {
-          role: "user",
-          content,
-          startedAt: event.timestamp,
-          endedAt: event.timestamp,
-        });
-      }
-      continue;
-    }
-
-    if (event.type === "state_change") {
-      if (event.state === "processing") {
-        if (!activeAssistantTurn) {
-          activeAssistantTurn = createAssistantTurn(event.timestamp);
-        }
-        activeAssistantTurn.endedAt = event.timestamp;
-      } else {
-        activeAssistantTurn = finalizeAssistantTurn(turns, activeAssistantTurn, event.timestamp);
-      }
-      continue;
-    }
-
-    if (event.type === "output_chunk") {
-      if (!activeAssistantTurn) {
-        activeAssistantTurn = createAssistantTurn(event.timestamp);
-      }
-      activeAssistantTurn.content += event.text;
-      activeAssistantTurn.endedAt = event.timestamp;
-      continue;
-    }
-
-    if (event.type === "session_end") {
-      activeAssistantTurn = finalizeAssistantTurn(turns, activeAssistantTurn, event.timestamp);
-    }
-  }
-
-  if (activeAssistantTurn) {
-    finalizeAssistantTurn(turns, activeAssistantTurn, activeAssistantTurn.endedAt);
-  }
-
-  return turns;
-};
 
 const buildConversationSummary = (
   sessionId: string,
@@ -515,9 +299,8 @@ export const readConversationSession = (
     return null;
   }
 
-  // Prefer clean turns from Claude Code's structured transcript when available.
-  const claudeTurns = readClaudeTranscriptTurns(transcriptDirectoryPath, sessionId);
-  const turns = claudeTurns ?? assembleConversationTurns(events);
+  // Only use clean turns from Claude Code's structured transcript (via Stop hook).
+  const turns = readClaudeTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
   const summary = buildConversationSummary(sessionId, events, turns);
 
   return {

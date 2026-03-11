@@ -436,6 +436,17 @@ describe("createApiServer", () => {
     );
   };
 
+  const writeClaudeTurns = (
+    workspaceCwd: string,
+    sessionId: string,
+    turns: Array<{ turnId: string; role: string; content: string; startedAt: string; endedAt: string }>,
+  ) => {
+    const transcriptDirectory = join(workspaceCwd, ".octogent", "state", "transcripts");
+    mkdirSync(transcriptDirectory, { recursive: true });
+    const turnsPath = join(transcriptDirectory, `${encodeURIComponent(sessionId)}.claude-turns.json`);
+    writeFileSync(turnsPath, JSON.stringify(turns), "utf8");
+  };
+
   it("returns snapshots for GET /api/agent-snapshots", async () => {
     const baseUrl = await startServer();
 
@@ -462,32 +473,6 @@ describe("createApiServer", () => {
         timestamp: "2026-03-05T10:00:00.000Z",
       },
       {
-        type: "input_submit",
-        eventId: "tentacle-1-root:2",
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
-        submitId: "submit-1",
-        text: "build export",
-        timestamp: "2026-03-05T10:00:01.000Z",
-      },
-      {
-        type: "state_change",
-        eventId: "tentacle-1-root:3",
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
-        state: "processing",
-        timestamp: "2026-03-05T10:00:02.000Z",
-      },
-      {
-        type: "output_chunk",
-        eventId: "tentacle-1-root:4",
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
-        chunkId: "chunk-1",
-        text: "implemented",
-        timestamp: "2026-03-05T10:00:03.000Z",
-      },
-      {
         type: "session_end",
         eventId: "tentacle-1-root:5",
         sessionId: "tentacle-1-root",
@@ -496,6 +481,22 @@ describe("createApiServer", () => {
         exitCode: 0,
         signal: 0,
         timestamp: "2026-03-05T10:00:04.000Z",
+      },
+    ]);
+    writeClaudeTurns(workspaceCwd, "tentacle-1-root", [
+      {
+        turnId: "turn-1",
+        role: "user",
+        content: "build export",
+        startedAt: "2026-03-05T10:00:01.000Z",
+        endedAt: "2026-03-05T10:00:01.000Z",
+      },
+      {
+        turnId: "turn-2",
+        role: "assistant",
+        content: "implemented",
+        startedAt: "2026-03-05T10:00:02.000Z",
+        endedAt: "2026-03-05T10:00:03.000Z",
       },
     ]);
 
@@ -518,7 +519,7 @@ describe("createApiServer", () => {
         startedAt: "2026-03-05T10:00:00.000Z",
         endedAt: "2026-03-05T10:00:04.000Z",
         lastEventAt: "2026-03-05T10:00:04.000Z",
-        eventCount: 5,
+        eventCount: 2,
         turnCount: 2,
         userTurnCount: 1,
         assistantTurnCount: 1,
@@ -539,39 +540,21 @@ describe("createApiServer", () => {
         tentacleId: "tentacle-2",
         timestamp: "2026-03-05T11:00:00.000Z",
       },
+    ]);
+    writeClaudeTurns(workspaceCwd, "tentacle-2-agent-1", [
       {
-        type: "input_submit",
-        eventId: "tentacle-2-agent-1:2",
-        sessionId: "tentacle-2-agent-1",
-        tentacleId: "tentacle-2",
-        submitId: "submit-1",
-        text: "summarize",
-        timestamp: "2026-03-05T11:00:01.000Z",
+        turnId: "turn-1",
+        role: "user",
+        content: "summarize",
+        startedAt: "2026-03-05T11:00:01.000Z",
+        endedAt: "2026-03-05T11:00:01.000Z",
       },
       {
-        type: "state_change",
-        eventId: "tentacle-2-agent-1:3",
-        sessionId: "tentacle-2-agent-1",
-        tentacleId: "tentacle-2",
-        state: "processing",
-        timestamp: "2026-03-05T11:00:02.000Z",
-      },
-      {
-        type: "output_chunk",
-        eventId: "tentacle-2-agent-1:4",
-        sessionId: "tentacle-2-agent-1",
-        tentacleId: "tentacle-2",
-        chunkId: "chunk-1",
-        text: "summary ready",
-        timestamp: "2026-03-05T11:00:03.000Z",
-      },
-      {
-        type: "state_change",
-        eventId: "tentacle-2-agent-1:5",
-        sessionId: "tentacle-2-agent-1",
-        tentacleId: "tentacle-2",
-        state: "idle",
-        timestamp: "2026-03-05T11:00:04.000Z",
+        turnId: "turn-2",
+        role: "assistant",
+        content: "summary ready",
+        startedAt: "2026-03-05T11:00:02.000Z",
+        endedAt: "2026-03-05T11:00:03.000Z",
       },
     ]);
 
