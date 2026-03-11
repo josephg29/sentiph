@@ -1,3 +1,4 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
@@ -10,10 +11,12 @@ import {
   TENTACLE_REGISTRY_RELATIVE_PATH,
   TENTACLE_TRANSCRIPT_RELATIVE_PATH,
 } from "./terminalRuntime/constants";
+import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
   conversationExportMarkdown,
   listConversationSessions,
   readConversationSession,
+  storeClaudeTranscriptTurns,
 } from "./terminalRuntime/conversations";
 import {
   loadTentacleRegistry,
@@ -61,6 +64,86 @@ export const createTerminalRuntime = ({
   const ptyLogDir =
     process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
   const transcriptDirectoryPath = join(workspaceCwd, TENTACLE_TRANSCRIPT_RELATIVE_PATH);
+  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
+
+  const installHooksInDirectory = (targetCwd: string) => {
+    const projectHooksPath = join(workspaceCwd, ".claude", "hooks.json");
+    const targetClaudeDir = join(targetCwd, ".claude");
+    const targetHooksPath = join(targetClaudeDir, "hooks.json");
+
+    // If the project root has a hooks.json, copy it into the target directory.
+    if (existsSync(projectHooksPath)) {
+      try {
+        const content = readFileSync(projectHooksPath, "utf8");
+        mkdirSync(targetClaudeDir, { recursive: true });
+        writeFileSync(targetHooksPath, content, "utf8");
+      } catch {
+        // Best-effort: hooks are not critical for tentacle operation.
+      }
+      return;
+    }
+
+    // Otherwise generate a default hooks config pointing at the API.
+    const hooksConfig = {
+      hooks: {
+        SessionStart: [
+          {
+            matcher: "*",
+            hooks: [
+              {
+                type: "command",
+                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/session-start -H 'Content-Type: application/json' -d @- || true`,
+                timeout: 5,
+              },
+            ],
+          },
+        ],
+        UserPromptSubmit: [
+          {
+            matcher: "*",
+            hooks: [
+              {
+                type: "command",
+                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/user-prompt-submit -H 'Content-Type: application/json' -d @- || true`,
+                timeout: 5,
+              },
+            ],
+          },
+        ],
+        PreToolUse: [
+          {
+            matcher: "*",
+            hooks: [
+              {
+                type: "command",
+                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/pre-tool-use -H 'Content-Type: application/json' -d @- || true`,
+                timeout: 5,
+              },
+            ],
+          },
+        ],
+        Stop: [
+          {
+            matcher: "*",
+            hooks: [
+              {
+                type: "command",
+                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/stop -H 'Content-Type: application/json' -d @- || true`,
+                timeout: 15,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    try {
+      mkdirSync(targetClaudeDir, { recursive: true });
+      writeFileSync(targetHooksPath, `${JSON.stringify(hooksConfig, null, 2)}\n`, "utf8");
+    } catch {
+      // Best-effort
+    }
+  };
 
   const persistRegistry = () => {
     uiState = pruneUiStateTentacleReferences(uiState, tentacles);
@@ -231,6 +314,11 @@ export const createTerminalRuntime = ({
     const shouldCreateWorktree = workspaceMode === "worktree";
     if (shouldCreateWorktree) {
       worktreeManager.createTentacleWorktree(tentacleId);
+      try {
+        installHooksInDirectory(worktreeManager.getTentacleWorkspaceCwd(tentacleId));
+      } catch {
+        // Best-effort: hooks installation should not block tentacle creation.
+      }
     }
 
     tentacles.set(tentacleId, tentacle);
@@ -784,6 +872,46 @@ export const createTerminalRuntime = ({
       tentacles.delete(tentacleId);
       persistRegistry();
       return true;
+    },
+
+    handleHook(hookName: string, payload: unknown): { ok: boolean } {
+      if (hookName !== "stop" || !payload || typeof payload !== "object") {
+        return { ok: true };
+      }
+
+      const hookPayload = payload as Record<string, unknown>;
+      const transcriptPath =
+        typeof hookPayload.transcript_path === "string" ? hookPayload.transcript_path : null;
+      const hookCwd = typeof hookPayload.cwd === "string" ? hookPayload.cwd : null;
+
+      if (!transcriptPath || !hookCwd) {
+        return { ok: true };
+      }
+
+      // Find the octogent session whose tentacle CWD matches the hook's cwd.
+      let matchedSessionId: string | null = null;
+      for (const [sessionId, session] of sessions.entries()) {
+        try {
+          const tentacleCwd = worktreeManager.getTentacleWorkspaceCwd(session.tentacleId);
+          if (tentacleCwd === hookCwd || hookCwd.startsWith(`${tentacleCwd}/`)) {
+            matchedSessionId = sessionId;
+            break;
+          }
+        } catch {
+          // Tentacle may have been removed
+        }
+      }
+
+      if (!matchedSessionId) {
+        return { ok: true };
+      }
+
+      const turns = parseClaudeTranscript(transcriptPath);
+      if (turns && turns.length > 0) {
+        storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, turns);
+      }
+
+      return { ok: true };
     },
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {

@@ -214,6 +214,7 @@ export type TerminalRuntime = {
   deleteTentacleAgent(options: { tentacleId: string; agentId: string }): boolean | null;
   renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null;
   deleteTentacle(tentacleId: string): boolean;
+  handleHook(hookName: string, payload: unknown): { ok: boolean };
   handleUpgrade(
     request: import("node:http").IncomingMessage,
     socket: import("node:stream").Duplex,

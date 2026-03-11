@@ -829,7 +829,35 @@ const handleTentacleItemRoute: ApiRouteHandler = async (
   return true;
 };
 
+const HOOK_PATH_PATTERN = /^\/api\/hooks\/(session-start|user-prompt-submit|pre-tool-use|stop)$/;
+
+const handleHookRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(HOOK_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) {
+    return true;
+  }
+
+  const hookName = match[1] ?? "";
+  const result = runtime.handleHook(hookName, body.payload);
+  writeJson(response, 200, result, corsOrigin);
+  return true;
+};
+
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
+  ["hooks", [handleHookRoute]],
   ["agent-snapshots", [handleAgentSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],

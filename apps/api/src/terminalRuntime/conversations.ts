@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { CodexRuntimeState } from "../codexStateDetection";
@@ -515,7 +515,9 @@ export const readConversationSession = (
     return null;
   }
 
-  const turns = assembleConversationTurns(events);
+  // Prefer clean turns from Claude Code's structured transcript when available.
+  const claudeTurns = readClaudeTranscriptTurns(transcriptDirectoryPath, sessionId);
+  const turns = claudeTurns ?? assembleConversationTurns(events);
   const summary = buildConversationSummary(sessionId, events, turns);
 
   return {
@@ -575,6 +577,41 @@ export const listConversationSessions = (
 
 export const ensureTranscriptDirectory = (transcriptDirectoryPath: string) => {
   mkdirSync(transcriptDirectoryPath, { recursive: true });
+};
+
+const claudeTurnsFilename = (sessionId: string) =>
+  `${encodeURIComponent(sessionId)}.claude-turns.json`;
+
+export const storeClaudeTranscriptTurns = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+  turns: ConversationTurn[],
+) => {
+  ensureTranscriptDirectory(transcriptDirectoryPath);
+  const filePath = join(transcriptDirectoryPath, claudeTurnsFilename(sessionId));
+  writeFileSync(filePath, JSON.stringify(turns), "utf8");
+};
+
+const readClaudeTranscriptTurns = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+): ConversationTurn[] | null => {
+  const filePath = join(transcriptDirectoryPath, claudeTurnsFilename(sessionId));
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const raw = readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return null;
+    }
+
+    return parsed as ConversationTurn[];
+  } catch {
+    return null;
+  }
 };
 
 export const conversationExportMarkdown = (conversation: ConversationSessionDetail): string => {
