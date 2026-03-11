@@ -18,7 +18,7 @@ export type CodexUsageSnapshot = {
 export type ClaudeUsageSnapshot = {
   status: "ok" | "unavailable" | "error";
   fetchedAt: string;
-  source: "oauth-api" | "none";
+  source: "cli-pty" | "oauth-api" | "none";
   message?: string | null;
   planType?: string | null;
   primaryUsedPercent?: number | null;
@@ -27,6 +27,8 @@ export type ClaudeUsageSnapshot = {
   secondaryResetAt?: string | null;
   sonnetUsedPercent?: number | null;
   sonnetResetAt?: string | null;
+  extraUsageCostUsed?: number | null;
+  extraUsageCostLimit?: number | null;
 };
 
 export type GitHubCommitPoint = {

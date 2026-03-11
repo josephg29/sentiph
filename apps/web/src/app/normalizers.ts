@@ -74,7 +74,9 @@ export const normalizeClaudeUsageSnapshot = (value: unknown): ClaudeUsageSnapsho
     return null;
   }
 
-  const source = record.source === "oauth-api" ? "oauth-api" : "none";
+  const source =
+    record.source === "cli-pty" ? "cli-pty" :
+    record.source === "oauth-api" ? "oauth-api" : "none";
   return {
     status,
     source,
@@ -87,6 +89,8 @@ export const normalizeClaudeUsageSnapshot = (value: unknown): ClaudeUsageSnapsho
     secondaryResetAt: asString(record.secondaryResetAt),
     sonnetUsedPercent: asNumber(record.sonnetUsedPercent),
     sonnetResetAt: asString(record.sonnetResetAt),
+    extraUsageCostUsed: asNumber(record.extraUsageCostUsed),
+    extraUsageCostLimit: asNumber(record.extraUsageCostLimit),
   };
 };
 
