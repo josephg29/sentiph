@@ -85,6 +85,8 @@ export type FrontendUiStateSnapshot = {
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
+export type TentacleAgentProvider = "codex" | "claude-code";
+
 export type TentacleGitStatusSnapshot = {
   tentacleId: string;
   workspaceMode: TentacleWorkspaceMode;

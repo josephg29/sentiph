@@ -168,3 +168,102 @@
   --action-button-bg: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
   --action-button-color: #9bc8ff;
 }
+
+/* Split button for tentacle creation with provider dropdown */
+.split-button {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.split-button-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.split-button-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-left: 1px solid color-mix(in srgb, #000 18%, transparent);
+  padding: 0 0.22rem;
+  cursor: pointer;
+  font-size: 0;
+  line-height: 1;
+}
+
+.split-button-toggle--primary {
+  background: color-mix(in srgb, var(--accent-primary) 78%, #ffd7a0 12%);
+  color: #121212;
+}
+
+.split-button-toggle--info {
+  background: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
+  border-color: color-mix(in srgb, #9bc8ff 45%, var(--border-subtle));
+  border-left-color: color-mix(in srgb, #9bc8ff 25%, transparent);
+  color: #9bc8ff;
+}
+
+.split-button-toggle:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.split-button-toggle:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.split-button-toggle-icon {
+  width: 0.5rem;
+  height: 0.35rem;
+}
+
+.split-button-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 2px;
+  z-index: 100;
+  min-width: 9rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0;
+}
+
+.split-button-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--control-font-family);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.split-button-menu-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.split-button-menu-item[data-active="true"] {
+  color: var(--accent-primary);
+}
+
+.split-button-menu-check {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}

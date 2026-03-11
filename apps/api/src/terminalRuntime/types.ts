@@ -49,6 +49,13 @@ export type TerminalSession = {
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
+export type TentacleAgentProvider = "codex" | "claude-code";
+
+export const TENTACLE_AGENT_PROVIDERS: TentacleAgentProvider[] = ["codex", "claude-code"];
+
+export const isTentacleAgentProvider = (value: unknown): value is TentacleAgentProvider =>
+  typeof value === "string" && TENTACLE_AGENT_PROVIDERS.includes(value as TentacleAgentProvider);
+
 export const TENTACLE_COMPLETION_SOUND_IDS = [
   "soft-chime",
   "retro-beep",
@@ -69,6 +76,7 @@ export type PersistedTentacle = {
   tentacleName: string;
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
+  agentProvider?: TentacleAgentProvider;
 };
 
 export type PersistedTentacleAgent = {
@@ -196,6 +204,7 @@ export type TerminalRuntime = {
   createTentacle(options: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
+    agentProvider?: TentacleAgentProvider;
   }): AgentSnapshot;
   createTentacleAgent(options: {
     tentacleId: string;

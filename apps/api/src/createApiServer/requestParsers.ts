@@ -3,7 +3,9 @@ import type { IncomingMessage } from "node:http";
 import type { MonitorConfigPatchInput } from "../monitor";
 import {
   type PersistedUiState,
+  type TentacleAgentProvider,
   type TentacleWorkspaceMode,
+  isTentacleAgentProvider,
   isTentacleCompletionSound,
 } from "../terminalRuntime";
 
@@ -113,6 +115,42 @@ export const parseTentacleWorkspaceMode = (payload: unknown) => {
 
   return {
     workspaceMode: rawWorkspaceMode as TentacleWorkspaceMode,
+    error: null as string | null,
+  };
+};
+
+export const parseTentacleAgentProvider = (payload: unknown) => {
+  if (payload === null || payload === undefined) {
+    return {
+      agentProvider: undefined as TentacleAgentProvider | undefined,
+      error: null as string | null,
+    };
+  }
+
+  if (typeof payload !== "object") {
+    return {
+      agentProvider: undefined as TentacleAgentProvider | undefined,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const rawAgentProvider = (payload as Record<string, unknown>).agentProvider;
+  if (rawAgentProvider === undefined) {
+    return {
+      agentProvider: undefined as TentacleAgentProvider | undefined,
+      error: null as string | null,
+    };
+  }
+
+  if (!isTentacleAgentProvider(rawAgentProvider)) {
+    return {
+      agentProvider: undefined as TentacleAgentProvider | undefined,
+      error: "Tentacle agent provider must be either 'codex' or 'claude-code'.",
+    };
+  }
+
+  return {
+    agentProvider: rawAgentProvider,
     error: null as string | null,
   };
 };

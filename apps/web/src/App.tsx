@@ -352,13 +352,13 @@ export const App = () => {
         backendLivenessStatus={backendLivenessStatus}
         isAgentsSidebarVisible={isAgentsSidebarVisible}
         isCreatingTentacle={isCreatingTentacle}
-        onCreateSharedTentacle={() => {
+        onCreateSharedTentacle={(provider) => {
           setLoadError(null);
-          void createTentacle("shared");
+          void createTentacle("shared", provider);
         }}
-        onCreateWorktreeTentacle={() => {
+        onCreateWorktreeTentacle={(provider) => {
           setLoadError(null);
-          void createTentacle("worktree");
+          void createTentacle("worktree", provider);
         }}
         onToggleAgentsSidebar={() => {
           setIsAgentsSidebarVisible((current) => !current);

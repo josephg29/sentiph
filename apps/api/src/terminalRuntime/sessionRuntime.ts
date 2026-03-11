@@ -9,6 +9,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { type CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
 import {
   TENTACLE_BOOTSTRAP_COMMAND,
+  TENTACLE_BOOTSTRAP_COMMANDS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
@@ -252,8 +253,12 @@ export const createSessionRuntime = ({
     }
 
     session.isBootstrapCommandSent = true;
-    appendDebugLog(session, `bootstrap session=${sessionId} command=${TENTACLE_BOOTSTRAP_COMMAND}`);
-    session.pty.write(`${TENTACLE_BOOTSTRAP_COMMAND}\r`);
+    const tentacle = tentacles.get(session.tentacleId);
+    const provider = tentacle?.agentProvider ?? "codex";
+    const bootstrapCommand =
+      TENTACLE_BOOTSTRAP_COMMANDS[provider] ?? TENTACLE_BOOTSTRAP_COMMAND;
+    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
+    session.pty.write(`${bootstrapCommand}\r`);
   };
 
   const ensureSession = (sessionId: string, tentacleId: string) => {

@@ -4,11 +4,16 @@ import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
-import { RuntimeInputError, type TentacleWorkspaceMode } from "../terminalRuntime";
+import {
+  RuntimeInputError,
+  type TentacleAgentProvider,
+  type TentacleWorkspaceMode,
+} from "../terminalRuntime";
 import {
   RequestBodyTooLargeError,
   parseMonitorConfigPatch,
   parseTentacleAgentCreateInput,
+  parseTentacleAgentProvider,
   parseTentacleCommitMessage,
   parseTentacleName,
   parseTentaclePullRequestCreateInput,
@@ -427,15 +432,25 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const agentProviderResult = parseTentacleAgentProvider(bodyReadResult.payload);
+  if (agentProviderResult.error) {
+    writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+    return true;
+  }
+
   try {
     const createTentacleInput: {
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
+      agentProvider?: TentacleAgentProvider;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
     if (nameResult.name !== undefined) {
       createTentacleInput.tentacleName = nameResult.name;
+    }
+    if (agentProviderResult.agentProvider !== undefined) {
+      createTentacleInput.agentProvider = agentProviderResult.agentProvider;
     }
 
     const payload = runtime.createTentacle(createTentacleInput);

@@ -7,7 +7,7 @@ import {
   buildTentacleRenameUrl,
   buildTentaclesUrl,
 } from "../../runtime/runtimeEndpoints";
-import type { TentacleView, TentacleWorkspaceMode } from "../types";
+import type { TentacleAgentProvider, TentacleView, TentacleWorkspaceMode } from "../types";
 
 export type PendingDeleteTentacle = {
   tentacleId: string;
@@ -121,7 +121,7 @@ export const useTentacleMutations = ({
   );
 
   const createTentacle = useCallback(
-    async (workspaceMode: TentacleWorkspaceMode) => {
+    async (workspaceMode: TentacleWorkspaceMode, agentProvider?: TentacleAgentProvider) => {
       try {
         setIsCreatingTentacle(true);
         setLoadError(null);
@@ -131,7 +131,10 @@ export const useTentacleMutations = ({
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ workspaceMode }),
+          body: JSON.stringify({
+            workspaceMode,
+            ...(agentProvider && agentProvider !== "codex" ? { agentProvider } : {}),
+          }),
         });
 
         if (!response.ok) {

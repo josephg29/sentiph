@@ -30,6 +30,7 @@ import {
   RuntimeInputError,
   type TentacleGitStatusSnapshot,
   type TentaclePullRequestSnapshot,
+  type TentacleAgentProvider,
   type TentacleWorkspaceMode,
   type TerminalSession,
 } from "./terminalRuntime/types";
@@ -38,10 +39,11 @@ import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 export type {
   GitClient,
   PersistedUiState,
+  TentacleAgentProvider,
   TentacleCompletionSound,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
-export { isTentacleCompletionSound } from "./terminalRuntime/types";
+export { isTentacleAgentProvider, isTentacleCompletionSound } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const createTerminalRuntime = ({
@@ -211,9 +213,11 @@ export const createTerminalRuntime = ({
   const createTentacle = ({
     tentacleName,
     workspaceMode = "shared",
+    agentProvider,
   }: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
+    agentProvider?: TentacleAgentProvider;
   }): AgentSnapshot => {
     const tentacleId = allocateTentacleId();
     const tentacle: PersistedTentacle = {
@@ -221,6 +225,7 @@ export const createTerminalRuntime = ({
       tentacleName: tentacleName ?? tentacleId,
       createdAt: new Date().toISOString(),
       workspaceMode,
+      ...(agentProvider ? { agentProvider } : {}),
     };
 
     const shouldCreateWorktree = workspaceMode === "worktree";
