@@ -122,7 +122,9 @@ const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null 
   const shortHash = asString(record.shortHash)?.trim();
   const subject = asString(record.subject)?.trim();
   const authorName = asString(record.authorName)?.trim();
+  const authorEmail = asString(record.authorEmail)?.trim() ?? "";
   const authoredAt = asString(record.authoredAt)?.trim();
+  const body = asString(record.body)?.trim() ?? "";
   if (!hash || !shortHash || !subject || !authorName || !authoredAt) {
     return null;
   }
@@ -132,7 +134,9 @@ const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null 
     shortHash,
     subject,
     authorName,
+    authorEmail,
     authoredAt,
+    body,
   };
 };
 

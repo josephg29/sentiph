@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { GITHUB_OVERVIEW_GRAPH_HEIGHT, GITHUB_OVERVIEW_GRAPH_WIDTH } from "../app/constants";
 import { formatGitHubCommitHoverLabel } from "../app/githubMetrics";
@@ -58,6 +58,12 @@ export const GitHubPrimaryView = ({
   const [hoverCursorPosition, setHoverCursorPosition] = useState<{ x: number; y: number } | null>(
     null,
   );
+  const [hoveredCommitHash, setHoveredCommitHash] = useState<string | null>(null);
+  const [commitHoverY, setCommitHoverY] = useState<number | null>(null);
+  const recentSectionRef = useRef<HTMLElement>(null);
+  const hoveredCommit = hoveredCommitHash
+    ? githubRecentCommits.find((c) => c.hash === hoveredCommitHash) ?? null
+    : null;
   const hoveredGitHubOverviewPoint =
     hoveredGitHubOverviewPointIndex !== null
       ? githubOverviewGraphSeries[hoveredGitHubOverviewPointIndex] ?? null
@@ -246,7 +252,15 @@ export const GitHubPrimaryView = ({
                 <dd>{githubCommitCount30d}</dd>
               </div>
             </dl>
-            <section className="github-overview-recent" aria-label="Recent commits">
+            <section
+              className="github-overview-recent"
+              aria-label="Recent commits"
+              ref={recentSectionRef}
+              onMouseLeave={() => {
+                setHoveredCommitHash(null);
+                setCommitHoverY(null);
+              }}
+            >
               <header className="github-overview-recent-header">
                 <h3>Recent commits</h3>
                 <span>{`Showing last ${GITHUB_RECENT_COMMITS_LIMIT}`}</span>
@@ -254,7 +268,27 @@ export const GitHubPrimaryView = ({
             {githubRecentCommits.length > 0 ? (
               <ol className="github-overview-recent-list">
                 {githubRecentCommits.map((commit) => (
-                  <li className="github-overview-recent-item" key={commit.hash}>
+                  <li
+                    className="github-overview-recent-item"
+                    key={commit.hash}
+                    onMouseEnter={(event) => {
+                      setHoveredCommitHash(commit.hash);
+                      const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+                      if (sectionRect) {
+                        setCommitHoverY(event.clientY - sectionRect.top);
+                      }
+                    }}
+                    onMouseMove={(event) => {
+                      const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+                      if (sectionRect) {
+                        setCommitHoverY(event.clientY - sectionRect.top);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredCommitHash(null);
+                      setCommitHoverY(null);
+                    }}
+                  >
                     <span aria-hidden="true" className="github-overview-recent-node" />
                     <span className="github-overview-recent-sha">{commit.shortHash}</span>
                     <div className="github-overview-recent-copy">
@@ -270,6 +304,27 @@ export const GitHubPrimaryView = ({
             ) : (
               <p className="github-overview-recent-empty">Recent commit data is unavailable.</p>
             )}
+              <div
+                className={`github-overview-recent-tooltip${hoveredCommit ? " is-visible" : ""}`}
+                style={{
+                  top: commitHoverY !== null ? `${commitHoverY}px` : undefined,
+                }}
+              >
+                {hoveredCommit && (
+                  <>
+                    <p className="github-overview-recent-tooltip-hash">{hoveredCommit.hash}</p>
+                    <p className="github-overview-recent-tooltip-author">
+                      {hoveredCommit.authorName}
+                      {hoveredCommit.authorEmail ? ` <${hoveredCommit.authorEmail}>` : ""}
+                    </p>
+                    <p className="github-overview-recent-tooltip-message">
+                      {hoveredCommit.body
+                        ? `${hoveredCommit.subject}\n\n${hoveredCommit.body}`
+                        : hoveredCommit.subject}
+                    </p>
+                  </>
+                )}
+              </div>
             </section>
           </aside>
         </div>

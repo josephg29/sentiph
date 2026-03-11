@@ -13,7 +13,9 @@ const buildRecentCommits = () =>
       shortHash: `short${offset}`,
       subject: `recent commit ${offset}`,
       authorName: "Hesam Sheikh",
+      authorEmail: "hesam@example.com",
       authoredAt: `2026-02-${day}T10:12:00.000Z`,
+      body: `body for commit ${offset}`,
     };
   });
 

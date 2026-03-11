@@ -31,7 +31,9 @@ type GitHubRecentCommit = {
   shortHash: string;
   subject: string;
   authorName: string;
+  authorEmail: string;
   authoredAt: string;
+  body: string;
 };
 
 type GitHubSummaryStatus = "ok" | "unavailable" | "error";
@@ -246,7 +248,7 @@ const readCommitSeries = async (
 };
 
 const parseRecentCommit = (entry: string): GitHubRecentCommit | null => {
-  const [rawHash, rawShortHash, rawAuthorName, rawAuthoredAt, ...subjectParts] = entry
+  const [rawHash, rawShortHash, rawAuthorName, rawAuthorEmail, rawAuthoredAt, rawBody, ...subjectParts] = entry
     .split("\u001f")
     .map((part) => part.trim());
   const rawSubject = subjectParts.join("\u001f").trim();
@@ -262,7 +264,9 @@ const parseRecentCommit = (entry: string): GitHubRecentCommit | null => {
     shortHash: rawShortHash,
     subject: rawSubject,
     authorName: rawAuthorName,
+    authorEmail: rawAuthorEmail ?? "",
     authoredAt: Number.isFinite(authoredAtMs) ? new Date(authoredAtMs).toISOString() : rawAuthoredAt,
+    body: rawBody ?? "",
   };
 };
 
@@ -273,7 +277,7 @@ const readRecentCommits = async (runCommand: RunCommand, cwd: string, env: NodeJ
       "log",
       `-${RECENT_COMMIT_LIMIT}`,
       "--date=iso-strict",
-      "--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1e",
+      "--pretty=format:%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%b%x1f%s%x1e",
     ],
     {
       cwd,

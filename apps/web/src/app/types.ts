@@ -46,7 +46,9 @@ export type GitHubRecentCommit = {
   shortHash: string;
   subject: string;
   authorName: string;
+  authorEmail: string;
   authoredAt: string;
+  body: string;
 };
 
 export type GitHubRepoSummarySnapshot = {

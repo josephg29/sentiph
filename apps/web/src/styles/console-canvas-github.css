@@ -245,6 +245,7 @@
 }
 
 .github-overview-recent {
+  position: relative;
   min-height: 0;
   border: 1px solid #2b2f36;
   background: #0f141c;
@@ -377,6 +378,54 @@
   display: inline-flex;
   gap: 0.36rem;
   flex-wrap: wrap;
+}
+
+.github-overview-recent-tooltip {
+  position: absolute;
+  right: calc(100% + 0.42rem);
+  transform: translateY(-50%);
+  z-index: 4;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 58%, #6b5210);
+  background: color-mix(in srgb, #0d1219 92%, #2a1f08 8%);
+  padding: 0.52rem 0.62rem;
+  display: grid;
+  gap: 0.3rem;
+  max-width: 32rem;
+  min-width: 16rem;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+.github-overview-recent-tooltip.is-visible {
+  opacity: 1;
+}
+
+.github-overview-recent-tooltip-hash {
+  margin: 0;
+  color: #ccd9eb;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+
+.github-overview-recent-tooltip-author {
+  margin: 0;
+  color: #96a5bc;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.github-overview-recent-tooltip-message {
+  margin: 0;
+  color: #c4d0e3;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  max-height: 10rem;
+  overflow: hidden;
 }
 
 .github-overview-recent-empty {

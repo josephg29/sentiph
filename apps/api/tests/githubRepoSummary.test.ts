@@ -7,7 +7,7 @@ describe("readGithubRepoSummary", () => {
     const recentCommitRecords = Array.from({ length: 52 }, (_, index) => {
       const offset = index + 1;
       const day = String(Math.min(28, 28 - index)).padStart(2, "0");
-      return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\u001fshort${offset}\u001fAuthor ${offset}\u001f2026-02-${day}T10:00:00.000Z\u001fsubject ${offset}\u001e`;
+      return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\u001fshort${offset}\u001fAuthor ${offset}\u001fauthor${offset}@example.com\u001f2026-02-${day}T10:00:00.000Z\u001fbody ${offset}\u001fsubject ${offset}\u001e`;
     }).join("");
 
     const runCommand = vi.fn(async (command: string, args: string[]) => {
@@ -48,7 +48,7 @@ describe("readGithubRepoSummary", () => {
       if (
         command === "git" &&
         args[0] === "log" &&
-        args.includes("--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1e")
+        args.includes("--pretty=format:%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%b%x1f%s%x1e")
       ) {
         return {
           stdout: recentCommitRecords,
@@ -80,7 +80,9 @@ describe("readGithubRepoSummary", () => {
       shortHash: "short1",
       subject: "subject 1",
       authorName: "Author 1",
+      authorEmail: "author1@example.com",
       authoredAt: "2026-02-28T10:00:00.000Z",
+      body: "body 1",
     });
     expect(snapshot.recentCommits?.[49]?.shortHash).toBe("short50");
   });
