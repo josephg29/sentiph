@@ -49,6 +49,9 @@ export type GitHubRecentCommit = {
   authorEmail: string;
   authoredAt: string;
   body: string;
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
 };
 
 export type GitHubRepoSummarySnapshot = {

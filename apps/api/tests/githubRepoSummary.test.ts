@@ -10,6 +10,11 @@ describe("readGithubRepoSummary", () => {
       return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\u001fshort${offset}\u001fAuthor ${offset}\u001fauthor${offset}@example.com\u001f2026-02-${day}T10:00:00.000Z\u001fbody ${offset}\u001fsubject ${offset}\u001e`;
     }).join("");
 
+    const shortstatRecords = Array.from({ length: 52 }, (_, index) => {
+      const offset = index + 1;
+      return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\n ${offset + 1} files changed, ${offset * 10} insertions(+), ${offset * 2} deletions(-)\n`;
+    }).join("");
+
     const runCommand = vi.fn(async (command: string, args: string[]) => {
       if (command === "gh" && args[0] === "repo" && args[1] === "view") {
         return {
@@ -56,6 +61,17 @@ describe("readGithubRepoSummary", () => {
         };
       }
 
+      if (
+        command === "git" &&
+        args[0] === "log" &&
+        args.includes("--shortstat")
+      ) {
+        return {
+          stdout: shortstatRecords,
+          stderr: "",
+        };
+      }
+
       throw new Error(`Unexpected command: ${command} ${args.join(" ")}`);
     });
 
@@ -83,6 +99,9 @@ describe("readGithubRepoSummary", () => {
       authorEmail: "author1@example.com",
       authoredAt: "2026-02-28T10:00:00.000Z",
       body: "body 1",
+      filesChanged: 2,
+      insertions: 10,
+      deletions: 2,
     });
     expect(snapshot.recentCommits?.[49]?.shortHash).toBe("short50");
   });

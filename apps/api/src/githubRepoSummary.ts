@@ -34,6 +34,9 @@ type GitHubRecentCommit = {
   authorEmail: string;
   authoredAt: string;
   body: string;
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
 };
 
 type GitHubSummaryStatus = "ok" | "unavailable" | "error";
@@ -247,7 +250,7 @@ const readCommitSeries = async (
   }));
 };
 
-const parseRecentCommit = (entry: string): GitHubRecentCommit | null => {
+const parseRecentCommit = (entry: string): Omit<GitHubRecentCommit, "filesChanged" | "insertions" | "deletions"> | null => {
   const [rawHash, rawShortHash, rawAuthorName, rawAuthorEmail, rawAuthoredAt, rawBody, ...subjectParts] = entry
     .split("\u001f")
     .map((part) => part.trim());
@@ -270,26 +273,87 @@ const parseRecentCommit = (entry: string): GitHubRecentCommit | null => {
   };
 };
 
-const readRecentCommits = async (runCommand: RunCommand, cwd: string, env: NodeJS.ProcessEnv) => {
+type DiffStat = { filesChanged: number; insertions: number; deletions: number };
+
+const parseShortStat = (line: string): DiffStat => {
+  const files = line.match(/(\d+)\s+files?\s+changed/);
+  const ins = line.match(/(\d+)\s+insertions?\(\+\)/);
+  const del = line.match(/(\d+)\s+deletions?\(-\)/);
+  return {
+    filesChanged: files?.[1] ? Number.parseInt(files[1], 10) : 0,
+    insertions: ins?.[1] ? Number.parseInt(ins[1], 10) : 0,
+    deletions: del?.[1] ? Number.parseInt(del[1], 10) : 0,
+  };
+};
+
+const readCommitDiffStats = async (
+  runCommand: RunCommand,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+): Promise<Map<string, DiffStat>> => {
   const { stdout } = await runCommand(
     "git",
     [
       "log",
       `-${RECENT_COMMIT_LIMIT}`,
-      "--date=iso-strict",
-      "--pretty=format:%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%b%x1f%s%x1e",
+      "--pretty=format:%H",
+      "--shortstat",
     ],
-    {
-      cwd,
-      env,
-    },
+    { cwd, env },
   );
 
-  return stdout
+  const map = new Map<string, DiffStat>();
+  const lines = stdout.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]?.trim() ?? "";
+    if (!line || line.includes("changed")) {
+      continue;
+    }
+    // line is a hash; the next non-empty line may be the shortstat
+    const hash = line;
+    const nextLine = lines[i + 1]?.trim() ?? "";
+    if (nextLine.includes("changed")) {
+      map.set(hash, parseShortStat(nextLine));
+      i += 1;
+    } else {
+      map.set(hash, { filesChanged: 0, insertions: 0, deletions: 0 });
+    }
+  }
+  return map;
+};
+
+const readRecentCommits = async (runCommand: RunCommand, cwd: string, env: NodeJS.ProcessEnv) => {
+  const [formatResult, diffStats] = await Promise.all([
+    runCommand(
+      "git",
+      [
+        "log",
+        `-${RECENT_COMMIT_LIMIT}`,
+        "--date=iso-strict",
+        "--pretty=format:%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%b%x1f%s%x1e",
+      ],
+      { cwd, env },
+    ),
+    readCommitDiffStats(runCommand, cwd, env),
+  ]);
+
+  return formatResult.stdout
     .split("\u001e")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
-    .map((entry) => parseRecentCommit(entry))
+    .map((entry) => {
+      const commit = parseRecentCommit(entry);
+      if (!commit) {
+        return null;
+      }
+      const stat = diffStats.get(commit.hash);
+      return {
+        ...commit,
+        filesChanged: stat?.filesChanged ?? 0,
+        insertions: stat?.insertions ?? 0,
+        deletions: stat?.deletions ?? 0,
+      };
+    })
     .filter((commit): commit is GitHubRecentCommit => commit !== null)
     .slice(0, RECENT_COMMIT_LIMIT);
 };

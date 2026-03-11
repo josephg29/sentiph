@@ -16,6 +16,9 @@ const buildRecentCommits = () =>
       authorEmail: "hesam@example.com",
       authoredAt: `2026-02-${day}T10:12:00.000Z`,
       body: `body for commit ${offset}`,
+      filesChanged: offset + 1,
+      insertions: offset * 10,
+      deletions: offset * 2,
     };
   });
 

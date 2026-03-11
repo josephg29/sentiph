@@ -473,6 +473,26 @@
   overflow: hidden;
 }
 
+.github-overview-recent-tooltip-diff {
+  margin: 0;
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52rem;
+  color: #96a5bc;
+  border-top: 1px solid #1f2733;
+  padding-top: 0.28rem;
+}
+
+.github-overview-recent-tooltip-ins {
+  color: #3fb950;
+}
+
+.github-overview-recent-tooltip-del {
+  color: #f85149;
+}
+
 .github-overview-recent-empty {
   margin: 0;
   color: #8a98ad;

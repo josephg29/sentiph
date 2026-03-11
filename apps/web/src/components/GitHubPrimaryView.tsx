@@ -381,6 +381,13 @@ export const GitHubPrimaryView = ({
                         ? `${activeCommit.subject}\n\n${activeCommit.body}`
                         : activeCommit.subject}
                     </p>
+                    {activeCommit.filesChanged > 0 && (
+                      <p className="github-overview-recent-tooltip-diff">
+                        <span>{activeCommit.filesChanged} {activeCommit.filesChanged === 1 ? "file" : "files"}</span>
+                        <span className="github-overview-recent-tooltip-ins">+{activeCommit.insertions}</span>
+                        <span className="github-overview-recent-tooltip-del">-{activeCommit.deletions}</span>
+                      </p>
+                    )}
                   </>
                 )}
               </div>

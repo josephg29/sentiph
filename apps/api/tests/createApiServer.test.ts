@@ -855,6 +855,9 @@ describe("createApiServer", () => {
           authorEmail: "hesam@example.com",
           authoredAt: "2026-02-27T10:12:00.000Z",
           body: "Reduce the backoff multiplier from 2x to 1.5x to improve\nresponsiveness when rate limits recover.",
+          filesChanged: 3,
+          insertions: 42,
+          deletions: 7,
         },
       ],
     };
