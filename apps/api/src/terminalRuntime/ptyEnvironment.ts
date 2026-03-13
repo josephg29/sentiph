@@ -4,12 +4,15 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 
-export const createShellEnvironment = () => {
+export const createShellEnvironment = (options?: { octogentSessionId?: string }) => {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
       env[key] = value;
     }
+  }
+  if (options?.octogentSessionId) {
+    env.OCTOGENT_SESSION_ID = options.octogentSessionId;
   }
   return env;
 };

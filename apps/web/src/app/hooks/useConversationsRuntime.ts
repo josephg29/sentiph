@@ -35,6 +35,7 @@ type UseConversationsRuntimeResult = {
   selectSession: (sessionId: string) => void;
   refreshSessions: () => Promise<void>;
   clearAllSessions: () => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
   exportSession: (
     sessionId: string,
     format: ConversationExportFormat,
@@ -125,6 +126,39 @@ export const useConversationsRuntime = ({
       setIsClearing(false);
     }
   }, [enabled]);
+
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      if (!enabled) {
+        return;
+      }
+
+      try {
+        const response = await fetch(buildConversationSessionUrl(sessionId), {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to delete conversation (${response.status})`);
+        }
+
+        setSessions((current) => current.filter((s) => s.sessionId !== sessionId));
+        setSelectedSessionId((current) => {
+          if (current !== sessionId) {
+            return current;
+          }
+          return null;
+        });
+        if (selectedSessionId === sessionId) {
+          setSelectedSession(null);
+        }
+        setErrorMessage(null);
+      } catch (error) {
+        setErrorMessage(buildErrorMessage("Unable to delete conversation.", error));
+      }
+    },
+    [enabled, selectedSessionId],
+  );
 
   const selectSession = useCallback((sessionId: string) => {
     setSelectedSessionId(sessionId);
@@ -254,6 +288,7 @@ export const useConversationsRuntime = ({
     selectSession,
     refreshSessions,
     clearAllSessions,
+    deleteSession,
     exportSession,
   };
 };

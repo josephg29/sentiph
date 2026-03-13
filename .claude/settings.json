@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -X POST http://localhost:8787/api/hooks/session-start -H 'Content-Type: application/json' -d @- || true",
+            "command": "curl -s -X POST \"http://localhost:8787/api/hooks/session-start?octogent_session=$OCTOGENT_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -X POST http://localhost:8787/api/hooks/user-prompt-submit -H 'Content-Type: application/json' -d @- || true",
+            "command": "curl -s -X POST \"http://localhost:8787/api/hooks/user-prompt-submit?octogent_session=$OCTOGENT_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true",
             "timeout": 5
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -X POST http://localhost:8787/api/hooks/pre-tool-use -H 'Content-Type: application/json' -d @- || true",
+            "command": "curl -s -X POST \"http://localhost:8787/api/hooks/pre-tool-use?octogent_session=$OCTOGENT_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true",
             "timeout": 5
           }
         ]
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -X POST http://localhost:8787/api/hooks/stop -H 'Content-Type: application/json' -d @- || true",
+            "command": "curl -s -X POST \"http://localhost:8787/api/hooks/stop?octogent_session=$OCTOGENT_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true",
             "timeout": 15
           }
         ]

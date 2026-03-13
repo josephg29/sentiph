@@ -79,9 +79,9 @@
 }
 
 .action-button--dense {
-  --action-button-font-size: 0.6rem;
-  --action-button-padding-y: 0.16rem;
-  --action-button-padding-x: 0.25rem;
+  --action-button-font-size: 0.72rem;
+  --action-button-padding-y: 0.28rem;
+  --action-button-padding-x: 0.44rem;
 }
 
 .action-button--compact {
@@ -101,14 +101,20 @@
 }
 
 .action-button--accent {
+  --action-button-border: color-mix(in srgb, var(--accent-primary) 50%, var(--control-border-strong));
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 14%, var(--control-bg-strong));
   --action-button-color: var(--accent-primary);
 }
 
 .action-button--info {
+  --action-button-border: color-mix(in srgb, #9bc8ff 45%, var(--control-border-strong));
+  --action-button-bg: color-mix(in srgb, #9bc8ff 12%, var(--control-bg-strong));
   --action-button-color: #9bc8ff;
 }
 
 .action-button--danger {
+  --action-button-border: color-mix(in srgb, #ff9a9a 45%, var(--control-border-strong));
+  --action-button-bg: color-mix(in srgb, #ff9a9a 12%, var(--control-bg-strong));
   --action-button-color: #ff9a9a;
 }
 

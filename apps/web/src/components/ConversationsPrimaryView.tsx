@@ -7,10 +7,9 @@ type ConversationsPrimaryViewProps = {
   isLoadingSessions: boolean;
   isLoadingSelectedSession: boolean;
   isExporting: boolean;
-  isClearing: boolean;
+  isDeletingSession: boolean;
   errorMessage: string | null;
-  onRefresh: () => void;
-  onClearAll: () => void;
+  onDeleteSession: () => void;
   onExport: (format: "json" | "md") => void;
 };
 
@@ -34,15 +33,12 @@ const formatTimestamp = (value: string | null) => {
 };
 
 export const ConversationsPrimaryView = ({
-  sessions,
   selectedSession,
-  isLoadingSessions,
   isLoadingSelectedSession,
   isExporting,
-  isClearing,
+  isDeletingSession,
   errorMessage,
-  onRefresh,
-  onClearAll,
+  onDeleteSession,
   onExport,
 }: ConversationsPrimaryViewProps) => (
   <section className="conversations-view" aria-label="Conversations primary view">
@@ -50,28 +46,6 @@ export const ConversationsPrimaryView = ({
       <div className="conversations-header-copy">
         <h2>Conversations</h2>
         <p>Durable coding-agent history from transcript events.</p>
-      </div>
-      <div className="conversations-header-actions">
-        <ActionButton
-          aria-label="Refresh conversations"
-          className="conversations-refresh"
-          disabled={isLoadingSessions}
-          onClick={onRefresh}
-          size="dense"
-          variant="accent"
-        >
-          {isLoadingSessions ? "Refreshing..." : "Refresh"}
-        </ActionButton>
-        <ActionButton
-          aria-label="Clear all conversations"
-          className="conversations-clear-all"
-          disabled={sessions.length === 0 || isClearing}
-          onClick={onClearAll}
-          size="dense"
-          variant="danger"
-        >
-          {isClearing ? "Clearing..." : "Clear All"}
-        </ActionButton>
       </div>
     </header>
 
@@ -110,6 +84,21 @@ export const ConversationsPrimaryView = ({
                 >
                   {isExporting ? "Exporting..." : "Export Markdown"}
                 </ActionButton>
+                <button
+                  aria-label="Delete this conversation"
+                  className="conversations-delete-btn"
+                  disabled={isDeletingSession}
+                  onClick={onDeleteSession}
+                  type="button"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 4h10" />
+                    <path d="M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1" />
+                    <path d="M4.5 4l.5 9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-9" />
+                    <path d="M6.5 7v4" />
+                    <path d="M9.5 7v4" />
+                  </svg>
+                </button>
               </div>
             </div>
             <dl>

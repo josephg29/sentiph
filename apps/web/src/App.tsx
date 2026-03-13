@@ -27,6 +27,7 @@ import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
+import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
@@ -46,6 +47,7 @@ export const App = () => {
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
+  const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -274,6 +276,7 @@ export const App = () => {
     selectSession,
     refreshSessions,
     clearAllSessions,
+    deleteSession,
     exportSession,
   } = useConversationsRuntime({
     enabled: isUiStateHydrated && activePrimaryNav === 4,
@@ -299,12 +302,27 @@ export const App = () => {
     setHoveredGitHubOverviewPointIndex,
   });
   const hasSidebarActionPanel =
+    isPendingClearAllConversations ||
     pendingDeleteTentacle !== null ||
     (openGitTentacleId !== null &&
       columns.find((column) => column.tentacleId === openGitTentacleId)?.tentacleWorkspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
+    isPendingClearAllConversations ? (
+      <ClearAllConversationsDialog
+        sessionCount={conversationSessions.length}
+        isClearing={isClearingConversations}
+        onCancel={() => {
+          setIsPendingClearAllConversations(false);
+        }}
+        onConfirm={() => {
+          void clearAllSessions().then(() => {
+            setIsPendingClearAllConversations(false);
+          });
+        }}
+      />
+    ) :
     <SidebarActionPanel
       pendingDeleteTentacle={pendingDeleteTentacle}
       isDeletingTentacleId={isDeletingTentacleId}
@@ -402,9 +420,9 @@ export const App = () => {
               }}
               isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
               onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
-              isClaudeUsageVisible={isClaudeUsageVisible}
+              isClaudeUsageVisible={activePrimaryNav !== 4 && isClaudeUsageVisible}
               isClaudeUsageSectionExpanded={isClaudeUsageSectionExpanded}
-              isCodexUsageVisible={isCodexUsageVisible}
+              isCodexUsageVisible={activePrimaryNav !== 4 && isCodexUsageVisible}
               onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
               isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
               onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
@@ -417,7 +435,14 @@ export const App = () => {
                   <SidebarConversationsList
                     sessions={conversationSessions}
                     selectedSessionId={selectedSessionId}
+                    isLoadingSessions={isLoadingConversationSessions}
                     onSelectSession={selectSession}
+                    onRefresh={() => {
+                      void refreshSessions();
+                    }}
+                    onClearAll={() => {
+                      setIsPendingClearAllConversations(true);
+                    }}
                   />
                 ) : undefined
               }
@@ -477,11 +502,13 @@ export const App = () => {
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
               isExporting: isExportingConversation,
-              isClearing: isClearingConversations,
+              isDeletingSession: false,
               isLoadingSelectedSession,
               isLoadingSessions: isLoadingConversationSessions,
-              onClearAll: () => {
-                void clearAllSessions();
+              onDeleteSession: () => {
+                if (selectedSessionId) {
+                  void deleteSession(selectedSessionId);
+                }
               },
               onExport: (format) => {
                 if (!selectedSessionId) {
@@ -503,9 +530,6 @@ export const App = () => {
                   anchor.remove();
                   URL.revokeObjectURL(objectUrl);
                 });
-              },
-              onRefresh: () => {
-                void refreshSessions();
               },
               selectedSession,
               sessions: conversationSessions,

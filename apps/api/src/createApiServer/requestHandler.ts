@@ -857,7 +857,8 @@ const handleHookRoute: ApiRouteHandler = async (
   }
 
   const hookName = match[1] ?? "";
-  const result = runtime.handleHook(hookName, body.payload);
+  const octogentSessionId = requestUrl.searchParams.get("octogent_session") ?? undefined;
+  const result = runtime.handleHook(hookName, body.payload, octogentSessionId);
   writeJson(response, 200, result, corsOrigin);
   return true;
 };

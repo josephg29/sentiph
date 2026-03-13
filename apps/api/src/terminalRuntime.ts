@@ -68,23 +68,13 @@ export const createTerminalRuntime = ({
   const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
 
   const installHooksInDirectory = (targetCwd: string) => {
-    const projectSettingsPath = join(workspaceCwd, ".claude", "settings.json");
     const targetClaudeDir = join(targetCwd, ".claude");
     const targetSettingsPath = join(targetClaudeDir, "settings.json");
 
-    // If the project root has a settings.json with hooks, copy it into the target directory.
-    if (existsSync(projectSettingsPath)) {
-      try {
-        const content = readFileSync(projectSettingsPath, "utf8");
-        mkdirSync(targetClaudeDir, { recursive: true });
-        writeFileSync(targetSettingsPath, content, "utf8");
-      } catch {
-        // Best-effort: hooks are not critical for tentacle operation.
-      }
-      return;
-    }
-
-    // Otherwise generate a default hooks config pointing at the API.
+    // Always generate hooks config with $OCTOGENT_SESSION_ID for session isolation.
+    // Include $OCTOGENT_SESSION_ID so the handler can identify which octogent
+    // session the hook originates from and ignore hooks from external Claude
+    // sessions (e.g. VS Code) that share the same working directory.
     const hooksConfig = {
       hooks: {
         SessionStart: [
@@ -93,7 +83,7 @@ export const createTerminalRuntime = ({
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/session-start -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/session-start?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 5,
               },
             ],
@@ -105,7 +95,7 @@ export const createTerminalRuntime = ({
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/user-prompt-submit -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/user-prompt-submit?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 5,
               },
             ],
@@ -117,7 +107,7 @@ export const createTerminalRuntime = ({
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/pre-tool-use -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/pre-tool-use?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 5,
               },
             ],
@@ -129,7 +119,7 @@ export const createTerminalRuntime = ({
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST http://localhost:${apiPort}/api/hooks/stop -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/stop?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 15,
               },
             ],
@@ -879,8 +869,8 @@ export const createTerminalRuntime = ({
       return true;
     },
 
-    handleHook(hookName: string, payload: unknown): { ok: boolean } {
-      console.log(`[Hook] Received hook: ${hookName}`, JSON.stringify(payload));
+    handleHook(hookName: string, payload: unknown, octogentSessionId?: string): { ok: boolean } {
+      console.log(`[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`, JSON.stringify(payload));
 
       if (hookName !== "stop" || !payload || typeof payload !== "object") {
         return { ok: true };
@@ -898,24 +888,22 @@ export const createTerminalRuntime = ({
         return { ok: true };
       }
 
-      // Find the octogent session whose tentacle CWD matches the hook's cwd.
+      // If an octogent session ID was provided (from the OCTOGENT_SESSION_ID env var),
+      // use it directly to match the session. This prevents external Claude sessions
+      // (e.g. VS Code) from bleeding into tentacle conversation histories.
       let matchedSessionId: string | null = null;
-      console.log(`[Hook] Active sessions: ${sessions.size}`);
-      for (const [sessionId, session] of sessions.entries()) {
-        try {
-          const tentacleCwd = worktreeManager.getTentacleWorkspaceCwd(session.tentacleId);
-          console.log(`[Hook] Session ${sessionId}: tentacleCwd=${tentacleCwd}`);
-          if (tentacleCwd === hookCwd || hookCwd.startsWith(`${tentacleCwd}/`)) {
-            matchedSessionId = sessionId;
-            break;
-          }
-        } catch {
-          // Tentacle may have been removed
-        }
-      }
 
-      if (!matchedSessionId) {
-        console.log("[Hook] No matching session found for cwd, skipping.");
+      if (octogentSessionId && sessions.has(octogentSessionId)) {
+        matchedSessionId = octogentSessionId;
+        console.log(`[Hook] Matched session by octogent_session param: ${matchedSessionId}`);
+      } else if (octogentSessionId) {
+        // The param was provided but doesn't match any active session — skip.
+        console.log(`[Hook] octogent_session=${octogentSessionId} not found in active sessions, skipping.`);
+        return { ok: true };
+      } else {
+        // No octogent_session param — this hook likely came from an external Claude
+        // session (e.g. VS Code). Skip to avoid conversation bleed.
+        console.log("[Hook] No octogent_session param — ignoring hook from external Claude session.");
         return { ok: true };
       }
 

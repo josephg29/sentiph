@@ -283,7 +283,7 @@ export const createSessionRuntime = ({
         cols: DEFAULT_PTY_COLS,
         rows: DEFAULT_PTY_ROWS,
         cwd: tentacleCwd,
-        env: createShellEnvironment(),
+        env: createShellEnvironment({ octogentSessionId: sessionId }),
         name: "xterm-256color",
       });
     } catch (error) {
