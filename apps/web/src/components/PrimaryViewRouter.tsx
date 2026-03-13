@@ -2,7 +2,7 @@ import type { ComponentProps, RefObject } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
 import type { TentacleView } from "../app/types";
-import type { CodexState } from "./CodexStateBadge";
+import type { AgentRuntimeState } from "./AgentStateBadge";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
@@ -45,7 +45,7 @@ type PrimaryViewRouterProps = {
     onTentacleNameDraftChange: (name: string) => void;
     onSelectTentacle: (tentacleId: string) => void;
     onSelectTerminal: (terminalId: string) => void;
-    onTentacleStateChange: (tentacleId: string, state: CodexState) => void;
+    onTentacleStateChange: (tentacleId: string, state: AgentRuntimeState) => void;
     onCreateTentacleAgent: (
       tentacleId: string,
       anchorAgentId: string,

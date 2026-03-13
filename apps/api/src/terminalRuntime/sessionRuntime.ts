@@ -6,7 +6,7 @@ import type { Duplex } from "node:stream";
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
-import { type CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
+import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import {
   DEFAULT_AGENT_PROVIDER,
   TENTACLE_BOOTSTRAP_COMMANDS,
@@ -145,13 +145,13 @@ export const createSessionRuntime = ({
   const emitStateIfChanged = (
     session: TerminalSession,
     sessionId: string,
-    nextState: CodexRuntimeState | null,
+    nextState: AgentRuntimeState | null,
   ) => {
-    if (!nextState || nextState === session.codexState) {
+    if (!nextState || nextState === session.agentState) {
       return;
     }
 
-    session.codexState = nextState;
+    session.agentState = nextState;
     appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
     appendTranscriptEvent(session, sessionId, {
       type: "state_change",
@@ -247,7 +247,7 @@ export const createSessionRuntime = ({
 
   const INITIAL_PROMPT_DELAY_MS = 2_000;
 
-  const ensureCodexBootstrapped = (sessionId: string, session: TerminalSession) => {
+  const ensureAgentBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
       return;
     }
@@ -306,7 +306,7 @@ export const createSessionRuntime = ({
       );
     }
 
-    const stateTracker = new CodexStateTracker();
+    const stateTracker = new AgentStateTracker();
     const debugLog = createDebugLog(sessionId);
     const transcriptLog = createTranscriptLog(sessionId);
     const session: TerminalSession = {
@@ -315,7 +315,7 @@ export const createSessionRuntime = ({
       clients: new Set(),
       cols: DEFAULT_PTY_COLS,
       rows: DEFAULT_PTY_ROWS,
-      codexState: stateTracker.currentState,
+      agentState: stateTracker.currentState,
       stateTracker,
       isBootstrapCommandSent: false,
       scrollbackChunks: [],
@@ -417,11 +417,11 @@ export const createSessionRuntime = ({
       session.clients.add(websocket);
       appendDebugLog(session, `ws-open session=${sessionId} clients=${session.clients.size}`);
       clearIdleCloseTimer(session);
-      ensureCodexBootstrapped(sessionId, session);
+      ensureAgentBootstrapped(sessionId, session);
       sendHistory(websocket, session);
       sendMessage(websocket, {
         type: "state",
-        state: session.codexState,
+        state: session.agentState,
       });
 
       websocket.on("message", (raw: unknown) => {

@@ -3,13 +3,13 @@ import { useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
-import { type CodexState, CodexStateBadge } from "./CodexStateBadge";
+import { type AgentRuntimeState, AgentStateBadge } from "./AgentStateBadge";
 import { ActionButton } from "./ui/ActionButton";
 
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 520;
 
-const fallbackCodexStateByAgentState: Record<AgentState, CodexState> = {
+const fallbackAgentRuntimeStateByAgentState: Record<AgentState, AgentRuntimeState> = {
   live: "processing",
   idle: "idle",
   queued: "processing",
@@ -30,7 +30,7 @@ type ActiveAgentsSidebarProps = {
   onClaudeUsageSectionExpandedChange: (expanded: boolean) => void;
   isCodexUsageSectionExpanded: boolean;
   onCodexUsageSectionExpandedChange: (expanded: boolean) => void;
-  tentacleStates?: Record<string, CodexState>;
+  tentacleStates?: Record<string, AgentRuntimeState>;
   minimizedTentacleIds?: string[];
   onMaximizeTentacle?: (tentacleId: string) => void;
   codexUsageSnapshot?: {
@@ -110,15 +110,15 @@ export const ActiveAgentsSidebar = ({
   bodyContent,
 }: ActiveAgentsSidebarProps) => {
   const sidebarRef = useRef<HTMLElement | null>(null);
-  const resolveAgentCodexState = (
+  const resolveAgentAgentRuntimeState = (
     tentacleId: string,
     agentState: AgentState,
     isPrimaryVisibleTerminal: boolean,
-  ): CodexState => {
+  ): AgentRuntimeState => {
     if (isPrimaryVisibleTerminal) {
-      return tentacleStates[tentacleId] ?? fallbackCodexStateByAgentState[agentState];
+      return tentacleStates[tentacleId] ?? fallbackAgentRuntimeStateByAgentState[agentState];
     }
-    return fallbackCodexStateByAgentState[agentState];
+    return fallbackAgentRuntimeStateByAgentState[agentState];
   };
 
   const primaryUsagePercent = useMemo(() => {
@@ -277,8 +277,8 @@ export const ActiveAgentsSidebar = ({
                                   <span className="active-agents-agent-label" title={agent.label}>
                                     {agent.label}
                                   </span>
-                                  <CodexStateBadge
-                                    state={resolveAgentCodexState(
+                                  <AgentStateBadge
+                                    state={resolveAgentAgentRuntimeState(
                                       column.tentacleId,
                                       agent.state,
                                       index === 0,

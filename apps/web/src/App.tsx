@@ -22,7 +22,7 @@ import { clampSidebarWidth } from "./app/normalizers";
 import type { TentacleView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
-import type { CodexState } from "./components/CodexStateBadge";
+import type { AgentRuntimeState } from "./components/AgentStateBadge";
 import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
@@ -40,7 +40,7 @@ export const App = () => {
   const [columns, setColumns] = useState<TentacleView>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [tentacleStates, setTentacleStates] = useState<Record<string, CodexState>>({});
+  const [tentacleStates, setTentacleStates] = useState<Record<string, AgentRuntimeState>>({});
   const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
@@ -361,7 +361,7 @@ export const App = () => {
     setIsAgentsSidebarVisible(true);
   }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
 
-  const handleTentacleStateChange = useCallback((tentacleId: string, state: CodexState) => {
+  const handleTentacleStateChange = useCallback((tentacleId: string, state: AgentRuntimeState) => {
     setTentacleStates((current) => {
       if (current[tentacleId] === state) {
         return current;

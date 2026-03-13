@@ -14,7 +14,7 @@ import type {
   TentacleWorkspaceMode,
 } from "../app/types";
 import { TENTACLE_MIN_WIDTH } from "../layout/tentaclePaneSizing";
-import type { CodexState } from "./CodexStateBadge";
+import type { AgentRuntimeState } from "./AgentStateBadge";
 import { EmptyOctopus } from "./EmptyOctopus";
 import { TentacleTerminal } from "./TentacleTerminal";
 import { ActionButton } from "./ui/ActionButton";
@@ -50,7 +50,7 @@ type TentacleBoardProps = {
     workspaceMode: TentacleWorkspaceMode,
   ) => void;
   onOpenTentacleGitActions: (tentacleId: string) => void;
-  onTentacleStateChange: (tentacleId: string, state: CodexState) => void;
+  onTentacleStateChange: (tentacleId: string, state: AgentRuntimeState) => void;
   onCreateTentacleAgent: (
     tentacleId: string,
     anchorAgentId: string,
@@ -412,7 +412,7 @@ export const TentacleBoard = ({
                         onDeleteTentacleAgent(column.tentacleId, agent.agentId);
                       }}
                       onSelectTerminal={onSelectTerminal}
-                      onCodexStateChange={
+                      onAgentRuntimeStateChange={
                         terminalIndex === 0
                           ? (state) => {
                               onTentacleStateChange(column.tentacleId, state);

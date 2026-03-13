@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import type { CodexState } from "../../components/CodexStateBadge";
+import type { AgentRuntimeState } from "../../components/AgentStateBadge";
 import {
   buildTentacleCompletionSoundDataUrl,
   type TentacleCompletionSoundId,
@@ -26,10 +26,10 @@ const createCompletionAudio = (soundId: TentacleCompletionSoundId): HTMLAudioEle
 };
 
 export const useTentacleCompletionNotification = (
-  tentacleStates: Record<string, CodexState>,
+  tentacleStates: Record<string, AgentRuntimeState>,
   selectedSound: TentacleCompletionSoundId,
 ) => {
-  const previousTentacleStatesRef = useRef<Record<string, CodexState>>({});
+  const previousTentacleStatesRef = useRef<Record<string, AgentRuntimeState>>({});
   const audioCacheRef = useRef<Partial<Record<TentacleCompletionSoundId, HTMLAudioElement | null>>>(
     {},
   );

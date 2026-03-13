@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
-import { type CodexState, CodexStateBadge, isCodexState } from "./CodexStateBadge";
+import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
 import { ActionButton } from "./ui/ActionButton";
 
@@ -16,12 +16,12 @@ type TentacleTerminalProps = {
   onAddBelow?: () => void;
   onDelete?: () => void;
   onSelectTerminal?: (terminalId: string) => void;
-  onCodexStateChange?: (state: CodexState) => void;
+  onAgentRuntimeStateChange?: (state: AgentRuntimeState) => void;
 };
 
 type TerminalStateMessage = {
   type: "state";
-  state: CodexState;
+  state: AgentRuntimeState;
 };
 
 type TerminalOutputMessage = {
@@ -74,18 +74,18 @@ export const TentacleTerminal = ({
   onAddBelow,
   onDelete,
   onSelectTerminal,
-  onCodexStateChange,
+  onAgentRuntimeStateChange,
 }: TentacleTerminalProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
-  const [codexState, setCodexState] = useState<CodexState>("idle");
+  const [agentState, setAgentRuntimeState] = useState<AgentRuntimeState>("idle");
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
   const terminalTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
 
   useEffect(() => {
-    onCodexStateChange?.(codexState);
-  }, [codexState, onCodexStateChange]);
+    onAgentRuntimeStateChange?.(agentState);
+  }, [agentState, onAgentRuntimeStateChange]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -168,8 +168,8 @@ export const TentacleTerminal = ({
             return;
           }
 
-          if (payload.type === "state" && isCodexState(payload.state)) {
-            setCodexState(payload.state);
+          if (payload.type === "state" && isAgentRuntimeState(payload.state)) {
+            setAgentRuntimeState(payload.state);
             return;
           }
         } catch {
@@ -448,7 +448,7 @@ export const TentacleTerminal = ({
           >
             <TerminalDeleteIcon />
           </ActionButton>
-          <CodexStateBadge state={codexState} />
+          <AgentStateBadge state={agentState} />
         </div>
       </div>
       <div

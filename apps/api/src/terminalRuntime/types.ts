@@ -4,12 +4,12 @@ import type { AgentSnapshot } from "@octogent/core";
 import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
-import type { CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
+import type { AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import type { ConversationSearchResult, ConversationSessionDetail, ConversationSessionSummary } from "./conversations";
 
 export type TerminalStateMessage = {
   type: "state";
-  state: CodexRuntimeState;
+  state: AgentRuntimeState;
 };
 
 export type TerminalOutputMessage = {
@@ -33,8 +33,8 @@ export type TerminalSession = {
   clients: Set<WebSocket>;
   cols: number;
   rows: number;
-  codexState: CodexRuntimeState;
-  stateTracker: CodexStateTracker;
+  agentState: AgentRuntimeState;
+  stateTracker: AgentStateTracker;
   isBootstrapCommandSent: boolean;
   scrollbackChunks: string[];
   scrollbackBytes: number;

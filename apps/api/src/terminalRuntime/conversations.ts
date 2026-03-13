@@ -1,14 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { CodexRuntimeState } from "../codexStateDetection";
+import type { AgentRuntimeState } from "../agentStateDetection";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
-const parseRuntimeState = (value: unknown): CodexRuntimeState | null =>
+const parseRuntimeState = (value: unknown): AgentRuntimeState | null =>
   value === "idle" || value === "processing" ? value : null;
 
 export type ConversationTranscriptEventBase = {
@@ -36,7 +36,7 @@ export type OutputChunkTranscriptEvent = ConversationTranscriptEventBase & {
 
 export type StateChangeTranscriptEvent = ConversationTranscriptEventBase & {
   type: "state_change";
-  state: CodexRuntimeState;
+  state: AgentRuntimeState;
 };
 
 export type SessionEndTranscriptEvent = ConversationTranscriptEventBase & {
