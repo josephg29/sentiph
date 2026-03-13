@@ -112,10 +112,7 @@ export const ConversationsPrimaryView = ({
           <ol className="conversations-turn-list">
             {selectedSession.turns.map((turn) => (
               <li className="conversations-turn" data-role={turn.role} key={turn.turnId}>
-                <header>
-                  <span>{turn.role === "user" ? "User" : "Assistant"}</span>
-                  <time dateTime={turn.startedAt}>{formatTimestamp(turn.startedAt)}</time>
-                </header>
+                <time className="conversations-turn-time" dateTime={turn.startedAt}>{formatTimestamp(turn.startedAt)}</time>
                 <pre>{turn.content}</pre>
               </li>
             ))}
