@@ -42,13 +42,6 @@ export const ConversationsPrimaryView = ({
   onExport,
 }: ConversationsPrimaryViewProps) => (
   <section className="conversations-view" aria-label="Conversations primary view">
-    <header className="conversations-header">
-      <div className="conversations-header-copy">
-        <h2>Conversations</h2>
-        <p>Durable coding-agent history from transcript events.</p>
-      </div>
-    </header>
-
     {errorMessage ? <p className="conversations-error">{errorMessage}</p> : null}
 
     <section className="conversations-transcript" aria-label="Conversation transcript pane">

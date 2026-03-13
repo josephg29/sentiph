@@ -1,4 +1,13 @@
+import { useMemo } from "react";
+
 import type { ConversationSessionSummary } from "../app/types";
+
+const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
+  const raw = session.lastEventAt ?? session.endedAt ?? session.startedAt;
+  if (!raw) return 0;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 type SidebarConversationsListProps = {
   sessions: ConversationSessionSummary[];
@@ -16,7 +25,13 @@ export const SidebarConversationsList = ({
   onSelectSession,
   onRefresh,
   onClearAll,
-}: SidebarConversationsListProps) => (
+}: SidebarConversationsListProps) => {
+  const sortedSessions = useMemo(
+    () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),
+    [sessions],
+  );
+
+  return (
   <section className="active-agents-section" aria-label="Sidebar section Conversations">
     <div className="sidebar-conversations-toolbar">
       <button
@@ -54,7 +69,7 @@ export const SidebarConversationsList = ({
         <p className="active-agents-status">No conversations yet.</p>
       ) : (
         <ol className="sidebar-conversations-list">
-          {sessions.map((session) => (
+          {sortedSessions.map((session) => (
             <li key={session.sessionId}>
               <button
                 aria-current={session.sessionId === selectedSessionId ? "page" : undefined}
@@ -75,4 +90,5 @@ export const SidebarConversationsList = ({
       )}
     </div>
   </section>
-);
+  );
+};

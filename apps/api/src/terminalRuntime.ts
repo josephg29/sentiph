@@ -15,6 +15,7 @@ import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
   conversationExportMarkdown,
   deleteAllConversations,
+  deleteConversation,
   listConversationSessions,
   readConversationSession,
   storeClaudeTranscriptTurns,
@@ -480,6 +481,10 @@ export const createTerminalRuntime = ({
       }
 
       return conversationExportMarkdown(conversation);
+    },
+
+    deleteConversationSession(sessionId: string) {
+      deleteConversation(transcriptDirectoryPath, sessionId);
     },
 
     deleteAllConversationSessions() {

@@ -142,16 +142,22 @@ export const useConversationsRuntime = ({
           throw new Error(`Unable to delete conversation (${response.status})`);
         }
 
-        setSessions((current) => current.filter((s) => s.sessionId !== sessionId));
-        setSelectedSessionId((current) => {
-          if (current !== sessionId) {
-            return current;
+        setSessions((current) => {
+          const remaining = current.filter((s) => s.sessionId !== sessionId);
+          if (selectedSessionId === sessionId) {
+            const getTimestamp = (s: ConversationSessionSummary) => {
+              const raw = s.lastEventAt ?? s.endedAt ?? s.startedAt;
+              return raw ? Date.parse(raw) || 0 : 0;
+            };
+            const sorted = [...remaining].sort((a, b) => getTimestamp(b) - getTimestamp(a));
+            const nextId = sorted[0]?.sessionId ?? null;
+            setSelectedSessionId(nextId);
+            if (!nextId) {
+              setSelectedSession(null);
+            }
           }
-          return null;
+          return remaining;
         });
-        if (selectedSessionId === sessionId) {
-          setSelectedSession(null);
-        }
         setErrorMessage(null);
       } catch (error) {
         setErrorMessage(buildErrorMessage("Unable to delete conversation.", error));

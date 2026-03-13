@@ -362,6 +362,27 @@ export const ensureTranscriptDirectory = (transcriptDirectoryPath: string) => {
   mkdirSync(transcriptDirectoryPath, { recursive: true });
 };
 
+export const deleteConversation = (transcriptDirectoryPath: string, sessionId: string) => {
+  const transcriptFile = join(transcriptDirectoryPath, transcriptFilenameForSession(sessionId));
+  const turnsFile = join(transcriptDirectoryPath, `${encodeURIComponent(sessionId)}.claude-turns.json`);
+
+  try {
+    if (existsSync(transcriptFile)) {
+      rmSync(transcriptFile);
+    }
+  } catch {
+    // Best-effort removal
+  }
+
+  try {
+    if (existsSync(turnsFile)) {
+      rmSync(turnsFile);
+    }
+  } catch {
+    // Best-effort removal
+  }
+};
+
 export const deleteAllConversations = (transcriptDirectoryPath: string) => {
   if (!existsSync(transcriptDirectoryPath)) {
     return;

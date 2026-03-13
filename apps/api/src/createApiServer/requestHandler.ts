@@ -350,12 +350,19 @@ const handleConversationItemRoute: ApiRouteHandler = async (
     return false;
   }
 
+  const sessionId = decodeURIComponent(match[1] ?? "");
+
+  if (request.method === "DELETE") {
+    runtime.deleteConversationSession(sessionId);
+    writeNoContent(response, 204, corsOrigin);
+    return true;
+  }
+
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
     return true;
   }
 
-  const sessionId = decodeURIComponent(match[1] ?? "");
   const payload = runtime.readConversationSession(sessionId);
   if (!payload) {
     writeJson(response, 404, { error: "Conversation session not found." }, corsOrigin);
