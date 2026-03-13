@@ -213,3 +213,16 @@ export type ConversationSessionDetail = ConversationSessionSummary & {
   turns: ConversationTurn[];
   events: ConversationTranscriptEvent[];
 };
+
+export type ConversationSearchHit = {
+  sessionId: string;
+  turnId: string;
+  role: "user" | "assistant";
+  snippet: string;
+  turnStartedAt: string;
+};
+
+export type ConversationSearchResult = {
+  query: string;
+  hits: ConversationSearchHit[];
+};

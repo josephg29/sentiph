@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   buildConversationExportUrl,
+  buildConversationSearchUrl,
   buildConversationSessionUrl,
   buildConversationsUrl,
 } from "../../runtime/runtimeEndpoints";
@@ -9,7 +10,7 @@ import {
   normalizeConversationSessionDetail,
   normalizeConversationSessionSummary,
 } from "../normalizers";
-import type { ConversationSessionDetail, ConversationSessionSummary } from "../types";
+import type { ConversationSearchHit, ConversationSessionDetail, ConversationSessionSummary } from "../types";
 
 type ConversationExportFormat = "json" | "md";
 
@@ -31,6 +32,10 @@ type UseConversationsRuntimeResult = {
   isLoadingSelectedSession: boolean;
   isExporting: boolean;
   isClearing: boolean;
+  isSearching: boolean;
+  searchQuery: string;
+  searchHits: ConversationSearchHit[];
+  highlightedTurnId: string | null;
   errorMessage: string | null;
   selectSession: (sessionId: string) => void;
   refreshSessions: () => Promise<void>;
@@ -40,6 +45,9 @@ type UseConversationsRuntimeResult = {
     sessionId: string,
     format: ConversationExportFormat,
   ) => Promise<ConversationExportResult | null>;
+  searchConversations: (query: string) => Promise<void>;
+  clearSearch: () => void;
+  navigateToSearchHit: (hit: ConversationSearchHit) => void;
 };
 
 const buildErrorMessage = (fallback: string, error: unknown) =>
@@ -58,6 +66,10 @@ export const useConversationsRuntime = ({
   const [isLoadingSelectedSession, setIsLoadingSelectedSession] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchHits, setSearchHits] = useState<ConversationSearchHit[]>([]);
+  const [highlightedTurnId, setHighlightedTurnId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedSessionRequestRef = useRef(0);
 
@@ -219,6 +231,59 @@ export const useConversationsRuntime = ({
     [enabled],
   );
 
+  const searchConversationsAction = useCallback(
+    async (query: string) => {
+      if (!enabled) {
+        return;
+      }
+
+      const trimmed = query.trim();
+      setSearchQuery(trimmed);
+
+      if (trimmed.length === 0) {
+        setSearchHits([]);
+        setHighlightedTurnId(null);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const response = await fetch(buildConversationSearchUrl(trimmed), {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Search failed (${response.status})`);
+        }
+
+        const payload = (await response.json()) as { hits?: unknown[] };
+        const hits = Array.isArray(payload.hits) ? (payload.hits as ConversationSearchHit[]) : [];
+        setSearchHits(hits);
+        setHighlightedTurnId(null);
+      } catch (error) {
+        setErrorMessage(buildErrorMessage("Unable to search conversations.", error));
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [enabled],
+  );
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSearchHits([]);
+    setHighlightedTurnId(null);
+  }, []);
+
+  const navigateToSearchHit = useCallback(
+    (hit: ConversationSearchHit) => {
+      setSelectedSessionId(hit.sessionId);
+      setHighlightedTurnId(hit.turnId);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!enabled) {
       setSessions([]);
@@ -228,6 +293,10 @@ export const useConversationsRuntime = ({
       setIsLoadingSelectedSession(false);
       setIsExporting(false);
       setIsClearing(false);
+      setIsSearching(false);
+      setSearchQuery("");
+      setSearchHits([]);
+      setHighlightedTurnId(null);
       setErrorMessage(null);
       return;
     }
@@ -290,11 +359,18 @@ export const useConversationsRuntime = ({
     isLoadingSelectedSession,
     isExporting,
     isClearing,
+    isSearching,
+    searchQuery,
+    searchHits,
+    highlightedTurnId,
     errorMessage,
     selectSession,
     refreshSessions,
     clearAllSessions,
     deleteSession,
     exportSession,
+    searchConversations: searchConversationsAction,
+    clearSearch,
+    navigateToSearchHit,
   };
 };

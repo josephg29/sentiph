@@ -5,7 +5,7 @@ import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
 import type { CodexRuntimeState, CodexStateTracker } from "../codexStateDetection";
-import type { ConversationSessionDetail, ConversationSessionSummary } from "./conversations";
+import type { ConversationSearchResult, ConversationSessionDetail, ConversationSessionSummary } from "./conversations";
 
 export type TerminalStateMessage = {
   type: "state";
@@ -191,6 +191,7 @@ export type TerminalRuntime = {
   exportConversationSession(sessionId: string, format: "json" | "md"): string | null;
   deleteConversationSession(sessionId: string): void;
   deleteAllConversationSessions(): void;
+  searchConversations(query: string): ConversationSearchResult;
   readUiState(): PersistedUiState;
   patchUiState(patch: PersistedUiState): PersistedUiState;
   readTentacleGitStatus(tentacleId: string): TentacleGitStatusSnapshot | null;

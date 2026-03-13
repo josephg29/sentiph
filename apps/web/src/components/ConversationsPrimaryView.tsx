@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import type { ConversationSessionDetail, ConversationSessionSummary } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 import { MarkdownContent } from "./ui/MarkdownContent";
@@ -10,6 +12,8 @@ type ConversationsPrimaryViewProps = {
   isExporting: boolean;
   isDeletingSession: boolean;
   errorMessage: string | null;
+  highlightedTurnId: string | null;
+  searchQuery: string;
   onDeleteSession: () => void;
   onExport: (format: "json" | "md") => void;
 };
@@ -39,9 +43,20 @@ export const ConversationsPrimaryView = ({
   isExporting,
   isDeletingSession,
   errorMessage,
+  highlightedTurnId,
+  searchQuery,
   onDeleteSession,
   onExport,
-}: ConversationsPrimaryViewProps) => (
+}: ConversationsPrimaryViewProps) => {
+  const highlightedRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    if (highlightedTurnId && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightedTurnId, selectedSession]);
+
+  return (
   <section className="conversations-view" aria-label="Conversations primary view">
     {errorMessage ? <p className="conversations-error">{errorMessage}</p> : null}
 
@@ -112,7 +127,13 @@ export const ConversationsPrimaryView = ({
           </header>
           <ol className="conversations-turn-list">
             {selectedSession.turns.map((turn) => (
-              <li className="conversations-turn" data-role={turn.role} key={turn.turnId}>
+              <li
+                className="conversations-turn"
+                data-role={turn.role}
+                data-highlighted={turn.turnId === highlightedTurnId ? "true" : undefined}
+                key={turn.turnId}
+                ref={turn.turnId === highlightedTurnId ? highlightedRef : undefined}
+              >
                 <time className="conversations-turn-time" dateTime={turn.startedAt}>{formatTimestamp(turn.startedAt)}</time>
                 <MarkdownContent content={turn.content} className="conversations-turn-content" />
               </li>
@@ -124,4 +145,5 @@ export const ConversationsPrimaryView = ({
       )}
     </section>
   </section>
-);
+  );
+};

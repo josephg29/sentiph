@@ -435,6 +435,68 @@ const readClaudeTranscriptTurns = (
   }
 };
 
+export type ConversationSearchHit = {
+  sessionId: string;
+  turnId: string;
+  role: "user" | "assistant";
+  snippet: string;
+  turnStartedAt: string;
+};
+
+export type ConversationSearchResult = {
+  query: string;
+  hits: ConversationSearchHit[];
+};
+
+const buildSearchSnippet = (content: string, query: string, contextChars = 80): string => {
+  const lowerContent = content.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const matchIndex = lowerContent.indexOf(lowerQuery);
+  if (matchIndex === -1) {
+    return content.slice(0, contextChars * 2).replace(/\s+/g, " ").trim();
+  }
+
+  const start = Math.max(0, matchIndex - contextChars);
+  const end = Math.min(content.length, matchIndex + query.length + contextChars);
+  let snippet = content.slice(start, end).replace(/\s+/g, " ").trim();
+  if (start > 0) snippet = `...${snippet}`;
+  if (end < content.length) snippet = `${snippet}...`;
+  return snippet;
+};
+
+export const searchConversations = (
+  transcriptDirectoryPath: string,
+  query: string,
+): ConversationSearchResult => {
+  if (!existsSync(transcriptDirectoryPath) || query.trim().length === 0) {
+    return { query, hits: [] };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const hits: ConversationSearchHit[] = [];
+
+  const sessionIds = readdirSync(transcriptDirectoryPath)
+    .map((filename) => parseSessionIdFromFilename(filename))
+    .filter((sessionId): sessionId is string => sessionId !== null);
+
+  for (const sessionId of sessionIds) {
+    const turns = readClaudeTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
+    for (const turn of turns) {
+      if (turn.content.toLowerCase().includes(lowerQuery)) {
+        hits.push({
+          sessionId,
+          turnId: turn.turnId,
+          role: turn.role,
+          snippet: buildSearchSnippet(turn.content, query),
+          turnStartedAt: turn.startedAt,
+        });
+      }
+    }
+  }
+
+  return { query, hits };
+};
+
 export const conversationExportMarkdown = (conversation: ConversationSessionDetail): string => {
   const lines: string[] = [
     `# Conversation ${conversation.sessionId}`,

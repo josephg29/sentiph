@@ -19,6 +19,7 @@ import {
   deleteConversation,
   listConversationSessions,
   readConversationSession,
+  searchConversations,
   storeClaudeTranscriptTurns,
 } from "./terminalRuntime/conversations";
 import {
@@ -490,6 +491,10 @@ export const createTerminalRuntime = ({
 
     deleteAllConversationSessions() {
       deleteAllConversations(transcriptDirectoryPath);
+    },
+
+    searchConversations(query: string) {
+      return searchConversations(transcriptDirectoryPath, query);
     },
 
     readUiState,

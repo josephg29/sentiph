@@ -216,10 +216,25 @@
   color: #6b7a90;
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-size: 0.6rem;
+  user-select: none;
+  pointer-events: none;
 }
 
 .conversations-turn[data-role="user"] .conversations-turn-time {
   text-align: right;
+}
+
+/* Highlighted turn (from search navigation) */
+.conversations-turn[data-highlighted="true"] {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  animation: highlight-pulse 1.6s ease-out;
+}
+
+@keyframes highlight-pulse {
+  0% { outline-color: var(--accent-primary); box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary) 50%, transparent); }
+  100% { outline-color: var(--accent-primary); box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 30%, transparent); }
 }
 
 /* Rendered markdown content in conversation bubbles */
@@ -450,6 +465,108 @@
 .sidebar-conversation-item:focus-visible {
   outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #e9c56c);
   outline-offset: 1px;
+}
+
+/* Sidebar conversations search */
+.sidebar-conversations-search {
+  padding: 0.28rem 0.36rem;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.sidebar-conversations-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  background: #0d1117;
+  border: 1px solid #2b2f36;
+  padding: 0.22rem 0.36rem;
+  transition: border-color 0.12s ease;
+}
+
+.sidebar-conversations-search-input-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, #2b2f36);
+}
+
+.sidebar-conversations-search-icon {
+  width: 0.76rem;
+  height: 0.76rem;
+  flex-shrink: 0;
+  color: #6b7a90;
+}
+
+.sidebar-conversations-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #d2dae8;
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+}
+
+.sidebar-conversations-search-input::placeholder {
+  color: #5a6a80;
+}
+
+.sidebar-conversations-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.92rem;
+  height: 0.92rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6b7a90;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sidebar-conversations-search-clear:hover {
+  color: #d2dae8;
+}
+
+.sidebar-conversations-search-clear svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* Sidebar search results */
+.sidebar-search-results-count {
+  margin: 0 0 0.22rem;
+  color: #8393ab;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.1rem;
+}
+
+.sidebar-search-hit {
+  gap: 0.16rem !important;
+}
+
+.sidebar-search-hit-session {
+  font-size: 0.66rem !important;
+  color: #8393ab !important;
+}
+
+.sidebar-search-hit-role {
+  font-size: 0.64rem !important;
+  color: color-mix(in srgb, var(--accent-primary) 50%, #8393ab) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-search-hit-snippet {
+  font-size: 0.72rem !important;
+  color: #c0cad8 !important;
+  font-family: var(--font-main) !important;
+  line-height: 1.36;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Sidebar toolbar (refresh / clear all icons) */

@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
-import type { ConversationSessionSummary } from "../app/types";
+import type { ConversationSearchHit, ConversationSessionSummary } from "../app/types";
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
   const raw = session.lastEventAt ?? session.endedAt ?? session.startedAt;
@@ -13,23 +13,65 @@ type SidebarConversationsListProps = {
   sessions: ConversationSessionSummary[];
   selectedSessionId: string | null;
   isLoadingSessions: boolean;
+  isSearching: boolean;
+  searchQuery: string;
+  searchHits: ConversationSearchHit[];
   onSelectSession: (sessionId: string) => void;
   onRefresh: () => void;
   onClearAll: () => void;
+  onSearch: (query: string) => void;
+  onClearSearch: () => void;
+  onNavigateToHit: (hit: ConversationSearchHit) => void;
 };
 
 export const SidebarConversationsList = ({
   sessions,
   selectedSessionId,
   isLoadingSessions,
+  isSearching,
+  searchQuery,
+  searchHits,
   onSelectSession,
   onRefresh,
   onClearAll,
+  onSearch,
+  onClearSearch,
+  onNavigateToHit,
 }: SidebarConversationsListProps) => {
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),
     [sessions],
   );
+
+  const handleSearchSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (inputValue.trim().length > 0) {
+        onSearch(inputValue.trim());
+      }
+    },
+    [inputValue, onSearch],
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setInputValue("");
+    onClearSearch();
+    inputRef.current?.focus();
+  }, [onClearSearch]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleClearSearch();
+      }
+    },
+    [handleClearSearch],
+  );
+
+  const isShowingResults = searchQuery.length > 0;
 
   return (
   <section className="active-agents-section" aria-label="Sidebar section Conversations">
@@ -64,8 +106,66 @@ export const SidebarConversationsList = ({
         </svg>
       </button>
     </div>
+
+    <form className="sidebar-conversations-search" onSubmit={handleSearchSubmit}>
+      <div className="sidebar-conversations-search-input-wrap">
+        <svg className="sidebar-conversations-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="M10.5 10.5L14 14" />
+        </svg>
+        <input
+          ref={inputRef}
+          type="text"
+          className="sidebar-conversations-search-input"
+          placeholder="Search conversations..."
+          value={inputValue}
+          onChange={(e) => { setInputValue(e.target.value); }}
+          onKeyDown={handleKeyDown}
+          aria-label="Search conversations"
+        />
+        {(inputValue.length > 0 || isShowingResults) && (
+          <button
+            type="button"
+            className="sidebar-conversations-search-clear"
+            onClick={handleClearSearch}
+            aria-label="Clear search"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4l8 8" />
+              <path d="M12 4l-8 8" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </form>
+
     <div className="active-agents-section-panel">
-      {sessions.length === 0 ? (
+      {isSearching ? (
+        <p className="active-agents-status">Searching...</p>
+      ) : isShowingResults ? (
+        searchHits.length === 0 ? (
+          <p className="active-agents-status">No results for "{searchQuery}"</p>
+        ) : (
+          <div className="sidebar-search-results">
+            <p className="sidebar-search-results-count">{searchHits.length} result{searchHits.length !== 1 ? "s" : ""}</p>
+            <ol className="sidebar-conversations-list">
+              {searchHits.map((hit) => (
+                <li key={`${hit.sessionId}-${hit.turnId}`}>
+                  <button
+                    className="sidebar-conversation-item sidebar-search-hit"
+                    onClick={() => { onNavigateToHit(hit); }}
+                    type="button"
+                  >
+                    <span className="sidebar-search-hit-session">{hit.sessionId}</span>
+                    <span className="sidebar-search-hit-role">{hit.role}</span>
+                    <span className="sidebar-search-hit-snippet">{hit.snippet}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )
+      ) : sessions.length === 0 ? (
         <p className="active-agents-status">No conversations yet.</p>
       ) : (
         <ol className="sidebar-conversations-list">

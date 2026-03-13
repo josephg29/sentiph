@@ -119,6 +119,18 @@ export const buildConversationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/conversations");
 };
 
+export const buildConversationSearchUrl = (
+  query: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/conversations/search?q=${encodeURIComponent(query)}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildConversationSessionUrl = (
   sessionId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

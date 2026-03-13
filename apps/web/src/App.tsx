@@ -272,12 +272,19 @@ export const App = () => {
     isLoadingSelectedSession,
     isExporting: isExportingConversation,
     isClearing: isClearingConversations,
+    isSearching: isSearchingConversations,
+    searchQuery: conversationsSearchQuery,
+    searchHits: conversationsSearchHits,
+    highlightedTurnId: conversationsHighlightedTurnId,
     errorMessage: conversationsErrorMessage,
     selectSession,
     refreshSessions,
     clearAllSessions,
     deleteSession,
     exportSession,
+    searchConversations,
+    clearSearch: clearConversationsSearch,
+    navigateToSearchHit: navigateToConversationSearchHit,
   } = useConversationsRuntime({
     enabled: isUiStateHydrated && activePrimaryNav === 4,
   });
@@ -436,6 +443,9 @@ export const App = () => {
                     sessions={conversationSessions}
                     selectedSessionId={selectedSessionId}
                     isLoadingSessions={isLoadingConversationSessions}
+                    isSearching={isSearchingConversations}
+                    searchQuery={conversationsSearchQuery}
+                    searchHits={conversationsSearchHits}
                     onSelectSession={selectSession}
                     onRefresh={() => {
                       void refreshSessions();
@@ -443,6 +453,11 @@ export const App = () => {
                     onClearAll={() => {
                       setIsPendingClearAllConversations(true);
                     }}
+                    onSearch={(query) => {
+                      void searchConversations(query);
+                    }}
+                    onClearSearch={clearConversationsSearch}
+                    onNavigateToHit={navigateToConversationSearchHit}
                   />
                 ) : undefined
               }
@@ -501,6 +516,8 @@ export const App = () => {
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
+              highlightedTurnId: conversationsHighlightedTurnId,
+              searchQuery: conversationsSearchQuery,
               isExporting: isExportingConversation,
               isDeletingSession: false,
               isLoadingSelectedSession,

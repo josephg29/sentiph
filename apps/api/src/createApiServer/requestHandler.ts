@@ -314,6 +314,7 @@ const handleMonitorRefreshRoute: ApiRouteHandler = async (
   return true;
 };
 
+const CONVERSATION_SEARCH_PATH = "/api/conversations/search";
 const CONVERSATION_ITEM_PATH_PATTERN = /^\/api\/conversations\/([^/]+)$/;
 const CONVERSATION_EXPORT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/export$/;
 
@@ -337,6 +338,30 @@ const handleConversationsCollectionRoute: ApiRouteHandler = async (
   }
 
   const payload = runtime.listConversationSessions();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleConversationSearchRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== CONVERSATION_SEARCH_PATH) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const query = requestUrl.searchParams.get("q") ?? "";
+  if (query.trim().length === 0) {
+    writeJson(response, 400, { error: "Missing search query parameter 'q'." }, corsOrigin);
+    return true;
+  }
+
+  const payload = runtime.searchConversations(query);
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };
@@ -885,6 +910,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     "conversations",
     [
       handleConversationsCollectionRoute,
+      handleConversationSearchRoute,
       handleConversationExportRoute,
       handleConversationItemRoute,
     ],
