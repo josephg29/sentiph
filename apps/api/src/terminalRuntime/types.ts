@@ -45,6 +45,8 @@ export type TerminalSession = {
   transcriptEventCount?: number;
   pendingInput?: string;
   hasTranscriptEnded?: boolean;
+  initialPrompt?: string;
+  isInitialPromptSent?: boolean;
 };
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
@@ -77,6 +79,7 @@ export type PersistedTentacle = {
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
   agentProvider?: TentacleAgentProvider;
+  initialPrompt?: string;
 };
 
 export type PersistedTentacleAgent = {

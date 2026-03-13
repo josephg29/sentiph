@@ -333,6 +333,22 @@ export const createSessionRuntime = ({
         data: chunk,
       });
       emitStateIfChanged(session, sessionId, nextState);
+
+      // Inject the initial prompt into the prompt box (without submitting)
+      // once Claude Code transitions to idle after bootstrap.
+      if (
+        session.initialPrompt &&
+        !session.isInitialPromptSent &&
+        session.isBootstrapCommandSent
+      ) {
+        const currentState = session.stateTracker.currentState;
+        if (currentState === "idle" || (nextState === "idle")) {
+          session.isInitialPromptSent = true;
+          appendDebugLog(session, `initial-prompt session=${sessionId}`);
+          // Write text without \r so it appears in the prompt box but does not submit.
+          session.pty.write(session.initialPrompt);
+        }
+      }
     });
 
     session.pty.onExit(({ exitCode, signal }) => {
@@ -364,6 +380,12 @@ export const createSessionRuntime = ({
       session.debugLog?.end();
       sessions.delete(sessionId);
     });
+
+    // Propagate initial prompt from the tentacle definition, if set.
+    const tentacleRecord = tentacles.get(tentacleId);
+    if (tentacleRecord?.initialPrompt) {
+      session.initialPrompt = tentacleRecord.initialPrompt;
+    }
 
     sessions.set(sessionId, session);
     return session;

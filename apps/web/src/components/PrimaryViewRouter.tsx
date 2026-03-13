@@ -6,6 +6,7 @@ import type { CodexState } from "./CodexStateBadge";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
+import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { TentacleBoard } from "./TentacleBoard";
 
@@ -94,6 +95,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 5) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 6) {
+    return <SandboxPrimaryView />;
   }
 
   return <TentacleBoard {...tentacleBoardProps} />;

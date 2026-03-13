@@ -291,10 +291,12 @@ export const createTerminalRuntime = ({
     tentacleName,
     workspaceMode = "shared",
     agentProvider,
+    initialPrompt,
   }: {
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TentacleAgentProvider;
+    initialPrompt?: string;
   }): AgentSnapshot => {
     const tentacleId = allocateTentacleId();
     const tentacle: PersistedTentacle = {
@@ -303,6 +305,7 @@ export const createTerminalRuntime = ({
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
+      ...(initialPrompt ? { initialPrompt } : {}),
     };
 
     const shouldCreateWorktree = workspaceMode === "worktree";

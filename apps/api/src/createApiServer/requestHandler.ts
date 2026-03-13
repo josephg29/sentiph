@@ -481,6 +481,7 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TentacleAgentProvider;
+      initialPrompt?: string;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
@@ -489,6 +490,10 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
     }
     if (agentProviderResult.agentProvider !== undefined) {
       createTentacleInput.agentProvider = agentProviderResult.agentProvider;
+    }
+    const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
+    if (bodyPayload && typeof bodyPayload.initialPrompt === "string" && bodyPayload.initialPrompt.trim().length > 0) {
+      createTentacleInput.initialPrompt = bodyPayload.initialPrompt.trim();
     }
 
     const payload = runtime.createTentacle(createTentacleInput);

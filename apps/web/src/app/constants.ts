@@ -13,6 +13,7 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 3, label: "Monitor" },
   { index: 4, label: "Conversations" },
   { index: 5, label: "Settings" },
+  { index: 6, label: "Sandbox" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;
