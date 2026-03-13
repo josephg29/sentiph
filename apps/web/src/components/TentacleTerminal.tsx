@@ -80,6 +80,7 @@ export const TentacleTerminal = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [codexState, setCodexState] = useState<CodexState>("idle");
+  const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
   const terminalTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
 
   useEffect(() => {
@@ -380,6 +381,37 @@ export const TentacleTerminal = ({
     >
       <div className="terminal-header" data-connection-state={connectionState}>
         <span className="terminal-title">{terminalTitle}</span>
+        {initialPrompt && !isPromptBannerDismissed && (
+          <div className="terminal-prompt-banner">
+            <button
+              type="button"
+              className="terminal-prompt-banner-inject"
+              onClick={() => {
+                const ws = socketRef.current;
+                if (ws && ws.readyState === 1) {
+                  ws.send(JSON.stringify({ type: "input", data: initialPrompt }));
+                }
+                setIsPromptBannerDismissed(true);
+              }}
+              title={initialPrompt}
+            >
+              <PromptInjectIcon />
+              <span className="terminal-prompt-banner-text">
+                {initialPrompt.length > 60 ? `${initialPrompt.slice(0, 60)}...` : initialPrompt}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="terminal-prompt-banner-close"
+              aria-label="Dismiss prompt"
+              onClick={() => {
+                setIsPromptBannerDismissed(true);
+              }}
+            >
+              &times;
+            </button>
+          </div>
+        )}
         <div className="terminal-header-actions">
           <ActionButton
             aria-label={`Add terminal above ${terminalId}`}
@@ -403,23 +435,6 @@ export const TentacleTerminal = ({
           >
             <TerminalAddIcon direction="down" />
           </ActionButton>
-          {initialPrompt && (
-            <ActionButton
-              aria-label="Inject prompt into terminal"
-              className="terminal-inject-prompt"
-              onClick={() => {
-                const ws = socketRef.current;
-                if (ws && ws.readyState === 1) {
-                  ws.send(JSON.stringify({ type: "input", data: initialPrompt }));
-                }
-              }}
-              size="compact"
-              title="Inject prompt"
-              variant="info"
-            >
-              <PromptInjectIcon />
-            </ActionButton>
-          )}
           <ActionButton
             aria-label={`Delete terminal ${terminalId}`}
             className="terminal-delete"

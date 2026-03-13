@@ -245,7 +245,7 @@ export const createSessionRuntime = ({
     return true;
   };
 
-  const INITIAL_PROMPT_DELAY_MS = 1_000;
+  const INITIAL_PROMPT_DELAY_MS = 2_000;
 
   const ensureCodexBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
