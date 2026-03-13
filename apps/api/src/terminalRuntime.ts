@@ -479,7 +479,10 @@ export const createTerminalRuntime = ({
       }
 
       if (format === "json") {
-        return `${JSON.stringify(conversation, null, 2)}\n`;
+        const exported = {
+          turns: conversation.turns,
+        };
+        return `${JSON.stringify(exported, null, 2)}\n`;
       }
 
       return conversationExportMarkdown(conversation);

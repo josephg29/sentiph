@@ -504,19 +504,11 @@ export const searchConversations = (
 };
 
 export const conversationExportMarkdown = (conversation: ConversationSessionDetail): string => {
-  const lines: string[] = [
-    `# Conversation ${conversation.sessionId}`,
-    "",
-    `- Tentacle: ${conversation.tentacleId ?? "unknown"}`,
-    `- Started: ${conversation.startedAt ?? "unknown"}`,
-    `- Ended: ${conversation.endedAt ?? "active"}`,
-    `- Turns: ${conversation.turnCount}`,
-    "",
-  ];
+  const lines: string[] = [];
 
   for (const turn of conversation.turns) {
     const roleLabel = turn.role === "user" ? "User" : "Assistant";
-    lines.push(`## ${roleLabel} (${turn.startedAt})`);
+    lines.push(`## ${roleLabel}`);
     lines.push("");
     lines.push(turn.content.length > 0 ? turn.content : "(empty)");
     lines.push("");
