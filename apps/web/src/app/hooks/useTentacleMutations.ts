@@ -133,7 +133,7 @@ export const useTentacleMutations = ({
           },
           body: JSON.stringify({
             workspaceMode,
-            ...(agentProvider && agentProvider !== "codex" ? { agentProvider } : {}),
+            agentProvider: agentProvider ?? "claude-code",
           }),
         });
 

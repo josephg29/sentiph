@@ -7,6 +7,7 @@ import type { AgentSnapshot } from "@octogent/core";
 import { WebSocketServer } from "ws";
 
 import {
+  DEFAULT_AGENT_PROVIDER,
   TENTACLE_ID_PREFIX,
   TENTACLE_REGISTRY_RELATIVE_PATH,
   TENTACLE_TRANSCRIPT_RELATIVE_PATH,
@@ -300,7 +301,7 @@ export const createTerminalRuntime = ({
       tentacleName: tentacleName ?? tentacleId,
       createdAt: new Date().toISOString(),
       workspaceMode,
-      ...(agentProvider ? { agentProvider } : {}),
+      agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
     };
 
     const shouldCreateWorktree = workspaceMode === "worktree";
