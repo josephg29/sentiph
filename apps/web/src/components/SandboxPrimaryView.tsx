@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { buildTerminalSocketUrl, buildTentaclesUrl } from "../runtime/runtimeEndpoints";
+import { buildTentacleRenameUrl, buildTerminalSocketUrl, buildTentaclesUrl } from "../runtime/runtimeEndpoints";
 import { TentacleTerminal } from "./TentacleTerminal";
 import { ActionButton } from "./ui/ActionButton";
 
@@ -110,6 +110,18 @@ export const SandboxPrimaryView = () => {
     }
   }, []);
 
+  const removeAgent = useCallback(async (tentacleId: string) => {
+    try {
+      await fetch(buildTentacleRenameUrl(tentacleId), {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      setAgents((current) => current.filter((a) => a.tentacleId !== tentacleId));
+    } catch {
+      setError("Failed to delete agent");
+    }
+  }, []);
+
   useEffect(() => {
     if (initializedRef.current) {
       return;
@@ -167,6 +179,10 @@ export const SandboxPrimaryView = () => {
             <TentacleTerminal
               terminalId={agent.terminalId}
               terminalLabel="Sandbox Agent"
+              initialPrompt={SANDBOX_INITIAL_PROMPT}
+              onDelete={() => {
+                void removeAgent(agent.tentacleId);
+              }}
             />
             <SandboxPromptInput terminalId={agent.terminalId} />
           </div>

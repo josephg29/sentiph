@@ -47,6 +47,7 @@ export type TerminalSession = {
   hasTranscriptEnded?: boolean;
   initialPrompt?: string;
   isInitialPromptSent?: boolean;
+  hasSeenProcessing?: boolean;
 };
 
 export type TentacleWorkspaceMode = "shared" | "worktree";

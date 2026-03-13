@@ -245,6 +245,8 @@ export const createSessionRuntime = ({
     return true;
   };
 
+  const INITIAL_PROMPT_DELAY_MS = 1_000;
+
   const ensureCodexBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
       return;
@@ -257,6 +259,18 @@ export const createSessionRuntime = ({
       TENTACLE_BOOTSTRAP_COMMANDS[provider] ?? TENTACLE_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
+
+    // Schedule initial prompt injection after Claude Code has had time to boot.
+    if (session.initialPrompt && !session.isInitialPromptSent) {
+      setTimeout(() => {
+        if (session.isInitialPromptSent) {
+          return;
+        }
+        session.isInitialPromptSent = true;
+        appendDebugLog(session, `initial-prompt session=${sessionId}`);
+        session.pty.write(session.initialPrompt ?? "");
+      }, INITIAL_PROMPT_DELAY_MS);
+    }
   };
 
   const ensureSession = (sessionId: string, tentacleId: string) => {
@@ -333,22 +347,6 @@ export const createSessionRuntime = ({
         data: chunk,
       });
       emitStateIfChanged(session, sessionId, nextState);
-
-      // Inject the initial prompt into the prompt box (without submitting)
-      // once Claude Code transitions to idle after bootstrap.
-      if (
-        session.initialPrompt &&
-        !session.isInitialPromptSent &&
-        session.isBootstrapCommandSent
-      ) {
-        const currentState = session.stateTracker.currentState;
-        if (currentState === "idle" || (nextState === "idle")) {
-          session.isInitialPromptSent = true;
-          appendDebugLog(session, `initial-prompt session=${sessionId}`);
-          // Write text without \r so it appears in the prompt box but does not submit.
-          session.pty.write(session.initialPrompt);
-        }
-      }
     });
 
     session.pty.onExit(({ exitCode, signal }) => {

@@ -11,6 +11,7 @@ type TentacleTerminalProps = {
   terminalId: string;
   terminalLabel?: string;
   isSelected?: boolean;
+  initialPrompt?: string;
   onAddAbove?: () => void;
   onAddBelow?: () => void;
   onDelete?: () => void;
@@ -55,16 +56,27 @@ const TerminalDeleteIcon = () => (
   </svg>
 );
 
+const PromptInjectIcon = () => (
+  <svg aria-hidden="true" className="terminal-inject-icon" viewBox="0 0 16 16" width="14" height="14">
+    <path
+      d="M2 3h12v1H2V3Zm0 3h8v1H2V6Zm0 3h6v1H2V9Zm9 0l3 2.5L11 14v-5Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export const TentacleTerminal = ({
   terminalId,
   terminalLabel,
   isSelected,
+  initialPrompt,
   onAddAbove,
   onAddBelow,
   onDelete,
   onSelectTerminal,
   onCodexStateChange,
 }: TentacleTerminalProps) => {
+  const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [codexState, setCodexState] = useState<CodexState>("idle");
@@ -97,6 +109,7 @@ export const TentacleTerminal = ({
         if (isCancelled || socket !== nextSocket) {
           return;
         }
+        socketRef.current = nextSocket;
         setConnectionState("connected");
         requestResizeSync();
       });
@@ -105,6 +118,7 @@ export const TentacleTerminal = ({
         if (isCancelled || socket !== nextSocket) {
           return;
         }
+        socketRef.current = null;
         setConnectionState("closed");
         reconnectTimer = window.setTimeout(() => {
           connect();
@@ -389,6 +403,23 @@ export const TentacleTerminal = ({
           >
             <TerminalAddIcon direction="down" />
           </ActionButton>
+          {initialPrompt && (
+            <ActionButton
+              aria-label="Inject prompt into terminal"
+              className="terminal-inject-prompt"
+              onClick={() => {
+                const ws = socketRef.current;
+                if (ws && ws.readyState === 1) {
+                  ws.send(JSON.stringify({ type: "input", data: initialPrompt }));
+                }
+              }}
+              size="compact"
+              title="Inject prompt"
+              variant="info"
+            >
+              <PromptInjectIcon />
+            </ActionButton>
+          )}
           <ActionButton
             aria-label={`Delete terminal ${terminalId}`}
             className="terminal-delete"
