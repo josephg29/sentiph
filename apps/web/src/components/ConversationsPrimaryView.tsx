@@ -135,7 +135,11 @@ export const ConversationsPrimaryView = ({
                 ref={turn.turnId === highlightedTurnId ? highlightedRef : undefined}
               >
                 <time className="conversations-turn-time" dateTime={turn.startedAt}>{formatTimestamp(turn.startedAt)}</time>
-                <MarkdownContent content={turn.content} className="conversations-turn-content" />
+                <MarkdownContent
+                  content={turn.content}
+                  className="conversations-turn-content"
+                  highlightTerm={turn.turnId === highlightedTurnId && searchQuery.length > 0 ? searchQuery : undefined}
+                />
               </li>
             ))}
           </ol>

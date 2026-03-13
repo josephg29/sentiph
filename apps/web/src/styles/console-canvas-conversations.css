@@ -237,6 +237,15 @@
   100% { outline-color: var(--accent-primary); box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 30%, transparent); }
 }
 
+/* Search term highlight inside conversation bubbles */
+.conversations-turn-content .search-highlight {
+  background: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  color: inherit;
+  border-radius: 0.14rem;
+  padding: 0.04rem 0.08rem;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 50%, transparent);
+}
+
 /* Rendered markdown content in conversation bubbles */
 .conversations-turn-content {
   color: color-mix(in srgb, var(--accent-primary) 25%, #e0d8cf);
@@ -469,29 +478,40 @@
 
 /* Sidebar conversations search */
 .sidebar-conversations-search {
-  padding: 0.28rem 0.36rem;
-  border-bottom: 1px solid #2b2f36;
+  padding: 0.36rem 0.36rem;
 }
 
 .sidebar-conversations-search-input-wrap {
   display: flex;
   align-items: center;
-  gap: 0.28rem;
-  background: #0d1117;
-  border: 1px solid #2b2f36;
-  padding: 0.22rem 0.36rem;
-  transition: border-color 0.12s ease;
+  gap: 0.34rem;
+  background: color-mix(in srgb, var(--accent-primary) 6%, #0d1117);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #2b2f36);
+  border-radius: 0.28rem;
+  padding: 0.34rem 0.44rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-conversations-search-input-wrap:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, #2b2f36);
+  background: color-mix(in srgb, var(--accent-primary) 10%, #0d1117);
 }
 
 .sidebar-conversations-search-input-wrap:focus-within {
-  border-color: color-mix(in srgb, var(--accent-primary) 60%, #2b2f36);
+  border-color: color-mix(in srgb, var(--accent-primary) 70%, #2b2f36);
+  background: color-mix(in srgb, var(--accent-primary) 12%, #0d1117);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 18%, transparent);
 }
 
 .sidebar-conversations-search-icon {
-  width: 0.76rem;
-  height: 0.76rem;
+  width: 0.84rem;
+  height: 0.84rem;
   flex-shrink: 0;
-  color: #6b7a90;
+  color: color-mix(in srgb, var(--accent-primary) 55%, #8a9ab4);
+}
+
+.sidebar-conversations-search-input-wrap:focus-within .sidebar-conversations-search-icon {
+  color: var(--accent-primary);
 }
 
 .sidebar-conversations-search-input {
@@ -502,11 +522,11 @@
   outline: none;
   color: #d2dae8;
   font-family: var(--font-main);
-  font-size: 0.74rem;
+  font-size: 0.78rem;
 }
 
 .sidebar-conversations-search-input::placeholder {
-  color: #5a6a80;
+  color: color-mix(in srgb, var(--accent-primary) 25%, #6b7a90);
 }
 
 .sidebar-conversations-search-clear {

@@ -205,6 +205,7 @@ export type ConversationSessionSummary = {
   turnCount: number;
   userTurnCount: number;
   assistantTurnCount: number;
+  firstUserTurnPreview: string | null;
   lastUserTurnPreview: string | null;
   lastAssistantTurnPreview: string | null;
 };

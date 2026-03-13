@@ -1,6 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ConversationSearchHit, ConversationSessionSummary } from "../app/types";
+
+const getSessionTitle = (session: ConversationSessionSummary): string => {
+  const preview = session.firstUserTurnPreview;
+  if (!preview) return session.sessionId;
+  const words = preview.split(/\s+/).slice(0, 8);
+  const title = words.join(" ");
+  return title.length < preview.length ? `${title}...` : title;
+};
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
   const raw = session.lastEventAt ?? session.endedAt ?? session.startedAt;
@@ -40,17 +48,47 @@ export const SidebarConversationsList = ({
 }: SidebarConversationsListProps) => {
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),
     [sessions],
   );
 
+  // Live search: debounce input changes and trigger search after 2+ chars
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    const trimmed = inputValue.trim();
+    if (trimmed.length === 0) {
+      onClearSearch();
+      return;
+    }
+
+    if (trimmed.length >= 2) {
+      debounceRef.current = setTimeout(() => {
+        onSearch(trimmed);
+      }, 280);
+    }
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [inputValue, onSearch, onClearSearch]);
+
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (inputValue.trim().length > 0) {
-        onSearch(inputValue.trim());
+      const trimmed = inputValue.trim();
+      if (trimmed.length > 0) {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        onSearch(trimmed);
       }
     },
     [inputValue, onSearch],
@@ -180,7 +218,7 @@ export const SidebarConversationsList = ({
                 }}
                 type="button"
               >
-                <strong>{session.sessionId}</strong>
+                <strong>{getSessionTitle(session)}</strong>
                 <span>{`Tentacle ${session.tentacleId ?? "--"}`}</span>
                 <span>{`${session.turnCount} turns`}</span>
               </button>

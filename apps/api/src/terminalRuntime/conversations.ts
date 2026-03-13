@@ -78,6 +78,7 @@ export type ConversationSessionSummary = {
   turnCount: number;
   userTurnCount: number;
   assistantTurnCount: number;
+  firstUserTurnPreview: string | null;
   lastUserTurnPreview: string | null;
   lastAssistantTurnPreview: string | null;
 };
@@ -215,6 +216,8 @@ const buildConversationSummary = (
     turnCount: turns.length,
     userTurnCount: userTurns.length,
     assistantTurnCount: assistantTurns.length,
+    firstUserTurnPreview:
+      userTurns.length > 0 ? (userTurns[0]?.content ?? null) : null,
     lastUserTurnPreview:
       userTurns.length > 0 ? (userTurns[userTurns.length - 1]?.content ?? null) : null,
     lastAssistantTurnPreview:
@@ -305,6 +308,7 @@ export const readConversationSession = (
 
   return {
     ...summary,
+    firstUserTurnPreview: truncatePreview(summary.firstUserTurnPreview),
     lastUserTurnPreview: truncatePreview(summary.lastUserTurnPreview),
     lastAssistantTurnPreview: truncatePreview(summary.lastAssistantTurnPreview),
     turns,
@@ -340,6 +344,7 @@ export const listConversationSessions = (
         turnCount: detail.turnCount,
         userTurnCount: detail.userTurnCount,
         assistantTurnCount: detail.assistantTurnCount,
+        firstUserTurnPreview: detail.firstUserTurnPreview,
         lastUserTurnPreview: detail.lastUserTurnPreview,
         lastAssistantTurnPreview: detail.lastAssistantTurnPreview,
       };
@@ -347,6 +352,7 @@ export const listConversationSessions = (
     .filter((summary): summary is ConversationSessionSummary => summary !== null)
     .map((summary) => ({
       ...summary,
+      firstUserTurnPreview: truncatePreview(summary.firstUserTurnPreview),
       lastUserTurnPreview: truncatePreview(summary.lastUserTurnPreview),
       lastAssistantTurnPreview: truncatePreview(summary.lastAssistantTurnPreview),
     }));

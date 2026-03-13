@@ -484,6 +484,7 @@ export const normalizeConversationSessionSummary = (
     turnCount: Math.max(0, Math.floor(asNumber(record.turnCount) ?? 0)),
     userTurnCount: Math.max(0, Math.floor(asNumber(record.userTurnCount) ?? 0)),
     assistantTurnCount: Math.max(0, Math.floor(asNumber(record.assistantTurnCount) ?? 0)),
+    firstUserTurnPreview: asString(record.firstUserTurnPreview),
     lastUserTurnPreview: asString(record.lastUserTurnPreview),
     lastAssistantTurnPreview: asString(record.lastAssistantTurnPreview),
   };
