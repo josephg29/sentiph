@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { buildCodexUsageUrl } from "../../runtime/runtimeEndpoints";
 import { CODEX_USAGE_SCAN_INTERVAL_MS } from "../constants";
@@ -13,40 +13,41 @@ const buildFallbackSnapshot = (): CodexUsageSnapshot => ({
 
 export const useCodexUsagePolling = () => {
   const [codexUsageSnapshot, setCodexUsageSnapshot] = useState<CodexUsageSnapshot | null>(null);
+  const isInFlightRef = useRef(false);
+  const isDisposedRef = useRef(false);
+
+  const syncCodexUsage = useCallback(async () => {
+    if (isDisposedRef.current || isInFlightRef.current) {
+      return;
+    }
+    isInFlightRef.current = true;
+    try {
+      const response = await fetch(buildCodexUsageUrl(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to read codex usage (${response.status})`);
+      }
+
+      const parsed = normalizeCodexUsageSnapshot(await response.json());
+      if (!isDisposedRef.current) {
+        setCodexUsageSnapshot(parsed ?? buildFallbackSnapshot());
+      }
+    } catch {
+      if (!isDisposedRef.current) {
+        setCodexUsageSnapshot(buildFallbackSnapshot());
+      }
+    } finally {
+      isInFlightRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    let isDisposed = false;
-    let isInFlight = false;
-
-    const syncCodexUsage = async () => {
-      if (isDisposed || isInFlight) {
-        return;
-      }
-      isInFlight = true;
-      try {
-        const response = await fetch(buildCodexUsageUrl(), {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Unable to read codex usage (${response.status})`);
-        }
-
-        const parsed = normalizeCodexUsageSnapshot(await response.json());
-        if (!isDisposed) {
-          setCodexUsageSnapshot(parsed ?? buildFallbackSnapshot());
-        }
-      } catch {
-        if (!isDisposed) {
-          setCodexUsageSnapshot(buildFallbackSnapshot());
-        }
-      } finally {
-        isInFlight = false;
-      }
-    };
+    isDisposedRef.current = false;
 
     void syncCodexUsage();
     const timerId = window.setInterval(() => {
@@ -54,10 +55,14 @@ export const useCodexUsagePolling = () => {
     }, CODEX_USAGE_SCAN_INTERVAL_MS);
 
     return () => {
-      isDisposed = true;
+      isDisposedRef.current = true;
       window.clearInterval(timerId);
     };
-  }, []);
+  }, [syncCodexUsage]);
 
-  return codexUsageSnapshot;
+  const refresh = useCallback(() => {
+    void syncCodexUsage();
+  }, [syncCodexUsage]);
+
+  return { codexUsageSnapshot, refreshCodexUsage: refresh };
 };

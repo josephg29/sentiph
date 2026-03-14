@@ -38,6 +38,7 @@ type CreateApiRequestHandlerOptions = {
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   monitorService: MonitorService;
+  invalidateClaudeUsageCache: () => void;
   allowRemoteAccess: boolean;
 };
 
@@ -47,6 +48,7 @@ type RouteHandlerDependencies = {
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   monitorService: MonitorService;
+  invalidateClaudeUsageCache: () => void;
 };
 
 type RouteHandlerContext = {
@@ -876,7 +878,7 @@ const HOOK_PATH_PATTERN = /^\/api\/hooks\/(session-start|user-prompt-submit|pre-
 
 const handleHookRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime },
+  { runtime, invalidateClaudeUsageCache, readClaudeUsageSnapshot },
 ) => {
   const match = requestUrl.pathname.match(HOOK_PATH_PATTERN);
   if (!match) {
@@ -896,6 +898,12 @@ const handleHookRoute: ApiRouteHandler = async (
   const hookName = match[1] ?? "";
   const octogentSessionId = requestUrl.searchParams.get("octogent_session") ?? undefined;
   const result = runtime.handleHook(hookName, body.payload, octogentSessionId);
+
+  if (hookName === "session-start" || hookName === "stop") {
+    invalidateClaudeUsageCache();
+    void readClaudeUsageSnapshot();
+  }
+
   writeJson(response, 200, result, corsOrigin);
   return true;
 };
@@ -951,6 +959,7 @@ export const createApiRequestHandler = ({
   readCodexUsageSnapshot,
   readGithubRepoSummary,
   monitorService,
+  invalidateClaudeUsageCache,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
   const routeDependencies: RouteHandlerDependencies = {
@@ -959,6 +968,7 @@ export const createApiRequestHandler = ({
     readCodexUsageSnapshot,
     readGithubRepoSummary,
     monitorService,
+    invalidateClaudeUsageCache,
   };
 
   return async (request: IncomingMessage, response: ServerResponse) => {

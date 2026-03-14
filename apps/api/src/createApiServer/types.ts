@@ -11,5 +11,6 @@ export type CreateApiServerOptions = {
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary?: () => Promise<GitHubRepoSummarySnapshot>;
   monitorService?: MonitorService;
+  invalidateClaudeUsageCache?: () => void;
   allowRemoteAccess?: boolean;
 };

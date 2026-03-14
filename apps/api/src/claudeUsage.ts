@@ -492,6 +492,11 @@ export const resetCliSession = (): void => {
   cachedSnapshot = null;
 };
 
+/** Clears the cached usage snapshot so the next read triggers a fresh fetch. */
+export const invalidateUsageCache = (): void => {
+  cachedSnapshot = null;
+};
+
 const readOauthUsageSnapshot = async (
   now: Date,
   readCredentialsJson: () => Promise<unknown>,

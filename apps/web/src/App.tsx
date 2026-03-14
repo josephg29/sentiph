@@ -216,8 +216,8 @@ export const App = () => {
     setIsUiStateHydrated,
   });
 
-  const codexUsageSnapshot = useCodexUsagePolling();
-  const claudeUsageSnapshot = useClaudeUsagePolling();
+  const { codexUsageSnapshot, refreshCodexUsage } = useCodexUsagePolling();
+  const { claudeUsageSnapshot, refreshClaudeUsage } = useClaudeUsagePolling();
   const backendLivenessStatus = useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
@@ -436,6 +436,8 @@ export const App = () => {
               tentacleStates={tentacleStates}
               minimizedTentacleIds={minimizedTentacleIds}
               onMaximizeTentacle={handleMaximizeTentacle}
+              onRefreshClaudeUsage={refreshClaudeUsage}
+              onRefreshCodexUsage={refreshCodexUsage}
               actionPanel={sidebarActionPanel}
               bodyContent={
                 activePrimaryNav === 4 ? (

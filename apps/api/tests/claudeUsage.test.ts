@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  invalidateUsageCache,
   parseCliUsageOutput,
   readClaudeUsageSnapshot,
   resetCliSession,
@@ -371,6 +372,48 @@ describe("readClaudeUsageSnapshot", () => {
     expect(snapshot.planType).toBe("Claude Max");
     expect(snapshot.extraUsageCostUsed).toBe(12.75);
     expect(snapshot.extraUsageCostLimit).toBe(42.5);
+    // Rate limit fields are also populated alongside extra usage
+    expect(snapshot.primaryUsedPercent).toBe(0);
+    expect(snapshot.secondaryUsedPercent).toBe(0);
+    expect(snapshot.sonnetUsedPercent).toBe(0);
+  });
+
+  it("invalidateUsageCache forces a fresh fetch on next read", async () => {
+    let callCount = 0;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      callCount++;
+      return new Response(
+        JSON.stringify({
+          plan_type: "pro",
+          five_hour: { used_percent: callCount * 10, reset_at: null },
+          seven_day: { used_percent: 50, reset_at: null },
+          seven_day_sonnet: { used_percent: 30, reset_at: null },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+
+    const deps = {
+      now: () => new Date("2026-03-03T12:00:00.000Z"),
+      spawnCliUsage: noCliPty,
+      readCredentialsJson: async () => validCredentials(),
+      fetchImpl: fetchMock,
+    };
+
+    const first = await readClaudeUsageSnapshot(deps);
+    expect(first.primaryUsedPercent).toBe(10);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Cached — same result without a new fetch
+    const cached = await readClaudeUsageSnapshot(deps);
+    expect(cached.primaryUsedPercent).toBe(10);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // After invalidation, next read triggers a fresh fetch
+    invalidateUsageCache();
+    const fresh = await readClaudeUsageSnapshot(deps);
+    expect(fresh.primaryUsedPercent).toBe(20);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("returns error when credentials json is not parseable", async () => {

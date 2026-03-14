@@ -49,17 +49,17 @@ describe("App claude usage footer", () => {
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(within(sidebar).getByText("Claude token usage")).toBeInTheDocument();
-    expect(within(sidebar).getByText("5H tokens")).toBeInTheDocument();
-    expect(within(sidebar).getByText("Week tokens")).toBeInTheDocument();
-    expect(within(sidebar).getByText("Sonnet tokens")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Current session")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Current week (all models)")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Current week (Sonnet only)")).toBeInTheDocument();
     expect(
-      within(sidebar).getByRole("progressbar", { name: "Claude 5H token usage" }),
+      within(sidebar).getByRole("progressbar", { name: "Claude current session usage" }),
     ).toHaveAttribute("aria-valuenow", "13");
     expect(
-      within(sidebar).getByRole("progressbar", { name: "Claude weekly token usage" }),
+      within(sidebar).getByRole("progressbar", { name: "Claude current week usage" }),
     ).toHaveAttribute("aria-valuenow", "41");
     expect(
-      within(sidebar).getByRole("progressbar", { name: "Claude Sonnet token usage" }),
+      within(sidebar).getByRole("progressbar", { name: "Claude Sonnet weekly usage" }),
     ).toHaveAttribute("aria-valuenow", "22");
   });
 

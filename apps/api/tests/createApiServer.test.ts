@@ -895,6 +895,60 @@ describe("createApiServer", () => {
     expect(response.status).toBe(405);
   });
 
+  it("POST /api/hooks/session-start invalidates claude usage cache", async () => {
+    let callCount = 0;
+    const readClaudeUsageSnapshot = async () => {
+      callCount++;
+      return {
+        status: "ok" as const,
+        source: "oauth-api" as const,
+        fetchedAt: "2026-03-03T12:00:00.000Z",
+        planType: "pro",
+        primaryUsedPercent: callCount * 10,
+        secondaryUsedPercent: 50,
+        sonnetUsedPercent: 30,
+      };
+    };
+
+    const invalidateCalls: number[] = [];
+    const invalidateClaudeUsageCache = () => {
+      invalidateCalls.push(Date.now());
+    };
+
+    const baseUrl = await startServer({
+      readClaudeUsageSnapshot,
+      invalidateClaudeUsageCache,
+    });
+
+    // First GET — callCount becomes 1
+    const first = await fetch(`${baseUrl}/api/claude/usage`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    expect(first.status).toBe(200);
+    const firstBody = (await first.json()) as { primaryUsedPercent: number };
+    expect(firstBody.primaryUsedPercent).toBe(10);
+
+    // POST hook — should invalidate and warm cache
+    const hookResponse = await fetch(`${baseUrl}/api/hooks/session-start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "test-session" }),
+    });
+    expect(hookResponse.status).toBe(200);
+    expect(invalidateCalls.length).toBe(1);
+
+    // Next GET triggers a fresh read (callCount incremented again)
+    const second = await fetch(`${baseUrl}/api/claude/usage`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    expect(second.status).toBe(200);
+    const secondBody = (await second.json()) as { primaryUsedPercent: number };
+    // callCount > 2 confirms the warm call + this GET both invoked the reader
+    expect(secondBody.primaryUsedPercent).toBeGreaterThan(10);
+  });
+
   it("returns 405 for unsupported methods on /api/github/summary", async () => {
     const baseUrl = await startServer({
       readGithubRepoSummary: async () => ({

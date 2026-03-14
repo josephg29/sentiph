@@ -1,7 +1,10 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 
-import { readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault } from "./claudeUsage";
+import {
+  invalidateUsageCache as invalidateUsageCacheDefault,
+  readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
+} from "./claudeUsage";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
@@ -17,6 +20,7 @@ export const createApiServer = ({
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
   monitorService,
+  invalidateClaudeUsageCache = invalidateUsageCacheDefault,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const resolvedWorkspaceCwd = workspaceCwd ?? resolve(process.cwd(), "../..");
@@ -46,6 +50,7 @@ export const createApiServer = ({
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     monitorService: monitorServiceWithDefault,
+    invalidateClaudeUsageCache,
     allowRemoteAccess,
   });
 

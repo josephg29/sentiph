@@ -60,6 +60,10 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 4%, transparent);
 }
 
+.active-agents-section--footer {
+  position: relative;
+}
+
 .active-agents-section-toggle {
   width: 100%;
   border: 0;
@@ -77,6 +81,26 @@
   align-items: center;
   gap: 0.52rem;
   text-align: left;
+}
+
+.active-agents-usage-refresh-btn {
+  position: absolute;
+  top: 0.32rem;
+  right: 1.6rem;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  color: var(--sidebar-text-muted);
+  cursor: pointer;
+  font-size: 0.88rem;
+  line-height: 1;
+  padding: 0.16rem 0.28rem;
+  border-radius: 3px;
+}
+
+.active-agents-usage-refresh-btn:hover {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
 .active-agents-section-toggle[data-expanded="false"] {
