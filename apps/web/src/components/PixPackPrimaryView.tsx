@@ -28,10 +28,19 @@ const COLORS = [
   { label: "Sunflower", hex: "#f5c542" },
 ] as const;
 
-const ACCESSORIES: { label: string; accessory: OctopusAccessory }[] = [
-  { label: "None", accessory: "none" },
-  { label: "Hair", accessory: "hair" },
+const HAIR_STYLES: { label: string; accessory: OctopusAccessory }[] = [
+  { label: "Long", accessory: "long" },
+  { label: "Mohawk", accessory: "mohawk" },
+  { label: "Side Sweep", accessory: "side-sweep" },
+  { label: "Curly", accessory: "curly" },
 ];
+
+const HAIR_COLORS = [
+  { label: "Brown", hex: "#4a2c0a" },
+  { label: "Black", hex: "#1a1a1a" },
+  { label: "Blond", hex: "#d4a833" },
+  { label: "White", hex: "#e0ddd5" },
+] as const;
 
 const SIZES: { label: string; scale: number }[] = [
   { label: "Small", scale: 7 },
@@ -76,14 +85,17 @@ export const PixPackPrimaryView = () => (
       ))}
     </div>
 
-    <h3 className="pixpack-section-title">Accessories</h3>
+    <h3 className="pixpack-section-title">Hair</h3>
     <div className="pixpack-grid">
-      {ACCESSORIES.map((a) => (
-        <div key={a.label} className="pixpack-card">
-          <OctopusGlyph animation="idle" accessory={a.accessory} />
-          <span className="pixpack-card-label">{a.label}</span>
-        </div>
-      ))}
+      {HAIR_STYLES.flatMap((s) =>
+        HAIR_COLORS.map((c) => (
+          <div key={`${s.label}-${c.label}`} className="pixpack-card">
+            <OctopusGlyph animation="idle" accessory={s.accessory} hairColor={c.hex} />
+            <span className="pixpack-card-label">{s.label}</span>
+            <span className="pixpack-card-hex">{c.label}</span>
+          </div>
+        )),
+      )}
     </div>
 
     <h3 className="pixpack-section-title">Sizes</h3>

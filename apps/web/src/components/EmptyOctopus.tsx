@@ -13,7 +13,7 @@ const DEFAULT_SCALE = 14; // CSS pixels per sprite pixel
 const BOUNCE_PAD = 2; // extra canvas rows reserved for vertical animations
 // Extra rows above the sprite for overlays (ZZZ, accessories).
 const ZZZ_PAD = 7; // sleepy ZZZ needs 7 rows
-const ACCESSORY_PAD = 3; // hair etc. needs 3 rows above the dome
+const ACCESSORY_PAD = 4; // tallest hair (mohawk/curly) reaches row -3
 const ZZZ_COLOR = "#7ec8e3"; // soft sky-blue for the floating z glyphs
 const HAIR_COLOR = "#4a2c0a"; // dark brown
 
@@ -325,19 +325,11 @@ const SPRITE_H = HEAD_TOP.length + FACE_NORMAL.length + HEAD_BODY.length + TENTA
 
 export type OctopusAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "bounce" | "float";
 export type OctopusExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
-export type OctopusAccessory = "none" | "hair";
+export type OctopusAccessory = "none" | "long" | "mohawk" | "side-sweep" | "curly";
 
 // ─── Accessories ──────────────────────────────────────────────────────────────
-// Pixel overlays drawn on top of the sprite. Coordinates are relative to
-// sprite row 0 (negative y = above the dome). Works with any animation/expression.
-
-// Hair — small quiff sitting on top of the dome.
-// prettier-ignore
-const HAIR_PIXELS: Array<[number, number]> = [
-                [7,-3],[8,-3],                   // tip
-         [6,-2],[7,-2],[8,-2],[9,-2],            // mid
-  [5,-1],[6,-1],[7,-1],[8,-1],[9,-1],[10,-1],    // base (covers dome top)
-];
+// Drawn as smooth vector shapes on the canvas (not pixel art) so they look
+// good at any scale. All drawing is relative to the dome center/top.
 
 const HEADS: Record<OctopusExpression, string[][]> = {
   normal:    buildHead(FACE_NORMAL),
@@ -419,20 +411,123 @@ function drawZZZ(ctx: CanvasRenderingContext2D, scale: number, zzzPhase: number)
   }
 }
 
-// Draw accessory overlay. Coordinates are relative to sprite row 0,
-// so they move with the sprite (respecting yOffset and topPad).
+// Draw accessory as smooth vector shapes on top of the pixel sprite.
+// Dome top-center is at sprite pixel (8, 0) — used as anchor for all accessories.
 function drawAccessory(
   ctx: CanvasRenderingContext2D,
   accessory: OctopusAccessory,
   scale: number,
   yOff: number,
+  hColor: string,
 ) {
   if (accessory === "none") return;
-  const pixels = accessory === "hair" ? HAIR_PIXELS : [];
-  ctx.fillStyle = HAIR_COLOR;
-  for (const [x, y] of pixels) {
-    ctx.fillRect(x * scale, (y + yOff) * scale, scale, scale);
+
+  // Dome geometry in canvas pixels
+  const domeL = 4 * scale; // dome outline left edge (col 4)
+  const domeR = 12 * scale; // dome outline right edge (col 12)
+  const domeCX = 8 * scale; // dome center x
+  const domeTop = yOff * scale; // dome top y (row 0 of sprite)
+  const domeW = domeR - domeL;
+
+  ctx.save();
+  ctx.fillStyle = hColor;
+
+  switch (accessory) {
+    case "long": {
+      // Long hair — cap on top, strands flow down OUTSIDE the body (not over the face).
+      // Body outline runs at col 1 (left) and col 14 (right).
+      const bodyL = 1 * scale; // left body outline
+      const bodyR = 15 * scale; // right body outline outer edge
+
+      // Cap on top of the dome
+      ctx.beginPath();
+      ctx.ellipse(domeCX, domeTop + scale * 0.5, domeW * 0.45, scale * 1.8, 0, Math.PI, 0);
+      ctx.fill();
+      // Left strand — runs along outside of left body edge
+      ctx.beginPath();
+      ctx.moveTo(domeL, domeTop);
+      ctx.quadraticCurveTo(bodyL - scale * 1.5, domeTop + scale * 2, bodyL - scale * 1.2, domeTop + scale * 9);
+      ctx.lineTo(bodyL, domeTop + scale * 9);
+      ctx.lineTo(bodyL, domeTop + scale * 1.5);
+      ctx.closePath();
+      ctx.fill();
+      // Right strand — mirror, outside right body edge
+      ctx.beginPath();
+      ctx.moveTo(domeR, domeTop);
+      ctx.quadraticCurveTo(bodyR + scale * 1.5, domeTop + scale * 2, bodyR + scale * 1.2, domeTop + scale * 9);
+      ctx.lineTo(bodyR, domeTop + scale * 9);
+      ctx.lineTo(bodyR, domeTop + scale * 1.5);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "mohawk": {
+      // Spiky ridge along the dome center — three pointed triangles.
+
+      const baseY = domeTop + scale * 0.3;
+      const spikes: Array<[number, number, number]> = [
+        [domeCX - domeW * 0.15, domeTop - scale * 2, domeW * 0.2], // left spike
+        [domeCX, domeTop - scale * 3.2, domeW * 0.22], // center spike (tallest)
+        [domeCX + domeW * 0.18, domeTop - scale * 2.2, domeW * 0.2], // right spike
+      ];
+      for (const [cx, tipY, halfW] of spikes) {
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, baseY);
+        ctx.lineTo(cx, tipY);
+        ctx.lineTo(cx + halfW, baseY);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Base strip connecting the spikes
+      ctx.beginPath();
+      ctx.ellipse(domeCX, baseY, domeW * 0.35, scale * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case "side-sweep": {
+      // Asymmetric bangs flowing to the left.
+
+      ctx.beginPath();
+      // Start from right side of dome
+      ctx.moveTo(domeCX + domeW * 0.2, domeTop + scale * 0.5);
+      // Sweep up and over to the left
+      ctx.quadraticCurveTo(domeCX, domeTop - scale * 2, domeL - scale * 1.5, domeTop - scale * 0.5);
+      // Bang tip curves down
+      ctx.quadraticCurveTo(domeL - scale * 2, domeTop + scale * 1.5, domeL - scale * 1, domeTop + scale * 3);
+      // Curve back along the dome edge
+      ctx.quadraticCurveTo(domeL - scale * 0.2, domeTop + scale * 2, domeL, domeTop + scale * 0.5);
+      // Follow dome top back to start
+      ctx.quadraticCurveTo(domeCX, domeTop + scale * 0.2, domeCX + domeW * 0.2, domeTop + scale * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "curly": {
+      // Big round poof — overlapping circles wider than the dome.
+
+      const poofY = domeTop - scale * 0.5;
+      const r = domeW * 0.22;
+      // Ring of overlapping circles forming a cloud shape
+      const centers: Array<[number, number]> = [
+        [domeCX - domeW * 0.25, poofY],
+        [domeCX, poofY - scale * 0.8],
+        [domeCX + domeW * 0.25, poofY],
+        [domeCX - domeW * 0.35, poofY - scale * 1.2],
+        [domeCX + domeW * 0.35, poofY - scale * 1.2],
+        [domeCX - domeW * 0.1, poofY - scale * 2],
+        [domeCX + domeW * 0.1, poofY - scale * 2],
+        [domeCX, poofY - scale * 2.5],
+      ];
+      for (const [cx, cy] of centers) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
   }
+
+  ctx.restore();
 }
 
 // ─── Animation builder ───────────────────────────────────────────────────────
@@ -469,6 +564,8 @@ type OctopusGlyphProps = {
   animation?: OctopusAnimation;
   expression?: OctopusExpression;
   accessory?: OctopusAccessory;
+  /** Hair color override. Default: dark brown. */
+  hairColor?: string;
   /** Override the pixel scale (CSS px per sprite pixel). Default: 14. */
   scale?: number;
   className?: string;
@@ -480,6 +577,7 @@ export const OctopusGlyph = ({
   animation = "sway",
   expression = "normal",
   accessory = "none",
+  hairColor = HAIR_COLOR,
   scale = DEFAULT_SCALE,
   className,
   color,
@@ -515,7 +613,7 @@ export const OctopusGlyph = ({
       drawSprite(ctx, accentColor, frame, head, scale, topPad);
       if (expression === "sleepy") drawZZZ(ctx, scale, zzzPhase);
       const yOff = (frame.yOffset ?? 0) + topPad;
-      drawAccessory(ctx, accessory, scale, yOff);
+      drawAccessory(ctx, accessory, scale, yOff, hairColor);
     };
 
     // Idle with no ZZZ: static, no interval.
@@ -542,7 +640,7 @@ export const OctopusGlyph = ({
     }, ms);
 
     return () => clearInterval(id);
-  }, [animation, expression, accessory, color, scale, topPad]);
+  }, [animation, expression, accessory, hairColor, color, scale, topPad]);
 
   return (
     <canvas
