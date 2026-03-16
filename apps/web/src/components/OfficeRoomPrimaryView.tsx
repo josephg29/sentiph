@@ -393,6 +393,322 @@ const ALL_VASES: AssetDrawFn[] = [
 ];
 
 // ═════════════════════════════════════════════════════════════
+// SHELF VARIATIONS
+// ═════════════════════════════════════════════════════════════
+
+const drawShelfBooks: AssetDrawFn = (ctx, sx, sy) => {
+  // Bracket left
+  rect(ctx, sx, sy + 5, 1, 2, "#5a4a3a");
+  rect(ctx, sx, sy + 5, 2, 1, "#5a4a3a");
+  // Bracket right
+  rect(ctx, sx + 13, sy + 5, 1, 2, "#5a4a3a");
+  rect(ctx, sx + 12, sy + 5, 2, 1, "#5a4a3a");
+  // Shelf plank
+  rect(ctx, sx, sy + 4, 14, 1, "#8a6830");
+  rect(ctx, sx, sy + 4, 14, 1, "#9a7840");
+  // Books
+  rect(ctx, sx + 1, sy, 2, 4, "#c83030"); // red
+  rect(ctx, sx + 3, sy + 1, 2, 3, "#3070c0"); // blue
+  rect(ctx, sx + 5, sy, 2, 4, "#30a050"); // green
+  rect(ctx, sx + 7, sy + 1, 3, 3, "#e0a020"); // yellow wide
+  rect(ctx, sx + 10, sy, 2, 4, "#8050b0"); // purple
+  // Book spines (highlights)
+  px(ctx, sx + 1, sy + 1, "#e04040");
+  px(ctx, sx + 3, sy + 2, "#4888d8");
+  px(ctx, sx + 5, sy + 1, "#40c068");
+  px(ctx, sx + 8, sy + 2, "#f0b830");
+  px(ctx, sx + 10, sy + 1, "#a070d0");
+};
+
+const drawShelfMug: AssetDrawFn = (ctx, sx, sy) => {
+  // Bracket left
+  rect(ctx, sx, sy + 5, 1, 2, "#5a4a3a");
+  rect(ctx, sx, sy + 5, 2, 1, "#5a4a3a");
+  // Bracket right
+  rect(ctx, sx + 11, sy + 5, 1, 2, "#5a4a3a");
+  rect(ctx, sx + 10, sy + 5, 2, 1, "#5a4a3a");
+  // Shelf plank
+  rect(ctx, sx, sy + 4, 12, 1, "#9a7840");
+  // Mug
+  rect(ctx, sx + 2, sy + 1, 3, 3, "#e0e0e0");
+  rect(ctx, sx + 5, sy + 2, 1, 1, "#e0e0e0"); // handle
+  px(ctx, sx + 3, sy + 2, "#c83030"); // heart on mug
+  // Steam
+  px(ctx, sx + 3, sy, "#c8c8c8");
+  px(ctx, sx + 2, sy - 1, "#b0b0b0");
+  // Small frame
+  rect(ctx, sx + 7, sy + 1, 3, 3, "#4a3420");
+  rect(ctx, sx + 8, sy + 2, 1, 1, "#70b0e0"); // tiny picture
+};
+
+const ALL_SHELVES: AssetDrawFn[] = [drawShelfBooks, drawShelfMug];
+
+// ═════════════════════════════════════════════════════════════
+// CAT VARIATIONS
+// ═════════════════════════════════════════════════════════════
+
+const drawCatSleeping: AssetDrawFn = (ctx, cx, cy) => {
+  const b = "#4a4a4a", h = "#606060", d = "#333333";
+  // Body — large curled oval
+  rect(ctx, cx + 3, cy + 6, 10, 5, b);
+  rect(ctx, cx + 2, cy + 7, 12, 3, b);
+  rect(ctx, cx + 4, cy + 5, 8, 1, b);
+  // Body highlight
+  rect(ctx, cx + 4, cy + 6, 6, 2, h);
+  // Head — resting on paws
+  rect(ctx, cx + 1, cy + 3, 6, 4, "#555555");
+  rect(ctx, cx + 2, cy + 2, 4, 1, "#555555");
+  // Head highlight
+  rect(ctx, cx + 2, cy + 3, 4, 2, h);
+  // Ears
+  rect(ctx, cx + 1, cy + 1, 2, 2, "#555555");
+  rect(ctx, cx + 5, cy + 1, 2, 2, "#555555");
+  px(ctx, cx + 1, cy + 1, h);
+  px(ctx, cx + 6, cy + 1, h);
+  // Inner ears
+  px(ctx, cx + 2, cy + 2, "#7a5050");
+  px(ctx, cx + 5, cy + 2, "#7a5050");
+  // Closed eyes — horizontal lines
+  rect(ctx, cx + 2, cy + 4, 2, 1, d);
+  rect(ctx, cx + 5, cy + 4, 2, 1, d);
+  // Nose
+  px(ctx, cx + 4, cy + 5, "#886060");
+  // Paws tucked under head
+  rect(ctx, cx, cy + 7, 2, 2, "#555555");
+  rect(ctx, cx + 1, cy + 7, 1, 1, h);
+  // (tail drawn separately with animation)
+  // ZZZ
+  px(ctx, cx + 7, cy + 1, "#7ec8e3");
+  px(ctx, cx + 8, cy + 1, "#7ec8e3");
+  px(ctx, cx + 8, cy + 2, "#7ec8e3");
+  px(ctx, cx + 7, cy + 2, "#7ec8e3");
+  px(ctx, cx + 7, cy + 3, "#7ec8e3");
+  px(ctx, cx + 8, cy + 3, "#7ec8e3");
+  px(ctx, cx + 10, cy, "#7ec8e3");
+  px(ctx, cx + 11, cy, "#7ec8e3");
+  px(ctx, cx + 11, cy + 1, "#7ec8e3");
+  px(ctx, cx + 10, cy + 1, "#7ec8e3");
+};
+
+const drawCatOrange: AssetDrawFn = (ctx, cx, cy) => {
+  const b = "#d08030", h = "#e8a048", d = "#b06820";
+  // Body
+  rect(ctx, cx + 3, cy + 6, 10, 5, b);
+  rect(ctx, cx + 2, cy + 7, 12, 3, b);
+  rect(ctx, cx + 4, cy + 5, 8, 1, b);
+  // Body highlight
+  rect(ctx, cx + 4, cy + 6, 6, 2, h);
+  // Stripes
+  rect(ctx, cx + 5, cy + 6, 1, 4, d);
+  rect(ctx, cx + 8, cy + 6, 1, 4, d);
+  rect(ctx, cx + 11, cy + 7, 1, 3, d);
+  // Head
+  rect(ctx, cx + 1, cy + 3, 6, 4, "#e09040");
+  rect(ctx, cx + 2, cy + 2, 4, 1, "#e09040");
+  rect(ctx, cx + 2, cy + 3, 4, 2, h);
+  // Ears
+  rect(ctx, cx + 1, cy + 1, 2, 2, "#e09040");
+  rect(ctx, cx + 5, cy + 1, 2, 2, "#e09040");
+  px(ctx, cx + 1, cy + 1, h);
+  px(ctx, cx + 6, cy + 1, h);
+  // Inner ears
+  px(ctx, cx + 2, cy + 2, "#f0a870");
+  px(ctx, cx + 5, cy + 2, "#f0a870");
+  // Closed eyes
+  rect(ctx, cx + 2, cy + 4, 2, 1, "#222222");
+  rect(ctx, cx + 5, cy + 4, 2, 1, "#222222");
+  // Nose
+  px(ctx, cx + 4, cy + 5, "#a06040");
+  // Mouth hint
+  px(ctx, cx + 3, cy + 6, "#c07030");
+  px(ctx, cx + 5, cy + 6, "#c07030");
+  // Paws
+  rect(ctx, cx, cy + 7, 2, 2, "#e09040");
+  rect(ctx, cx + 1, cy + 7, 1, 1, h);
+  // (tail drawn separately with animation)
+};
+
+const drawCatWhite: AssetDrawFn = (ctx, cx, cy) => {
+  const b = "#e8e4dc", h = "#f4f0e8", d = "#ccc8c0";
+  // Body
+  rect(ctx, cx + 3, cy + 6, 10, 5, b);
+  rect(ctx, cx + 2, cy + 7, 12, 3, b);
+  rect(ctx, cx + 4, cy + 5, 8, 1, b);
+  // Body highlight
+  rect(ctx, cx + 4, cy + 6, 6, 2, h);
+  // Shading
+  rect(ctx, cx + 10, cy + 8, 3, 2, d);
+  // Head
+  rect(ctx, cx + 1, cy + 3, 6, 4, "#f0ece4");
+  rect(ctx, cx + 2, cy + 2, 4, 1, "#f0ece4");
+  rect(ctx, cx + 2, cy + 3, 4, 2, h);
+  // Ears
+  rect(ctx, cx + 1, cy + 1, 2, 2, "#f0ece4");
+  rect(ctx, cx + 5, cy + 1, 2, 2, "#f0ece4");
+  // Inner ears — pink
+  px(ctx, cx + 2, cy + 2, "#f8b8b0");
+  px(ctx, cx + 5, cy + 2, "#f8b8b0");
+  // Closed eyes
+  rect(ctx, cx + 2, cy + 4, 2, 1, "#555555");
+  rect(ctx, cx + 5, cy + 4, 2, 1, "#555555");
+  // Nose — pink
+  px(ctx, cx + 4, cy + 5, "#f0a0a0");
+  // Whisker dots
+  px(ctx, cx + 1, cy + 5, "#cccccc");
+  px(ctx, cx + 7, cy + 5, "#cccccc");
+  // Paws
+  rect(ctx, cx, cy + 7, 2, 2, "#f0ece4");
+  rect(ctx, cx + 1, cy + 7, 1, 1, h);
+  // (tail drawn separately with animation)
+};
+
+const ALL_CATS: AssetDrawFn[] = [drawCatSleeping, drawCatOrange, drawCatWhite];
+
+// Animated tail — drawn on top of any cat. Color passed in.
+// 4 frames: resting, up, high, down
+type TailFrame = 0 | 1 | 2 | 3;
+function drawCatTail(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  color: string, tipColor: string,
+  frame: TailFrame,
+): void {
+  // Base of tail always at same spot
+  rect(ctx, cx + 12, cy + 8, 2, 1, color);
+  switch (frame) {
+    case 0: // resting — curled around body
+      rect(ctx, cx + 13, cy + 7, 2, 1, color);
+      rect(ctx, cx + 14, cy + 6, 1, 2, tipColor);
+      px(ctx, cx + 14, cy + 5, color);
+      break;
+    case 1: // lifted slightly
+      rect(ctx, cx + 13, cy + 7, 2, 1, color);
+      rect(ctx, cx + 14, cy + 5, 1, 2, tipColor);
+      px(ctx, cx + 14, cy + 4, color);
+      break;
+    case 2: // up high
+      rect(ctx, cx + 13, cy + 6, 1, 2, color);
+      rect(ctx, cx + 14, cy + 4, 1, 2, tipColor);
+      px(ctx, cx + 14, cy + 3, color);
+      break;
+    case 3: // swinging back down
+      rect(ctx, cx + 13, cy + 7, 2, 1, color);
+      rect(ctx, cx + 14, cy + 5, 1, 2, tipColor);
+      px(ctx, cx + 15, cy + 5, color);
+      break;
+  }
+}
+
+// Cat color palettes for tail drawing
+const CAT_TAIL_COLORS: Record<number, { color: string; tip: string }> = {
+  0: { color: "#4a4a4a", tip: "#333333" },   // grey
+  1: { color: "#d08030", tip: "#b06820" },   // orange
+  2: { color: "#e8e4dc", tip: "#ccc8c0" },   // white
+};
+
+// ═════════════════════════════════════════════════════════════
+// CEILING LIGHT VARIATIONS
+// ═════════════════════════════════════════════════════════════
+
+const drawPendantLight: AssetDrawFn = (ctx, lx, ly) => {
+  // Cord
+  rect(ctx, lx + 3, ly, 1, 5, "#3a3a3a");
+  // Shade — trapezoid approximated
+  rect(ctx, lx + 1, ly + 5, 5, 1, "#2a2a2a");
+  rect(ctx, lx, ly + 6, 7, 2, "#333333");
+  // Shade highlight
+  rect(ctx, lx + 1, ly + 6, 5, 1, "#444444");
+  // Bulb glow
+  rect(ctx, lx + 2, ly + 8, 3, 1, "#fff0a0");
+  px(ctx, lx + 3, ly + 9, "#ffe870");
+  // Light cone (subtle glow on wall below)
+  rect(ctx, lx + 1, ly + 10, 5, 1, "rgba(255,240,160,0.15)");
+  rect(ctx, lx, ly + 11, 7, 1, "rgba(255,240,160,0.08)");
+};
+
+const drawCeilingFan: AssetDrawFn = (ctx, fx, fy) => {
+  // Mount
+  rect(ctx, fx + 3, fy, 2, 2, "#5a5a5a");
+  // Rod
+  rect(ctx, fx + 3, fy + 2, 1, 2, "#4a4a4a");
+  // Motor housing
+  rect(ctx, fx + 2, fy + 4, 4, 2, "#6a6a6a");
+  rect(ctx, fx + 2, fy + 4, 4, 1, "#7a7a7a");
+  // Blades (horizontal spread)
+  rect(ctx, fx - 2, fy + 5, 5, 1, "#8a7040");
+  rect(ctx, fx + 5, fy + 5, 5, 1, "#8a7040");
+  // Blade highlights
+  rect(ctx, fx - 1, fy + 5, 3, 1, "#9a8050");
+  rect(ctx, fx + 6, fy + 5, 3, 1, "#9a8050");
+  // Pull chain
+  px(ctx, fx + 4, fy + 6, "#4a4a4a");
+  px(ctx, fx + 4, fy + 7, "#4a4a4a");
+  px(ctx, fx + 4, fy + 8, "#c0c0c0");
+};
+
+const drawHangingBulb: AssetDrawFn = (ctx, lx, ly) => {
+  // Long cord
+  rect(ctx, lx + 2, ly, 1, 7, "#2a2a2a");
+  // Socket
+  rect(ctx, lx + 1, ly + 7, 3, 1, "#3a3a3a");
+  // Bulb
+  rect(ctx, lx + 1, ly + 8, 3, 2, "#fff8d0");
+  px(ctx, lx + 2, ly + 10, "#fff0a0");
+  // Glow halo
+  px(ctx, lx, ly + 8, "rgba(255,240,160,0.2)");
+  px(ctx, lx + 4, ly + 8, "rgba(255,240,160,0.2)");
+  px(ctx, lx, ly + 9, "rgba(255,240,160,0.12)");
+  px(ctx, lx + 4, ly + 9, "rgba(255,240,160,0.12)");
+};
+
+const ALL_CEILING: AssetDrawFn[] = [drawPendantLight, drawCeilingFan, drawHangingBulb];
+
+// ═════════════════════════════════════════════════════════════
+// DESK + LAPTOP (front-facing, back of laptop toward viewer)
+// ═════════════════════════════════════════════════════════════
+
+const drawDeskLaptop: AssetDrawFn = (ctx, dx, dy) => {
+  // ── Desk — wide top, short thin legs ──
+  const legColor = "#7a5020";
+  // Short thin legs
+  rect(ctx, dx + 3, dy + 8, 2, 6, legColor);
+  rect(ctx, dx + 3, dy + 8, 1, 6, "#8a6030");
+  rect(ctx, dx + 39, dy + 8, 2, 6, legColor);
+  rect(ctx, dx + 40, dy + 8, 1, 6, "#5a3810");
+  // Crossbar
+  rect(ctx, dx + 5, dy + 11, 34, 1, "#5a3810");
+  // Wide thick top surface
+  rect(ctx, dx - 2, dy + 2, 48, 3, "#d89040"); // top face
+  rect(ctx, dx - 2, dy + 5, 48, 4, "#c08030"); // front face
+  rect(ctx, dx - 2, dy + 5, 48, 1, "#b87828"); // bevel
+  rect(ctx, dx - 2, dy + 8, 48, 1, "#a06820"); // shadow
+  // Grain on top
+  rect(ctx, dx + 3, dy + 2, 8, 1, "#e0a050");
+  rect(ctx, dx + 18, dy + 3, 10, 1, "#e0a050");
+  rect(ctx, dx + 34, dy + 2, 7, 1, "#e0a050");
+
+  // ── Laptop (back facing us) ──
+  // Base on desk
+  rect(ctx, dx + 12, dy, 20, 2, "#c8ccd2");
+  rect(ctx, dx + 13, dy, 18, 1, "#b4b8be");
+  rect(ctx, dx + 18, dy + 1, 8, 1, "#bcc0c6");
+  // Screen lid
+  rect(ctx, dx + 10, dy - 14, 24, 14, "#c8ccd2");
+  rect(ctx, dx + 10, dy - 14, 24, 1, "#9a9ea4");
+  rect(ctx, dx + 10, dy - 14, 1, 14, "#d4d8de");
+  rect(ctx, dx + 33, dy - 14, 1, 14, "#9a9ea4");
+  // Lid inset
+  rect(ctx, dx + 11, dy - 13, 22, 12, "#d4d8de");
+  // Logo
+  rect(ctx, dx + 19, dy - 9, 5, 4, "#b4b8be");
+  rect(ctx, dx + 20, dy - 8, 3, 2, "#9a9ea4");
+  // Screen glow
+  rect(ctx, dx + 11, dy - 1, 22, 1, "#a0d0ff");
+};
+
+const ALL_DESKS: AssetDrawFn[] = [drawDeskLaptop];
+
+// ═════════════════════════════════════════════════════════════
 // OCTOPUS OPTIONS
 // ═════════════════════════════════════════════════════════════
 
@@ -420,6 +736,11 @@ type RoomConfig = {
   floor: FloorDrawFn;
   window: AssetDrawFn;
   vase: AssetDrawFn;
+  shelf: AssetDrawFn | null;
+  cat: AssetDrawFn | null;
+  catIndex: number;
+  ceiling: AssetDrawFn | null;
+  desk: AssetDrawFn | null;
   octoColor: string;
   octoExpression: OctopusExpression;
   octoAnimation: OctopusAnimation;
@@ -439,6 +760,15 @@ function generateRoom(seed: number, index: number): RoomConfig {
     floor: pickRandom(ALL_FLOORS, rand).draw,
     window: pickRandom(ALL_WINDOWS, rand),
     vase: pickRandom(ALL_VASES, rand),
+    // Each optional asset has ~60% chance of appearing
+    shelf: rand() < 0.6 ? pickRandom(ALL_SHELVES, rand) : null,
+    ...(() => {
+      const ci = Math.floor(rand() * ALL_CATS.length);
+      const hasCat = rand() < 0.6;
+      return { cat: hasCat ? ALL_CATS[ci]! : null, catIndex: ci };
+    })(),
+    ceiling: rand() < 0.6 ? pickRandom(ALL_CEILING, rand) : null,
+    desk: rand() < 0.5 ? pickRandom(ALL_DESKS, rand) : null,
     octoColor: pickRandom(OCTO_COLORS, rand),
     octoExpression: pickRandom(OCTO_EXPRESSIONS, rand),
     octoAnimation: pickRandom(OCTO_ANIMATIONS, rand),
@@ -452,7 +782,7 @@ function generateRoom(seed: number, index: number): RoomConfig {
 // Floor starts at ~70% down the canvas
 const FLOOR_TOP = 44;
 
-function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
+function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig, frame = 0): void {
   const floorH = CH - FLOOR_TOP;
 
   // Wall
@@ -477,6 +807,55 @@ function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
   ctx.scale(vs, vs);
   cfg.vase(ctx, 0, 0);
   ctx.restore();
+
+  // Shelf — right side of wall, above vase
+  if (cfg.shelf) {
+    ctx.save();
+    ctx.translate(28 * S, 6 * S);
+    ctx.scale(0.7, 0.7);
+    cfg.shelf(ctx, 0, 0);
+    ctx.restore();
+  }
+
+  // Cat — on the floor, center
+  if (cfg.cat) {
+    const catX = 14;
+    const catY = FLOOR_TOP + 2;
+    const cs = 0.55;
+    ctx.save();
+    ctx.translate(catX * S, catY * S);
+    ctx.scale(cs, cs);
+    cfg.cat(ctx, 0, 0);
+    const tailColors = CAT_TAIL_COLORS[cfg.catIndex] ?? CAT_TAIL_COLORS[0]!;
+    drawCatTail(ctx, 0, 0, tailColors.color, tailColors.tip, (frame % 4) as TailFrame);
+    ctx.restore();
+  }
+
+  // Ceiling light/fan — top center
+  if (cfg.ceiling) {
+    ctx.save();
+    ctx.translate(20 * S, 0);
+    ctx.scale(0.75, 0.75);
+    cfg.ceiling(ctx, 0, 0);
+    ctx.restore();
+  }
+
+}
+
+// Foreground layer — drawn on top of the octopus overlay
+function drawForeground(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
+  if (cfg.desk) {
+    ctx.clearRect(0, 0, CW * S, CH * S);
+    const ds = 0.8;
+    // Desk spans from dx-2 to dx+48 = 50px wide at origin
+    const deskW = 50 * ds;
+    const offsetX = (CW * S - deskW * S) / 2 + 2 * ds * S;
+    ctx.save();
+    ctx.translate(offsetX, (FLOOR_TOP + 7) * S);
+    ctx.scale(ds, ds);
+    cfg.desk(ctx, 0, 0);
+    ctx.restore();
+  }
 }
 
 // ── Octopus positioning (as % of canvas) ─────────────────────
@@ -513,12 +892,23 @@ type RoomCellProps = {
 
 const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fgCanvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
+  const frameRef = useRef(0);
 
   useEffect(() => {
-    paintCanvas(canvasRef, (ctx) => drawCubicle(ctx, config));
+    paintCanvas(canvasRef, (ctx) => drawCubicle(ctx, config, 0));
+    if (config.desk) paintCanvas(fgCanvasRef, (ctx) => drawForeground(ctx, config));
+
+    if (!config.cat) return;
+
+    const id = setInterval(() => {
+      frameRef.current = (frameRef.current + 1) % 4;
+      paintCanvas(canvasRef, (ctx) => drawCubicle(ctx, config, frameRef.current));
+    }, 500);
+    return () => clearInterval(id);
   }, [config]);
 
   const beginEdit = useCallback(() => {
@@ -589,12 +979,14 @@ const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
         )}
       </div>
       <div className="officeroom-cell-body">
+        {/* Background: room, assets */}
         <canvas
           ref={canvasRef}
           width={CW * S}
           height={CH * S}
           className="officeroom-canvas"
         />
+        {/* Middle layer: octopus */}
         <div style={{
           position: "absolute",
           left: `${octoLeftPct}%`,
@@ -611,6 +1003,15 @@ const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
             className="officeroom-canvas"
           />
         </div>
+        {/* Foreground: desk + laptop (in front of octopus) */}
+        {config.desk && (
+          <canvas
+            ref={fgCanvasRef}
+            width={CW * S}
+            height={CH * S}
+            className="officeroom-canvas officeroom-fg"
+          />
+        )}
       </div>
       <div className="officeroom-cell-footer">
         <button className="officeroom-footer-btn" title="Review vault & context">
