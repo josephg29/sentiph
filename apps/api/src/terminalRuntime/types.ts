@@ -131,6 +131,7 @@ export type GitClientPullRequestSnapshot = Omit<
 };
 
 export type PersistedUiState = {
+  activePrimaryNav?: number;
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;

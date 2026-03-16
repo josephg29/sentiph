@@ -68,6 +68,7 @@ export type GitHubRepoSummarySnapshot = {
 };
 
 export type FrontendUiStateSnapshot = {
+  activePrimaryNav?: number;
   isAgentsSidebarVisible?: boolean;
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;

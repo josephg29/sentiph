@@ -506,6 +506,9 @@ export const createTerminalRuntime = ({
     readUiState,
 
     patchUiState(patch: PersistedUiState): PersistedUiState {
+      if (patch.activePrimaryNav !== undefined) {
+        uiState.activePrimaryNav = patch.activePrimaryNav;
+      }
       if (patch.isAgentsSidebarVisible !== undefined) {
         uiState.isAgentsSidebarVisible = patch.isAgentsSidebarVisible;
       }

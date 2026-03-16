@@ -348,6 +348,16 @@ export const parseUiStatePatch = (
   const record = payload as Record<string, unknown>;
   const patch: PersistedUiState = {};
 
+  if (record.activePrimaryNav !== undefined) {
+    if (typeof record.activePrimaryNav !== "number" || !Number.isInteger(record.activePrimaryNav) || record.activePrimaryNav < 1 || record.activePrimaryNav > 7) {
+      return {
+        patch: null,
+        error: "activePrimaryNav must be an integer between 1 and 7.",
+      };
+    }
+    patch.activePrimaryNav = record.activePrimaryNav;
+  }
+
   if (record.isAgentsSidebarVisible !== undefined) {
     if (typeof record.isAgentsSidebarVisible !== "boolean") {
       return {

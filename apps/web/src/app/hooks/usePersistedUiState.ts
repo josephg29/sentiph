@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
+import type { PrimaryNavIndex } from "../constants";
 import { DEFAULT_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
 import {
   DEFAULT_TENTACLE_COMPLETION_SOUND,
@@ -15,6 +16,8 @@ type UsePersistedUiStateOptions = {
 };
 
 type UsePersistedUiStateResult = {
+  activePrimaryNav: PrimaryNavIndex;
+  setActivePrimaryNav: Dispatch<SetStateAction<PrimaryNavIndex>>;
   isUiStateHydrated: boolean;
   setIsUiStateHydrated: Dispatch<SetStateAction<boolean>>;
   isAgentsSidebarVisible: boolean;
@@ -53,6 +56,7 @@ type UsePersistedUiStateResult = {
 export const usePersistedUiState = ({
   columns,
 }: UsePersistedUiStateOptions): UsePersistedUiStateResult => {
+  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
@@ -101,6 +105,10 @@ export const usePersistedUiState = ({
     (snapshot: FrontendUiStateSnapshot | null, nextColumns: TentacleView) => {
       if (!snapshot) {
         return;
+      }
+
+      if (snapshot.activePrimaryNav !== undefined && snapshot.activePrimaryNav >= 1 && snapshot.activePrimaryNav <= 7) {
+        setActivePrimaryNav(snapshot.activePrimaryNav as PrimaryNavIndex);
       }
 
       if (snapshot.isAgentsSidebarVisible !== undefined) {
@@ -179,6 +187,7 @@ export const usePersistedUiState = ({
 
     const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
     const payload: FrontendUiStateSnapshot = {
+      activePrimaryNav,
       isAgentsSidebarVisible,
       sidebarWidth: clampSidebarWidth(sidebarWidth),
       isActiveAgentsSectionExpanded,
@@ -221,6 +230,7 @@ export const usePersistedUiState = ({
       window.clearTimeout(timerId);
     };
   }, [
+    activePrimaryNav,
     columns,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
@@ -239,6 +249,8 @@ export const usePersistedUiState = ({
   ]);
 
   return {
+    activePrimaryNav,
+    setActivePrimaryNav,
     isUiStateHydrated,
     setIsUiStateHydrated,
     isAgentsSidebarVisible,

@@ -191,6 +191,10 @@ export const normalizeFrontendUiStateSnapshot = (
   }
 
   const nextState: FrontendUiStateSnapshot = {};
+  if (typeof record.activePrimaryNav === "number" && Number.isInteger(record.activePrimaryNav) && record.activePrimaryNav >= 1 && record.activePrimaryNav <= 7) {
+    nextState.activePrimaryNav = record.activePrimaryNav;
+  }
+
   if (typeof record.isAgentsSidebarVisible === "boolean") {
     nextState.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
   }

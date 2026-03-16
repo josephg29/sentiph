@@ -1,7 +1,6 @@
 import { buildTentacleColumns } from "@octogent/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { PrimaryNavIndex } from "./app/constants";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
@@ -43,7 +42,6 @@ export const App = () => {
   const [tentacleStates, setTentacleStates] = useState<Record<string, AgentRuntimeState>>({});
   const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
-  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
@@ -52,6 +50,8 @@ export const App = () => {
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
+    activePrimaryNav,
+    setActivePrimaryNav,
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
