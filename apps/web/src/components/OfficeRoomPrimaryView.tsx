@@ -462,10 +462,21 @@ function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
   // Baseboard
   rect(ctx, 0, FLOOR_TOP - 1, CW, 1, cfg.wall.baseboard);
   rect(ctx, 0, FLOOR_TOP, CW, 1, shadeHex(cfg.wall.baseboard, 0.15));
-  // Window — centered on wall, positioned higher
-  cfg.window(ctx, 4, 6);
-  // Vase — right side, sitting on floor
-  cfg.vase(ctx, 35, FLOOR_TOP - 6);
+  // Window — left side on wall, drawn at 80% scale
+  ctx.save();
+  const ws = 0.8;
+  ctx.translate(3 * S, 12 * S);
+  ctx.scale(ws, ws);
+  cfg.window(ctx, 0, 0);
+  ctx.restore();
+
+  // Vase — far right corner, drawn at 70% scale
+  ctx.save();
+  const vs = 0.7;
+  ctx.translate(38 * S, (FLOOR_TOP - 5) * S);
+  ctx.scale(vs, vs);
+  cfg.vase(ctx, 0, 0);
+  ctx.restore();
 }
 
 // ── Octopus positioning (as % of canvas) ─────────────────────
@@ -528,7 +539,7 @@ const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
   }, [name]);
 
   return (
-    <div className="officeroom-cell">
+    <div className="officeroom-cell" style={{ "--room-color": config.octoColor } as React.CSSProperties}>
       <div className={`officeroom-cell-header${editing ? " officeroom-cell-header--editing" : ""}`}>
         {editing ? (
           <input
@@ -600,6 +611,17 @@ const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
             className="officeroom-canvas"
           />
         </div>
+      </div>
+      <div className="officeroom-cell-footer">
+        <button className="officeroom-footer-btn" title="Review vault & context">
+          Review
+        </button>
+        <button className="officeroom-footer-btn" title="Address open todo items">
+          Todos
+        </button>
+        <button className="officeroom-footer-btn" title="Spawn a new agent">
+          Spawn
+        </button>
       </div>
     </div>
   );

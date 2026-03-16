@@ -21,7 +21,7 @@
   flex: 0 0 400px;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   border-right: 1px solid var(--border-subtle);
 }
@@ -40,10 +40,10 @@
   gap: 0.4rem;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--accent-primary) 92%, #ffffff) 0%,
-    var(--accent-primary) 100%
+    color-mix(in srgb, var(--room-color) 92%, #ffffff) 0%,
+    var(--room-color) 100%
   );
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #000000);
+  border-bottom: 1px solid color-mix(in srgb, var(--room-color) 70%, #000000);
 }
 
 .console-shell .officeroom-cell-header--editing {
@@ -62,7 +62,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: color-mix(in srgb, #000000 75%, var(--accent-primary));
+  color: color-mix(in srgb, #000000 75%, var(--room-color));
   cursor: text;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -83,8 +83,8 @@
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: color-mix(in srgb, #000000 75%, var(--accent-primary));
-  background: color-mix(in srgb, var(--accent-primary) 92%, #ffffff);
+  color: color-mix(in srgb, #000000 75%, var(--room-color));
+  background: color-mix(in srgb, var(--room-color) 92%, #ffffff);
   width: 100%;
   padding: 0 0.2rem;
   box-sizing: border-box;
@@ -127,4 +127,45 @@
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   display: block;
+}
+
+/* ── Footer (action buttons) ── */
+.console-shell .officeroom-cell-footer {
+  display: flex;
+  border-top: 1px solid color-mix(in srgb, var(--room-color) 30%, var(--border-subtle));
+}
+
+.console-shell .officeroom-footer-btn {
+  all: unset;
+  flex: 1 1 0;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0.5rem 0;
+  color: color-mix(in srgb, var(--room-color) 15%, #ffffff);
+  background: color-mix(in srgb, var(--room-color) 65%, #0a0a0a);
+  cursor: pointer;
+  /* Pixel-art bevel: light top+left, dark bottom+right */
+  border-top: 2px solid color-mix(in srgb, var(--room-color) 50%, #ffffff);
+  border-left: 2px solid color-mix(in srgb, var(--room-color) 40%, #ffffff);
+  border-bottom: 2px solid color-mix(in srgb, var(--room-color) 80%, #000000);
+  border-right: 2px solid color-mix(in srgb, var(--room-color) 70%, #000000);
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.console-shell .officeroom-footer-btn:hover {
+  background: color-mix(in srgb, var(--room-color) 80%, #0a0a0a);
+  color: #ffffff;
+}
+
+.console-shell .officeroom-footer-btn:active {
+  background: color-mix(in srgb, var(--room-color) 90%, #0a0a0a);
+  /* Invert bevel on press */
+  border-top: 2px solid color-mix(in srgb, var(--room-color) 80%, #000000);
+  border-left: 2px solid color-mix(in srgb, var(--room-color) 70%, #000000);
+  border-bottom: 2px solid color-mix(in srgb, var(--room-color) 50%, #ffffff);
+  border-right: 2px solid color-mix(in srgb, var(--room-color) 40%, #ffffff);
+  padding: calc(0.5rem + 1px) 1px calc(0.5rem - 1px) 1px;
 }
