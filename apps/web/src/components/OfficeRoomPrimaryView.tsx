@@ -1,17 +1,16 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { OctopusExpression, OctopusAnimation } from "./EmptyOctopus";
 import { OctopusGlyph } from "./EmptyOctopus";
+import { ActionButton } from "./ui/ActionButton";
 
 // ── PIXEL SCALE ──────────────────────────────────────────────
 const S = 6;
 
 // ── CUBICLE DIMENSIONS ───────────────────────────────────────
-const CW = 64;
-const CH = 48;
-const BRICK = 4;
-const TOTAL_W = CW + BRICK * 2;
-const TOTAL_H = CH + BRICK * 2;
+// Tall portrait ratio to suit the column layout
+const CW = 48;
+const CH = 64;
 
 // ── pixel helpers ──
 function rect(
@@ -56,44 +55,6 @@ function mulberry32(seed: number): () => number {
 
 function pickRandom<T>(arr: readonly T[], rand: () => number): T {
   return arr[Math.floor(rand() * arr.length)]!;
-}
-
-// ═════════════════════════════════════════════════════════════
-// BRICK BORDER
-// ═════════════════════════════════════════════════════════════
-
-function drawBricks(ctx: CanvasRenderingContext2D): void {
-  const brickW = 5;
-  const brickH = 3;
-  const mortar = "#3a2a1a";
-  const dark = "#8b4513";
-  const light = "#b5651d";
-
-  const drawBrickStrip = (
-    sx: number, sy: number, stripW: number, stripH: number,
-  ) => {
-    rect(ctx, sx, sy, stripW, stripH, mortar);
-    for (let row = 0; row < stripH; row += brickH) {
-      const isOdd = (row / brickH) % 2 !== 0;
-      let i = 0;
-      let x = isOdd ? -(brickW >> 1) : 0;
-      while (x < stripW) {
-        const bx = Math.max(x, 0);
-        const drawW = Math.min(x + brickW - 1, stripW) - bx;
-        const drawH = Math.min(brickH - 1, stripH - row);
-        if (drawW > 0 && drawH > 0) {
-          rect(ctx, sx + bx, sy + row, drawW, drawH, i % 2 === 0 ? dark : light);
-        }
-        x += brickW;
-        i++;
-      }
-    }
-  };
-
-  drawBrickStrip(0, 0, TOTAL_W, BRICK);
-  drawBrickStrip(0, TOTAL_H - BRICK, TOTAL_W, BRICK);
-  drawBrickStrip(0, BRICK, BRICK, TOTAL_H - BRICK * 2);
-  drawBrickStrip(TOTAL_W - BRICK, BRICK, BRICK, TOTAL_H - BRICK * 2);
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -453,6 +414,8 @@ const OCTO_ANIMATIONS: OctopusAnimation[] = [
 // ═════════════════════════════════════════════════════════════
 
 type RoomConfig = {
+  id: string;
+  name: string;
   wall: WallPalette;
   floor: FloorDrawFn;
   window: AssetDrawFn;
@@ -462,9 +425,16 @@ type RoomConfig = {
   octoAnimation: OctopusAnimation;
 };
 
-function generateRoom(seed: number): RoomConfig {
+const DEPARTMENT_NAMES = [
+  "Frontend", "Backend", "Database", "Auth", "CLI",
+  "Docs", "SEO", "Infra", "Testing", "Design",
+];
+
+function generateRoom(seed: number, index: number): RoomConfig {
   const rand = mulberry32(seed);
   return {
+    id: `room-${index}`,
+    name: DEPARTMENT_NAMES[index % DEPARTMENT_NAMES.length]!,
     wall: pickRandom(WALLS, rand),
     floor: pickRandom(ALL_FLOORS, rand).draw,
     window: pickRandom(ALL_WINDOWS, rand),
@@ -479,29 +449,33 @@ function generateRoom(seed: number): RoomConfig {
 // DRAW A FULL CUBICLE FROM CONFIG
 // ═════════════════════════════════════════════════════════════
 
-function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
-  const ox = BRICK, oy = BRICK;
-  const floorTop = 34;
-  const floorH = CH - floorTop;
+// Floor starts at ~70% down the canvas
+const FLOOR_TOP = 44;
 
-  drawBricks(ctx);
-  rect(ctx, ox, oy, CW, floorTop, cfg.wall.base);
-  cfg.floor(ctx, ox, oy + floorTop, CW, floorH);
-  rect(ctx, ox, oy + floorTop - 1, CW, 1, cfg.wall.baseboard);
-  rect(ctx, ox, oy + floorTop, CW, 1, shadeHex(cfg.wall.baseboard, 0.15));
-  cfg.window(ctx, ox + 6, oy + 4);
-  cfg.vase(ctx, ox + 50, oy + 24);
+function drawCubicle(ctx: CanvasRenderingContext2D, cfg: RoomConfig): void {
+  const floorH = CH - FLOOR_TOP;
+
+  // Wall
+  rect(ctx, 0, 0, CW, FLOOR_TOP, cfg.wall.base);
+  // Floor
+  cfg.floor(ctx, 0, FLOOR_TOP, CW, floorH);
+  // Baseboard
+  rect(ctx, 0, FLOOR_TOP - 1, CW, 1, cfg.wall.baseboard);
+  rect(ctx, 0, FLOOR_TOP, CW, 1, shadeHex(cfg.wall.baseboard, 0.15));
+  // Window — centered on wall, positioned higher
+  cfg.window(ctx, 4, 6);
+  // Vase — right side, sitting on floor
+  cfg.vase(ctx, 35, FLOOR_TOP - 6);
 }
 
-// ── Octopus positioning (as % of total cubicle) ─────────────
-const OCTO_SCALE = 12;
+// ── Octopus positioning (as % of canvas) ─────────────────────
+const OCTO_SCALE = 8;
 const OCTO_SPRITE_W = 16;
 const OCTO_SPRITE_H = 14 + 2;
-const octoLeftPct = ((BRICK * S + (CW * S - OCTO_SPRITE_W * OCTO_SCALE) / 2) / (TOTAL_W * S)) * 100;
-const octoTopPct = (((BRICK + 34) * S - OCTO_SPRITE_H * OCTO_SCALE + 2 * OCTO_SCALE) / (TOTAL_H * S)) * 100;
-// Octopus native size as % of cubicle
-const octoWPct = ((OCTO_SPRITE_W * OCTO_SCALE) / (TOTAL_W * S)) * 100;
-const octoHPct = ((OCTO_SPRITE_H * OCTO_SCALE) / (TOTAL_H * S)) * 100;
+const octoLeftPct = (((CW * S - OCTO_SPRITE_W * OCTO_SCALE) / 2) / (CW * S)) * 100;
+const octoTopPct = ((FLOOR_TOP * S - OCTO_SPRITE_H * OCTO_SCALE + 2 * OCTO_SCALE) / (CH * S)) * 100;
+const octoWPct = ((OCTO_SPRITE_W * OCTO_SCALE) / (CW * S)) * 100;
+const octoHPct = ((OCTO_SPRITE_H * OCTO_SCALE) / (CH * S)) * 100;
 
 // ═════════════════════════════════════════════════════════════
 // SINGLE ROOM CELL COMPONENT
@@ -519,36 +493,113 @@ function paintCanvas(
   fn(ctx);
 }
 
-const RoomCell = ({ config }: { config: RoomConfig }) => {
+type RoomCellProps = {
+  config: RoomConfig;
+  name: string;
+  onRename: (id: string, newName: string) => void;
+  onDelete: (id: string) => void;
+};
+
+const RoomCell = ({ config, name, onRename, onDelete }: RoomCellProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
 
   useEffect(() => {
     paintCanvas(canvasRef, (ctx) => drawCubicle(ctx, config));
   }, [config]);
 
+  const beginEdit = useCallback(() => {
+    setDraft(name);
+    setEditing(true);
+    requestAnimationFrame(() => inputRef.current?.select());
+  }, [name]);
+
+  const submitEdit = useCallback(() => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== name) onRename(config.id, trimmed);
+  }, [draft, name, config.id, onRename]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setDraft(name);
+  }, [name]);
+
   return (
     <div className="officeroom-cell">
-      <canvas
-        ref={canvasRef}
-        width={TOTAL_W * S}
-        height={TOTAL_H * S}
-        className="officeroom-canvas"
-      />
-      <div style={{
-        position: "absolute",
-        left: `${octoLeftPct}%`,
-        top: `${octoTopPct}%`,
-        width: `${octoWPct}%`,
-        height: `${octoHPct}%`,
-        pointerEvents: "none",
-      }}>
-        <OctopusGlyph
-          animation={config.octoAnimation}
-          expression={config.octoExpression}
-          color={config.octoColor}
-          scale={OCTO_SCALE}
+      <div className={`officeroom-cell-header${editing ? " officeroom-cell-header--editing" : ""}`}>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="officeroom-name-editor"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={submitEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitEdit();
+              if (e.key === "Escape") cancelEdit();
+            }}
+            autoFocus
+          />
+        ) : (
+          <>
+            <span className="officeroom-cell-heading">
+              <button
+                className="officeroom-name-display"
+                onClick={beginEdit}
+                title="Click to rename"
+              >
+                {name}
+              </button>
+            </span>
+            <span className="officeroom-header-actions">
+              <ActionButton
+                aria-label={`Rename ${name}`}
+                className="officeroom-action-rename"
+                onClick={beginEdit}
+                size="dense"
+                variant="accent"
+              >
+                Rename
+              </ActionButton>
+              <ActionButton
+                aria-label={`Delete ${name}`}
+                className="officeroom-action-delete"
+                onClick={() => onDelete(config.id)}
+                size="dense"
+                variant="danger"
+              >
+                Delete
+              </ActionButton>
+            </span>
+          </>
+        )}
+      </div>
+      <div className="officeroom-cell-body">
+        <canvas
+          ref={canvasRef}
+          width={CW * S}
+          height={CH * S}
           className="officeroom-canvas"
         />
+        <div style={{
+          position: "absolute",
+          left: `${octoLeftPct}%`,
+          top: `${octoTopPct}%`,
+          width: `${octoWPct}%`,
+          height: `${octoHPct}%`,
+          pointerEvents: "none",
+        }}>
+          <OctopusGlyph
+            animation={config.octoAnimation}
+            expression={config.octoExpression}
+            color={config.octoColor}
+            scale={OCTO_SCALE}
+            className="officeroom-canvas"
+          />
+        </div>
       </div>
     </div>
   );
@@ -560,15 +611,51 @@ const RoomCell = ({ config }: { config: RoomConfig }) => {
 
 export const OfficeRoomPrimaryView = () => {
   const rooms = useMemo(
-    () => Array.from({ length: 10 }, (_, i) => generateRoom(i * 1337 + 42)),
+    () => Array.from({ length: 10 }, (_, i) => generateRoom(i * 1337 + 42, i)),
     [],
   );
 
+  const [names, setNames] = useState<Record<string, string>>(() =>
+    Object.fromEntries(rooms.map((r) => [r.id, r.name])),
+  );
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  const handleRename = useCallback((id: string, newName: string) => {
+    setNames((prev) => ({ ...prev, [id]: newName }));
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
+    setDeletedIds((prev) => new Set(prev).add(id));
+  }, []);
+
+  const visibleRooms = rooms.filter((r) => !deletedIds.has(r.id));
+
+  const viewRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = viewRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   return (
-    <section className="officeroom-view">
+    <section className="officeroom-view" ref={viewRef}>
       <div className="officeroom-rooms-grid">
-        {rooms.map((cfg, i) => (
-          <RoomCell key={i} config={cfg} />
+        {visibleRooms.map((cfg) => (
+          <RoomCell
+            key={cfg.id}
+            config={cfg}
+            name={names[cfg.id] ?? cfg.name}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
     </section>
