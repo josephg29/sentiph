@@ -15,7 +15,7 @@ import type {
 } from "../app/types";
 import { TENTACLE_MIN_WIDTH } from "../layout/tentaclePaneSizing";
 import type { AgentRuntimeState } from "./AgentStateBadge";
-import { EmptyOctopus } from "./EmptyOctopus";
+import { OctopusGlyph } from "./EmptyOctopus";
 import { TentacleTerminal } from "./TentacleTerminal";
 import { ActionButton } from "./ui/ActionButton";
 
@@ -194,7 +194,7 @@ export const TentacleBoard = ({
 
       {!isLoading && columns.length === 0 && (
         <section className="empty-state" aria-label="Empty state">
-          <EmptyOctopus />
+          <OctopusGlyph animation="bounce" className="octopus-svg" testId="empty-octopus" />
           <h2>No active tentacles</h2>
           <p>When agents start, tentacles will appear here.</p>
           {loadError && <p className="empty-state-subtle">{loadError}</p>}
