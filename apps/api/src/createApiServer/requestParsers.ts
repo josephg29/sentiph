@@ -349,10 +349,10 @@ export const parseUiStatePatch = (
   const patch: PersistedUiState = {};
 
   if (record.activePrimaryNav !== undefined) {
-    if (typeof record.activePrimaryNav !== "number" || !Number.isInteger(record.activePrimaryNav) || record.activePrimaryNav < 1 || record.activePrimaryNav > 7) {
+    if (typeof record.activePrimaryNav !== "number" || !Number.isInteger(record.activePrimaryNav) || record.activePrimaryNav < 1) {
       return {
         patch: null,
-        error: "activePrimaryNav must be an integer between 1 and 7.",
+        error: "activePrimaryNav must be a positive integer.",
       };
     }
     patch.activePrimaryNav = record.activePrimaryNav;

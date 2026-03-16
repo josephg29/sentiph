@@ -1,6 +1,4 @@
-import type { PrimaryNavIndex } from "./constants";
-
-const PRIMARY_NAV_KEY_PATTERN = /^[1-8]$/;
+import { PRIMARY_NAV_MAX, type PrimaryNavIndex } from "./constants";
 const MAX_TICKER_QUERY_LENGTH = 16;
 const TICKER_QUERY_ALLOWED_PATTERN = /[^A-Z0-9._/-]/g;
 
@@ -21,11 +19,12 @@ export const isEditableEventTarget = (target: EventTarget | null): boolean => {
 };
 
 export const parsePrimaryNavKey = (key: string): PrimaryNavIndex | null => {
-  if (!PRIMARY_NAV_KEY_PATTERN.test(key)) {
+  const n = Number.parseInt(key, 10);
+  if (Number.isNaN(n) || n < 1 || n > PRIMARY_NAV_MAX) {
     return null;
   }
 
-  return Number.parseInt(key, 10) as PrimaryNavIndex;
+  return n as PrimaryNavIndex;
 };
 
 export const normalizeTickerQueryInput = (value: string): string =>

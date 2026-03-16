@@ -1,4 +1,4 @@
-import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./constants";
+import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, PRIMARY_NAV_MAX } from "./constants";
 import { isTentacleCompletionSoundId } from "./notificationSounds";
 import type {
   ClaudeUsageSnapshot,
@@ -191,7 +191,7 @@ export const normalizeFrontendUiStateSnapshot = (
   }
 
   const nextState: FrontendUiStateSnapshot = {};
-  if (typeof record.activePrimaryNav === "number" && Number.isInteger(record.activePrimaryNav) && record.activePrimaryNav >= 1 && record.activePrimaryNav <= 7) {
+  if (typeof record.activePrimaryNav === "number" && Number.isInteger(record.activePrimaryNav) && record.activePrimaryNav >= 1 && record.activePrimaryNav <= PRIMARY_NAV_MAX) {
     nextState.activePrimaryNav = record.activePrimaryNav;
   }
 

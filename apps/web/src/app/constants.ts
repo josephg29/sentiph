@@ -24,4 +24,6 @@ export const GITHUB_SPARKLINE_HEIGHT = 36;
 export const GITHUB_OVERVIEW_GRAPH_WIDTH = 640;
 export const GITHUB_OVERVIEW_GRAPH_HEIGHT = 180;
 
+export const PRIMARY_NAV_MAX = PRIMARY_NAV_ITEMS.length;
+
 export type PrimaryNavIndex = (typeof PRIMARY_NAV_ITEMS)[number]["index"];
