@@ -1,0 +1,42 @@
+.console-shell .officeroom-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 2rem;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.console-shell .officeroom-header h2 {
+  font-family: var(--font-main);
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.console-shell .officeroom-canvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.console-shell .officeroom-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--border-subtle);
+  display: block;
+}
+
+.console-shell .officeroom-caption {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  margin: 0;
+}

@@ -434,30 +434,51 @@ function drawAccessory(
 
   switch (accessory) {
     case "long": {
-      // Long hair — cap on top, strands flow down OUTSIDE the body (not over the face).
-      // Body outline runs at col 1 (left) and col 14 (right).
-      const bodyL = 1 * scale; // left body outline
-      const bodyR = 15 * scale; // right body outline outer edge
+      // Long hair — dome cap, two wide straight strands, zigzag bangs with center part.
+      // Shaped like the pixel-art wig: covers top, frames face, strands reach tentacle area.
+      const hairTop = domeTop - scale * 1.5;
+      const strandEnd = domeTop + scale * 10.5;
+      const bangY = domeTop + scale * 2.5; // bang line, just above face/eyes
+      // Strand edges — inner edges align with dome outline
+      const lOut = scale * 0.5;
+      const lIn = domeL; // col 4
+      const rIn = domeR; // col 12
+      const rOut = scale * 15.5;
 
-      // Cap on top of the dome
+      // Single path for the entire hair shape
       ctx.beginPath();
-      ctx.ellipse(domeCX, domeTop + scale * 0.5, domeW * 0.45, scale * 1.8, 0, Math.PI, 0);
-      ctx.fill();
-      // Left strand — runs along outside of left body edge
-      ctx.beginPath();
-      ctx.moveTo(domeL, domeTop);
-      ctx.quadraticCurveTo(bodyL - scale * 1.5, domeTop + scale * 2, bodyL - scale * 1.2, domeTop + scale * 9);
-      ctx.lineTo(bodyL, domeTop + scale * 9);
-      ctx.lineTo(bodyL, domeTop + scale * 1.5);
+      // Top center
+      ctx.moveTo(domeCX, hairTop);
+      // Arc over to left
+      ctx.quadraticCurveTo(lOut, hairTop, lOut, domeTop + scale * 2);
+      // Left strand straight down
+      ctx.lineTo(lOut, strandEnd);
+      // Left strand bottom
+      ctx.lineTo(lIn, strandEnd);
+      // Left inner edge up to bangs
+      ctx.lineTo(lIn, bangY);
+      // Bangs — zigzag W with center part
+      ctx.lineTo(lIn + scale * 1.5, bangY + scale * 1.8);
+      ctx.lineTo(domeCX - scale * 0.5, bangY + scale * 0.5);
+      ctx.lineTo(domeCX, bangY + scale * 1.2); // center part dip
+      ctx.lineTo(domeCX + scale * 0.5, bangY + scale * 0.5);
+      ctx.lineTo(rIn - scale * 1.5, bangY + scale * 1.8);
+      // Right inner edge from bangs down
+      ctx.lineTo(rIn, bangY);
+      ctx.lineTo(rIn, strandEnd);
+      // Right strand bottom
+      ctx.lineTo(rOut, strandEnd);
+      // Right strand straight up
+      ctx.lineTo(rOut, domeTop + scale * 2);
+      // Arc back to top center
+      ctx.quadraticCurveTo(rOut, hairTop, domeCX, hairTop);
       ctx.closePath();
-      ctx.fill();
-      // Right strand — mirror, outside right body edge
-      ctx.beginPath();
-      ctx.moveTo(domeR, domeTop);
-      ctx.quadraticCurveTo(bodyR + scale * 1.5, domeTop + scale * 2, bodyR + scale * 1.2, domeTop + scale * 9);
-      ctx.lineTo(bodyR, domeTop + scale * 9);
-      ctx.lineTo(bodyR, domeTop + scale * 1.5);
-      ctx.closePath();
+
+      // Outline first (drawn behind fill via stroke order)
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
+      ctx.lineWidth = scale * 0.6;
+      ctx.stroke();
+      // Fill on top
       ctx.fill();
       break;
     }
@@ -503,20 +524,35 @@ function drawAccessory(
       break;
     }
     case "curly": {
-      // Big round poof — overlapping circles wider than the dome.
-
-      const poofY = domeTop - scale * 0.5;
-      const r = domeW * 0.22;
-      // Ring of overlapping circles forming a cloud shape
+      // Curly poof — many small bumpy circles forming a textured cloud.
+      // Smaller radius so individual curls are visible, packed densely.
+      const r = domeW * 0.18;
       const centers: Array<[number, number]> = [
-        [domeCX - domeW * 0.25, poofY],
-        [domeCX, poofY - scale * 0.8],
-        [domeCX + domeW * 0.25, poofY],
-        [domeCX - domeW * 0.35, poofY - scale * 1.2],
-        [domeCX + domeW * 0.35, poofY - scale * 1.2],
-        [domeCX - domeW * 0.1, poofY - scale * 2],
-        [domeCX + domeW * 0.1, poofY - scale * 2],
-        [domeCX, poofY - scale * 2.5],
+        // Bottom row — wide, covers head sides
+        [domeCX - domeW * 0.5, domeTop + scale * 1.2],
+        [domeCX - domeW * 0.25, domeTop + scale * 1.2],
+        [domeCX, domeTop + scale * 1.2],
+        [domeCX + domeW * 0.25, domeTop + scale * 1.2],
+        [domeCX + domeW * 0.5, domeTop + scale * 1.2],
+        // Row 2
+        [domeCX - domeW * 0.5, domeTop + scale * 0.3],
+        [domeCX - domeW * 0.2, domeTop + scale * 0.3],
+        [domeCX + domeW * 0.2, domeTop + scale * 0.3],
+        [domeCX + domeW * 0.5, domeTop + scale * 0.3],
+        // Row 3
+        [domeCX - domeW * 0.4, domeTop - scale * 0.3],
+        [domeCX - domeW * 0.12, domeTop - scale * 0.3],
+        [domeCX + domeW * 0.12, domeTop - scale * 0.3],
+        [domeCX + domeW * 0.4, domeTop - scale * 0.3],
+        // Row 3
+        [domeCX - domeW * 0.3, domeTop - scale * 1.1],
+        [domeCX, domeTop - scale * 1.1],
+        [domeCX + domeW * 0.3, domeTop - scale * 1.1],
+        // Row 4
+        [domeCX - domeW * 0.18, domeTop - scale * 1.8],
+        [domeCX + domeW * 0.18, domeTop - scale * 1.8],
+        // Top
+        [domeCX, domeTop - scale * 2.4],
       ];
       for (const [cx, cy] of centers) {
         ctx.beginPath();

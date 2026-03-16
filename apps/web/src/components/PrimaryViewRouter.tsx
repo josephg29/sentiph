@@ -6,6 +6,7 @@ import type { AgentRuntimeState } from "./AgentStateBadge";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
+import { OfficeRoomPrimaryView } from "./OfficeRoomPrimaryView";
 import { PixPackPrimaryView } from "./PixPackPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
@@ -104,6 +105,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 7) {
     return <PixPackPrimaryView />;
+  }
+
+  if (activePrimaryNav === 8) {
+    return <OfficeRoomPrimaryView />;
   }
 
   return <TentacleBoard {...tentacleBoardProps} />;
