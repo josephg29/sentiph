@@ -1,41 +1,136 @@
+import { useEffect, useRef } from "react";
+
+/*
+ * Pixel-art octopus rendered via Canvas 2D.
+ * Shape based on classic pixel ghost/invader: outlined dome, square eyes,
+ * jagged 3-tooth tentacle bottom.
+ *
+ * Sprite is 14 × 15 pixels, drawn at SCALE px per pixel.
+ */
+
+const SCALE = 14; // CSS pixels per sprite pixel
+
+const B = "B"; // body (accent fill)
+const O = "O"; // outline (dark)
+const E = "E"; // eye (dark)
+const _ = ""; // transparent
+
+// Full body — outlined dome with square eyes, jagged bottom with 3 teeth.
+// prettier-ignore
+const HEAD: string[][] = [
+  [_,_,_,_,O,O,O,O,O,O,_,_,_,_], // 0
+  [_,_,_,O,B,B,B,B,B,B,O,_,_,_], // 1
+  [_,_,O,B,B,B,B,B,B,B,B,O,_,_], // 2
+  [_,O,B,B,B,B,B,B,B,B,B,B,O,_], // 3
+  [_,O,B,E,E,B,B,B,B,E,E,B,O,_], // 4  eyes
+  [_,O,B,E,E,B,B,B,B,E,E,B,O,_], // 5  eyes
+  [_,O,B,B,B,B,B,B,B,B,B,B,O,_], // 6
+  [_,O,B,B,B,B,B,B,B,B,B,B,O,_], // 7
+  [_,O,B,B,B,B,B,B,B,B,B,B,O,_], // 8
+  [_,O,B,B,B,B,B,B,B,B,B,B,O,_], // 9
+];
+
+// Static tentacle split — always drawn.
+// prettier-ignore
+const TENTACLE_TOP: string[][] = [
+  [_,O,B,B,O,O,B,B,O,O,B,B,O,_], // 10  three equal splits
+];
+
+// 3-tooth rectangular bottom — neutral (square ghost-style bumps).
+// prettier-ignore
+const TAIL_NEUTRAL: string[][] = [
+  [_,O,B,B,O,O,B,B,O,O,B,B,O,_], // 11
+  [_,O,B,B,O,O,B,B,O,O,B,B,O,_], // 12
+  [_,_,O,O,_,_,O,O,_,_,O,O,_,_], // 13  bottom caps
+];
+
+// prettier-ignore
+const TAIL_RIGHT: string[][] = [
+  [_,_,O,B,B,O,O,B,B,O,O,B,B,O], // 11  shifted right
+  [_,_,O,B,B,O,O,B,B,O,O,B,B,O], // 12
+  [_,_,_,O,O,_,_,O,O,_,_,O,O,_], // 13
+];
+
+// prettier-ignore
+const TAIL_LEFT: string[][] = [
+  [O,B,B,O,O,B,B,O,O,B,B,O,_,_], // 11  shifted left
+  [O,B,B,O,O,B,B,O,O,B,B,O,_,_], // 12
+  [_,O,O,_,_,O,O,_,_,O,O,_,_,_], // 13
+];
+
+// center → right → center → left → repeat
+const TAIL_FRAMES = [TAIL_NEUTRAL, TAIL_RIGHT, TAIL_NEUTRAL, TAIL_LEFT];
+const FRAME_MS = 350;
+
+const SPRITE_W = 14;
+const SPRITE_H = HEAD.length + TENTACLE_TOP.length + TAIL_NEUTRAL.length;
+
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  accentColor: string,
+  tailFrame: string[][],
+) {
+  ctx.clearRect(0, 0, SPRITE_W * SCALE, SPRITE_H * SCALE);
+
+  const layers = [...HEAD, ...TENTACLE_TOP, ...tailFrame];
+  for (let y = 0; y < layers.length; y++) {
+    const row = layers[y]!;
+    for (let x = 0; x < row.length; x++) {
+      const cell = row[x];
+      if (!cell) continue;
+      ctx.fillStyle =
+        cell === E || cell === O ? "#000000" : accentColor;
+      ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+    }
+  }
+}
+
 type OctopusGlyphProps = {
-  className: string;
+  animated?: boolean;
+  className?: string;
+  color?: string;
   testId?: string;
 };
 
-export const OctopusGlyph = ({ className, testId }: OctopusGlyphProps) => {
+export const OctopusGlyph = ({ animated = true, className, color, testId }: OctopusGlyphProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = false;
+
+    const accentColor =
+      color ??
+      (getComputedStyle(document.documentElement)
+        .getPropertyValue("--accent-primary")
+        .trim() || "#d4a017");
+
+    drawSprite(ctx, accentColor, TAIL_FRAMES[frameRef.current]!);
+
+    if (!animated) return;
+
+    const id = setInterval(() => {
+      frameRef.current = (frameRef.current + 1) % TAIL_FRAMES.length;
+      drawSprite(ctx, accentColor, TAIL_FRAMES[frameRef.current]!);
+    }, FRAME_MS);
+
+    return () => clearInterval(id);
+  }, [animated, color]);
+
   return (
-    <svg className={className} viewBox="0 0 160 160" data-testid={testId} aria-hidden="true">
-      <g className="octopus-tentacle-group octopus-tentacle-1">
-        <path d="M80 42 C76 34 83 28 80 22" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-2">
-        <path d="M105 53 C110 48 113 45 118 40" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-3">
-        <path d="M114 80 C121 77 126 83 132 80" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-4">
-        <path d="M105 107 C110 112 113 115 118 120" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-5">
-        <path d="M80 118 C84 126 77 132 80 138" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-6">
-        <path d="M55 107 C50 112 47 115 42 120" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-7">
-        <path d="M46 80 C39 83 34 77 28 80" className="octopus-tentacle-path" />
-      </g>
-      <g className="octopus-tentacle-group octopus-tentacle-8">
-        <path d="M55 53 C50 48 47 45 42 40" className="octopus-tentacle-path" />
-      </g>
-
-      <circle cx="80" cy="80" r="38" className="octopus-head-fill octopus-stroke" />
-
-      <circle cx="67" cy="80" r="6" className="octopus-eye-dot" />
-      <circle cx="93" cy="80" r="6" className="octopus-eye-dot" />
-    </svg>
+    <canvas
+      ref={canvasRef}
+      className={className}
+      width={SPRITE_W * SCALE}
+      height={SPRITE_H * SCALE}
+      data-testid={testId}
+      aria-hidden="true"
+    />
   );
 };
 

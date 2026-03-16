@@ -34,18 +34,11 @@
 }
 
 .chrome-octopus {
+  display: block;
   width: 1.2rem;
-  height: 1.2rem;
+  height: auto;
   margin: 0;
-  overflow: visible;
-}
-
-.chrome-octopus .octopus-tentacle-path {
-  stroke-width: 4.2;
-}
-
-.chrome-octopus .octopus-stroke {
-  stroke-width: 1;
+  image-rendering: pixelated;
 }
 
 .chrome-right {

@@ -8,80 +8,17 @@
   text-align: center;
 }
 
+/*
+ * Canvas-based pixel art octopus — uses imageSmoothingEnabled=false for
+ * crisp pixel rendering. The canvas element is sized by its pixel content;
+ * we constrain it via max-width so it fits the empty-state area.
+ */
 .octopus-svg {
-  width: 220px;
-  height: 220px;
+  display: block;
+  max-width: 220px;
+  height: auto;
   margin: 0 auto 0.9rem;
-  overflow: visible;
-}
-
-.octopus-head-fill {
-  fill: var(--accent-primary);
-}
-
-.octopus-stroke {
-  stroke: color-mix(in srgb, var(--accent-primary) 55%, #ffffff 45%);
-  stroke-width: 1.4;
-}
-
-.octopus-eye-dot {
-  fill: #000000;
-}
-
-.octopus-tentacle-path {
-  fill: none;
-  stroke: var(--accent-primary);
-  stroke-width: 9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.octopus-tentacle-group {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: tentacleWiggle 2.1s ease-in-out infinite;
-}
-
-.octopus-tentacle-1 {
-  animation-delay: 0s;
-}
-
-.octopus-tentacle-2 {
-  animation-delay: 0.12s;
-}
-
-.octopus-tentacle-3 {
-  animation-delay: 0.24s;
-}
-
-.octopus-tentacle-4 {
-  animation-delay: 0.36s;
-}
-
-.octopus-tentacle-5 {
-  animation-delay: 0.48s;
-}
-
-.octopus-tentacle-6 {
-  animation-delay: 0.6s;
-}
-
-.octopus-tentacle-7 {
-  animation-delay: 0.72s;
-}
-
-.octopus-tentacle-8 {
-  animation-delay: 0.84s;
-}
-
-@keyframes tentacleWiggle {
-  0%,
-  100% {
-    transform: rotate(-5deg) scale(1);
-  }
-  50% {
-    transform: rotate(5deg) scale(1.03);
-  }
+  image-rendering: pixelated;
 }
 
 .empty-state h2 {
