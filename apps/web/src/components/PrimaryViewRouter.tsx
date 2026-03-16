@@ -7,7 +7,6 @@ import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { OfficeRoomPrimaryView } from "./OfficeRoomPrimaryView";
-import { PixPackPrimaryView } from "./PixPackPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { TentacleBoard } from "./TentacleBoard";
@@ -104,10 +103,6 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 7) {
-    return <PixPackPrimaryView />;
-  }
-
-  if (activePrimaryNav === 8) {
     return <OfficeRoomPrimaryView />;
   }
 
