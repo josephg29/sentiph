@@ -14,7 +14,6 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 4, label: "Conversations" },
   { index: 5, label: "Settings" },
   { index: 6, label: "Sandbox" },
-  { index: 7, label: "Floor" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;
