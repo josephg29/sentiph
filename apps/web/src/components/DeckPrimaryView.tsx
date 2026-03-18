@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
+import type { TentacleAgentProvider } from "../app/types";
 import { buildDeckTentaclesUrl, buildDeckVaultFileUrl } from "../runtime/runtimeEndpoints";
 import {
   type OctopusAccessory,
@@ -9,6 +10,11 @@ import {
   OctopusGlyph,
 } from "./EmptyOctopus";
 import { MarkdownContent } from "./ui/MarkdownContent";
+
+const AGENT_PROVIDER_OPTIONS: { value: TentacleAgentProvider; label: string }[] = [
+  { value: "claude-code", label: "Claude Code" },
+  { value: "codex", label: "Codex" },
+];
 
 // ─── Octopus visual derivation (seeded from tentacle id) ────────────────────
 
@@ -303,13 +309,113 @@ export const DeckPrimaryView = () => {
 
   const mode = focus ? "detail" : "grid";
 
+  const [selectedAgent, setSelectedAgent] = useState<TentacleAgentProvider>("claude-code");
+  const [agentMenuOpen, setAgentMenuOpen] = useState(false);
+  const agentMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!agentMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (agentMenuRef.current && !agentMenuRef.current.contains(e.target as Node)) {
+        setAgentMenuOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAgentMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [agentMenuOpen]);
+
   if (tentacles.length === 0) {
     return (
       <section className="deck-view" data-mode="grid" aria-label="Deck">
-        <div className="deck-pods-container">
-          <div className="deck-empty-state">
-            No tentacles yet. Create a folder in <code>.octogent/tentacles/</code> with a{" "}
-            <code>tentacle.json</code> to get started.
+        <div className="deck-empty-state">
+          <div className="deck-empty-octopus">
+            <OctopusGlyph
+              color="#d4a017"
+              animation="walk"
+              expression="happy"
+              accessory="none"
+              scale={20}
+            />
+          </div>
+          <div className="deck-empty-actions">
+            <button type="button" className="deck-empty-card" onClick={() => {}}>
+              <div className="deck-empty-card-icon">
+                <OctopusGlyph
+                  color="#d4a017"
+                  animation="idle"
+                  expression="normal"
+                  accessory="none"
+                  scale={4}
+                />
+              </div>
+              <div className="deck-empty-card-text">
+                <span className="deck-empty-card-title">Create Main Tentacle</span>
+                <span className="deck-empty-card-desc">
+                  Set up the main default tentacle to work on your codebase
+                </span>
+              </div>
+            </button>
+            <div className="deck-empty-card" role="group">
+              <span className="deck-empty-card-icon deck-empty-card-icon--terminal">&gt;_</span>
+              <div className="deck-empty-card-text">
+                <span className="deck-empty-card-title">Open Agent</span>
+                <span className="deck-empty-card-desc">
+                  Launch your coding agent to create tentacles based on your codebase
+                </span>
+                <div className="deck-empty-agent-select-row">
+                <div className="deck-empty-agent-picker" ref={agentMenuRef}>
+                  <button
+                    type="button"
+                    className="deck-empty-agent-trigger"
+                    aria-expanded={agentMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setAgentMenuOpen((p) => !p)}
+                  >
+                    {AGENT_PROVIDER_OPTIONS.find((o) => o.value === selectedAgent)?.label}
+                    <svg
+                      className="deck-empty-agent-chevron"
+                      viewBox="0 0 10 6"
+                      aria-hidden="true"
+                    >
+                      <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
+                  </button>
+                  {agentMenuOpen && (
+                    <div className="deck-empty-agent-menu" role="menu">
+                      {AGENT_PROVIDER_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className="deck-empty-agent-menu-item"
+                          role="menuitem"
+                          data-active={opt.value === selectedAgent ? "true" : "false"}
+                          onClick={() => {
+                            setSelectedAgent(opt.value);
+                            setAgentMenuOpen(false);
+                          }}
+                        >
+                          {opt.label}
+                          {opt.value === selectedAgent && (
+                            <span className="deck-empty-agent-menu-check">&#x2713;</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button type="button" className="deck-empty-agent-launch" onClick={() => {}}>
+                  Launch
+                </button>
+              </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

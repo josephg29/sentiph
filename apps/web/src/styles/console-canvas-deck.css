@@ -9,6 +9,206 @@
   overflow: hidden;
 }
 
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+
+.deck-empty-state {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 3rem;
+  padding: 2rem;
+}
+
+.deck-empty-octopus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-empty-octopus canvas {
+  image-rendering: pixelated;
+}
+
+.deck-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.deck-empty-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+  width: 480px;
+  padding: 1.25rem 1.5rem;
+  background: #0b0d10;
+  border: 1px solid #2b2f36;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: var(--font-main);
+  text-align: left;
+}
+
+.deck-empty-card:hover {
+  border-color: var(--accent-primary);
+  background: #0d1017;
+}
+
+.deck-empty-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  color: var(--accent-primary);
+}
+
+.deck-empty-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.deck-empty-card-icon canvas {
+  image-rendering: pixelated;
+}
+
+.deck-empty-card-icon--terminal {
+  font-size: 2.4rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+}
+
+/* ─── Agent provider select row ──────────────────────────────────────────── */
+
+.deck-empty-agent-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* ─── Custom agent picker dropdown ───────────────────────────────────────── */
+
+.deck-empty-agent-picker {
+  position: relative;
+  flex: 1;
+}
+
+.deck-empty-agent-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+  font-family: var(--font-main);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: #11161d;
+  border: 1px solid #2b2f36;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.deck-empty-agent-trigger:hover {
+  border-color: var(--accent-primary);
+}
+
+.deck-empty-agent-trigger[aria-expanded="true"] {
+  border-color: var(--accent-primary);
+}
+
+.deck-empty-agent-chevron {
+  width: 0.55rem;
+  height: 0.4rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.deck-empty-agent-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 2px;
+  z-index: 100;
+  border: 1px solid #2b2f36;
+  background: #0d1017;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0;
+}
+
+.deck-empty-agent-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.deck-empty-agent-menu-item:hover {
+  background: rgba(250, 163, 44, 0.1);
+}
+
+.deck-empty-agent-menu-item[data-active="true"] {
+  color: var(--accent-primary);
+}
+
+.deck-empty-agent-menu-check {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.deck-empty-agent-launch {
+  font-family: var(--font-main);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #000;
+  background: var(--accent-primary);
+  border: none;
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.deck-empty-agent-launch:hover {
+  opacity: 0.85;
+}
+
+.deck-empty-card-title {
+  font-family: "Silkscreen", cursive;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.deck-empty-card-desc {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* ─── Pods container ─────────────────────────────────────────────────────── */
 /* Grid mode: multi-column grid filling the view.                            */
 /* Detail mode: narrow sidebar column on the left.                           */
