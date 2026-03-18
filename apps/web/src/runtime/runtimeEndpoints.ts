@@ -273,7 +273,7 @@ export const buildDeckVaultFileUrl = (
 ) => {
   const encodedTentacleId = encodeURIComponent(tentacleId);
   const encodedFileName = encodeURIComponent(fileName);
-  const path = `/api/deck/tentacles/${encodedTentacleId}/vault/${encodedFileName}`;
+  const path = `/api/deck/tentacles/${encodedTentacleId}/files/${encodedFileName}`;
   if (!runtimeBaseUrl) {
     return path;
   }

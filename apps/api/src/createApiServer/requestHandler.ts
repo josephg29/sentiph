@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
-import { readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
+import { createDeckTentacle, readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
 import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
@@ -957,17 +957,47 @@ const handleDeckTentaclesRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   if (requestUrl.pathname !== "/api/deck/tentacles") return false;
-  if (request.method !== "GET") {
-    writeMethodNotAllowed(response, corsOrigin);
+
+  if (request.method === "GET") {
+    const tentacles = readDeckTentacles(workspaceCwd);
+    writeJson(response, 200, tentacles, corsOrigin);
     return true;
   }
 
-  const tentacles = readDeckTentacles(workspaceCwd);
-  writeJson(response, 200, tentacles, corsOrigin);
+  if (request.method === "POST") {
+    const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+    if (!bodyReadResult.ok) return true;
+
+    const body = bodyReadResult.payload as Record<string, unknown> | null;
+    const name = body && typeof body.name === "string" ? body.name : "";
+    const description = body && typeof body.description === "string" ? body.description : "";
+    const color = body && typeof body.color === "string" ? body.color : "#d4a017";
+
+    const rawOctopus = body && typeof body.octopus === "object" && body.octopus !== null
+      ? body.octopus as Record<string, unknown>
+      : {};
+    const octopus = {
+      animation: typeof rawOctopus.animation === "string" ? rawOctopus.animation : null,
+      expression: typeof rawOctopus.expression === "string" ? rawOctopus.expression : null,
+      accessory: typeof rawOctopus.accessory === "string" ? rawOctopus.accessory : null,
+      hairColor: typeof rawOctopus.hairColor === "string" ? rawOctopus.hairColor : null,
+    };
+
+    const result = createDeckTentacle(workspaceCwd, { name, description, color, octopus });
+    if (!result.ok) {
+      writeJson(response, 400, { error: result.error }, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 201, result.tentacle, corsOrigin);
+    return true;
+  }
+
+  writeMethodNotAllowed(response, corsOrigin);
   return true;
 };
 
-const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/vault\/([^/]+)$/;
+const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/files\/([^/]+)$/;
 
 const handleDeckVaultFileRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

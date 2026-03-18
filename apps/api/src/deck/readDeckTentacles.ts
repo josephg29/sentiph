@@ -1,33 +1,72 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { DeckTentacleStatus, DeckTentacleSummary } from "@octogent/core";
+import type { DeckOctopusAppearance, DeckTentacleStatus, DeckTentacleSummary } from "@octogent/core";
 
 const TENTACLES_DIR = ".octogent/tentacles";
+const DECK_STATE_PATH = ".octogent/state/deck.json";
 
 const VALID_STATUSES: ReadonlySet<string> = new Set(["idle", "active", "blocked", "needs-review"]);
 
-type TentacleManifest = {
-  tentacleId: string;
-  displayName: string;
-  description: string;
-  status: DeckTentacleStatus;
+// ─── Deck state (app metadata, separate from agent-facing files) ────────────
+
+type DeckTentacleState = {
   color: string | null;
+  status: DeckTentacleStatus;
+  octopus: DeckOctopusAppearance;
   scope: { paths: string[]; tags: string[] };
 };
 
-const parseTentacleManifest = (raw: unknown, folderId: string): TentacleManifest | null => {
-  if (raw === null || typeof raw !== "object") return null;
+type DeckStateDocument = {
+  tentacles: Record<string, DeckTentacleState>;
+};
+
+const readDeckState = (workspaceCwd: string): DeckStateDocument => {
+  const filePath = join(workspaceCwd, DECK_STATE_PATH);
+  try {
+    const raw = JSON.parse(readFileSync(filePath, "utf-8"));
+    if (raw && typeof raw === "object" && typeof raw.tentacles === "object" && raw.tentacles !== null) {
+      return raw as DeckStateDocument;
+    }
+  } catch {
+    // missing or corrupt — return empty
+  }
+  return { tentacles: {} };
+};
+
+const writeDeckState = (workspaceCwd: string, state: DeckStateDocument): void => {
+  const filePath = join(workspaceCwd, DECK_STATE_PATH);
+  const dir = join(workspaceCwd, ".octogent/state");
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(filePath, JSON.stringify(state, null, 2) + "\n");
+};
+
+const parseTentacleState = (raw: unknown): DeckTentacleState => {
+  const defaults: DeckTentacleState = {
+    color: null,
+    status: "idle",
+    octopus: { animation: null, expression: null, accessory: null, hairColor: null },
+    scope: { paths: [], tags: [] },
+  };
+
+  if (raw === null || typeof raw !== "object") return defaults;
   const rec = raw as Record<string, unknown>;
 
-  const displayName = typeof rec.displayName === "string" ? rec.displayName.trim() : folderId;
-  const description = typeof rec.description === "string" ? rec.description.trim() : "";
+  const color =
+    typeof rec.color === "string" && rec.color.trim().length > 0 ? rec.color.trim() : null;
   const status =
     typeof rec.status === "string" && VALID_STATUSES.has(rec.status)
       ? (rec.status as DeckTentacleStatus)
       : "idle";
-  const color =
-    typeof rec.color === "string" && rec.color.trim().length > 0 ? rec.color.trim() : null;
+
+  const octopus: DeckOctopusAppearance = { animation: null, expression: null, accessory: null, hairColor: null };
+  if (rec.octopus !== null && typeof rec.octopus === "object") {
+    const o = rec.octopus as Record<string, unknown>;
+    if (typeof o.animation === "string") octopus.animation = o.animation;
+    if (typeof o.expression === "string") octopus.expression = o.expression;
+    if (typeof o.accessory === "string") octopus.accessory = o.accessory;
+    if (typeof o.hairColor === "string") octopus.hairColor = o.hairColor;
+  }
 
   const scope = { paths: [] as string[], tags: [] as string[] };
   if (rec.scope !== null && typeof rec.scope === "object") {
@@ -40,15 +79,37 @@ const parseTentacleManifest = (raw: unknown, folderId: string): TentacleManifest
     }
   }
 
-  return {
-    tentacleId: folderId,
-    displayName,
-    description,
-    status,
-    color,
-    scope,
-  };
+  return { color, status, octopus, scope };
 };
+
+// ─── Parse agent.md for title and description ───────────────────────────────
+
+const parseAgentMd = (content: string): { displayName: string; description: string } | null => {
+  const lines = content.split("\n");
+  let displayName: string | null = null;
+  let description = "";
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!displayName) {
+      const h1Match = trimmed.match(/^#\s+(.+)/);
+      if (h1Match) {
+        displayName = (h1Match[1] as string).trim();
+      }
+      continue;
+    }
+    // First non-empty line after the H1 is the description
+    if (trimmed.length > 0) {
+      description = trimmed;
+      break;
+    }
+  }
+
+  if (!displayName) return null;
+  return { displayName, description };
+};
+
+// ─── Todo parsing ───────────────────────────────────────────────────────────
 
 const parseTodoProgress = (
   content: string,
@@ -76,6 +137,8 @@ const parseTodoProgress = (
   return { total, done, items };
 };
 
+// ─── Read all tentacles ─────────────────────────────────────────────────────
+
 export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] => {
   const tentaclesRoot = join(workspaceCwd, TENTACLES_DIR);
   if (!existsSync(tentaclesRoot)) return [];
@@ -87,49 +150,49 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
     return [];
   }
 
+  const deckState = readDeckState(workspaceCwd);
   const results: DeckTentacleSummary[] = [];
 
   for (const entry of entries) {
     const entryPath = join(tentaclesRoot, entry);
     if (!statSync(entryPath).isDirectory()) continue;
 
-    const manifestPath = join(entryPath, "tentacle.json");
-    if (!existsSync(manifestPath)) continue;
+    // A tentacle folder must have agent.md
+    const agentMdPath = join(entryPath, "agent.md");
+    if (!existsSync(agentMdPath)) continue;
 
-    let manifest: TentacleManifest | null;
+    let agentInfo: { displayName: string; description: string };
     try {
-      const raw = JSON.parse(readFileSync(manifestPath, "utf-8"));
-      manifest = parseTentacleManifest(raw, entry);
+      const content = readFileSync(agentMdPath, "utf-8");
+      const parsed = parseAgentMd(content);
+      if (!parsed) continue;
+      agentInfo = parsed;
     } catch {
       continue;
     }
-    if (!manifest) continue;
 
-    // List vault files
-    const vaultDir = join(entryPath, "vault");
+    // App metadata from deck state
+    const state = parseTentacleState(deckState.tentacles[entry]);
+
+    // List markdown files in the tentacle folder (excluding agent.md itself)
     let vaultFiles: string[] = [];
-    if (existsSync(vaultDir)) {
-      try {
-        vaultFiles = readdirSync(vaultDir)
-          .filter((f) => f.endsWith(".md"))
-          .sort((a, b) => {
-            // main.md first, todo.md second, rest alphabetical
-            if (a === "main.md") return -1;
-            if (b === "main.md") return 1;
-            if (a === "todo.md") return -1;
-            if (b === "todo.md") return 1;
-            return a.localeCompare(b);
-          });
-      } catch {
-        // skip unreadable vault dirs
-      }
+    try {
+      vaultFiles = readdirSync(entryPath)
+        .filter((f) => f.endsWith(".md") && f !== "agent.md")
+        .sort((a, b) => {
+          if (a === "todo.md") return -1;
+          if (b === "todo.md") return 1;
+          return a.localeCompare(b);
+        });
+    } catch {
+      // skip unreadable dirs
     }
 
     // Parse todo.md for progress
     let todoTotal = 0;
     let todoDone = 0;
     let todoItems: { text: string; done: boolean }[] = [];
-    const todoPath = join(vaultDir, "todo.md");
+    const todoPath = join(entryPath, "todo.md");
     if (existsSync(todoPath)) {
       try {
         const todoContent = readFileSync(todoPath, "utf-8");
@@ -143,12 +206,13 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
     }
 
     results.push({
-      tentacleId: manifest.tentacleId,
-      displayName: manifest.displayName,
-      description: manifest.description,
-      status: manifest.status,
-      color: manifest.color,
-      scope: manifest.scope,
+      tentacleId: entry,
+      displayName: agentInfo.displayName,
+      description: agentInfo.description,
+      status: state.status,
+      color: state.color,
+      octopus: state.octopus,
+      scope: state.scope,
       vaultFiles,
       todoTotal,
       todoDone,
@@ -159,6 +223,8 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
   return results;
 };
 
+// ─── Read a vault file from a tentacle ──────────────────────────────────────
+
 export const readDeckVaultFile = (
   workspaceCwd: string,
   tentacleId: string,
@@ -168,7 +234,7 @@ export const readDeckVaultFile = (
   if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
   if (fileName.includes("..") || fileName.includes("/")) return null;
 
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "vault", fileName);
+  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, fileName);
 
   if (!existsSync(filePath)) return null;
 
@@ -177,4 +243,72 @@ export const readDeckVaultFile = (
   } catch {
     return null;
   }
+};
+
+// ─── Create a new tentacle ──────────────────────────────────────────────────
+
+export type CreateDeckTentacleInput = {
+  name: string;
+  description: string;
+  color: string;
+  octopus: DeckOctopusAppearance;
+};
+
+export type CreateDeckTentacleResult =
+  | { ok: true; tentacle: DeckTentacleSummary }
+  | { ok: false; error: string };
+
+export const createDeckTentacle = (
+  workspaceCwd: string,
+  input: CreateDeckTentacleInput,
+): CreateDeckTentacleResult => {
+  const name = input.name.trim();
+  if (name.length === 0) {
+    return { ok: false, error: "Name is required" };
+  }
+  if (name.includes("..") || name.includes("/")) {
+    return { ok: false, error: "Name contains invalid characters" };
+  }
+
+  const tentacleDir = join(workspaceCwd, TENTACLES_DIR, name);
+  if (existsSync(tentacleDir)) {
+    return { ok: false, error: "A tentacle with this name already exists" };
+  }
+
+  // Create the tentacle folder with agent-facing files
+  mkdirSync(tentacleDir, { recursive: true });
+
+  const description = input.description.trim();
+  const agentMd = description.length > 0
+    ? `# ${name}\n\n${description}\n`
+    : `# ${name}\n`;
+  writeFileSync(join(tentacleDir, "agent.md"), agentMd);
+  writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
+
+  // Persist app metadata in deck state
+  const deckState = readDeckState(workspaceCwd);
+  deckState.tentacles[name] = {
+    color: input.color,
+    status: "idle",
+    octopus: input.octopus,
+    scope: { paths: [], tags: [] },
+  };
+  writeDeckState(workspaceCwd, deckState);
+
+  return {
+    ok: true,
+    tentacle: {
+      tentacleId: name,
+      displayName: name,
+      description,
+      status: "idle",
+      color: input.color,
+      octopus: input.octopus,
+      scope: { paths: [], tags: [] },
+      vaultFiles: [],
+      todoTotal: 0,
+      todoDone: 0,
+      todoItems: [],
+    },
+  };
 };
