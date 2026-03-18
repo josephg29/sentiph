@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
 import type { TentacleAgentProvider } from "../app/types";
-import { buildDeckTentaclesUrl, buildDeckVaultFileUrl } from "../runtime/runtimeEndpoints";
+import {
+  buildDeckTentacleUrl,
+  buildDeckTentaclesUrl,
+  buildDeckVaultFileUrl,
+} from "../runtime/runtimeEndpoints";
 import {
   type OctopusAccessory,
   type OctopusAnimation,
@@ -130,6 +134,8 @@ type TentaclePodProps = {
   activeFileName?: string | undefined;
   onVaultFileClick?: (fileName: string) => void;
   onClose?: () => void;
+  onDelete?: () => void;
+  isDeleting?: boolean | undefined;
 };
 
 const TentaclePod = ({
@@ -139,9 +145,12 @@ const TentaclePod = ({
   activeFileName,
   onVaultFileClick,
   onClose,
+  onDelete,
+  isDeleting,
 }: TentaclePodProps) => {
   const progressPct =
     tentacle.todoTotal > 0 ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100) : 0;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
     <article
@@ -161,9 +170,37 @@ const TentaclePod = ({
         <button type="button" className="deck-pod-btn">
           Vault
         </button>
-        <button type="button" className="deck-pod-btn deck-pod-btn--secondary">
-          Edit
-        </button>
+        {confirmingDelete ? (
+          <>
+            <button
+              type="button"
+              className="deck-pod-btn deck-pod-btn--danger"
+              disabled={isDeleting}
+              onClick={() => onDelete?.()}
+            >
+              {isDeleting ? "..." : "Confirm Delete"}
+            </button>
+            <button
+              type="button"
+              className="deck-pod-btn deck-pod-btn--secondary"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="deck-pod-btn deck-pod-btn--delete"
+            onClick={() => setConfirmingDelete(true)}
+            aria-label="Delete tentacle"
+          >
+            <svg className="deck-pod-btn-icon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M5.5 1.5h5M2 4h12M6 7v5M10 7v5M3.5 4l.75 9.5a1 1 0 001 .9h5.5a1 1 0 001-.9L12.5 4"
+                fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
       </header>
 
       <div className="deck-pod-body">
@@ -543,6 +580,78 @@ const AddTentacleForm = ({ onSubmit, onCancel, isSubmitting, error }: AddTentacl
   );
 };
 
+// ─── Bottom actions (compact cards + clear all for populated state) ──────────
+
+type DeckBottomActionsProps = {
+  selectedAgent: TentacleAgentProvider;
+  setSelectedAgent: (agent: TentacleAgentProvider) => void;
+  agentMenuOpen: boolean;
+  setAgentMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+  agentMenuRef: React.RefObject<HTMLDivElement | null>;
+  onAddManually: () => void;
+  onClearAll: () => void;
+};
+
+const DeckBottomActions = ({
+  selectedAgent,
+  setSelectedAgent,
+  agentMenuOpen,
+  setAgentMenuOpen,
+  agentMenuRef,
+  onAddManually,
+  onClearAll,
+}: DeckBottomActionsProps) => {
+  const [confirmingClear, setConfirmingClear] = useState(false);
+
+  return (
+    <div className="deck-bottom-actions">
+      <ActionCards
+        compact
+        selectedAgent={selectedAgent}
+        setSelectedAgent={setSelectedAgent}
+        agentMenuOpen={agentMenuOpen}
+        setAgentMenuOpen={setAgentMenuOpen}
+        agentMenuRef={agentMenuRef}
+        onAddManually={onAddManually}
+      />
+      {confirmingClear ? (
+        <div className="deck-bottom-clear-confirm">
+          <span className="deck-bottom-clear-label">Clear all tentacles?</span>
+          <button
+            type="button"
+            className="deck-bottom-clear-btn deck-bottom-clear-btn--danger"
+            onClick={() => {
+              onClearAll();
+              setConfirmingClear(false);
+            }}
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            className="deck-bottom-clear-btn"
+            onClick={() => setConfirmingClear(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="deck-bottom-clear-link"
+          onClick={() => setConfirmingClear(true)}
+        >
+          <svg className="deck-bottom-clear-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M5.5 1.5h5M2 4h12M6 7v5M10 7v5M3.5 4l.75 9.5a1 1 0 001 .9h5.5a1 1 0 001-.9L12.5 4"
+              fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Clear All
+        </button>
+      )}
+    </div>
+  );
+};
+
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 type FocusState = {
@@ -687,6 +796,24 @@ export const DeckPrimaryView = () => {
     [fetchTentacles],
   );
 
+  const [deletingTentacleId, setDeletingTentacleId] = useState<string | null>(null);
+
+  const handleDeleteTentacle = useCallback(
+    async (tentacleId: string) => {
+      setDeletingTentacleId(tentacleId);
+      try {
+        const response = await fetch(buildDeckTentacleUrl(tentacleId), { method: "DELETE" });
+        if (!response.ok) return;
+        await fetchTentacles();
+      } catch {
+        // silently ignore
+      } finally {
+        setDeletingTentacleId(null);
+      }
+    },
+    [fetchTentacles],
+  );
+
   const focusedTentacle = focus ? tentacles.find((t) => t.tentacleId === focus.tentacleId) : null;
   const mode = focus ? "detail" : "grid";
 
@@ -762,6 +889,8 @@ export const DeckPrimaryView = () => {
                     : handleVaultFileClick(t.tentacleId, fileName)
                 }
                 onClose={handleClose}
+                onDelete={() => handleDeleteTentacle(t.tentacleId)}
+                isDeleting={deletingTentacleId === t.tentacleId}
               />
             </div>
           );
@@ -789,17 +918,20 @@ export const DeckPrimaryView = () => {
         )}
       </div>
 
-      <div className="deck-bottom-actions">
-        <ActionCards
-          compact
-          selectedAgent={selectedAgent}
-          setSelectedAgent={setSelectedAgent}
-          agentMenuOpen={agentMenuOpen}
-          setAgentMenuOpen={setAgentMenuOpen}
-          agentMenuRef={agentMenuRef}
-          onAddManually={() => setEmptyViewMode("adding")}
-        />
-      </div>
+      <DeckBottomActions
+        selectedAgent={selectedAgent}
+        setSelectedAgent={setSelectedAgent}
+        agentMenuOpen={agentMenuOpen}
+        setAgentMenuOpen={setAgentMenuOpen}
+        agentMenuRef={agentMenuRef}
+        onAddManually={() => setEmptyViewMode("adding")}
+        onClearAll={async () => {
+          for (const t of tentacles) {
+            await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
+          }
+          await fetchTentacles();
+        }}
+      />
     </section>
   );
 };

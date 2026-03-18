@@ -141,13 +141,17 @@
   font-size: 1.4rem;
 }
 
-/* ─── Bottom-right action cards (populated state) ────────────────────────── */
+/* ─── Bottom-right actions (populated state) ─────────────────────────────── */
 
 .deck-bottom-actions {
   position: absolute;
   bottom: 0.75rem;
   right: 0.75rem;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
 }
 
 .deck-bottom-actions .deck-empty-card-desc {
@@ -160,6 +164,66 @@
 
 .deck-bottom-actions .deck-empty-agent-select-row {
   display: none;
+}
+
+.deck-bottom-clear-link {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: #6a7080;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: color 0.15s;
+}
+
+.deck-bottom-clear-link:hover {
+  color: #e05555;
+}
+
+.deck-bottom-clear-icon {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.deck-bottom-clear-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-end;
+}
+
+.deck-bottom-clear-label {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: #e05555;
+}
+
+.deck-bottom-clear-btn {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: #11161d;
+  border: 1px solid #2b2f36;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.deck-bottom-clear-btn:hover {
+  color: var(--text-primary);
+}
+
+.deck-bottom-clear-btn--danger {
+  color: #e05555;
+  border-color: #e05555;
+}
+
+.deck-bottom-clear-btn--danger:hover {
+  background: rgba(224, 85, 85, 0.1);
 }
 
 /* ─── Add tentacle form ──────────────────────────────────────────────────── */
@@ -612,6 +676,39 @@
 
 .deck-pod-btn--secondary:hover {
   background: rgba(250, 163, 44, 0.08);
+}
+
+.deck-pod-btn--delete {
+  color: #e05555;
+  background: transparent;
+  border-left: 1px solid #2b2f36;
+  flex: 0;
+  padding: 0.36rem 0.5rem;
+}
+
+.deck-pod-btn--delete:hover {
+  background: rgba(224, 85, 85, 0.1);
+}
+
+.deck-pod-btn-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  display: block;
+}
+
+.deck-pod-btn--danger {
+  color: #fff;
+  background: #c53030;
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.deck-pod-btn--danger:hover {
+  background: #e05555;
+}
+
+.deck-pod-btn--danger:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 /* ─── Pod body ────────────────────────────────────────────────────────────── */

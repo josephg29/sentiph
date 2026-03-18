@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
-import { createDeckTentacle, readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
+import { createDeckTentacle, deleteDeckTentacle, readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
 import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
@@ -997,6 +997,31 @@ const handleDeckTentaclesRoute: ApiRouteHandler = async (
   return true;
 };
 
+const DECK_TENTACLE_ITEM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)$/;
+
+const handleDeckTentacleItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TENTACLE_ITEM_PATTERN);
+  if (!match) return false;
+
+  if (request.method !== "DELETE") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const result = deleteDeckTentacle(workspaceCwd, tentacleId);
+  if (!result.ok) {
+    writeJson(response, 404, { error: result.error }, corsOrigin);
+    return true;
+  }
+
+  writeNoContent(response, 204, corsOrigin);
+  return true;
+};
+
 const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/files\/([^/]+)$/;
 
 const handleDeckVaultFileRoute: ApiRouteHandler = async (
@@ -1087,7 +1112,7 @@ const handlePromptItemRoute: ApiRouteHandler = async (
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["hooks", [handleHookRoute]],
   ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
-  ["deck", [handleDeckTentaclesRoute, handleDeckVaultFileRoute]],
+  ["deck", [handleDeckTentaclesRoute, handleDeckTentacleItemRoute, handleDeckVaultFileRoute]],
   ["agent-snapshots", [handleAgentSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],

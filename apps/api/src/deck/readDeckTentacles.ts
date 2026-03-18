@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { DeckOctopusAppearance, DeckTentacleStatus, DeckTentacleSummary } from "@octogent/core";
@@ -311,4 +311,29 @@ export const createDeckTentacle = (
       todoItems: [],
     },
   };
+};
+
+// ─── Delete a tentacle ──────────────────────────────────────────────────────
+
+export const deleteDeckTentacle = (
+  workspaceCwd: string,
+  tentacleId: string,
+): { ok: true } | { ok: false; error: string } => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) {
+    return { ok: false, error: "Invalid tentacle ID" };
+  }
+
+  const tentacleDir = join(workspaceCwd, TENTACLES_DIR, tentacleId);
+  if (!existsSync(tentacleDir)) {
+    return { ok: false, error: "Tentacle not found" };
+  }
+
+  rmSync(tentacleDir, { recursive: true, force: true });
+
+  // Remove from deck state
+  const deckState = readDeckState(workspaceCwd);
+  delete deckState.tentacles[tentacleId];
+  writeDeckState(workspaceCwd, deckState);
+
+  return { ok: true };
 };
