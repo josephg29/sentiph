@@ -9,12 +9,12 @@ export const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
 
 export const PRIMARY_NAV_ITEMS = [
   { index: 1, label: "Agents" },
-  { index: 2, label: "GitHub" },
-  { index: 3, label: "Monitor" },
-  { index: 4, label: "Conversations" },
-  { index: 5, label: "Settings" },
-  { index: 6, label: "Sandbox" },
-  { index: 7, label: "UI Lab" },
+  { index: 2, label: "Deck" },
+  { index: 3, label: "GitHub" },
+  { index: 4, label: "Monitor" },
+  { index: 5, label: "Conversations" },
+  { index: 6, label: "Settings" },
+  { index: 7, label: "Sandbox" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;

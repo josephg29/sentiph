@@ -34,7 +34,6 @@ type DummyTentacle = {
   todoDone: number;
   todoItems: string[];
   vaultFiles: string[];
-  agentCount: number;
 };
 
 function seededRandom(seed: number): () => number {
@@ -76,7 +75,6 @@ function buildDummyTentacles(): DummyTentacle[] {
       todoDone,
       todoItems: dept.todoItems,
       vaultFiles: dept.vaultFiles,
-      agentCount: Math.floor(rng() * 3),
     };
   });
 }
@@ -98,36 +96,28 @@ const TentaclePod = ({ tentacle }: { tentacle: DummyTentacle }) => {
     : 0;
 
   return (
-    <article className="floor-pod" data-status={tentacle.status}>
+    <article className="floor-pod" data-status={tentacle.status} style={{ borderColor: tentacle.color }}>
       <header className="floor-pod-header">
-        <span className={`floor-pod-status floor-pod-status--${tentacle.status}`}>
-          {STATUS_LABELS[tentacle.status]}
-        </span>
-        {tentacle.agentCount > 0 && (
-          <span className="floor-pod-agents">
-            {Array.from({ length: tentacle.agentCount }, (_, i) => (
-              <span key={i} className="floor-pod-agent-dot" style={{ backgroundColor: tentacle.color }} />
-            ))}
-            <span className="floor-pod-agent-count">{tentacle.agentCount}</span>
-          </span>
-        )}
-        <div className="floor-pod-header-actions">
-          <button type="button" className="floor-pod-btn">Spawn</button>
-          <button type="button" className="floor-pod-btn">Vault</button>
-          <button type="button" className="floor-pod-btn floor-pod-btn--secondary">Edit</button>
-        </div>
+        <button type="button" className="floor-pod-btn">Spawn</button>
+        <button type="button" className="floor-pod-btn">Vault</button>
+        <button type="button" className="floor-pod-btn floor-pod-btn--secondary">Edit</button>
       </header>
 
       <div className="floor-pod-body">
         <div className="floor-pod-identity">
-          <div className="floor-pod-octopus">
-            <OctopusGlyph
-              color={tentacle.color}
-              animation={tentacle.animation}
-              expression={tentacle.expression}
-              accessory={tentacle.accessory}
-              scale={5}
-            />
+          <div className="floor-pod-octopus-col">
+            <div className="floor-pod-octopus">
+              <OctopusGlyph
+                color={tentacle.color}
+                animation={tentacle.animation}
+                expression={tentacle.expression}
+                accessory={tentacle.accessory}
+                scale={5}
+              />
+            </div>
+            <span className={`floor-pod-status floor-pod-status--${tentacle.status}`}>
+              {STATUS_LABELS[tentacle.status]}
+            </span>
           </div>
           <div className="floor-pod-identity-text">
             <span className="floor-pod-name">{tentacle.displayName}</span>
