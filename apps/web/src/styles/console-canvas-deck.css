@@ -569,7 +569,7 @@
   color: #000;
   background: var(--accent-primary);
   border: none;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
   padding: 0.45rem 0.8rem;
   cursor: pointer;
   white-space: nowrap;
@@ -707,7 +707,7 @@
   color: #000;
   background: var(--accent-primary);
   border: none;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
   padding: 0.36rem 0.7rem;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -725,7 +725,7 @@
 .deck-pod-btn--secondary {
   color: var(--accent-primary);
   background: transparent;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
 }
 
 .deck-pod-btn--secondary:hover {
@@ -736,7 +736,7 @@
   color: #e05555;
   background: var(--accent-primary);
   border: none;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
   flex: 0;
   padding: 0.36rem 0.5rem;
 }
@@ -754,7 +754,7 @@
 .deck-pod-btn--danger {
   color: #fff;
   background: #c53030;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
 }
 
 .deck-pod-btn--danger:hover {
