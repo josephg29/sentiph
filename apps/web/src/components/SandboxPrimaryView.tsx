@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { buildTentacleRenameUrl, buildTerminalSocketUrl, buildTentaclesUrl } from "../runtime/runtimeEndpoints";
+import {
+  buildTentacleRenameUrl,
+  buildTentaclesUrl,
+  buildTerminalSocketUrl,
+} from "../runtime/runtimeEndpoints";
 import { TentacleTerminal } from "./TentacleTerminal";
 import { ActionButton } from "./ui/ActionButton";
-
-const SANDBOX_INITIAL_PROMPT =
-  "Read .octogent/tentacles/sandbox/vault/main.md and follow the instructions there. You are the sandbox tentacle agent.";
 
 type SandboxAgent = {
   tentacleId: string;
   terminalId: string;
+  initialPrompt?: string;
 };
 
 const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
@@ -23,7 +25,7 @@ const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
       workspaceMode: "shared",
       agentProvider: "claude-code",
       name: "sandbox",
-      initialPrompt: SANDBOX_INITIAL_PROMPT,
+      promptTemplate: "sandbox-init",
     }),
   });
 
@@ -31,15 +33,19 @@ const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
     throw new Error(`Failed to create sandbox tentacle (${response.status})`);
   }
 
-  const snapshot = (await response.json()) as { tentacleId?: string };
+  const snapshot = (await response.json()) as { tentacleId?: string; initialPrompt?: string };
   if (!snapshot.tentacleId) {
     throw new Error("Missing tentacleId in response");
   }
 
-  return {
+  const agent: SandboxAgent = {
     tentacleId: snapshot.tentacleId,
     terminalId: `${snapshot.tentacleId}-agent-1`,
   };
+  if (snapshot.initialPrompt) {
+    agent.initialPrompt = snapshot.initialPrompt;
+  }
+  return agent;
 };
 
 const sendPromptToTerminal = (terminalId: string, prompt: string) => {
@@ -179,7 +185,7 @@ export const SandboxPrimaryView = () => {
             <TentacleTerminal
               terminalId={agent.terminalId}
               terminalLabel="Sandbox Agent"
-              initialPrompt={SANDBOX_INITIAL_PROMPT}
+              {...(agent.initialPrompt ? { initialPrompt: agent.initialPrompt } : {})}
               onDelete={() => {
                 void removeAgent(agent.tentacleId);
               }}

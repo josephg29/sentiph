@@ -5,6 +5,7 @@ import type { CodexUsageSnapshot } from "../codexUsage";
 import { readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
+import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
 import {
   RuntimeInputError,
   type TentacleAgentProvider,
@@ -447,7 +448,7 @@ const handleConversationExportRoute: ApiRouteHandler = async (
 
 const handleTentaclesCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime },
+  { runtime, workspaceCwd },
 ) => {
   if (requestUrl.pathname !== "/api/tentacles") {
     return false;
@@ -497,7 +498,37 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
       createTentacleInput.agentProvider = agentProviderResult.agentProvider;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
+
+    // Support prompt resolution via template name + variables, or a raw string.
     if (
+      bodyPayload &&
+      typeof bodyPayload.promptTemplate === "string" &&
+      bodyPayload.promptTemplate.trim().length > 0
+    ) {
+      const templateName = bodyPayload.promptTemplate.trim();
+      const templateVars: Record<string, string> =
+        bodyPayload.promptVariables != null &&
+        typeof bodyPayload.promptVariables === "object" &&
+        !Array.isArray(bodyPayload.promptVariables)
+          ? Object.fromEntries(
+              Object.entries(bodyPayload.promptVariables as Record<string, unknown>)
+                .filter(([, v]) => typeof v === "string")
+                .map(([k, v]) => [k, v as string]),
+            )
+          : {};
+
+      // Auto-inject tentacleId variable so callers don't have to guess it.
+      // The runtime hasn't allocated the ID yet, so we use the tentacle name
+      // when provided (sandbox always passes its name).
+      if (!templateVars.tentacleId && createTentacleInput.tentacleName) {
+        templateVars.tentacleId = createTentacleInput.tentacleName;
+      }
+
+      const resolved = await resolvePrompt(workspaceCwd, templateName, templateVars);
+      if (resolved !== undefined) {
+        createTentacleInput.initialPrompt = resolved;
+      }
+    } else if (
       bodyPayload &&
       typeof bodyPayload.initialPrompt === "string" &&
       bodyPayload.initialPrompt.trim().length > 0
@@ -505,7 +536,11 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
       createTentacleInput.initialPrompt = bodyPayload.initialPrompt.trim();
     }
 
-    const payload = runtime.createTentacle(createTentacleInput);
+    const snapshot = runtime.createTentacle(createTentacleInput);
+    const payload: Record<string, unknown> = { ...snapshot };
+    if (createTentacleInput.initialPrompt) {
+      payload.initialPrompt = createTentacleInput.initialPrompt;
+    }
     writeJson(response, 201, payload, corsOrigin);
     return true;
   } catch (error) {
@@ -958,8 +993,70 @@ const handleDeckVaultFileRoute: ApiRouteHandler = async (
   return true;
 };
 
+// ---------------------------------------------------------------------------
+// Prompts
+// ---------------------------------------------------------------------------
+
+const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
+
+const handlePromptsCollectionRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  if (requestUrl.pathname !== "/api/prompts") {
+    return false;
+  }
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+  const names = await listPromptTemplates(workspaceCwd);
+  writeJson(response, 200, { prompts: names }, corsOrigin);
+  return true;
+};
+
+const handlePromptItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(PROMPT_ITEM_PATH_PATTERN);
+  if (!match) return false;
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const name = decodeURIComponent(match[1] as string);
+
+  // Resolve variables from query params (e.g. ?tentacleId=sandbox).
+  const variables: Record<string, string> = {};
+  for (const [key, value] of requestUrl.searchParams.entries()) {
+    variables[key] = value;
+  }
+
+  const hasVariables = Object.keys(variables).length > 0;
+  if (hasVariables) {
+    const resolved = await resolvePrompt(workspaceCwd, name, variables);
+    if (resolved === undefined) {
+      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+      return true;
+    }
+    writeJson(response, 200, { name, prompt: resolved }, corsOrigin);
+  } else {
+    const template = await readPromptTemplate(workspaceCwd, name);
+    if (template === undefined) {
+      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+      return true;
+    }
+    writeJson(response, 200, { name, template }, corsOrigin);
+  }
+
+  return true;
+};
+
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["hooks", [handleHookRoute]],
+  ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
   ["deck", [handleDeckTentaclesRoute, handleDeckVaultFileRoute]],
   ["agent-snapshots", [handleAgentSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
