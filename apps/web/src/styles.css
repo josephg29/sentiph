@@ -15,5 +15,6 @@
 @import "./styles/console-canvas-conversations.css";
 @import "./styles/console-canvas-settings.css";
 @import "./styles/console-canvas-sandbox.css";
+@import "./styles/console-canvas-floor-experiment.css";
 @import "./styles/console-canvas-pixpack.css";
 @import "./styles/console-overrides-telemetry.css";
