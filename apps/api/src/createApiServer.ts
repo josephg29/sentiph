@@ -46,6 +46,7 @@ export const createApiServer = ({
     });
   const requestHandler = createApiRequestHandler({
     runtime,
+    workspaceCwd: resolvedWorkspaceCwd,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,

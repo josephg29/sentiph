@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
+import { readDeckTentacles, readDeckVaultFile } from "../deck/readDeckTentacles";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { MonitorInputError, type MonitorService } from "../monitor";
 import {
@@ -34,6 +35,7 @@ type TerminalRuntime = ReturnType<typeof import("../terminalRuntime").createTerm
 
 type CreateApiRequestHandlerOptions = {
   runtime: TerminalRuntime;
+  workspaceCwd: string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
@@ -44,6 +46,7 @@ type CreateApiRequestHandlerOptions = {
 
 type RouteHandlerDependencies = {
   runtime: TerminalRuntime;
+  workspaceCwd: string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
@@ -494,7 +497,11 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
       createTentacleInput.agentProvider = agentProviderResult.agentProvider;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
-    if (bodyPayload && typeof bodyPayload.initialPrompt === "string" && bodyPayload.initialPrompt.trim().length > 0) {
+    if (
+      bodyPayload &&
+      typeof bodyPayload.initialPrompt === "string" &&
+      bodyPayload.initialPrompt.trim().length > 0
+    ) {
       createTentacleInput.initialPrompt = bodyPayload.initialPrompt.trim();
     }
 
@@ -908,17 +915,58 @@ const handleHookRoute: ApiRouteHandler = async (
   return true;
 };
 
+// ─── Deck routes ──────────────────────────────────────────────────────────
+
+const handleDeckTentaclesRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  if (requestUrl.pathname !== "/api/deck/tentacles") return false;
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacles = readDeckTentacles(workspaceCwd);
+  writeJson(response, 200, tentacles, corsOrigin);
+  return true;
+};
+
+const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/vault\/([^/]+)$/;
+
+const handleDeckVaultFileRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_VAULT_FILE_PATTERN);
+  if (!match) return false;
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const fileName = decodeURIComponent(match[2] as string);
+
+  const content = readDeckVaultFile(workspaceCwd, tentacleId, fileName);
+  if (content === null) {
+    writeJson(response, 404, { error: "Vault file not found" }, corsOrigin);
+    return true;
+  }
+
+  writeText(response, 200, content, "text/markdown; charset=utf-8", corsOrigin);
+  return true;
+};
+
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["hooks", [handleHookRoute]],
+  ["deck", [handleDeckTentaclesRoute, handleDeckVaultFileRoute]],
   ["agent-snapshots", [handleAgentSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],
   ["github", [handleGithubSummaryRoute]],
   ["ui-state", [handleUiStateRoute]],
-  [
-    "monitor",
-    [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute],
-  ],
+  ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
   [
     "conversations",
     [
@@ -955,6 +1003,7 @@ const logRequest = (method: string, path: string, status: number, startTime: num
 
 export const createApiRequestHandler = ({
   runtime,
+  workspaceCwd,
   readClaudeUsageSnapshot,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
@@ -964,6 +1013,7 @@ export const createApiRequestHandler = ({
 }: CreateApiRequestHandlerOptions) => {
   const routeDependencies: RouteHandlerDependencies = {
     runtime,
+    workspaceCwd,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary,

@@ -4,7 +4,7 @@ import type { PrimaryNavIndex } from "../app/constants";
 import type { TentacleView } from "../app/types";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
-import { FloorExperimentPrimaryView } from "./FloorExperimentPrimaryView";
+import { DeckPrimaryView } from "./DeckPrimaryView";
 import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
@@ -73,7 +73,7 @@ export const PrimaryViewRouter = ({
   tentacleBoardProps,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
-    return <FloorExperimentPrimaryView />;
+    return <DeckPrimaryView />;
   }
 
   if (activePrimaryNav === 3) {

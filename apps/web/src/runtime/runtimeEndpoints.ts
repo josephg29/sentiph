@@ -258,6 +258,29 @@ export const buildTentacleGitPullRequestMergeUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildDeckTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/deck/tentacles";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/tentacles");
+};
+
+export const buildDeckVaultFileUrl = (
+  tentacleId: string,
+  fileName: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTentacleId = encodeURIComponent(tentacleId);
+  const encodedFileName = encodeURIComponent(fileName);
+  const path = `/api/deck/tentacles/${encodedTentacleId}/vault/${encodedFileName}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
