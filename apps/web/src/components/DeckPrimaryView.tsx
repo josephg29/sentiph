@@ -142,6 +142,9 @@ const TentaclePod = ({
       </header>
 
       <div className="deck-pod-body">
+        <span className={`deck-pod-status deck-pod-status--${tentacle.status}`}>
+          {STATUS_LABELS[tentacle.status]}
+        </span>
         <div className="deck-pod-identity">
           <div className="deck-pod-octopus-col">
             <div className="deck-pod-octopus">
@@ -153,9 +156,6 @@ const TentaclePod = ({
                 scale={5}
               />
             </div>
-            <span className={`deck-pod-status deck-pod-status--${tentacle.status}`}>
-              {STATUS_LABELS[tentacle.status]}
-            </span>
           </div>
           <div className="deck-pod-identity-text">
             <span className="deck-pod-name">{tentacle.displayName}</span>
@@ -166,15 +166,18 @@ const TentaclePod = ({
         <div className="deck-pod-details">
           {tentacle.todoTotal > 0 && (
             <div className="deck-pod-progress">
-              <span className="deck-pod-progress-label">
-                {tentacle.todoDone}/{tentacle.todoTotal} done
-              </span>
               <div className="deck-pod-progress-bar">
                 <div
                   className="deck-pod-progress-fill"
                   style={{ width: `${progressPct}%`, backgroundColor: visuals.color }}
                 />
               </div>
+              <span
+                className="deck-pod-progress-label"
+                style={{ backgroundColor: `${visuals.color}22`, color: visuals.color }}
+              >
+                {tentacle.todoDone}/{tentacle.todoTotal} done
+              </span>
             </div>
           )}
 

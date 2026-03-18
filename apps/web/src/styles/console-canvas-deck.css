@@ -79,7 +79,6 @@
   flex-direction: column;
   background: #0b0d10;
   border: 1px solid #2b2f36;
-  cursor: pointer;
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -155,11 +154,12 @@
 .deck-pod-body {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0;
   flex: 1;
   min-height: 0;
-  padding: 0.6rem;
+  padding: 0.3rem;
   overflow-y: auto;
+  position: relative;
 }
 
 /* ─── Identity row — octopus top-left, name + description right ───────────── */
@@ -187,12 +187,16 @@
 }
 
 .deck-pod-status {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
   font-family: var(--font-main);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.1rem 0.36rem;
   border-radius: 2px;
+  z-index: 1;
 }
 
 .deck-pod-status--idle {
@@ -253,11 +257,12 @@
 
 .deck-pod-progress {
   display: flex;
-  flex-direction: column;
-  gap: 0.24rem;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .deck-pod-progress-bar {
+  flex: 1;
   height: 5px;
   background: #1a1d24;
   border-radius: 2px;
@@ -272,8 +277,11 @@
 
 .deck-pod-progress-label {
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
-  font-size: 0.76rem;
-  color: var(--text-secondary);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
 }
 
 /* ─── Todo list ───────────────────────────────────────────────────────────── */
