@@ -211,7 +211,17 @@
 }
 
 .deck-sidebar-content .deck-empty-agent-select-row {
-  display: none;
+  display: flex;
+}
+
+.deck-sidebar-content .deck-empty-agent-trigger {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.4rem;
+}
+
+.deck-sidebar-content .deck-empty-agent-launch {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.5rem;
 }
 
 .deck-bottom-clear-link {
