@@ -141,99 +141,129 @@
   font-size: 1.4rem;
 }
 
-/* ─── Deck sidebar (populated state) ─────────────────────────────────────── */
+/* ─── Deck sidebar content (rendered inside shared ActiveAgentsSidebar) ───── */
 
-.deck-view--populated {
-  display: grid;
-  grid-template-columns: auto 1fr;
+/* Override the parent grid to let deck content fill full height */
+.active-agents-body:has(.deck-sidebar-content) {
+  align-content: stretch;
 }
 
-.deck-sidebar {
+.deck-sidebar-content {
   display: flex;
   flex-direction: column;
-  background: var(--sidebar-canvas);
-  border-right: 1px solid var(--sidebar-border);
-  width: 280px;
-  overflow: hidden;
+  min-height: 100%;
 }
 
-.deck-sidebar-body {
+.deck-sidebar-content-top {
   flex: 1;
-  overflow-y: auto;
-  padding: 0.6rem;
 }
 
-.deck-sidebar-body .deck-empty-actions--compact .deck-empty-card {
-  width: auto;
-}
-
-.deck-sidebar-body .deck-empty-card-desc {
-  display: none;
-}
-
-.deck-sidebar-body .deck-empty-agent-select-row {
-  display: none;
-}
-
-.deck-sidebar-footer {
+.deck-sidebar-content-bottom {
   border-top: 1px solid var(--sidebar-border);
-  padding: 0.5rem 0.6rem;
+  background: var(--sidebar-panel);
+}
+
+.deck-sidebar-content .deck-empty-actions--compact {
+  gap: 0;
+}
+
+.deck-sidebar-content .deck-empty-actions--compact .deck-empty-card {
+  width: auto;
+  padding: 0.46rem 0.56rem;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--sidebar-border);
+  font-family: var(--font-main);
+}
+
+.deck-sidebar-content .deck-empty-actions--compact .deck-empty-card:hover {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+
+.deck-sidebar-content .deck-empty-card-title {
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.deck-sidebar-content .deck-empty-card-desc {
+  display: none;
+}
+
+.deck-sidebar-content .deck-empty-card-icon {
+  width: 20px;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
+  justify-content: center;
 }
 
-.deck-main {
-  display: flex;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
+.deck-sidebar-content .deck-empty-card-icon--terminal {
+  font-size: 1rem;
+}
+
+.deck-sidebar-content .deck-empty-card-icon canvas {
+  image-rendering: pixelated;
+  width: 20px !important;
+  height: auto !important;
+}
+
+.deck-sidebar-content .deck-empty-agent-select-row {
+  display: none;
 }
 
 .deck-bottom-clear-link {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   font-family: var(--font-main);
-  font-size: 0.72rem;
-  color: #6a7080;
-  background: none;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #e05555;
+  background: transparent;
   border: none;
-  padding: 0;
+  border-bottom: 1px solid var(--sidebar-border);
+  padding: 0.46rem 0.56rem;
   cursor: pointer;
-  align-self: flex-end;
-  transition: color 0.15s;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
 }
 
 .deck-bottom-clear-link:hover {
-  color: #e05555;
+  background: rgba(224, 85, 85, 0.1);
 }
 
 .deck-bottom-clear-icon {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 20px;
+  height: 0.8rem;
+  flex-shrink: 0;
 }
 
 .deck-bottom-clear-confirm {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  align-self: flex-end;
+  gap: 0.3rem;
+  padding: 0.36rem 0.56rem;
 }
 
 .deck-bottom-clear-label {
   font-family: var(--font-main);
   font-size: 0.72rem;
   color: #e05555;
+  flex: 1;
 }
 
 .deck-bottom-clear-btn {
   font-family: var(--font-main);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-secondary);
-  background: #11161d;
-  border: 1px solid #2b2f36;
+  background: var(--sidebar-card);
+  border: 1px solid var(--sidebar-border);
   padding: 0.2rem 0.5rem;
   cursor: pointer;
 }
@@ -663,11 +693,10 @@
 
 .deck-pod-header {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-end;
   gap: 0;
   border-bottom: 1px solid #2b2f36;
-  background: #0d1017;
   flex-shrink: 0;
 }
 
@@ -696,7 +725,7 @@
 .deck-pod-btn--secondary {
   color: var(--accent-primary);
   background: transparent;
-  border-left: 1px solid #2b2f36;
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .deck-pod-btn--secondary:hover {
@@ -706,6 +735,7 @@
 .deck-pod-btn--delete {
   color: #e05555;
   background: var(--accent-primary);
+  border: none;
   border-left: 1px solid rgba(0, 0, 0, 0.15);
   flex: 0;
   padding: 0.36rem 0.5rem;

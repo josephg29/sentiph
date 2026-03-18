@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
 import type { TentacleAgentProvider } from "../app/types";
@@ -156,7 +156,7 @@ const TentaclePod = ({
     <article
       className={`deck-pod${isFocused ? " deck-pod--focused" : ""}`}
       data-status={tentacle.status}
-      style={{ borderColor: visuals.color }}
+      style={{ borderColor: "var(--accent-primary)" }}
     >
       <header className="deck-pod-header">
         {isFocused && (
@@ -590,7 +590,7 @@ const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
   const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
-    <div className="deck-sidebar-footer">
+    <div className="deck-sidebar-clear">
       {confirmingClear ? (
         <div className="deck-bottom-clear-confirm">
           <span className="deck-bottom-clear-label">Clear all tentacles?</span>
@@ -638,7 +638,11 @@ type FocusState = {
 
 type EmptyViewMode = "idle" | "adding";
 
-export const DeckPrimaryView = () => {
+type DeckPrimaryViewProps = {
+  onSidebarContent?: ((content: ReactNode) => void) | undefined;
+};
+
+export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   const [tentacles, setTentacles] = useState<DeckTentacleSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [vaultContent, setVaultContent] = useState<string | null>(null);
@@ -794,6 +798,41 @@ export const DeckPrimaryView = () => {
   const focusedTentacle = focus ? tentacles.find((t) => t.tentacleId === focus.tentacleId) : null;
   const mode = focus ? "detail" : "grid";
 
+  // Push sidebar content to the shared sidebar
+  const sidebarContent = tentacles.length > 0 ? (
+    <div className="deck-sidebar-content">
+      <div className="deck-sidebar-content-top">
+        <ActionCards
+          compact
+          selectedAgent={selectedAgent}
+          setSelectedAgent={setSelectedAgent}
+          agentMenuOpen={agentMenuOpen}
+          setAgentMenuOpen={setAgentMenuOpen}
+          agentMenuRef={agentMenuRef}
+          onAddManually={() => {
+            setEmptyViewMode("adding");
+            setCreateError(null);
+          }}
+        />
+      </div>
+      <div className="deck-sidebar-content-bottom">
+        <DeckBottomActions
+          onClearAll={async () => {
+            for (const t of tentacles) {
+              await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
+            }
+            await fetchTentacles();
+          }}
+        />
+      </div>
+    </div>
+  ) : null;
+
+  useEffect(() => {
+    onSidebarContent?.(sidebarContent);
+    return () => onSidebarContent?.(null);
+  });
+
   // ─── Empty state (no tentacles) ─────────────────────────────────────────────
 
   if (tentacles.length === 0) {
@@ -845,30 +884,7 @@ export const DeckPrimaryView = () => {
   // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
-    <section className="deck-view deck-view--populated" data-mode={mode} aria-label="Deck">
-      <aside className="deck-sidebar">
-        <div className="deck-sidebar-body">
-          <ActionCards
-            compact
-            selectedAgent={selectedAgent}
-            setSelectedAgent={setSelectedAgent}
-            agentMenuOpen={agentMenuOpen}
-            setAgentMenuOpen={setAgentMenuOpen}
-            agentMenuRef={agentMenuRef}
-            onAddManually={() => setEmptyViewMode("adding")}
-          />
-        </div>
-        <DeckBottomActions
-          onClearAll={async () => {
-            for (const t of tentacles) {
-              await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
-            }
-            await fetchTentacles();
-          }}
-        />
-      </aside>
-
-      <div className="deck-main">
+    <section className="deck-view" data-mode={mode} aria-label="Deck">
         <div className="deck-pods-container">
           {tentacles.map((t) => {
             const isThis = focus?.tentacleId === t.tentacleId;
@@ -920,7 +936,6 @@ export const DeckPrimaryView = () => {
             </>
           )}
         </div>
-      </div>
     </section>
   );
 };

@@ -13,6 +13,7 @@ import { TentacleBoard } from "./TentacleBoard";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
+  onDeckSidebarContent?: (content: import("react").ReactNode) => void;
   isMonitorVisible: boolean;
   githubPrimaryViewProps: ComponentProps<typeof GitHubPrimaryView>;
   monitorPrimaryViewProps: ComponentProps<typeof MonitorPrimaryView>;
@@ -65,6 +66,7 @@ type PrimaryViewRouterProps = {
 
 export const PrimaryViewRouter = ({
   activePrimaryNav,
+  onDeckSidebarContent,
   isMonitorVisible,
   githubPrimaryViewProps,
   monitorPrimaryViewProps,
@@ -73,7 +75,7 @@ export const PrimaryViewRouter = ({
   tentacleBoardProps,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
-    return <DeckPrimaryView />;
+    return <DeckPrimaryView onSidebarContent={onDeckSidebarContent} />;
   }
 
   if (activePrimaryNav === 3) {

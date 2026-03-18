@@ -1,5 +1,5 @@
 import { buildTentacleColumns } from "@octogent/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
@@ -45,6 +45,7 @@ export const App = () => {
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
+  const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
   const tentaclesRef = useRef<HTMLElement | null>(null);
   const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -411,8 +412,8 @@ export const App = () => {
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">
-        <div className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 2 ? "" : " workspace-shell--full"}`}>
-          {isAgentsSidebarVisible && activePrimaryNav !== 2 && (
+        <div className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}>
+          {isAgentsSidebarVisible && (
             <ActiveAgentsSidebar
               claudeUsageSnapshot={claudeUsageSnapshot}
               claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
@@ -427,9 +428,9 @@ export const App = () => {
               }}
               isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
               onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
-              isClaudeUsageVisible={activePrimaryNav !== 4 && isClaudeUsageVisible}
+              isClaudeUsageVisible={activePrimaryNav !== 2 && activePrimaryNav !== 4 && isClaudeUsageVisible}
               isClaudeUsageSectionExpanded={isClaudeUsageSectionExpanded}
-              isCodexUsageVisible={activePrimaryNav !== 4 && isCodexUsageVisible}
+              isCodexUsageVisible={activePrimaryNav !== 2 && activePrimaryNav !== 4 && isCodexUsageVisible}
               onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
               isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
               onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
@@ -440,6 +441,7 @@ export const App = () => {
               onRefreshCodexUsage={refreshCodexUsage}
               actionPanel={sidebarActionPanel}
               bodyContent={
+                activePrimaryNav === 2 ? (deckSidebarContent ?? undefined) :
                 activePrimaryNav === 4 ? (
                   <SidebarConversationsList
                     sessions={conversationSessions}
@@ -468,6 +470,7 @@ export const App = () => {
 
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}
+            onDeckSidebarContent={setDeckSidebarContent}
             isMonitorVisible={isMonitorVisible}
             githubPrimaryViewProps={{
               githubCommitCount30d,
