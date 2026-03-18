@@ -583,37 +583,14 @@ const AddTentacleForm = ({ onSubmit, onCancel, isSubmitting, error }: AddTentacl
 // ─── Bottom actions (compact cards + clear all for populated state) ──────────
 
 type DeckBottomActionsProps = {
-  selectedAgent: TentacleAgentProvider;
-  setSelectedAgent: (agent: TentacleAgentProvider) => void;
-  agentMenuOpen: boolean;
-  setAgentMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
-  agentMenuRef: React.RefObject<HTMLDivElement | null>;
-  onAddManually: () => void;
   onClearAll: () => void;
 };
 
-const DeckBottomActions = ({
-  selectedAgent,
-  setSelectedAgent,
-  agentMenuOpen,
-  setAgentMenuOpen,
-  agentMenuRef,
-  onAddManually,
-  onClearAll,
-}: DeckBottomActionsProps) => {
+const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
   const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
-    <div className="deck-bottom-actions">
-      <ActionCards
-        compact
-        selectedAgent={selectedAgent}
-        setSelectedAgent={setSelectedAgent}
-        agentMenuOpen={agentMenuOpen}
-        setAgentMenuOpen={setAgentMenuOpen}
-        agentMenuRef={agentMenuRef}
-        onAddManually={onAddManually}
-      />
+    <div className="deck-sidebar-footer">
       {confirmingClear ? (
         <div className="deck-bottom-clear-confirm">
           <span className="deck-bottom-clear-label">Clear all tentacles?</span>
@@ -868,70 +845,82 @@ export const DeckPrimaryView = () => {
   // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
-    <section className="deck-view" data-mode={mode} aria-label="Deck">
-      <div className="deck-pods-container">
-        {tentacles.map((t) => {
-          const isThis = focus?.tentacleId === t.tentacleId;
-          return (
-            <div
-              key={t.tentacleId}
-              className="deck-pod-slot"
-              data-pod-role={isThis ? "focused" : focus ? "other" : "idle"}
-            >
-              <TentaclePod
-                tentacle={t}
-                visuals={visualsMap.get(t.tentacleId) as OctopusVisuals}
-                isFocused={isThis}
-                activeFileName={isThis ? focus?.fileName : undefined}
-                onVaultFileClick={(fileName) =>
-                  isThis
-                    ? setFocus({ tentacleId: t.tentacleId, fileName })
-                    : handleVaultFileClick(t.tentacleId, fileName)
-                }
-                onClose={handleClose}
-                onDelete={() => handleDeleteTentacle(t.tentacleId)}
-                isDeleting={deletingTentacleId === t.tentacleId}
-              />
-            </div>
-          );
-        })}
-      </div>
+    <section className="deck-view deck-view--populated" data-mode={mode} aria-label="Deck">
+      <aside className="deck-sidebar">
+        <div className="deck-sidebar-body">
+          <ActionCards
+            compact
+            selectedAgent={selectedAgent}
+            setSelectedAgent={setSelectedAgent}
+            agentMenuOpen={agentMenuOpen}
+            setAgentMenuOpen={setAgentMenuOpen}
+            agentMenuRef={agentMenuRef}
+            onAddManually={() => setEmptyViewMode("adding")}
+          />
+        </div>
+        <DeckBottomActions
+          onClearAll={async () => {
+            for (const t of tentacles) {
+              await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
+            }
+            await fetchTentacles();
+          }}
+        />
+      </aside>
 
-      <div className="deck-detail-main">
-        {focusedTentacle && focus && (
-          <>
-            <header className="deck-detail-main-header">
-              <span className="deck-detail-main-path">
-                {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
-              </span>
-            </header>
-            <div className="deck-detail-main-content" key={`${focus.tentacleId}/${focus.fileName}`}>
-              {loadingVault ? (
-                <span className="deck-detail-loading">Loading…</span>
-              ) : vaultContent !== null ? (
-                <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
-              ) : (
-                <span className="deck-detail-loading">File not found.</span>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+      <div className="deck-main">
+        <div className="deck-pods-container">
+          {tentacles.map((t) => {
+            const isThis = focus?.tentacleId === t.tentacleId;
+            return (
+              <div
+                key={t.tentacleId}
+                className="deck-pod-slot"
+                data-pod-role={isThis ? "focused" : focus ? "other" : "idle"}
+              >
+                <TentaclePod
+                  tentacle={t}
+                  visuals={visualsMap.get(t.tentacleId) as OctopusVisuals}
+                  isFocused={isThis}
+                  activeFileName={isThis ? focus?.fileName : undefined}
+                  onVaultFileClick={(fileName) =>
+                    isThis
+                      ? setFocus({ tentacleId: t.tentacleId, fileName })
+                      : handleVaultFileClick(t.tentacleId, fileName)
+                  }
+                  onClose={handleClose}
+                  onDelete={() => handleDeleteTentacle(t.tentacleId)}
+                  isDeleting={deletingTentacleId === t.tentacleId}
+                />
+              </div>
+            );
+          })}
+        </div>
 
-      <DeckBottomActions
-        selectedAgent={selectedAgent}
-        setSelectedAgent={setSelectedAgent}
-        agentMenuOpen={agentMenuOpen}
-        setAgentMenuOpen={setAgentMenuOpen}
-        agentMenuRef={agentMenuRef}
-        onAddManually={() => setEmptyViewMode("adding")}
-        onClearAll={async () => {
-          for (const t of tentacles) {
-            await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
-          }
-          await fetchTentacles();
-        }}
-      />
+        <div className="deck-detail-main">
+          {focusedTentacle && focus && (
+            <>
+              <header className="deck-detail-main-header">
+                <span className="deck-detail-main-path">
+                  {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
+                </span>
+              </header>
+              <div
+                className="deck-detail-main-content"
+                key={`${focus.tentacleId}/${focus.fileName}`}
+              >
+                {loadingVault ? (
+                  <span className="deck-detail-loading">Loading…</span>
+                ) : vaultContent !== null ? (
+                  <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
+                ) : (
+                  <span className="deck-detail-loading">File not found.</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </section>
   );
 };

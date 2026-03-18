@@ -141,29 +141,54 @@
   font-size: 1.4rem;
 }
 
-/* ─── Bottom-right actions (populated state) ─────────────────────────────── */
+/* ─── Deck sidebar (populated state) ─────────────────────────────────────── */
 
-.deck-bottom-actions {
-  position: absolute;
-  bottom: 0.75rem;
-  right: 0.75rem;
-  z-index: 10;
+.deck-view--populated {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.deck-sidebar {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  background: var(--sidebar-canvas);
+  border-right: 1px solid var(--sidebar-border);
+  width: 280px;
+  overflow: hidden;
+}
+
+.deck-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.6rem;
+}
+
+.deck-sidebar-body .deck-empty-actions--compact .deck-empty-card {
+  width: auto;
+}
+
+.deck-sidebar-body .deck-empty-card-desc {
+  display: none;
+}
+
+.deck-sidebar-body .deck-empty-agent-select-row {
+  display: none;
+}
+
+.deck-sidebar-footer {
+  border-top: 1px solid var(--sidebar-border);
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  align-items: center;
   gap: 0.4rem;
+  flex-shrink: 0;
 }
 
-.deck-bottom-actions .deck-empty-card-desc {
-  display: none;
-}
-
-.deck-bottom-actions .deck-empty-card-title {
-  font-size: 0.78rem;
-}
-
-.deck-bottom-actions .deck-empty-agent-select-row {
-  display: none;
+.deck-main {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 .deck-bottom-clear-link {
@@ -680,14 +705,14 @@
 
 .deck-pod-btn--delete {
   color: #e05555;
-  background: transparent;
-  border-left: 1px solid #2b2f36;
+  background: var(--accent-primary);
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
   flex: 0;
   padding: 0.36rem 0.5rem;
 }
 
 .deck-pod-btn--delete:hover {
-  background: rgba(224, 85, 85, 0.1);
+  opacity: 0.85;
 }
 
 .deck-pod-btn-icon {
