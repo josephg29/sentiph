@@ -270,9 +270,187 @@
   background: #11161d;
   padding: 0.08rem 0.3rem;
   border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
 }
 
 .floor-pod-vault-file:hover {
   color: var(--text-primary);
   background: #1a1d24;
+}
+
+/* ─── Focused pod modifier ───────────────────────────────────────────────── */
+
+.floor-pod--focused {
+  height: 100%;
+  cursor: default;
+}
+
+.floor-pod--focused:hover {
+  filter: none;
+}
+
+.floor-pod--focused .floor-pod-vault-file[aria-current="true"] {
+  color: var(--accent-primary);
+  background: rgba(250, 163, 44, 0.12);
+  border-color: var(--accent-primary);
+}
+
+/* ─── Detail layout — left pod + right content ───────────────────────────── */
+
+.floor-detail-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+.floor-detail-sidebar {
+  width: 320px;
+  min-width: 280px;
+  max-width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2b2f36;
+}
+
+.floor-detail-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floor-detail-main-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2b2f36;
+  background: #0d1017;
+  flex-shrink: 0;
+}
+
+.floor-detail-main-path {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.floor-detail-main-path strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.floor-detail-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+}
+
+/* ─── Markdown rendering inside detail panel ─────────────────────────────── */
+
+.floor-detail-markdown {
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.floor-detail-markdown h1 {
+  font-family: "Silkscreen", cursive;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--accent-primary);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.floor-detail-markdown h2 {
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.floor-detail-markdown h3 {
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 1rem 0 0.4rem 0;
+}
+
+.floor-detail-markdown p {
+  margin: 0.4rem 0;
+}
+
+.floor-detail-markdown ul,
+.floor-detail-markdown ol {
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+
+.floor-detail-markdown li {
+  margin: 0.2rem 0;
+  color: var(--text-secondary);
+}
+
+.floor-detail-markdown code {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  background: #11161d;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  color: #dcdcaa;
+}
+
+.floor-detail-markdown pre {
+  background: #0b0d10;
+  border: 1px solid #2b2f36;
+  border-radius: 3px;
+  padding: 0.6rem 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.floor-detail-markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+.floor-detail-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.82rem;
+}
+
+.floor-detail-markdown th,
+.floor-detail-markdown td {
+  border: 1px solid #2b2f36;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+
+.floor-detail-markdown th {
+  background: #0d1017;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.floor-detail-markdown td {
+  color: var(--text-secondary);
+}
+
+.floor-detail-markdown strong {
+  color: var(--text-primary);
+}
+
+.floor-detail-markdown input[type="checkbox"] {
+  margin-right: 0.4rem;
 }

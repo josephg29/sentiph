@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { OctopusGlyph, type OctopusAnimation, type OctopusExpression, type OctopusAccessory } from "./EmptyOctopus";
+import { MarkdownContent } from "./ui/MarkdownContent";
 
 // ─── Dummy tentacle data ─────────────────────────────────────────────────────
 
@@ -79,6 +80,201 @@ function buildDummyTentacles(): DummyTentacle[] {
   });
 }
 
+// ─── Dummy vault file markdown content ───────────────────────────────────────
+
+const VAULT_MARKDOWN: Record<string, string> = {
+  "main.md": `# Overview
+
+This document captures the high-level goals, constraints, and current status of this workstream.
+
+## Current Sprint
+
+- Finalize schema migrations
+- Wire up integration tests against staging
+- Review open pull requests from last week
+
+## Constraints
+
+- Must remain backward-compatible with v2 API consumers
+- No downtime migrations — all changes must be online-safe
+- Keep query latency under 50ms p99
+
+## Open Questions
+
+1. Should we adopt read-replicas now or defer to next quarter?
+2. How do we handle the legacy enum columns during migration?
+`,
+  "todo.md": `# Task List
+
+- [x] Set up project skeleton
+- [x] Define domain types
+- [ ] Implement core business logic
+- [ ] Add integration tests
+- [ ] Wire up API endpoints
+- [ ] Review and iterate on error handling
+- [ ] Write deployment runbook
+`,
+  "schema.md": `# Schema Design
+
+## Tables
+
+### \`organizations\`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| name | text | unique |
+| created_at | timestamptz | default now() |
+
+### \`users\`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| org_id | uuid | FK → organizations |
+| email | text | unique per org |
+| role | text | admin / member / viewer |
+
+## Indexes
+
+- \`idx_users_org_email\` on (org_id, email) — composite for fast lookup
+- \`idx_users_role\` on (role) — for role-based queries
+`,
+  "migrations.md": `# Migration Log
+
+## 001 — Initial schema
+- Created organizations and users tables
+- Added composite index on (org_id, email)
+
+## 002 — Add session tokens
+- New \`sessions\` table with token rotation support
+- Added cleanup cron for expired sessions
+
+## 003 — Pending
+- Migrate legacy enum columns to text + check constraint
+`,
+  "auth-flow.md": `# Authentication Flow
+
+## OAuth2 Authorization Code Flow
+
+1. User clicks "Sign in" → redirect to provider
+2. Provider authenticates → redirect back with auth code
+3. Backend exchanges code for access + refresh tokens
+4. Session token issued, stored in HTTP-only cookie
+5. Refresh token rotated on each use
+
+## Token Storage
+
+- Access tokens: in-memory only, 15 min TTL
+- Refresh tokens: encrypted at rest, 30-day TTL
+- Session cookies: HTTP-only, Secure, SameSite=Strict
+`,
+  "components.md": `# Component Architecture
+
+## Layout Primitives
+- \`<Shell>\` — top-level app frame
+- \`<Sidebar>\` — collapsible left panel
+- \`<Canvas>\` — main content area
+
+## Feature Components
+- \`<TentacleBoard>\` — agent column layout
+- \`<TentaclePod>\` — card representation of a tentacle
+- \`<TerminalPane>\` — PTY output display
+
+## Design Tokens
+- Colors defined in CSS custom properties
+- Spacing: 4px base unit
+- Typography: PP Neue Machina (chrome), JetBrains Mono (code)
+`,
+  "design-tokens.md": `# Design Tokens
+
+## Colors
+\`\`\`css
+--bg-primary: #080a0f
+--bg-secondary: #0b0d10
+--accent-primary: #faa32c
+--text-primary: #e6e6e6
+--text-secondary: #8b8fa3
+\`\`\`
+
+## Typography
+- Headers: PP Neue Machina Plain, 700
+- Body: PP Neue Machina Plain, 400
+- Code: JetBrains Mono, 400
+`,
+  "endpoints.md": `# API Endpoints
+
+## Tentacles
+- \`GET /api/tentacles\` — list all tentacles
+- \`POST /api/tentacles\` — create a new tentacle
+- \`PATCH /api/tentacles/:id\` — update tentacle metadata
+- \`DELETE /api/tentacles/:id\` — remove tentacle and cleanup
+
+## Sessions
+- \`POST /api/tentacles/:id/agents\` — spawn agent terminal
+- \`DELETE /api/tentacles/:id/agents/:agentId\` — kill agent
+
+## WebSocket
+- \`ws://localhost:PORT/ws/terminal/:sessionId\` — PTY stream
+`,
+  "infra.md": `# Infrastructure
+
+## Environments
+- **Local**: Node.js 22 + pnpm, binds 127.0.0.1
+- **Staging**: Docker Compose, ephemeral databases
+- **Production**: TBD — targeting containerized deploy
+
+## Dependencies
+- node-pty for terminal emulation
+- xterm.js for browser-side rendering
+- marked for markdown processing
+`,
+  "runbooks.md": `# Runbooks
+
+## Deploy to Staging
+1. Merge PR to \`main\`
+2. CI builds and pushes image
+3. Staging auto-deploys from \`main\` tag
+
+## Rollback
+1. Identify failing deploy via health check
+2. Revert to previous image tag
+3. Verify health check passes
+4. Investigate root cause before re-deploying
+`,
+  "patterns.md": `# Test Patterns
+
+## Integration Tests
+- Use real database connections (no mocks)
+- Each test gets a fresh schema via migration
+- Cleanup via transaction rollback
+
+## Naming Convention
+- \`describe("FeatureName")\` at top level
+- \`it("should <behavior> when <condition>")\` for cases
+- Group related assertions in single test when logical
+
+## Visual Regression
+- Capture screenshots at key breakpoints
+- Compare against baseline with 0.1% threshold
+- Update baselines explicitly via \`--update-snapshots\`
+`,
+  "dashboards.md": `# Dashboards
+
+## API Latency
+- p50, p95, p99 latency by endpoint
+- Error rate by status code family
+- Request volume over time
+
+## System Health
+- CPU / memory per service
+- Database connection pool utilization
+- WebSocket active connections
+`,
+};
+
+function getVaultFileContent(fileName: string): string {
+  return VAULT_MARKDOWN[fileName] ?? `# ${fileName}\n\nNo content available for this file.`;
+}
+
 // ─── Status styling ──────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<DummyTentacle["status"], string> = {
@@ -90,14 +286,31 @@ const STATUS_LABELS: Record<DummyTentacle["status"], string> = {
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
-const TentaclePod = ({ tentacle }: { tentacle: DummyTentacle }) => {
+type TentaclePodProps = {
+  tentacle: DummyTentacle;
+  isFocused?: boolean;
+  activeFileName?: string;
+  onVaultFileClick?: (fileName: string) => void;
+  onClose?: () => void;
+};
+
+const TentaclePod = ({ tentacle, isFocused, activeFileName, onVaultFileClick, onClose }: TentaclePodProps) => {
   const progressPct = tentacle.todoTotal > 0
     ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100)
     : 0;
 
   return (
-    <article className="floor-pod" data-status={tentacle.status} style={{ borderColor: tentacle.color }}>
+    <article
+      className={`floor-pod${isFocused ? " floor-pod--focused" : ""}`}
+      data-status={tentacle.status}
+      style={{ borderColor: tentacle.color }}
+    >
       <header className="floor-pod-header">
+        {isFocused && (
+          <button type="button" className="floor-pod-btn floor-pod-btn--secondary" onClick={onClose}>
+            ← Back
+          </button>
+        )}
         <button type="button" className="floor-pod-btn">Spawn</button>
         <button type="button" className="floor-pod-btn">Vault</button>
         <button type="button" className="floor-pod-btn floor-pod-btn--secondary">Edit</button>
@@ -151,7 +364,18 @@ const TentaclePod = ({ tentacle }: { tentacle: DummyTentacle }) => {
             <span className="floor-pod-vault-label">vault</span>
             <div className="floor-pod-vault-files">
               {tentacle.vaultFiles.map((file) => (
-                <span key={file} className="floor-pod-vault-file">{file}</span>
+                <button
+                  key={file}
+                  type="button"
+                  className="floor-pod-vault-file"
+                  aria-current={activeFileName === file ? "true" : undefined}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onVaultFileClick?.(file);
+                  }}
+                >
+                  {file}
+                </button>
               ))}
             </div>
           </div>
@@ -161,14 +385,65 @@ const TentaclePod = ({ tentacle }: { tentacle: DummyTentacle }) => {
   );
 };
 
+type FocusState = {
+  tentacleId: string;
+  fileName: string;
+};
+
 export const FloorExperimentPrimaryView = () => {
   const tentacles = useMemo(() => buildDummyTentacles(), []);
+  const [focus, setFocus] = useState<FocusState | null>(null);
+
+  const handleVaultFileClick = useCallback((tentacleId: string, fileName: string) => {
+    setFocus({ tentacleId, fileName });
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setFocus(null);
+  }, []);
+
+  const focusedTentacle = focus ? tentacles.find((t) => t.id === focus.tentacleId) : null;
+
+  if (focus && focusedTentacle) {
+    return (
+      <section className="floor-experiment-view" aria-label="Floor experiment">
+        <div className="floor-detail-layout">
+          <div className="floor-detail-sidebar">
+            <TentaclePod
+              tentacle={focusedTentacle}
+              isFocused
+              activeFileName={focus.fileName}
+              onVaultFileClick={(fileName) => handleVaultFileClick(focus.tentacleId, fileName)}
+              onClose={handleClose}
+            />
+          </div>
+          <div className="floor-detail-main">
+            <header className="floor-detail-main-header">
+              <span className="floor-detail-main-path">
+                {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
+              </span>
+            </header>
+            <div className="floor-detail-main-content">
+              <MarkdownContent
+                content={getVaultFileContent(focus.fileName)}
+                className="floor-detail-markdown"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="floor-experiment-view" aria-label="Floor experiment">
       <div className="floor-experiment-grid">
         {tentacles.map((t) => (
-          <TentaclePod key={t.id} tentacle={t} />
+          <TentaclePod
+            key={t.id}
+            tentacle={t}
+            onVaultFileClick={(fileName) => handleVaultFileClick(t.id, fileName)}
+          />
         ))}
       </div>
     </section>

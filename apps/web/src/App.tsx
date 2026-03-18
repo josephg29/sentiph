@@ -411,8 +411,8 @@ export const App = () => {
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">
-        <div className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}>
-          {isAgentsSidebarVisible && (
+        <div className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 2 ? "" : " workspace-shell--full"}`}>
+          {isAgentsSidebarVisible && activePrimaryNav !== 2 && (
             <ActiveAgentsSidebar
               claudeUsageSnapshot={claudeUsageSnapshot}
               claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
