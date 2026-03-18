@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  gap: 3rem;
+  gap: 7rem;
   padding: 2rem;
 }
 
@@ -45,7 +45,7 @@
   width: 480px;
   padding: 1.25rem 1.5rem;
   background: #0b0d10;
-  border: 1px solid #2b2f36;
+  border: 1px solid var(--accent-primary);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   font-family: var(--font-main);
@@ -199,7 +199,7 @@
 .deck-empty-card-title {
   font-family: "Silkscreen", cursive;
   font-size: 1.1rem;
-  color: var(--text-primary);
+  color: var(--accent-primary);
   line-height: 1.3;
 }
 

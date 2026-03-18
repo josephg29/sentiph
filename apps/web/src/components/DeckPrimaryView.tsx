@@ -416,6 +416,15 @@ export const DeckPrimaryView = () => {
               </div>
               </div>
             </div>
+            <button type="button" className="deck-empty-card" onClick={() => {}}>
+              <span className="deck-empty-card-icon deck-empty-card-icon--terminal">+</span>
+              <div className="deck-empty-card-text">
+                <span className="deck-empty-card-title">Add Tentacle Manually</span>
+                <span className="deck-empty-card-desc">
+                  Create a custom tentacle with your own configuration
+                </span>
+              </div>
+            </button>
           </div>
         </div>
       </section>
