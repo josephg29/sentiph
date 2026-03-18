@@ -288,7 +288,7 @@ const STATUS_LABELS: Record<DummyTentacle["status"], string> = {
 
 type TentaclePodProps = {
   tentacle: DummyTentacle;
-  isFocused?: boolean;
+  isFocused: boolean;
   activeFileName?: string;
   onVaultFileClick?: (fileName: string) => void;
   onClose?: () => void;
@@ -385,6 +385,8 @@ const TentaclePod = ({ tentacle, isFocused, activeFileName, onVaultFileClick, on
   );
 };
 
+// ─── Main view ───────────────────────────────────────────────────────────────
+
 type FocusState = {
   tentacleId: string;
   fileName: string;
@@ -402,49 +404,58 @@ export const FloorExperimentPrimaryView = () => {
     setFocus(null);
   }, []);
 
-  const focusedTentacle = focus ? tentacles.find((t) => t.id === focus.tentacleId) : null;
+  const focusedTentacle = focus
+    ? tentacles.find((t) => t.id === focus.tentacleId)
+    : null;
 
-  if (focus && focusedTentacle) {
-    return (
-      <section className="floor-experiment-view" aria-label="Floor experiment">
-        <div className="floor-detail-layout">
-          <div className="floor-detail-sidebar">
-            <TentaclePod
-              tentacle={focusedTentacle}
-              isFocused
-              activeFileName={focus.fileName}
-              onVaultFileClick={(fileName) => handleVaultFileClick(focus.tentacleId, fileName)}
-              onClose={handleClose}
-            />
-          </div>
-          <div className="floor-detail-main">
+  // data-mode drives all CSS transitions on one attribute change
+  const mode = focus ? "detail" : "grid";
+
+  return (
+    <section className="floor-experiment-view" data-mode={mode} aria-label="Floor experiment">
+      {/* ── Pods container: grid in grid mode, sidebar column in detail mode ── */}
+      <div className="floor-pods-container">
+        {tentacles.map((t) => {
+          const isThis = focus?.tentacleId === t.id;
+          return (
+            <div
+              key={t.id}
+              className="floor-pod-slot"
+              data-pod-role={isThis ? "focused" : focus ? "other" : "idle"}
+            >
+              <TentaclePod
+                tentacle={t}
+                isFocused={isThis}
+                activeFileName={isThis ? focus?.fileName : undefined}
+                onVaultFileClick={(fileName) =>
+                  isThis
+                    ? setFocus({ tentacleId: t.id, fileName })
+                    : handleVaultFileClick(t.id, fileName)
+                }
+                onClose={handleClose}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Detail panel: markdown content (always in DOM, revealed via CSS) ── */}
+      <div className="floor-detail-main">
+        {focusedTentacle && focus && (
+          <>
             <header className="floor-detail-main-header">
               <span className="floor-detail-main-path">
                 {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
               </span>
             </header>
-            <div className="floor-detail-main-content">
+            <div className="floor-detail-main-content" key={focus.fileName}>
               <MarkdownContent
                 content={getVaultFileContent(focus.fileName)}
                 className="floor-detail-markdown"
               />
             </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="floor-experiment-view" aria-label="Floor experiment">
-      <div className="floor-experiment-grid">
-        {tentacles.map((t) => (
-          <TentaclePod
-            key={t.id}
-            tentacle={t}
-            onVaultFileClick={(fileName) => handleVaultFileClick(t.id, fileName)}
-          />
-        ))}
+          </>
+        )}
       </div>
     </section>
   );
