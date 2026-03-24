@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const PROMPTS_RELATIVE_PATH = ".octogent/prompts";
+const PROMPTS_RELATIVE_PATH = "prompts";
 
 /**
  * Interpolate `{{key}}` placeholders in a template string with values from the
@@ -11,7 +11,7 @@ export const interpolatePrompt = (template: string, variables: Record<string, st
   template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => variables[key] ?? match);
 
 /**
- * Read a prompt template from `.octogent/prompts/<name>.md` and return the raw
+ * Read a prompt template from `prompts/<name>.md` and return the raw
  * template string. Returns `undefined` if the file does not exist.
  */
 export const readPromptTemplate = async (
