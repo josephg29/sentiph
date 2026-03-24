@@ -136,6 +136,7 @@ type TentaclePodProps = {
   isFocused: boolean;
   activeFileName?: string | undefined;
   onVaultFileClick?: (fileName: string) => void;
+  onVaultBrowse?: () => void;
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
@@ -147,6 +148,7 @@ const TentaclePod = ({
   isFocused,
   activeFileName,
   onVaultFileClick,
+  onVaultBrowse,
   onClose,
   onDelete,
   isDeleting,
@@ -170,7 +172,11 @@ const TentaclePod = ({
         <button type="button" className="deck-pod-btn">
           Spawn
         </button>
-        <button type="button" className="deck-pod-btn">
+        <button
+          type="button"
+          className="deck-pod-btn"
+          onClick={() => onVaultBrowse?.()}
+        >
           Vault
         </button>
         {confirmingDelete ? (
@@ -661,6 +667,7 @@ const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 type FocusState =
+  | { type: "vault-browser"; tentacleId: string }
   | { type: "vault"; tentacleId: string; fileName: string }
   | { type: "terminal"; agentId: string; terminalLabel: string };
 
@@ -850,7 +857,9 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   );
 
   const focusedTentacle =
-    focus?.type === "vault" ? tentacles.find((t) => t.tentacleId === focus.tentacleId) : null;
+    focus?.type === "vault" || focus?.type === "vault-browser"
+      ? tentacles.find((t) => t.tentacleId === focus.tentacleId)
+      : null;
   const mode = focus ? "detail" : "grid";
 
   // Push sidebar content to the shared sidebar
@@ -947,7 +956,9 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
     <section className="deck-view" data-mode={mode} aria-label="Deck">
       <div className="deck-pods-container">
         {tentacles.map((t) => {
-          const isThis = focus?.type === "vault" && focus.tentacleId === t.tentacleId;
+          const isThis =
+            (focus?.type === "vault" || focus?.type === "vault-browser") &&
+            focus.tentacleId === t.tentacleId;
           return (
             <div
               key={t.tentacleId}
@@ -958,11 +969,12 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
                 tentacle={t}
                 visuals={visualsMap.get(t.tentacleId) as OctopusVisuals}
                 isFocused={isThis}
-                activeFileName={isThis ? focus.fileName : undefined}
+                activeFileName={focus?.type === "vault" && isThis ? focus.fileName : undefined}
                 onVaultFileClick={(fileName) =>
-                  isThis
-                    ? setFocus({ type: "vault", tentacleId: t.tentacleId, fileName })
-                    : handleVaultFileClick(t.tentacleId, fileName)
+                  setFocus({ type: "vault", tentacleId: t.tentacleId, fileName })
+                }
+                onVaultBrowse={() =>
+                  setFocus({ type: "vault-browser", tentacleId: t.tentacleId })
                 }
                 onClose={handleClose}
                 onDelete={() => handleDeleteTentacle(t.tentacleId)}
@@ -974,9 +986,56 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
       </div>
 
       <div className="deck-detail-main">
+        {focus?.type === "vault-browser" && focusedTentacle && (
+          <>
+            <header className="deck-detail-main-header">
+              <button type="button" className="deck-add-form-back" onClick={handleClose}>
+                ← Back
+              </button>
+              <span className="deck-detail-main-path">
+                <strong>{focusedTentacle.displayName}</strong> / vault
+              </span>
+            </header>
+            <div className="deck-detail-main-content deck-vault-browser">
+              <pre className="deck-vault-tree">
+                <span className="deck-vault-tree-dir">
+                  .octogent/tentacles/{focusedTentacle.tentacleId}/
+                </span>
+                {(() => {
+                  const files = [...focusedTentacle.vaultFiles, "agent.md"];
+                  return files.map((file, i) => {
+                    const isLast = i === files.length - 1;
+                    const prefix = isLast ? "└── " : "├── ";
+                    return (
+                      <span key={file} className="deck-vault-tree-row">
+                        <span className="deck-vault-tree-branch">{prefix}</span>
+                        <button
+                          type="button"
+                          className="deck-vault-tree-file"
+                          onClick={() =>
+                            setFocus({ type: "vault", tentacleId: focus.tentacleId, fileName: file })
+                          }
+                        >
+                          {file}
+                        </button>
+                      </span>
+                    );
+                  });
+                })()}
+              </pre>
+            </div>
+          </>
+        )}
         {focus?.type === "vault" && focusedTentacle && (
           <>
             <header className="deck-detail-main-header">
+              <button
+                type="button"
+                className="deck-add-form-back"
+                onClick={() => setFocus({ type: "vault-browser", tentacleId: focus.tentacleId })}
+              >
+                ← Back
+              </button>
               <span className="deck-detail-main-path">
                 {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
               </span>
