@@ -1,4 +1,4 @@
-/* Canvas tab — force-directed graph view */
+/* Canvas tab — force-directed graph view (Obsidian-style) */
 
 .console-shell .canvas-view {
   position: relative;
@@ -22,12 +22,27 @@
   cursor: grabbing;
 }
 
-/* Node labels */
+/* ─── Edges ─────────────────────────────────────────────────────────────────── */
+
+.canvas-edge {
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* ─── Node labels — hidden by default, visible on hover ─────────────────────── */
+
 .canvas-node-label {
   font-family: "PP Neue Machina Plain", sans-serif;
   font-size: 11px;
   pointer-events: none;
   user-select: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.canvas-node:hover .canvas-node-label,
+.canvas-node--selected .canvas-node-label {
+  opacity: 1;
 }
 
 .canvas-node-label--tentacle {
@@ -35,26 +50,28 @@
   font-weight: 600;
 }
 
-.canvas-node-label--inactive {
-  opacity: 0.5;
+/* ─── Node glow bloom animation ─────────────────────────────────────────────── */
+
+.canvas-node-bloom {
+  pointer-events: none;
 }
 
-/* Active session glow pulse */
-.canvas-session-glow {
-  animation: canvas-glow-pulse 2s ease-in-out infinite;
+.canvas-node-bloom--pulse {
+  animation: canvas-bloom-pulse 3s ease-in-out infinite;
 }
 
-@keyframes canvas-glow-pulse {
+@keyframes canvas-bloom-pulse {
   0%,
   100% {
-    stroke-opacity: 0.15;
+    opacity: 0.35;
   }
   50% {
-    stroke-opacity: 0.45;
+    opacity: 0.65;
   }
 }
 
-/* Node interactivity */
+/* ─── Node interactivity ───────────────────────────────────────────────────── */
+
 .canvas-node--tentacle {
   cursor: grab;
 }
@@ -67,11 +84,12 @@
   cursor: pointer;
 }
 
-.canvas-node--session:hover circle {
-  stroke-width: 2.5;
+.canvas-node--session:hover .canvas-node-core {
+  r: attr(r + 2);
 }
 
-/* Terminal overlay (HTML over SVG) */
+/* ─── Terminal overlay (HTML over SVG) ─────────────────────────────────────── */
+
 .canvas-terminal-overlay {
   position: absolute;
   z-index: 20;
@@ -138,7 +156,8 @@
   height: 100%;
 }
 
-/* Transcript viewer */
+/* ─── Transcript viewer ───────────────────────────────────────────────────── */
+
 .canvas-transcript-status {
   display: flex;
   align-items: center;
@@ -166,11 +185,11 @@
 }
 
 .canvas-transcript-turn--user {
-  border-left-color: #6aadde;
+  border-left-color: #4dd0e1;
 }
 
 .canvas-transcript-turn--assistant {
-  border-left-color: #4ade80;
+  border-left-color: #66bb6a;
 }
 
 .canvas-transcript-turn-role {

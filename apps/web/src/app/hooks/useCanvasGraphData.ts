@@ -9,6 +9,31 @@ const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
 const INACTIVE_SESSION_RADIUS = 10;
 
+// Obsidian-style palette: teals, cyans, yellows, greens
+const NODE_COLORS = [
+  "#00b8d4",
+  "#4dd0e1",
+  "#66bb6a",
+  "#cddc39",
+  "#26c6da",
+  "#81c784",
+  "#aed581",
+  "#ffee58",
+  "#4db6ac",
+  "#7986cb",
+];
+
+function hashString(str: string): number {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+const tentacleColor = (tentacleId: string) =>
+  NODE_COLORS[hashString(tentacleId) % NODE_COLORS.length] as string;
+
 type UseCanvasGraphDataOptions = {
   columns: TentacleView;
   enabled: boolean;
@@ -73,6 +98,7 @@ export const useCanvasGraphData = ({
     const col = columns[i]!;
     const tentacleNodeId = buildTentacleNodeId(col.tentacleId);
     const prev = prevNodes.get(tentacleNodeId);
+    const color = tentacleColor(col.tentacleId);
 
     const angle = (2 * Math.PI * i) / Math.max(tentacleCount, 1);
     const spread = 200;
@@ -88,6 +114,7 @@ export const useCanvasGraphData = ({
       radius: TENTACLE_RADIUS,
       tentacleId: col.tentacleId,
       label: col.tentacleName,
+      color,
       workspaceMode: col.tentacleWorkspaceMode,
     };
     nodes.push(node);
@@ -109,6 +136,7 @@ export const useCanvasGraphData = ({
         radius: ACTIVE_SESSION_RADIUS,
         tentacleId: col.tentacleId,
         label: agent.label || agent.agentId,
+        color,
         sessionId: agent.agentId,
         agentState: agent.state,
       };
@@ -123,7 +151,6 @@ export const useCanvasGraphData = ({
   for (const session of inactiveSessions) {
     if (!session.tentacleId || !tentacleIdSet.has(session.tentacleId)) continue;
 
-    // Skip if there's an active agent matching this session
     if (activeAgentIds.has(session.sessionId)) continue;
 
     const tentacleNodeId = buildTentacleNodeId(session.tentacleId);
@@ -133,6 +160,7 @@ export const useCanvasGraphData = ({
     const parentNode = nodes.find((n) => n.id === tentacleNodeId);
     const parentX = parentNode?.x ?? 0;
     const parentY = parentNode?.y ?? 0;
+    const color = tentacleColor(session.tentacleId);
     const jitter = () => (Math.random() - 0.5) * 60;
 
     const sessionNode: GraphNode = {
@@ -148,6 +176,7 @@ export const useCanvasGraphData = ({
       label: session.firstUserTurnPreview
         ? session.firstUserTurnPreview.slice(0, 40)
         : session.sessionId.slice(0, 12),
+      color,
       sessionId: session.sessionId,
       ...(session.firstUserTurnPreview !== null
         ? { firstPromptPreview: session.firstUserTurnPreview }

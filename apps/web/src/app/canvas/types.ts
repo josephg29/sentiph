@@ -11,6 +11,7 @@ export type GraphNode = {
   radius: number;
   tentacleId: string;
   label: string;
+  color: string;
   sessionId?: string;
   agentState?: AgentState;
   workspaceMode?: TentacleWorkspaceMode;

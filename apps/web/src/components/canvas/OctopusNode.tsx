@@ -8,20 +8,6 @@ import {
   OctopusGlyph,
 } from "../EmptyOctopus";
 
-// Match the Deck tab's color palette for consistent octopus appearance
-const OCTOPUS_COLORS = [
-  "#ff6b2b",
-  "#ff2d6b",
-  "#00ffaa",
-  "#bf5fff",
-  "#00c8ff",
-  "#ffee00",
-  "#39ff14",
-  "#ff4df0",
-  "#00fff7",
-  "#ff9500",
-];
-
 const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
 const EXPRESSIONS: OctopusExpression[] = ["normal", "happy", "angry", "surprised"];
 const ACCESSORIES: OctopusAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
@@ -43,7 +29,6 @@ function seededRandom(seed: number): () => number {
 }
 
 type OctopusVisuals = {
-  color: string;
   animation: OctopusAnimation;
   expression: OctopusExpression;
   accessory: OctopusAccessory;
@@ -52,11 +37,21 @@ type OctopusVisuals = {
 function deriveOctopusVisuals(tentacleId: string): OctopusVisuals {
   const rng = seededRandom(hashString(tentacleId));
   return {
-    color: OCTOPUS_COLORS[hashString(tentacleId) % OCTOPUS_COLORS.length] as string,
     animation: ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation,
     expression: EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression,
     accessory: ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory,
   };
+}
+
+/** Mix a color toward white by a factor (0 = original, 1 = white). */
+function lighten(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lr = Math.round(r + (255 - r) * factor);
+  const lg = Math.round(g + (255 - g) * factor);
+  const lb = Math.round(b + (255 - b) * factor);
+  return `#${[lr, lg, lb].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
 type OctopusNodeProps = {
@@ -85,7 +80,6 @@ const buildArmPath = (cx: number, cy: number, tx: number, ty: number): string =>
   return `M ${cx} ${cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
 };
 
-// OctopusGlyph at scale=4 produces an ~80×100px canvas
 const GLYPH_SCALE = 4;
 const GLYPH_W = 112;
 const GLYPH_H = 120;
@@ -98,10 +92,12 @@ export const OctopusNode = ({
   onClick,
 }: OctopusNodeProps) => {
   const visuals = useMemo(() => deriveOctopusVisuals(node.tentacleId), [node.tentacleId]);
+  const color = node.color;
+  const edgeColor = lighten(color, 0.6);
 
   return (
     <g
-      className="canvas-node canvas-node--tentacle"
+      className={`canvas-node canvas-node--tentacle${isSelected ? " canvas-node--selected" : ""}`}
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={(e) => {
         e.stopPropagation();
@@ -113,31 +109,22 @@ export const OctopusNode = ({
       }}
       style={{ cursor: "grab" }}
     >
-      {/* Arms to connected session nodes */}
+      {/* Edges — light tint of parent color */}
       {connectedNodes.map((target) => (
         <path
           key={target.id}
+          className="canvas-edge"
           d={buildArmPath(0, 0, target.x - node.x, target.y - node.y)}
           fill="none"
-          stroke={visuals.color}
-          strokeWidth={2}
-          strokeOpacity={0.5}
-          strokeLinecap="round"
+          stroke={edgeColor}
+          strokeWidth={1}
+          strokeOpacity={0.35}
         />
       ))}
 
       {/* Selection ring */}
       {isSelected && (
-        <ellipse
-          cx={0}
-          cy={0}
-          rx={GLYPH_W / 2 + 4}
-          ry={GLYPH_H / 2 + 4}
-          fill="none"
-          stroke="#faa32c"
-          strokeWidth={2.5}
-          strokeDasharray="6 3"
-        />
+        <circle r={GLYPH_H / 2 + 4} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.5} />
       )}
 
       {/* Octopus glyph via foreignObject */}
@@ -158,7 +145,7 @@ export const OctopusNode = ({
           }}
         >
           <OctopusGlyph
-            color={visuals.color}
+            color={color}
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
@@ -167,12 +154,12 @@ export const OctopusNode = ({
         </div>
       </foreignObject>
 
-      {/* Label */}
+      {/* Label — hidden by default, CSS shows on hover */}
       <text
         y={GLYPH_H / 2 + 12}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--tentacle"
-        fill="#c8cdd5"
+        fill="#d4d4d4"
       >
         {node.label.length > 18 ? `${node.label.slice(0, 16)}..` : node.label}
       </text>
