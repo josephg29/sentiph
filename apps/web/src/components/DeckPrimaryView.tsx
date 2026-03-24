@@ -123,7 +123,7 @@ const TodoList = ({ items }: { items: { text: string; done: boolean }[] }) => {
           className={`deck-pod-todo-item${item.done ? " deck-pod-todo-item--done" : ""}`}
         >
           <input type="checkbox" checked={item.done} readOnly className="deck-pod-todo-checkbox" />
-          {item.text}
+          <span className="deck-pod-todo-text">{item.text}</span>
         </li>
       ))}
     </ul>

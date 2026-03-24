@@ -47,7 +47,7 @@ Edit `.octogent/tentacles/<name>/agent.md` with concrete, grounded context:
 ```markdown
 # Department Name
 
-One-paragraph description of this department's responsibility.
+One-sentence summary (under 80 characters, shown as subtitle in the UI).
 
 ## Scope
 - `src/api/` — all API routes and middleware
