@@ -100,8 +100,10 @@ export const OctopusNode = ({
   return (
     <g
       className={`canvas-node canvas-node--tentacle${isSelected ? " canvas-node--selected" : ""}`}
+      data-node-id={node.id}
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={(e) => {
+        if (e.button !== 0) return;
         e.stopPropagation();
         onPointerDown(e, node.id);
       }}

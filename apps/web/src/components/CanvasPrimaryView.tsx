@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphNode } from "../app/canvas/types";
 import type { TentacleView } from "../app/types";
@@ -12,14 +12,26 @@ import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 import { CanvasTerminalOverlay } from "./canvas/CanvasTerminalOverlay";
 
-type CanvasPrimaryViewProps = {
-  columns: TentacleView;
+type ContextMenuState = {
+  x: number;
+  y: number;
+  tentacleId: string;
 };
 
-export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
+type CanvasPrimaryViewProps = {
+  columns: TentacleView;
+  onCreateTentacleAgent?: (
+    tentacleId: string,
+    anchorAgentId: string,
+    placement: "up" | "down",
+  ) => void;
+};
+
+export const CanvasPrimaryView = ({ columns, onCreateTentacleAgent }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [overlayNode, setOverlayNode] = useState<GraphNode | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const { nodes, edges } = useCanvasGraphData({ columns, enabled: true });
 
@@ -51,6 +63,7 @@ export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
 
   const handleNodePointerDown = useCallback(
     (e: React.PointerEvent, nodeId: string) => {
+      if (e.button !== 0) return; // left-click only
       setDragNodeId(nodeId);
       pinNode(nodeId);
       svgRef.current?.setPointerCapture(e.pointerId);
@@ -106,6 +119,61 @@ export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
       setSelectedNodeId(null);
     }
   }, []);
+
+  // Stable ref for nodesById so native listener always sees latest data
+  const nodesByIdRef = useRef(nodesById);
+  nodesByIdRef.current = nodesById;
+
+  // Native contextmenu listener — must be native to reliably preventDefault
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const handler = (e: MouseEvent) => {
+      let el = e.target as Element | null;
+      let nodeId: string | null = null;
+      while (el && el !== svg) {
+        const id = el.getAttribute("data-node-id");
+        if (id) {
+          nodeId = id;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (!nodeId) return;
+      const node = nodesByIdRef.current.get(nodeId);
+      if (!node || node.type !== "tentacle") return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenu({ x: e.clientX, y: e.clientY, tentacleId: node.tentacleId });
+    };
+
+    svg.addEventListener("contextmenu", handler);
+    return () => svg.removeEventListener("contextmenu", handler);
+  }, [svgRef]);
+
+  const handleContextMenuAction = useCallback(() => {
+    if (!contextMenu || !onCreateTentacleAgent) return;
+    onCreateTentacleAgent(
+      contextMenu.tentacleId,
+      `${contextMenu.tentacleId}-root`,
+      "down",
+    );
+    setContextMenu(null);
+  }, [contextMenu, onCreateTentacleAgent]);
+
+  // Dismiss context menu on any click or scroll
+  useEffect(() => {
+    if (!contextMenu) return;
+    const dismiss = () => setContextMenu(null);
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("wheel", dismiss);
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("wheel", dismiss);
+    };
+  }, [contextMenu]);
 
   // Separate tentacle and session nodes for render order
   const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle");
@@ -174,6 +242,23 @@ export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
           screenY={overlayScreen.y - 200}
           onClose={handleCloseOverlay}
         />
+      )}
+
+      {/* Context menu for tentacle nodes */}
+      {contextMenu && (
+        <div
+          className="canvas-context-menu"
+          style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+        >
+          <button
+            type="button"
+            className="canvas-context-menu-item"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handleContextMenuAction}
+          >
+            New Agent Terminal
+          </button>
+        </div>
       )}
     </section>
   );

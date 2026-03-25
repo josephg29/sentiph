@@ -115,6 +115,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
+      if (e.button !== 0) return;
       if (e.target !== svgRef.current && (e.target as SVGElement).closest?.(".canvas-node")) {
         return;
       }

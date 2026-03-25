@@ -529,6 +529,9 @@ export const App = () => {
             }}
             canvasPrimaryViewProps={{
               columns,
+              onCreateTentacleAgent: (tentacleId, anchorAgentId, placement) => {
+                void createTentacleAgent({ tentacleId, anchorAgentId, placement });
+              },
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
