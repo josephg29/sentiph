@@ -1,17 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  type Simulation,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from "d3-force";
 
 import type { GraphEdge, GraphNode } from "../canvas/types";
 
-const REPULSION_STRENGTH = 5000;
-const MIN_DIST = 30;
-const ATTRACTION_STRENGTH = 0.08;
-const REST_LENGTH = 150;
-const CENTER_GRAVITY = 0.01;
-const DAMPING = 0.85;
-const ALPHA_DECAY = 0.005;
-const ALPHA_MIN = 0.01;
-const TARGET_FPS = 30;
-const FRAME_INTERVAL = 1000 / TARGET_FPS;
+// Obsidian-style force parameters
+const REPEL_STRENGTH = -30;
+const LINK_DISTANCE = 40;
+const LINK_STRENGTH = 0.6;
+const CENTER_STRENGTH = 0.4;
+const COLLISION_PADDING = 4;
+const VELOCITY_DECAY = 0.4; // fraction of velocity removed per tick (d3 default)
+const ALPHA_DECAY = 0.0228;
+const ALPHA_MIN = 0.001;
+const ALPHA_TARGET = 0;
+const REHEAT_ALPHA = 0.8;
+
+type SimNode = SimulationNodeDatum & { _gn: GraphNode };
+type SimLink = SimulationLinkDatum<SimNode>;
 
 type UseForceSimulationOptions = {
   nodes: GraphNode[];
@@ -34,183 +48,161 @@ export const useForceSimulation = ({
   centerX,
   centerY,
 }: UseForceSimulationOptions): UseForceSimulationResult => {
-  const simNodesRef = useRef<GraphNode[]>([]);
-  const edgesRef = useRef<GraphEdge[]>(edges);
-  const alphaRef = useRef(1.0);
-  const rafRef = useRef<number | null>(null);
+  const simRef = useRef<Simulation<SimNode, SimLink> | null>(null);
+  const simNodeMapRef = useRef<Map<string, SimNode>>(new Map());
   const [snapshot, setSnapshot] = useState<GraphNode[]>(nodes);
 
-  // Sync edges
+  // Keep latest inputs in refs so the effect can read them without depending on them
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
   edgesRef.current = edges;
 
-  // Reconcile nodes: keep positions for existing, add new ones
+  // Stable topology keys — effect only fires when graph structure actually changes
+  const nodeIdKey = useMemo(() => nodes.map((n) => n.id).join("\0"), [nodes]);
+  const edgeKey = useMemo(
+    () => edges.map((e) => `${e.source}\0${e.target}`).join("\0"),
+    [edges],
+  );
+
   useEffect(() => {
-    const existingMap = new Map<string, GraphNode>();
-    for (const n of simNodesRef.current) {
-      existingMap.set(n.id, n);
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+
+    if (currentNodes.length === 0) {
+      simRef.current?.stop();
+      simRef.current = null;
+      simNodeMapRef.current.clear();
+      setSnapshot([]);
+      return;
     }
 
-    const nextNodes: GraphNode[] = nodes.map((inputNode) => {
-      const existing = existingMap.get(inputNode.id);
-      if (existing) {
-        return {
-          ...inputNode,
-          x: existing.x,
-          y: existing.y,
-          vx: existing.vx,
-          vy: existing.vy,
-          pinned: existing.pinned,
-        };
+    const prevMap = simNodeMapRef.current;
+
+    // Reconcile: preserve positions for existing nodes, initialize new ones
+    const simNodes: SimNode[] = currentNodes.map((gn) => {
+      const prev = prevMap.get(gn.id);
+      if (prev) {
+        prev._gn = gn;
+        return prev;
       }
-      return { ...inputNode };
+      return {
+        _gn: gn,
+        x: gn.x,
+        y: gn.y,
+        vx: gn.vx,
+        vy: gn.vy,
+        fx: gn.pinned ? gn.x : undefined,
+        fy: gn.pinned ? gn.y : undefined,
+      };
     });
 
-    simNodesRef.current = nextNodes;
-    alphaRef.current = 1.0;
-  }, [nodes]);
-
-  const tick = useCallback(() => {
-    const simNodes = simNodesRef.current;
-    const simEdges = edgesRef.current;
-    const alpha = alphaRef.current;
-
-    if (alpha < ALPHA_MIN || simNodes.length === 0) return false;
-
-    // Build edge lookup
-    const edgeSourceTarget = simEdges.map((edge) => {
-      const si = simNodes.findIndex((n) => n.id === edge.source);
-      const ti = simNodes.findIndex((n) => n.id === edge.target);
-      return { si, ti };
-    });
-
-    // Repulsion (all pairs)
-    for (let i = 0; i < simNodes.length; i++) {
-      const a = simNodes[i]!;
-      if (a.pinned) continue;
-
-      for (let j = i + 1; j < simNodes.length; j++) {
-        const b = simNodes[j]!;
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const distSq = Math.max(dx * dx + dy * dy, MIN_DIST * MIN_DIST);
-        const force = (REPULSION_STRENGTH * alpha) / distSq;
-        const dist = Math.sqrt(distSq);
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-
-        a.vx += fx;
-        a.vy += fy;
-        if (!b.pinned) {
-          b.vx -= fx;
-          b.vy -= fy;
-        }
-      }
+    const nextMap = new Map<string, SimNode>();
+    for (const sn of simNodes) {
+      nextMap.set(sn._gn.id, sn);
     }
+    simNodeMapRef.current = nextMap;
 
-    // Attraction (edges)
-    for (const { si, ti } of edgeSourceTarget) {
-      if (si < 0 || ti < 0) continue;
-      const source = simNodes[si]!;
-      const target = simNodes[ti]!;
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const force = ATTRACTION_STRENGTH * (dist - REST_LENGTH) * alpha;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
+    // Build link data with node references
+    const simLinks: SimLink[] = currentEdges
+      .map((e) => {
+        const source = nextMap.get(e.source);
+        const target = nextMap.get(e.target);
+        if (!source || !target) return null;
+        return { source, target } as SimLink;
+      })
+      .filter((l): l is SimLink => l !== null);
 
-      if (!source.pinned) {
-        source.vx += fx;
-        source.vy += fy;
-      }
-      if (!target.pinned) {
-        target.vx -= fx;
-        target.vy -= fy;
-      }
-    }
-
-    // Center gravity + damping + position update
-    for (const node of simNodes) {
-      if (node.pinned) continue;
-
-      node.vx += (centerX - node.x) * CENTER_GRAVITY * alpha;
-      node.vy += (centerY - node.y) * CENTER_GRAVITY * alpha;
-      node.vx *= DAMPING;
-      node.vy *= DAMPING;
-      node.x += node.vx;
-      node.y += node.vy;
-    }
-
-    alphaRef.current = Math.max(0, alpha - ALPHA_DECAY);
-    return true;
-  }, [centerX, centerY]);
-
-  // Animation loop
-  useEffect(() => {
-    let lastFrameTime = 0;
-    let running = true;
-
-    const loop = (now: number) => {
-      if (!running) return;
-
-      if (now - lastFrameTime >= FRAME_INTERVAL) {
-        lastFrameTime = now;
-        const active = tick();
-        setSnapshot([...simNodesRef.current]);
-        if (!active) {
-          rafRef.current = null;
-          return;
-        }
-      }
-      rafRef.current = requestAnimationFrame(loop);
+    const applyForces = (sim: Simulation<SimNode, SimLink>) => {
+      sim
+        .force(
+          "link",
+          forceLink<SimNode, SimLink>(simLinks)
+            .distance(LINK_DISTANCE)
+            .strength(LINK_STRENGTH),
+        )
+        .force("charge", forceManyBody<SimNode>().strength(REPEL_STRENGTH))
+        .force(
+          "center",
+          forceCenter<SimNode>(centerX, centerY).strength(CENTER_STRENGTH),
+        )
+        .force(
+          "collide",
+          forceCollide<SimNode>((d) => d._gn.radius + COLLISION_PADDING),
+        );
     };
 
-    rafRef.current = requestAnimationFrame(loop);
+    if (simRef.current) {
+      // Update existing simulation with new topology
+      simRef.current.nodes(simNodes);
+      applyForces(simRef.current);
+      simRef.current.alpha(REHEAT_ALPHA).restart();
+    } else {
+      // Create new simulation
+      const sim = forceSimulation<SimNode>(simNodes)
+        .velocityDecay(VELOCITY_DECAY)
+        .alphaDecay(ALPHA_DECAY)
+        .alphaMin(ALPHA_MIN)
+        .alphaTarget(ALPHA_TARGET);
 
+      applyForces(sim);
+
+      sim.on("tick", () => {
+        const updated: GraphNode[] = sim.nodes().map((sn) => ({
+          ...sn._gn,
+          x: sn.x ?? sn._gn.x,
+          y: sn.y ?? sn._gn.y,
+          vx: sn.vx ?? 0,
+          vy: sn.vy ?? 0,
+        }));
+        setSnapshot(updated);
+      });
+
+      simRef.current = sim;
+    }
+  }, [nodeIdKey, edgeKey, centerX, centerY]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      running = false;
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      simRef.current?.stop();
+      simRef.current = null;
     };
-  }, [tick]);
+  }, []);
 
   const pinNode = useCallback((id: string) => {
-    const node = simNodesRef.current.find((n) => n.id === id);
-    if (node) node.pinned = true;
+    const sn = simNodeMapRef.current.get(id);
+    if (sn) {
+      sn.fx = sn.x;
+      sn.fy = sn.y;
+      sn._gn = { ...sn._gn, pinned: true };
+    }
   }, []);
 
   const unpinNode = useCallback((id: string) => {
-    const node = simNodesRef.current.find((n) => n.id === id);
-    if (node) node.pinned = false;
+    const sn = simNodeMapRef.current.get(id);
+    if (sn) {
+      sn.fx = undefined;
+      sn.fy = undefined;
+      sn._gn = { ...sn._gn, pinned: false };
+    }
   }, []);
 
   const moveNode = useCallback((id: string, x: number, y: number) => {
-    const node = simNodesRef.current.find((n) => n.id === id);
-    if (node) {
-      node.x = x;
-      node.y = y;
-      node.vx = 0;
-      node.vy = 0;
+    const sn = simNodeMapRef.current.get(id);
+    if (sn) {
+      sn.fx = x;
+      sn.fy = y;
+      sn.x = x;
+      sn.y = y;
+      sn.vx = 0;
+      sn.vy = 0;
     }
   }, []);
 
   const reheat = useCallback(() => {
-    alphaRef.current = 1.0;
-    if (rafRef.current === null) {
-      const loop = (now: number) => {
-        const active = tick();
-        setSnapshot([...simNodesRef.current]);
-        if (!active) {
-          rafRef.current = null;
-          return;
-        }
-        rafRef.current = requestAnimationFrame(loop);
-      };
-      rafRef.current = requestAnimationFrame(loop);
-    }
-  }, [tick]);
+    simRef.current?.alpha(REHEAT_ALPHA).restart();
+  }, []);
 
   return { simulatedNodes: snapshot, pinNode, unpinNode, moveNode, reheat };
 };
