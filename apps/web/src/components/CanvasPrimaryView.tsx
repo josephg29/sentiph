@@ -23,11 +23,18 @@ type CanvasPrimaryViewProps = {
   onCreateAgent?: (tentacleId: string) => void;
 };
 
+const CLICK_THRESHOLD = 5;
+
 export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [overlayNode, setOverlayNode] = useState<GraphNode | null>(null);
+  const [overlayNode, setOverlayNode] = useState<{
+    node: GraphNode;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const { nodes, edges } = useCanvasGraphData({ columns, enabled: true });
 
@@ -60,6 +67,7 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
   const handleNodePointerDown = useCallback(
     (e: React.PointerEvent, nodeId: string) => {
       if (e.button !== 0) return;
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
       setDragNodeId(nodeId);
       pinNode(nodeId);
       svgRef.current?.setPointerCapture(e.pointerId);
@@ -79,31 +87,42 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
     [dragNodeId, screenToGraph, moveNode, handleCanvasPointerMove],
   );
 
-  const handleSvgPointerUp = useCallback(
-    (e: React.PointerEvent<SVGSVGElement>) => {
-      if (dragNodeId) {
-        unpinNode(dragNodeId);
-        reheat();
-        setDragNodeId(null);
-        return;
-      }
-      handleCanvasPointerUp(e);
-    },
-    [dragNodeId, unpinNode, reheat, handleCanvasPointerUp],
-  );
-
   const handleNodeClick = useCallback(
     (nodeId: string) => {
       setSelectedNodeId(nodeId);
       const node = nodesById.get(nodeId);
       if (!node) return;
 
-      if (node.type === "active-session" || node.type === "inactive-session") {
+      if (node.type === "active-session") {
         const screen = graphToScreen(node.x, node.y);
-        setOverlayNode({ ...node });
+        setOverlayNode({ node: { ...node }, screenX: screen.x + 20, screenY: screen.y - 200 });
       }
     },
     [nodesById, graphToScreen],
+  );
+
+  const handleSvgPointerUp = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      if (dragNodeId) {
+        const start = dragStartRef.current;
+        const dx = start ? e.clientX - start.x : Infinity;
+        const dy = start ? e.clientY - start.y : Infinity;
+        const wasClick = Math.abs(dx) < CLICK_THRESHOLD && Math.abs(dy) < CLICK_THRESHOLD;
+
+        unpinNode(dragNodeId);
+        reheat();
+
+        if (wasClick) {
+          handleNodeClick(dragNodeId);
+        }
+
+        setDragNodeId(null);
+        dragStartRef.current = null;
+        return;
+      }
+      handleCanvasPointerUp(e);
+    },
+    [dragNodeId, unpinNode, reheat, handleCanvasPointerUp, handleNodeClick],
   );
 
   const handleCloseOverlay = useCallback(() => {
@@ -162,14 +181,6 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
   const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle");
   const sessionNodes = simulatedNodes.filter((n) => n.type !== "tentacle");
 
-  // Compute overlay screen position
-  const overlayScreen = overlayNode
-    ? graphToScreen(
-        nodesById.get(overlayNode.id)?.x ?? overlayNode.x,
-        nodesById.get(overlayNode.id)?.y ?? overlayNode.y,
-      )
-    : null;
-
   return (
     <section className="canvas-view" aria-label="Canvas graph view">
       <svg
@@ -217,12 +228,12 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
       </svg>
 
       {/* Terminal overlay (HTML, positioned over SVG) */}
-      {overlayNode && overlayScreen && (
+      {overlayNode && (
         <CanvasTerminalOverlay
-          node={overlayNode}
+          node={overlayNode.node}
           columns={columns}
-          screenX={overlayScreen.x + 20}
-          screenY={overlayScreen.y - 200}
+          screenX={overlayNode.screenX}
+          screenY={overlayNode.screenY}
           onClose={handleCloseOverlay}
         />
       )}
