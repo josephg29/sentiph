@@ -45,6 +45,7 @@ export const CanvasPrimaryView = ({
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
+  const terminalsPanelRef = useRef<HTMLDivElement>(null);
 
   const { nodes, edges } = useCanvasGraphData({ columns, enabled: true });
 
@@ -155,6 +156,22 @@ export const CanvasPrimaryView = ({
   const handleDividerPointerUp = useCallback(() => {
     dividerDragRef.current = null;
   }, []);
+
+  // Convert vertical wheel to horizontal scroll only when hovering terminal headers
+  useEffect(() => {
+    const panel = terminalsPanelRef.current;
+    if (!panel) return;
+    const handler = (e: WheelEvent) => {
+      const target = e.target as Element | null;
+      if (!target?.closest(".canvas-terminal-column-header")) return;
+      if (e.deltaY !== 0 && e.deltaX === 0) {
+        e.preventDefault();
+        panel.scrollLeft += e.deltaY;
+      }
+    };
+    panel.addEventListener("wheel", handler, { passive: false });
+    return () => panel.removeEventListener("wheel", handler);
+  }, [openTerminals.size > 0]);
 
   const handleSvgPointerUp = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
@@ -326,6 +343,7 @@ export const CanvasPrimaryView = ({
             onPointerUp={handleDividerPointerUp}
           />
           <div
+            ref={terminalsPanelRef}
             className="canvas-terminals-panel"
             style={
               terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined

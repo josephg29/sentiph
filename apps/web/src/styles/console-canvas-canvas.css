@@ -272,9 +272,7 @@
   display: flex;
   flex-direction: row;
   min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-gutter: stable;
+  overflow: hidden;
   background: #0a0e14;
 }
 
@@ -297,7 +295,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
+  padding: 0.3rem 0.45rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
+    color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
+  );
+  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
   color: #121212;
   user-select: none;
 }
@@ -307,10 +311,13 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-family: "PP Neue Machina Plain", sans-serif;
-  font-size: 0.7rem;
+  font-family: var(--font-main);
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #121212;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: inherit;
 }
 
 .canvas-terminal-column-name {
@@ -326,7 +333,7 @@
   padding: 1px 4px;
   border-radius: 3px;
   background: rgba(0, 0, 0, 0.2);
-  color: #121212;
+  color: inherit;
 }
 
 .canvas-terminal-column-actions {
@@ -338,7 +345,7 @@
 .canvas-terminal-column-close {
   background: none;
   border: none;
-  color: #121212;
+  color: inherit;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;

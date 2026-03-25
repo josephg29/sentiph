@@ -22,7 +22,7 @@ export const CanvasTerminalColumn = ({ node, columns, onClose }: CanvasTerminalC
 
   return (
     <section className="canvas-terminal-column">
-      <div className="canvas-terminal-column-header" style={{ background: node.color }}>
+      <div className="canvas-terminal-column-header">
         <div className="canvas-terminal-column-heading">
           <h2>
             <span className="canvas-terminal-column-name">{node.label}</span>

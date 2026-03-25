@@ -146,9 +146,13 @@
 }
 
 .console-shell .terminal-header {
-  background: linear-gradient(180deg, #26456f 0%, #1d3554 100%);
-  border-bottom: 1px solid #2b2f36;
-  color: #e6e8ec;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
+    color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
+  );
+  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  color: #121212;
 }
 
 .console-shell .tentacle-terminal--selected .terminal-header {
@@ -166,7 +170,7 @@
 }
 
 .console-shell .terminal-title {
-  color: #d7deea;
+  color: #121212;
   font-size: 0.72rem;
 }
 
