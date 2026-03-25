@@ -7,7 +7,7 @@ import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runt
 import { normalizeConversationSessionSummary } from "../normalizers";
 
 const MOCK_SESSIONS_ENABLED = true;
-const MOCK_SESSIONS_PER_TENTACLE = 5;
+const MOCK_SESSIONS_COUNTS = [40, 14, 5, 1, 8];
 
 const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
@@ -270,8 +270,10 @@ export const useCanvasGraphData = ({
       return (mockSeed - 1) / 2147483646;
     };
 
-    for (const tNode of tentacleNodes) {
-      for (let j = 0; j < MOCK_SESSIONS_PER_TENTACLE; j++) {
+    for (let ti = 0; ti < tentacleNodes.length; ti++) {
+      const tNode = tentacleNodes[ti]!;
+      const count = MOCK_SESSIONS_COUNTS[ti % MOCK_SESSIONS_COUNTS.length]!;
+      for (let j = 0; j < count; j++) {
         const isActive = rng() > 0.4;
         const mockId = `mock-${tNode.tentacleId}-${j}`;
         const nodeId = isActive ? `a:${mockId}` : `i:${mockId}`;
