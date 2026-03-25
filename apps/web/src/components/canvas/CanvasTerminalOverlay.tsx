@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
-import type { ConversationSessionDetail, ConversationTurn } from "../../app/types";
+import type { ConversationSessionDetail, ConversationTurn, TentacleView } from "../../app/types";
 import { buildConversationSessionUrl } from "../../runtime/runtimeEndpoints";
 import { normalizeConversationSessionDetail } from "../../app/normalizers";
 import { TentacleTerminal } from "../TentacleTerminal";
@@ -9,10 +9,13 @@ import { MarkdownContent } from "../ui/MarkdownContent";
 
 type CanvasTerminalOverlayProps = {
   node: GraphNode;
+  columns: TentacleView;
   screenX: number;
   screenY: number;
   onClose: () => void;
 };
+
+const renderWorkspaceLabel = (mode: string) => (mode === "worktree" ? "WORKTREE" : "MAIN");
 
 const TranscriptTurn = ({ turn }: { turn: ConversationTurn }) => (
   <div className={`canvas-transcript-turn canvas-transcript-turn--${turn.role}`}>
@@ -85,6 +88,7 @@ const TranscriptViewer = ({ sessionId }: { sessionId: string }) => {
 
 export const CanvasTerminalOverlay = ({
   node,
+  columns,
   screenX,
   screenY,
   onClose,
@@ -96,9 +100,12 @@ export const CanvasTerminalOverlay = ({
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   const isActive = node.type === "active-session";
-  const title = node.label;
 
-  const handleTitlePointerDown = useCallback(
+  const column = columns.find((col) => col.tentacleId === node.tentacleId);
+  const tentacleName = column?.tentacleName ?? node.tentacleId;
+  const workspaceMode = column?.tentacleWorkspaceMode ?? "shared";
+
+  const handleHeaderPointerDown = useCallback(
     (e: React.PointerEvent) => {
       dragRef.current = {
         startX: e.clientX,
@@ -111,7 +118,7 @@ export const CanvasTerminalOverlay = ({
     [offset],
   );
 
-  const handleTitlePointerMove = useCallback((e: React.PointerEvent) => {
+  const handleHeaderPointerMove = useCallback((e: React.PointerEvent) => {
     const drag = dragRef.current;
     if (!drag) return;
     setOffset({
@@ -120,29 +127,71 @@ export const CanvasTerminalOverlay = ({
     });
   }, []);
 
-  const handleTitlePointerUp = useCallback(() => {
+  const handleHeaderPointerUp = useCallback(() => {
     dragRef.current = null;
   }, []);
 
   const left = screenX + offset.x;
   const top = screenY + offset.y;
 
+  if (isActive && node.sessionId) {
+    return (
+      <div
+        ref={overlayRef}
+        className="canvas-terminal-overlay canvas-terminal-overlay--active"
+        style={{ left: `${left}px`, top: `${top}px` }}
+      >
+        <div
+          className="tentacle-column-header canvas-tentacle-header"
+          onPointerDown={handleHeaderPointerDown}
+          onPointerMove={handleHeaderPointerMove}
+          onPointerUp={handleHeaderPointerUp}
+        >
+          <div className="tentacle-column-heading">
+            <h2>
+              <span className="tentacle-name-display">{tentacleName}</span>
+              <span
+                className={`tentacle-workspace-badge tentacle-workspace-badge--${workspaceMode}`}
+              >
+                {renderWorkspaceLabel(workspaceMode)}
+              </span>
+            </h2>
+          </div>
+          <div />
+          <div className="tentacle-header-actions">
+            <button
+              type="button"
+              className="canvas-terminal-overlay-close"
+              onClick={onClose}
+              aria-label="Close overlay"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+        <div className="tentacle-terminals">
+          <TentacleTerminal
+            terminalId={node.sessionId}
+            terminalLabel={node.label}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={overlayRef}
       className="canvas-terminal-overlay"
-      style={{
-        left: `${left}px`,
-        top: `${top}px`,
-      }}
+      style={{ left: `${left}px`, top: `${top}px` }}
     >
       <div
         className="canvas-terminal-overlay-title"
-        onPointerDown={handleTitlePointerDown}
-        onPointerMove={handleTitlePointerMove}
-        onPointerUp={handleTitlePointerUp}
+        onPointerDown={handleHeaderPointerDown}
+        onPointerMove={handleHeaderPointerMove}
+        onPointerUp={handleHeaderPointerUp}
       >
-        <span className="canvas-terminal-overlay-title-text">{title}</span>
+        <span className="canvas-terminal-overlay-title-text">{node.label}</span>
         <button
           type="button"
           className="canvas-terminal-overlay-close"
@@ -153,9 +202,7 @@ export const CanvasTerminalOverlay = ({
         </button>
       </div>
       <div className="canvas-terminal-overlay-body">
-        {isActive && node.sessionId ? (
-          <TentacleTerminal terminalId={node.sessionId} terminalLabel={title} />
-        ) : node.sessionId ? (
+        {node.sessionId ? (
           <TranscriptViewer sessionId={node.sessionId} />
         ) : (
           <div className="canvas-transcript-status">No session data available.</div>

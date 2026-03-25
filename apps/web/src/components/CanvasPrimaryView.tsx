@@ -169,6 +169,7 @@ export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
       {overlayNode && overlayScreen && (
         <CanvasTerminalOverlay
           node={overlayNode}
+          columns={columns}
           screenX={overlayScreen.x + 20}
           screenY={overlayScreen.y - 200}
           onClose={handleCloseOverlay}

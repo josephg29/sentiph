@@ -256,6 +256,52 @@
   overflow: hidden;
 }
 
+/* ─── Active-session overlay — matches the agents-tab tentacle column ────── */
+
+.canvas-terminal-overlay--active {
+  width: 560px;
+  height: 520px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg-surface-1) 80%, #151515);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.canvas-terminal-overlay--active .canvas-tentacle-header {
+  cursor: move;
+  user-select: none;
+}
+
+.canvas-terminal-overlay--active .tentacle-terminals {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.canvas-terminal-overlay--active .tentacle-terminals .tentacle-terminal {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.canvas-terminal-overlay--active .tentacle-terminals .terminal-mount {
+  height: 100%;
+}
+
+.canvas-terminal-overlay--active .canvas-terminal-overlay-close {
+  color: #121212;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+
+.canvas-terminal-overlay--active .canvas-terminal-overlay-close:hover {
+  color: #000;
+}
+
+/* ─── Transcript overlay (inactive sessions) ────────────────────────────── */
+
 .canvas-terminal-overlay-title {
   display: flex;
   align-items: center;
