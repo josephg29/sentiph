@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { WORLD_W, WORLD_H } from "./useForceSimulation";
 
 type CanvasTransform = {
   translateX: number;
@@ -33,7 +34,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const centeredRef = useRef(false);
 
-  // Auto-center on mount so graph origin (0,0) is in the middle of the viewport
+  // Fit the fixed world bounds into the viewport once on mount
   useEffect(() => {
     if (centeredRef.current) return;
     const svg = svgRef.current;
@@ -41,10 +42,16 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     const rect = svg.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     centeredRef.current = true;
+
+    const padding = 40;
+    const scaleX = (rect.width - padding * 2) / WORLD_W;
+    const scaleY = (rect.height - padding * 2) / WORLD_H;
+    const scale = Math.min(scaleX, scaleY);
+
     setTransform({
+      scale,
       translateX: rect.width / 2,
       translateY: rect.height / 2,
-      scale: 1,
     });
   });
 

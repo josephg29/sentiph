@@ -46,8 +46,12 @@
 }
 
 .canvas-node-label--tentacle {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.canvas-node-label--always {
+  opacity: 1;
 }
 
 /* ─── Node glow bloom animation ─────────────────────────────────────────────── */

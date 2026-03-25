@@ -10,7 +10,7 @@ type SessionNodeProps = {
 export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: SessionNodeProps) => {
   const isActive = node.type === "active-session";
   const isLive = isActive && node.agentState === "live";
-  const color = node.color;
+  const color = isActive ? node.color : "#9ca3af";
 
   return (
     <g

@@ -43,16 +43,6 @@ function deriveOctopusVisuals(tentacleId: string): OctopusVisuals {
   };
 }
 
-/** Mix a color toward white by a factor (0 = original, 1 = white). */
-function lighten(hex: string, factor: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const lr = Math.round(r + (255 - r) * factor);
-  const lg = Math.round(g + (255 - g) * factor);
-  const lb = Math.round(b + (255 - b) * factor);
-  return `#${[lr, lg, lb].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
-}
 
 type OctopusNodeProps = {
   node: GraphNode;
@@ -62,11 +52,23 @@ type OctopusNodeProps = {
   onClick: (nodeId: string) => void;
 };
 
-const buildArmPath = (cx: number, cy: number, tx: number, ty: number): string => {
+const buildArmPath = (
+  cx: number,
+  cy: number,
+  tx: number,
+  ty: number,
+  targetRadius: number,
+): string => {
   const dx = tx - cx;
   const dy = ty - cy;
   const dist = Math.sqrt(dx * dx + dy * dy);
   if (dist < 1) return "";
+
+  // Shorten the endpoint so the edge stops at the target node's border
+  const shortenBy = targetRadius + 2;
+  const ratio = Math.max(0, (dist - shortenBy) / dist);
+  const etx = cx + dx * ratio;
+  const ety = cy + dy * ratio;
 
   const nx = -dy / dist;
   const ny = dx / dist;
@@ -77,7 +79,7 @@ const buildArmPath = (cx: number, cy: number, tx: number, ty: number): string =>
   const cp2x = cx + dx * 0.66 - nx * curvature * 0.5;
   const cp2y = cy + dy * 0.66 - ny * curvature * 0.5;
 
-  return `M ${cx} ${cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+  return `M ${cx} ${cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${etx} ${ety}`;
 };
 
 const GLYPH_SCALE = 4;
@@ -93,7 +95,7 @@ export const OctopusNode = ({
 }: OctopusNodeProps) => {
   const visuals = useMemo(() => deriveOctopusVisuals(node.tentacleId), [node.tentacleId]);
   const color = node.color;
-  const edgeColor = lighten(color, 0.6);
+  const edgeColor = "#00d4ff";
 
   return (
     <g
@@ -123,7 +125,7 @@ export const OctopusNode = ({
         <path
           key={target.id}
           className="canvas-edge"
-          d={buildArmPath(0, 0, target.x - node.x, target.y - node.y)}
+          d={buildArmPath(0, 0, target.x - node.x, target.y - node.y, target.radius)}
           fill="none"
           stroke={edgeColor}
           strokeWidth={1}
@@ -164,12 +166,12 @@ export const OctopusNode = ({
         </div>
       </foreignObject>
 
-      {/* Label — hidden by default, CSS shows on hover */}
+      {/* Label — always visible */}
       <text
-        y={GLYPH_H / 2 + 12}
+        y={GLYPH_H / 2 - 12}
         textAnchor="middle"
-        className="canvas-node-label canvas-node-label--tentacle"
-        fill="#d4d4d4"
+        className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
+        fill="#faa32c"
       >
         {node.label.length > 18 ? `${node.label.slice(0, 16)}..` : node.label}
       </text>

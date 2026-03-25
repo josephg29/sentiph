@@ -163,7 +163,7 @@ export const useCanvasGraphData = ({
     const label = deck?.displayName ?? activeCol?.tentacleName ?? tentacleId;
 
     const angle = (2 * Math.PI * i) / Math.max(totalTentacles, 1);
-    const spread = 200;
+    const spread = 300;
 
     const node: GraphNode = {
       id: tentacleNodeId,
@@ -278,8 +278,8 @@ export const useCanvasGraphData = ({
         const mockId = `mock-${tNode.tentacleId}-${j}`;
         const nodeId = isActive ? `a:${mockId}` : `i:${mockId}`;
         const prev = prevNodes.get(nodeId);
-        const jitterX = (rng() - 0.5) * 100;
-        const jitterY = (rng() - 0.5) * 100;
+        const jitterX = (rng() - 0.5) * 120;
+        const jitterY = (rng() - 0.5) * 120;
         const label = MOCK_LABELS[Math.floor(rng() * MOCK_LABELS.length)]!;
 
         const sessionNode: GraphNode = {

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  forceCenter,
   forceCollide,
   forceLink,
   forceManyBody,
-  forceRadial,
   forceSimulation,
+  forceX,
+  forceY,
   type Simulation,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
@@ -18,23 +18,19 @@ export type ForceParams = {
   repelDistanceMax: number;
   linkDistance: number;
   linkStrength: number;
-  centerStrength: number;
-  radialRadius: number;
-  radialStrength: number;
+  positionStrength: number;
   collisionPadding: number;
   velocityDecay: number;
   alphaDecay: number;
 };
 
 export const DEFAULT_FORCE_PARAMS: ForceParams = {
-  repelStrength: -95,
-  repelDistanceMax: 150,
-  linkDistance: 50,
-  linkStrength: 0.6,
-  centerStrength: 0.45,
-  radialRadius: 100,
-  radialStrength: 0.15,
-  collisionPadding: 16,
+  repelStrength: -200,
+  repelDistanceMax: 600,
+  linkDistance: 100,
+  linkStrength: 0.25,
+  positionStrength: 0.04,
+  collisionPadding: 6,
   velocityDecay: 0.4,
   alphaDecay: 0.0228,
 };
@@ -42,6 +38,12 @@ export const DEFAULT_FORCE_PARAMS: ForceParams = {
 const ALPHA_MIN = 0.001;
 const ALPHA_TARGET = 0;
 const REHEAT_ALPHA = 0.8;
+
+// Fixed world bounds — nodes are clamped inside this box
+export const WORLD_W = 1400;
+export const WORLD_H = 800;
+const HALF_W = WORLD_W / 2;
+const HALF_H = WORLD_H / 2;
 
 type SimNode = SimulationNodeDatum & { _gn: GraphNode };
 type SimLink = SimulationLinkDatum<SimNode>;
@@ -140,29 +142,27 @@ export const useForceSimulation = ({
         .force(
           "link",
           forceLink<SimNode, SimLink>(simLinks)
-            .distance(p.linkDistance)
-            .strength(p.linkStrength),
+            .distance((link: SimLink) => {
+              const target = link.target as SimNode;
+              return target._gn.type === "inactive-session"
+                ? p.linkDistance * 0.35
+                : p.linkDistance;
+            })
+            .strength((link: SimLink) => {
+              const target = link.target as SimNode;
+              return target._gn.type === "inactive-session"
+                ? p.linkStrength * 1.5
+                : p.linkStrength;
+            }),
         )
         .force(
           "charge",
           forceManyBody<SimNode>()
-            .strength((d: SimNode) =>
-              d._gn.type === "tentacle" ? p.repelStrength : p.repelStrength * 0.2,
-            )
+            .strength(p.repelStrength)
             .distanceMax(p.repelDistanceMax),
         )
-        .force(
-          "center",
-          forceCenter<SimNode>(centerX, centerY).strength(p.centerStrength),
-        )
-        .force(
-          "radial",
-          forceRadial<SimNode>(p.radialRadius, centerX, centerY)
-            .strength((d: SimNode) =>
-              // Tentacles anchor the ring; sessions get moderate pull to fill the circle
-              d._gn.type === "tentacle" ? p.radialStrength : p.radialStrength * 0.3,
-            ),
-        )
+        .force("x", forceX<SimNode>(centerX).strength(p.positionStrength))
+        .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
         .force(
           "collide",
           forceCollide<SimNode>((d) => d._gn.radius + p.collisionPadding),
@@ -183,6 +183,12 @@ export const useForceSimulation = ({
       applyForces(sim);
 
       sim.on("tick", () => {
+        // Clamp nodes inside the fixed world bounds
+        for (const sn of sim.nodes()) {
+          const r = sn._gn.radius;
+          if (sn.x !== undefined) sn.x = Math.max(-HALF_W + r, Math.min(HALF_W - r, sn.x));
+          if (sn.y !== undefined) sn.y = Math.max(-HALF_H + r, Math.min(HALF_H - r, sn.y));
+        }
         const updated: GraphNode[] = sim.nodes().map((sn) => ({
           ...sn._gn,
           x: sn.x ?? sn._gn.x,
@@ -206,31 +212,31 @@ export const useForceSimulation = ({
 
     const linkForce = sim.force("link") as ReturnType<typeof forceLink<SimNode, SimLink>> | null;
     if (linkForce) {
-      linkForce.distance(params.linkDistance).strength(params.linkStrength);
+      linkForce
+        .distance((link: SimLink) => {
+          const target = link.target as SimNode;
+          return target._gn.type === "inactive-session"
+            ? params.linkDistance * 0.35
+            : params.linkDistance;
+        })
+        .strength((link: SimLink) => {
+          const target = link.target as SimNode;
+          return target._gn.type === "inactive-session"
+            ? params.linkStrength * 1.5
+            : params.linkStrength;
+        });
     }
 
     const chargeForce = sim.force("charge") as ReturnType<typeof forceManyBody<SimNode>> | null;
     if (chargeForce) {
-      chargeForce
-        .strength((d: SimNode) =>
-          d._gn.type === "tentacle" ? params.repelStrength : params.repelStrength * 0.2,
-        )
-        .distanceMax(params.repelDistanceMax);
+      chargeForce.strength(params.repelStrength).distanceMax(params.repelDistanceMax);
     }
 
-    const centerForce = sim.force("center") as ReturnType<typeof forceCenter<SimNode>> | null;
-    if (centerForce) {
-      centerForce.strength(params.centerStrength);
-    }
+    const xForce = sim.force("x") as ReturnType<typeof forceX<SimNode>> | null;
+    if (xForce) xForce.strength(params.positionStrength);
 
-    const radialForce = sim.force("radial") as ReturnType<typeof forceRadial<SimNode>> | null;
-    if (radialForce) {
-      radialForce
-        .radius(params.radialRadius)
-        .strength((d: SimNode) =>
-          d._gn.type === "tentacle" ? params.radialStrength : params.radialStrength * 0.3,
-        );
-    }
+    const yForce = sim.force("y") as ReturnType<typeof forceY<SimNode>> | null;
+    if (yForce) yForce.strength(params.positionStrength);
 
     const collideForce = sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
     if (collideForce) {
