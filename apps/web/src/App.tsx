@@ -83,6 +83,10 @@ export const App = () => {
     sidebarWidth,
     tentacleCompletionSound,
     tentacleWidths,
+    canvasOpenTerminalIds,
+    setCanvasOpenTerminalIds,
+    canvasTerminalsPanelWidth,
+    setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns });
 
   const visibleColumns = useMemo(
@@ -529,17 +533,22 @@ export const App = () => {
             }}
             canvasPrimaryViewProps={{
               columns,
-              onCreateAgent: (tentacleId) => {
+              isUiStateHydrated,
+              canvasOpenTerminalIds,
+              canvasTerminalsPanelWidth,
+              onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
+              onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
+              onCreateAgent: async (tentacleId) => {
                 const isRuntime = columns.some((col) => col.tentacleId === tentacleId);
                 if (isRuntime) {
-                  void createTentacleAgent({
+                  return createTentacleAgent({
                     tentacleId,
                     anchorAgentId: `${tentacleId}-root`,
                     placement: "down",
                   });
-                } else {
-                  void createTentacle("shared", undefined, tentacleId);
                 }
+                void createTentacle("shared", undefined, tentacleId);
+                return undefined;
               },
               onNavigateToConversation: (sessionId) => {
                 selectSession(sessionId);

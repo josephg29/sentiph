@@ -46,6 +46,10 @@ type UsePersistedUiStateResult = {
   setMinimizedTentacleIds: Dispatch<SetStateAction<string[]>>;
   tentacleWidths: Record<string, number>;
   setTentacleWidths: Dispatch<SetStateAction<Record<string, number>>>;
+  canvasOpenTerminalIds: string[];
+  setCanvasOpenTerminalIds: Dispatch<SetStateAction<string[]>>;
+  canvasTerminalsPanelWidth: number | null;
+  setCanvasTerminalsPanelWidth: Dispatch<SetStateAction<number | null>>;
   readUiState: (signal?: AbortSignal) => Promise<FrontendUiStateSnapshot | null>;
   applyHydratedUiState: (
     snapshot: FrontendUiStateSnapshot | null,
@@ -73,6 +77,8 @@ export const usePersistedUiState = ({
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
   const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
   const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
+  const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>([]);
+  const [canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth] = useState<number | null>(null);
 
   const readUiState = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -180,6 +186,14 @@ export const usePersistedUiState = ({
           ),
         );
       }
+
+      if (snapshot.canvasOpenTerminalIds) {
+        setCanvasOpenTerminalIds(snapshot.canvasOpenTerminalIds);
+      }
+
+      if (snapshot.canvasTerminalsPanelWidth !== undefined) {
+        setCanvasTerminalsPanelWidth(snapshot.canvasTerminalsPanelWidth);
+      }
     },
     [],
   );
@@ -215,6 +229,8 @@ export const usePersistedUiState = ({
         },
         {},
       ),
+      canvasOpenTerminalIds,
+      ...(canvasTerminalsPanelWidth != null ? { canvasTerminalsPanelWidth } : {}),
     };
 
     const timerId = window.setTimeout(() => {
@@ -235,6 +251,8 @@ export const usePersistedUiState = ({
     };
   }, [
     activePrimaryNav,
+    canvasOpenTerminalIds,
+    canvasTerminalsPanelWidth,
     columns,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
@@ -283,6 +301,10 @@ export const usePersistedUiState = ({
     setMinimizedTentacleIds,
     tentacleWidths,
     setTentacleWidths,
+    canvasOpenTerminalIds,
+    setCanvasOpenTerminalIds,
+    canvasTerminalsPanelWidth,
+    setCanvasTerminalsPanelWidth,
     readUiState,
     applyHydratedUiState,
   };

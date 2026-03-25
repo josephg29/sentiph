@@ -22,7 +22,12 @@ type ContextMenuState =
 
 type CanvasPrimaryViewProps = {
   columns: TentacleView;
-  onCreateAgent?: (tentacleId: string) => void;
+  isUiStateHydrated?: boolean;
+  canvasOpenTerminalIds?: string[];
+  canvasTerminalsPanelWidth?: number | null;
+  onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
+  onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
+  onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
   onDeleteActiveSession?: (tentacleId: string, sessionId: string) => void;
 };
@@ -33,6 +38,11 @@ const TERMINAL_MIN_WIDTH = 370;
 
 export const CanvasPrimaryView = ({
   columns,
+  isUiStateHydrated,
+  canvasOpenTerminalIds,
+  canvasTerminalsPanelWidth: persistedTerminalsPanelWidth,
+  onCanvasOpenTerminalIdsChange,
+  onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
   onNavigateToConversation,
   onDeleteActiveSession,
@@ -42,6 +52,8 @@ export const CanvasPrimaryView = ({
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
+  const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
+  const hasHydratedTerminals = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
@@ -74,6 +86,45 @@ export const CanvasPrimaryView = ({
     }
     return map;
   }, [simulatedNodes]);
+
+  // Hydrate open terminals from persisted IDs once UI state and graph nodes are available
+  useEffect(() => {
+    if (hasHydratedTerminals.current) return;
+    if (!isUiStateHydrated) return;
+    if (simulatedNodes.length === 0) return;
+
+    if (canvasOpenTerminalIds && canvasOpenTerminalIds.length > 0) {
+      const restoredMap = new Map<string, GraphNode>();
+      for (const nodeId of canvasOpenTerminalIds) {
+        const node = nodesById.get(nodeId);
+        if (node && node.type === "active-session") {
+          restoredMap.set(nodeId, { ...node });
+        }
+      }
+      if (restoredMap.size > 0) {
+        setOpenTerminals(restoredMap);
+      }
+    }
+
+    if (persistedTerminalsPanelWidth != null && persistedTerminalsPanelWidth > 0) {
+      setTerminalsPanelWidth(persistedTerminalsPanelWidth);
+    }
+
+    hasHydratedTerminals.current = true;
+  }, [isUiStateHydrated, canvasOpenTerminalIds, persistedTerminalsPanelWidth, simulatedNodes.length, nodesById]);
+
+  // Persist open terminal IDs when they change
+  useEffect(() => {
+    if (!hasHydratedTerminals.current) return;
+    onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
+  }, [openTerminals, onCanvasOpenTerminalIdsChange]);
+
+  // Persist terminals panel width only when user has explicitly dragged the divider
+  useEffect(() => {
+    if (!hasHydratedTerminals.current) return;
+    if (terminalsPanelWidth == null) return;
+    onCanvasTerminalsPanelWidthChange?.(terminalsPanelWidth);
+  }, [terminalsPanelWidth, onCanvasTerminalsPanelWidthChange]);
 
   const handleNodePointerDown = useCallback(
     (e: React.PointerEvent, nodeId: string) => {
@@ -272,10 +323,29 @@ export const CanvasPrimaryView = ({
     (tentacleId: string) => {
       if (!onCreateAgent) return;
       setContextMenu(null);
-      onCreateAgent(tentacleId);
+      const result = onCreateAgent(tentacleId);
+      if (result && typeof result.then === "function") {
+        void result.then((agentId) => {
+          if (agentId) setPendingOpenAgentId(agentId);
+        });
+      }
     },
     [onCreateAgent],
   );
+
+  // Auto-open terminal for newly created agent once it appears in the graph
+  useEffect(() => {
+    if (!pendingOpenAgentId) return;
+    const nodeId = `a:${pendingOpenAgentId}`;
+    const node = nodesById.get(nodeId);
+    if (!node) return;
+    setPendingOpenAgentId(null);
+    setOpenTerminals((prev) => {
+      const next = new Map(prev);
+      next.set(nodeId, { ...node });
+      return next;
+    });
+  }, [pendingOpenAgentId, nodesById]);
 
   // Separate tentacle and session nodes for render order
   const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle");

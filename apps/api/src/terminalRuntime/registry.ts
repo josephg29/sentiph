@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { TENTACLE_REGISTRY_VERSION } from "./constants";
-import { parseTentacleNumber } from "./ids";
+
 import { toErrorMessage } from "./systemClients";
 import type {
   PersistedTentacle,
@@ -170,11 +170,6 @@ export const parseRegistryDocument = (
       rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
         ? rawWorkspaceMode
         : "shared";
-
-    const tentacleNumber = parseTentacleNumber(tentacleId);
-    if (tentacleNumber === null) {
-      throw new Error(`Invalid tentacle id in registry (${registryPath}): ${tentacleId}`);
-    }
 
     if (tentacles.has(tentacleId)) {
       throw new Error(`Duplicate tentacle id in registry (${registryPath}): ${tentacleId}`);

@@ -522,6 +522,39 @@ export const parseUiStatePatch = (
     patch.tentacleWidths = tentacleWidths;
   }
 
+  if (record.canvasOpenTerminalIds !== undefined) {
+    if (!Array.isArray(record.canvasOpenTerminalIds)) {
+      return {
+        patch: null,
+        error: "canvasOpenTerminalIds must be an array of strings.",
+      };
+    }
+
+    const canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter(
+      (id): id is string => typeof id === "string",
+    );
+    if (canvasOpenTerminalIds.length !== record.canvasOpenTerminalIds.length) {
+      return {
+        patch: null,
+        error: "canvasOpenTerminalIds must be an array of strings.",
+      };
+    }
+    patch.canvasOpenTerminalIds = canvasOpenTerminalIds;
+  }
+
+  if (record.canvasTerminalsPanelWidth !== undefined) {
+    if (
+      typeof record.canvasTerminalsPanelWidth !== "number" ||
+      !Number.isFinite(record.canvasTerminalsPanelWidth)
+    ) {
+      return {
+        patch: null,
+        error: "canvasTerminalsPanelWidth must be a finite number.",
+      };
+    }
+    patch.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;
+  }
+
   return { patch, error: null };
 };
 

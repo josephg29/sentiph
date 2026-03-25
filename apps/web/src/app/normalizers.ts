@@ -262,6 +262,19 @@ export const normalizeFrontendUiStateSnapshot = (
     );
   }
 
+  if (Array.isArray(record.canvasOpenTerminalIds)) {
+    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter(
+      (id): id is string => typeof id === "string",
+    );
+  }
+
+  if (
+    typeof record.canvasTerminalsPanelWidth === "number" &&
+    Number.isFinite(record.canvasTerminalsPanelWidth)
+  ) {
+    nextState.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;
+  }
+
   return nextState;
 };
 

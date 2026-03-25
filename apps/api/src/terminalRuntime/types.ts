@@ -149,6 +149,8 @@ export type PersistedUiState = {
   tentacleCompletionSound?: TentacleCompletionSound;
   minimizedTentacleIds?: string[];
   tentacleWidths?: Record<string, number>;
+  canvasOpenTerminalIds?: string[];
+  canvasTerminalsPanelWidth?: number;
 };
 
 export type TentacleRegistryDocument = {

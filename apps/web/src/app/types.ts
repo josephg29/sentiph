@@ -82,6 +82,8 @@ export type FrontendUiStateSnapshot = {
   tentacleCompletionSound?: TentacleCompletionSoundId;
   minimizedTentacleIds?: string[];
   tentacleWidths?: Record<string, number>;
+  canvasOpenTerminalIds?: string[];
+  canvasTerminalsPanelWidth?: number;
 };
 
 export type TentacleWorkspaceMode = "shared" | "worktree";

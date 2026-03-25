@@ -42,7 +42,7 @@ type UseTentacleMutationsResult = {
     tentacleId: string;
     anchorAgentId: string;
     placement: "up" | "down";
-  }) => Promise<void>;
+  }) => Promise<string | undefined>;
   deleteTentacleAgent: (input: { tentacleId: string; agentId: string }) => Promise<void>;
   requestDeleteTentacle: (
     tentacleId: string,
@@ -191,7 +191,7 @@ export const useTentacleMutations = ({
       tentacleId: string;
       anchorAgentId: string;
       placement: "up" | "down";
-    }) => {
+    }): Promise<string | undefined> => {
       try {
         setLoadError(null);
         const response = await fetch(buildTentacleAgentsUrl(tentacleId), {
@@ -210,10 +210,13 @@ export const useTentacleMutations = ({
           throw new Error(`Unable to create tentacle agent (${response.status})`);
         }
 
+        const body = (await response.json()) as Record<string, unknown>;
         const nextColumns = await readColumns();
         setColumns(nextColumns);
+        return typeof body.agentId === "string" ? body.agentId : undefined;
       } catch {
         setLoadError("Unable to create a new terminal agent.");
+        return undefined;
       }
     },
     [readColumns, setColumns, setLoadError],

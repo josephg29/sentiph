@@ -578,6 +578,12 @@ export const createTerminalRuntime = ({
       if (patch.tentacleWidths !== undefined) {
         uiState.tentacleWidths = { ...patch.tentacleWidths };
       }
+      if (patch.canvasOpenTerminalIds !== undefined) {
+        uiState.canvasOpenTerminalIds = [...patch.canvasOpenTerminalIds];
+      }
+      if (patch.canvasTerminalsPanelWidth !== undefined) {
+        uiState.canvasTerminalsPanelWidth = patch.canvasTerminalsPanelWidth;
+      }
 
       persistRegistry();
       return readUiState();
