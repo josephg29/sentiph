@@ -282,18 +282,18 @@
   overflow: hidden;
 }
 
-.canvas-terminal-overlay--active .canvas-tentacle-header {
+.console-shell .canvas-terminal-overlay--active .canvas-tentacle-header {
   cursor: move;
   user-select: none;
   padding: 4px 8px;
+  background: var(--accent-primary, #faa32c);
+  border-bottom: none;
+  color: #121212;
 }
 
-.canvas-terminal-overlay--active .canvas-tentacle-header h2 {
+.console-shell .canvas-terminal-overlay--active .canvas-tentacle-header h2 {
   font-size: 0.7rem;
-}
-
-.canvas-terminal-overlay--active .terminal-header {
-  font-size: 0.7rem;
+  color: #121212;
 }
 
 .canvas-terminal-overlay--active .tentacle-terminals {
@@ -306,10 +306,25 @@
 .canvas-terminal-overlay--active .tentacle-terminals .tentacle-terminal {
   min-height: 0;
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.canvas-terminal-overlay--active .tentacle-terminals .terminal-mount {
+.canvas-terminal-overlay--active .terminal-header {
+  display: none;
+}
+
+.canvas-terminal-overlay--active .terminal-mount {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.canvas-terminal-overlay--active .terminal-mount .xterm {
   height: 100%;
+}
+
+.canvas-terminal-overlay--active .terminal-mount .xterm-viewport {
+  height: 100% !important;
 }
 
 .canvas-terminal-overlay--active .canvas-terminal-overlay-close {

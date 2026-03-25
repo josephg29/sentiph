@@ -5,6 +5,7 @@ import type { ConversationSessionDetail, ConversationTurn, TentacleView } from "
 import { buildConversationSessionUrl } from "../../runtime/runtimeEndpoints";
 import { normalizeConversationSessionDetail } from "../../app/normalizers";
 import { TentacleTerminal } from "../TentacleTerminal";
+import { type AgentRuntimeState, AgentStateBadge } from "../AgentStateBadge";
 import { MarkdownContent } from "../ui/MarkdownContent";
 
 type CanvasTerminalOverlayProps = {
@@ -102,6 +103,7 @@ export const CanvasTerminalOverlay = ({
     null,
   );
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [agentState, setAgentState] = useState<AgentRuntimeState>("idle");
 
   // Report size changes (user resize via CSS resize handle)
   useEffect(() => {
@@ -171,16 +173,12 @@ export const CanvasTerminalOverlay = ({
         >
           <div className="tentacle-column-heading">
             <h2>
-              <span className="tentacle-name-display">{tentacleName}</span>
-              <span
-                className={`tentacle-workspace-badge tentacle-workspace-badge--${workspaceMode}`}
-              >
-                {renderWorkspaceLabel(workspaceMode)}
-              </span>
+              <span className="tentacle-name-display">{node.label}</span>
             </h2>
           </div>
           <div />
           <div className="tentacle-header-actions">
+            <AgentStateBadge state={agentState} />
             <button
               type="button"
               className="canvas-terminal-overlay-close"
@@ -195,6 +193,7 @@ export const CanvasTerminalOverlay = ({
           <TentacleTerminal
             terminalId={node.sessionId}
             terminalLabel={node.label}
+            onAgentRuntimeStateChange={setAgentState}
           />
         </div>
       </div>
