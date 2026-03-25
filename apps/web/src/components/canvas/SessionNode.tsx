@@ -15,6 +15,7 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
   return (
     <g
       className={`canvas-node canvas-node--session${isSelected ? " canvas-node--selected" : ""}${isActive ? " canvas-node--active" : " canvas-node--inactive"}`}
+      data-node-id={node.id}
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={(e) => {
         if (e.button !== 0) return;

@@ -12,15 +12,15 @@ import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 import { CanvasTerminalOverlay } from "./canvas/CanvasTerminalOverlay";
 
-type ContextMenuState = {
-  x: number;
-  y: number;
-  tentacleId: string;
-};
+type ContextMenuState =
+  | { kind: "tentacle"; x: number; y: number; tentacleId: string }
+  | { kind: "active-session"; x: number; y: number; nodeId: string; tentacleId: string; sessionId: string };
 
 type CanvasPrimaryViewProps = {
   columns: TentacleView;
   onCreateAgent?: (tentacleId: string) => void;
+  onNavigateToConversation?: (sessionId: string) => void;
+  onDeleteActiveSession?: (tentacleId: string, sessionId: string) => void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -53,7 +53,7 @@ type OverlayEntry = {
   screenY: number;
 };
 
-export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewProps) => {
+export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversation, onDeleteActiveSession }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [overlays, setOverlays] = useState<Map<string, OverlayEntry>>(new Map);
   const [overlayPositions, setOverlayPositions] = useState<Map<string, { x: number; y: number }>>(new Map);
@@ -128,11 +128,33 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
           return;
         }
 
-        // Canvas-view-local coords (no viewport offset)
-        const lx = node.x * transform.scale + transform.translateX;
-        const ly = node.y * transform.scale + transform.translateY;
-        const sx = lx + 20;
-        const sy = ly - 200;
+        // Node center in canvas-view-local coords
+        const nx = node.x * transform.scale + transform.translateX;
+        const ny = node.y * transform.scale + transform.translateY;
+
+        // Viewport bounds
+        const svgEl = svgRef.current;
+        const vw = svgEl?.clientWidth ?? 1200;
+        const vh = svgEl?.clientHeight ?? 800;
+        const pad = 8;
+
+        // Same side as the node: left half → flush left, right half → flush right
+        const sx = nx < vw / 2 ? pad : vw - OVERLAY_WIDTH - pad;
+
+        // Vertical: center on the node, clamped to viewport
+        let sy = Math.max(pad, Math.min(ny - OVERLAY_HEIGHT / 2, vh - OVERLAY_HEIGHT - pad));
+
+        // Nudge to avoid stacking on existing overlays
+        const NUDGE = 30;
+        for (const [existingId, existingPos] of overlayPositions) {
+          if (existingId === nodeId) continue;
+          const dx = Math.abs(existingPos.x - sx);
+          const dy = Math.abs(existingPos.y - sy);
+          if (dx < NUDGE && dy < NUDGE) {
+            sy = Math.min(existingPos.y + NUDGE, vh - OVERLAY_HEIGHT - pad);
+          }
+        }
+
         setOverlays((prev) => new Map(prev).set(nodeId, { node: { ...node }, screenX: sx, screenY: sy }));
         setOverlayPositions((prev) => new Map(prev).set(nodeId, { x: sx, y: sy }));
       }
@@ -188,6 +210,10 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
   const nodesByIdRef = useRef(nodesById);
   nodesByIdRef.current = nodesById;
 
+  // Stable refs so the native listener always sees the latest callbacks
+  const onNavigateRef = useRef(onNavigateToConversation);
+  onNavigateRef.current = onNavigateToConversation;
+
   // Native contextmenu listener — must be native to reliably preventDefault
   useEffect(() => {
     const svg = svgRef.current;
@@ -206,11 +232,34 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
       }
       if (!nodeId) return;
       const node = nodesByIdRef.current.get(nodeId);
-      if (!node || node.type !== "tentacle") return;
+      if (!node) return;
 
-      e.preventDefault();
-      e.stopPropagation();
-      setContextMenu({ x: e.clientX, y: e.clientY, tentacleId: node.tentacleId });
+      if (node.type === "tentacle") {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({ kind: "tentacle", x: e.clientX, y: e.clientY, tentacleId: node.tentacleId });
+        return;
+      }
+
+      if (node.type === "inactive-session" && node.sessionId) {
+        e.preventDefault();
+        e.stopPropagation();
+        onNavigateRef.current?.(node.sessionId);
+        return;
+      }
+
+      if (node.type === "active-session" && node.sessionId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({
+          kind: "active-session",
+          x: e.clientX,
+          y: e.clientY,
+          nodeId: node.id,
+          tentacleId: node.tentacleId,
+          sessionId: node.sessionId,
+        });
+      }
     };
 
     svg.addEventListener("contextmenu", handler);
@@ -345,7 +394,7 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
         />
       ))}
 
-      {/* Context menu for tentacle nodes */}
+      {/* Context menu */}
       {contextMenu && (
         <>
           <div
@@ -356,13 +405,27 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewP
             className="canvas-context-menu"
             style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
           >
-            <button
-              type="button"
-              className="canvas-context-menu-item"
-              onClick={() => handleCreateAgent(contextMenu.tentacleId)}
-            >
-              Create new agent
-            </button>
+            {contextMenu.kind === "tentacle" && (
+              <button
+                type="button"
+                className="canvas-context-menu-item"
+                onClick={() => handleCreateAgent(contextMenu.tentacleId)}
+              >
+                Create new agent
+              </button>
+            )}
+            {contextMenu.kind === "active-session" && (
+              <button
+                type="button"
+                className="canvas-context-menu-item canvas-context-menu-item--danger"
+                onClick={() => {
+                  onDeleteActiveSession?.(contextMenu.tentacleId, contextMenu.sessionId);
+                  setContextMenu(null);
+                }}
+              >
+                Delete
+              </button>
+            )}
           </div>
         </>
       )}

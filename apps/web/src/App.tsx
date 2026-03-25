@@ -541,6 +541,13 @@ export const App = () => {
                   void createTentacle("shared", undefined, tentacleId);
                 }
               },
+              onNavigateToConversation: (sessionId) => {
+                selectSession(sessionId);
+                setActivePrimaryNav(5);
+              },
+              onDeleteActiveSession: (tentacleId, sessionId) => {
+                void deleteSession(sessionId);
+              },
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
