@@ -117,8 +117,8 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 9) {
-    return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
+    return <TentacleBoard {...tentacleBoardProps} />;
   }
 
-  return <TentacleBoard {...tentacleBoardProps} />;
+  return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
 };
