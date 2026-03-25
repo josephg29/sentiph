@@ -56,6 +56,33 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     });
   });
 
+  // Re-center the graph when the SVG container resizes (e.g. split panel opens)
+  const prevSizeRef = useRef<{ width: number; height: number } | null>(null);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width === 0 || height === 0) return;
+
+      const prev = prevSizeRef.current;
+      if (prev && (Math.abs(prev.width - width) > 1 || Math.abs(prev.height - height) > 1)) {
+        // Adjust translate so the graph center stays in the center of the new viewport
+        setTransform((t) => ({
+          ...t,
+          translateX: t.translateX + (width - prev.width) / 2,
+          translateY: t.translateY + (height - prev.height) / 2,
+        }));
+      }
+      prevSizeRef.current = { width, height };
+    });
+    ro.observe(svg);
+    return () => ro.disconnect();
+  }, []);
+
   const [isPanning, setIsPanning] = useState(false);
   const panState = useRef<{
     startX: number;

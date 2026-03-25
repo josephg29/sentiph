@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphNode } from "../app/canvas/types";
-import type { TentacleView } from "../app/types";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
-import {
-  useForceSimulation,
-  DEFAULT_FORCE_PARAMS,
-} from "../app/hooks/useForceSimulation";
+import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
+import type { TentacleView } from "../app/types";
+import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
-import { CanvasTerminalOverlay } from "./canvas/CanvasTerminalOverlay";
 
 type ContextMenuState =
   | { kind: "tentacle"; x: number; y: number; tentacleId: string }
-  | { kind: "active-session"; x: number; y: number; nodeId: string; tentacleId: string; sessionId: string };
+  | {
+      kind: "active-session";
+      x: number;
+      y: number;
+      nodeId: string;
+      tentacleId: string;
+      sessionId: string;
+    };
 
 type CanvasPrimaryViewProps = {
   columns: TentacleView;
@@ -24,43 +28,23 @@ type CanvasPrimaryViewProps = {
 };
 
 const CLICK_THRESHOLD = 5;
-const OVERLAY_WIDTH = 400;
-const OVERLAY_HEIGHT = 560;
+const GRAPH_MIN_WIDTH = 300;
+const TERMINAL_MIN_WIDTH = 370;
 
-/** Find the rectangle corner nearest to an external point. */
-const nearestCorner = (px: number, py: number, rx: number, ry: number, rw: number, rh: number) => {
-  const corners = [
-    { x: rx, y: ry },
-    { x: rx + rw, y: ry },
-    { x: rx, y: ry + rh },
-    { x: rx + rw, y: ry + rh },
-  ];
-  let best = corners[0]!;
-  let bestDist = Infinity;
-  for (const c of corners) {
-    const d = (c.x - px) ** 2 + (c.y - py) ** 2;
-    if (d < bestDist) {
-      bestDist = d;
-      best = c;
-    }
-  }
-  return best;
-};
-
-type OverlayEntry = {
-  node: GraphNode;
-  screenX: number;
-  screenY: number;
-};
-
-export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversation, onDeleteActiveSession }: CanvasPrimaryViewProps) => {
+export const CanvasPrimaryView = ({
+  columns,
+  onCreateAgent,
+  onNavigateToConversation,
+  onDeleteActiveSession,
+}: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [overlays, setOverlays] = useState<Map<string, OverlayEntry>>(new Map);
-  const [overlayPositions, setOverlayPositions] = useState<Map<string, { x: number; y: number }>>(new Map);
-  const [overlaySizes, setOverlaySizes] = useState<Map<string, { w: number; h: number }>>(new Map);
+  const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const containerRef = useRef<HTMLElement>(null);
 
   const { nodes, edges } = useCanvasGraphData({ columns, enabled: true });
 
@@ -120,62 +104,64 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversa
       if (!node) return;
 
       if (node.type === "active-session") {
-        // Toggle: if already open, close it
-        if (overlays.has(nodeId)) {
-          setOverlays((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-          setOverlayPositions((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-          setOverlaySizes((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-          return;
-        }
-
-        // Node center in canvas-view-local coords
-        const nx = node.x * transform.scale + transform.translateX;
-        const ny = node.y * transform.scale + transform.translateY;
-
-        // Viewport bounds
-        const svgEl = svgRef.current;
-        const vw = svgEl?.clientWidth ?? 1200;
-        const vh = svgEl?.clientHeight ?? 800;
-        const pad = 8;
-
-        // Same side as the node: left half → flush left, right half → flush right
-        const sx = nx < vw / 2 ? pad : vw - OVERLAY_WIDTH - pad;
-
-        // Vertical: center on the node, clamped to viewport
-        let sy = Math.max(pad, Math.min(ny - OVERLAY_HEIGHT / 2, vh - OVERLAY_HEIGHT - pad));
-
-        // Nudge to avoid stacking on existing overlays
-        const NUDGE = 30;
-        for (const [existingId, existingPos] of overlayPositions) {
-          if (existingId === nodeId) continue;
-          const dx = Math.abs(existingPos.x - sx);
-          const dy = Math.abs(existingPos.y - sy);
-          if (dx < NUDGE && dy < NUDGE) {
-            sy = Math.min(existingPos.y + NUDGE, vh - OVERLAY_HEIGHT - pad);
+        setOpenTerminals((prev) => {
+          const next = new Map(prev);
+          if (next.has(nodeId)) {
+            next.delete(nodeId);
+          } else {
+            next.set(nodeId, { ...node });
           }
-        }
-
-        setOverlays((prev) => new Map(prev).set(nodeId, { node: { ...node }, screenX: sx, screenY: sy }));
-        setOverlayPositions((prev) => new Map(prev).set(nodeId, { x: sx, y: sy }));
+          return next;
+        });
       }
     },
-    [nodesById, transform, overlays],
+    [nodesById],
   );
 
-  const handleOverlayMove = useCallback((nodeId: string, left: number, top: number) => {
-    setOverlayPositions((prev) => new Map(prev).set(nodeId, { x: left, y: top }));
+  const handleCloseTerminal = useCallback((nodeId: string) => {
+    setOpenTerminals((prev) => {
+      const next = new Map(prev);
+      next.delete(nodeId);
+      return next;
+    });
   }, []);
 
-  const handleOverlayResize = useCallback((nodeId: string, w: number, h: number) => {
-    setOverlaySizes((prev) => new Map(prev).set(nodeId, { w, h }));
+  // Divider drag handlers
+  const handleDividerPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      // Measure the actual rendered width of the terminals panel (works whether CSS- or inline-sized)
+      const panelEl = (e.target as HTMLElement).nextElementSibling as HTMLElement | null;
+      const currentWidth = panelEl?.clientWidth ?? terminalsPanelWidth ?? 600;
+      dividerDragRef.current = { startX: e.clientX, startWidth: currentWidth };
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [terminalsPanelWidth],
+  );
+
+  const handleDividerPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dividerDragRef.current;
+    if (!drag) return;
+    const containerWidth = containerRef.current?.clientWidth ?? 1200;
+    // Dragging left → terminals grow, dragging right → terminals shrink
+    const delta = drag.startX - e.clientX;
+    const newWidth = Math.max(
+      TERMINAL_MIN_WIDTH,
+      Math.min(containerWidth - GRAPH_MIN_WIDTH - 6, drag.startWidth + delta),
+    );
+    setTerminalsPanelWidth(newWidth);
+  }, []);
+
+  const handleDividerPointerUp = useCallback(() => {
+    dividerDragRef.current = null;
   }, []);
 
   const handleSvgPointerUp = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (dragNodeId) {
         const start = dragStartRef.current;
-        const dx = start ? e.clientX - start.x : Infinity;
-        const dy = start ? e.clientY - start.y : Infinity;
+        const dx = start ? e.clientX - start.x : Number.POSITIVE_INFINITY;
+        const dy = start ? e.clientY - start.y : Number.POSITIVE_INFINITY;
         const wasClick = Math.abs(dx) < CLICK_THRESHOLD && Math.abs(dy) < CLICK_THRESHOLD;
 
         unpinNode(dragNodeId);
@@ -193,12 +179,6 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversa
     },
     [dragNodeId, unpinNode, reheat, handleCanvasPointerUp, handleNodeClick],
   );
-
-  const handleCloseOverlay = useCallback((nodeId: string) => {
-    setOverlays((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-    setOverlayPositions((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-    setOverlaySizes((prev) => { const next = new Map(prev); next.delete(nodeId); return next; });
-  }, []);
 
   const handleSvgClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (e.target === e.currentTarget) {
@@ -237,7 +217,12 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversa
       if (node.type === "tentacle") {
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({ kind: "tentacle", x: e.clientX, y: e.clientY, tentacleId: node.tentacleId });
+        setContextMenu({
+          kind: "tentacle",
+          x: e.clientX,
+          y: e.clientY,
+          tentacleId: node.tentacleId,
+        });
         return;
       }
 
@@ -279,128 +264,89 @@ export const CanvasPrimaryView = ({ columns, onCreateAgent, onNavigateToConversa
   const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle");
   const sessionNodes = simulatedNodes.filter((n) => n.type !== "tentacle");
 
-  // Compute tether paths from nodes to their overlays (same curve as inter-node edges)
-  const tethers = useMemo(() => {
-    const result: Array<{ key: string; d: string }> = [];
-    for (const [nodeId, entry] of overlays) {
-      const pos = overlayPositions.get(nodeId);
-      if (!pos) continue;
-      const live = nodesById.get(entry.node.id);
-      if (!live) continue;
-
-      const sx = live.x * transform.scale + transform.translateX;
-      const sy = live.y * transform.scale + transform.translateY;
-      const size = overlaySizes.get(nodeId);
-      const ow = size?.w ?? OVERLAY_WIDTH;
-      const oh = size?.h ?? OVERLAY_HEIGHT;
-      const dst = nearestCorner(sx, sy, pos.x, pos.y, ow, oh);
-
-      const dx = dst.x - sx;
-      const dy = dst.y - sy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 1) continue;
-
-      // Matches buildArmPath in OctopusNode — cubic bezier with S-curve
-      const nx = -dy / dist;
-      const ny = dx / dist;
-      const curvature = dist * 0.2;
-      const cp1x = sx + dx * 0.33 + nx * curvature;
-      const cp1y = sy + dy * 0.33 + ny * curvature;
-      const cp2x = sx + dx * 0.66 - nx * curvature * 0.5;
-      const cp2y = sy + dy * 0.66 - ny * curvature * 0.5;
-
-      result.push({
-        key: nodeId,
-        d: `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${dst.x} ${dst.y}`,
-      });
-    }
-    return result;
-  }, [overlays, overlayPositions, overlaySizes, nodesById, transform]);
+  const hasTerminals = openTerminals.size > 0;
 
   return (
-    <section className="canvas-view" aria-label="Canvas graph view">
-      <svg
-        ref={svgRef}
-        className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
-        onWheel={handleWheel}
-        onPointerDown={handleCanvasPointerDown}
-        onPointerMove={handleSvgPointerMove}
-        onPointerUp={handleSvgPointerUp}
-        onClick={handleSvgClick}
-      >
-        <g
-          transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
+    <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
+      <div className={`canvas-graph-panel${hasTerminals ? " canvas-graph-panel--split" : ""}`}>
+        <svg
+          ref={svgRef}
+          className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
+          onWheel={handleWheel}
+          onPointerDown={handleCanvasPointerDown}
+          onPointerMove={handleSvgPointerMove}
+          onPointerUp={handleSvgPointerUp}
+          onClick={handleSvgClick}
         >
-          {/* Render tentacle nodes (with arms) first */}
-          {tentacleNodes.map((node) => {
-            const connected = edges
-              .filter((e) => e.source === node.id)
-              .map((e) => nodesById.get(e.target))
-              .filter((n): n is GraphNode => n !== undefined);
+          <g
+            transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
+          >
+            {/* Render tentacle nodes (with arms) first */}
+            {tentacleNodes.map((node) => {
+              const connected = edges
+                .filter((e) => e.source === node.id)
+                .map((e) => nodesById.get(e.target))
+                .filter((n): n is GraphNode => n !== undefined);
 
-            return (
-              <OctopusNode
+              return (
+                <OctopusNode
+                  key={node.id}
+                  node={node}
+                  connectedNodes={connected}
+                  isSelected={selectedNodeId === node.id}
+                  onPointerDown={handleNodePointerDown}
+                  onClick={handleNodeClick}
+                />
+              );
+            })}
+
+            {/* Render session nodes on top */}
+            {sessionNodes.map((node) => (
+              <SessionNode
                 key={node.id}
                 node={node}
-                connectedNodes={connected}
                 isSelected={selectedNodeId === node.id}
                 onPointerDown={handleNodePointerDown}
                 onClick={handleNodeClick}
               />
-            );
-          })}
-
-          {/* Render session nodes on top */}
-          {sessionNodes.map((node) => (
-            <SessionNode
-              key={node.id}
-              node={node}
-              isSelected={selectedNodeId === node.id}
-              onPointerDown={handleNodePointerDown}
-              onClick={handleNodeClick}
-            />
-          ))}
-        </g>
-      </svg>
-
-      {/* Tether lines from nodes to overlays — same style as inter-node edges */}
-      {tethers.length > 0 && (
-        <svg className="canvas-tether-layer" aria-hidden="true">
-          {tethers.map((t) => (
-            <path
-              key={t.key}
-              className="canvas-edge"
-              d={t.d}
-              fill="none"
-              stroke="#00d4ff"
-              strokeWidth={1}
-              strokeOpacity={0.35}
-            />
-          ))}
+            ))}
+          </g>
         </svg>
-      )}
+      </div>
 
-      {/* Terminal overlays (HTML, positioned over SVG) */}
-      {Array.from(overlays.entries()).map(([nodeId, entry]) => (
-        <CanvasTerminalOverlay
-          key={nodeId}
-          node={entry.node}
-          columns={columns}
-          screenX={entry.screenX}
-          screenY={entry.screenY}
-          onClose={() => handleCloseOverlay(nodeId)}
-          onMove={(left, top) => handleOverlayMove(nodeId, left, top)}
-          onResize={(w, h) => handleOverlayResize(nodeId, w, h)}
-        />
-      ))}
+      {hasTerminals && (
+        <>
+          <div
+            className="canvas-panel-divider"
+            role="separator"
+            aria-orientation="vertical"
+            tabIndex={0}
+            onPointerDown={handleDividerPointerDown}
+            onPointerMove={handleDividerPointerMove}
+            onPointerUp={handleDividerPointerUp}
+          />
+          <div
+            className="canvas-terminals-panel"
+            style={
+              terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined
+            }
+          >
+            {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
+              <CanvasTerminalColumn
+                key={nodeId}
+                node={node}
+                columns={columns}
+                onClose={() => handleCloseTerminal(nodeId)}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Context menu */}
       {contextMenu && (
         <>
-          <div
-            className="canvas-context-menu-backdrop"
-            onClick={() => setContextMenu(null)}
-          />
+          <div className="canvas-context-menu-backdrop" onClick={() => setContextMenu(null)} />
           <div
             className="canvas-context-menu"
             style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
