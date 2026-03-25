@@ -36,7 +36,12 @@ export const DEFAULT_FORCE_PARAMS: ForceParams = {
 };
 
 const ALPHA_MIN = 0.001;
-const ALPHA_TARGET = 0;
+const ALPHA_TARGET = 0.008; // Small positive value keeps simulation warm for idle jitter
+
+// Idle jitter — random nudges when the simulation has settled
+const JITTER_STRENGTH_SESSION = 0.8;
+const JITTER_STRENGTH_TENTACLE = 0.15;
+const JITTER_ALPHA_THRESHOLD = 1.0;
 const REHEAT_ALPHA = 0.8;
 
 // Fixed world bounds — nodes are clamped inside this box
@@ -166,7 +171,19 @@ export const useForceSimulation = ({
         .force(
           "collide",
           forceCollide<SimNode>((d) => d._gn.radius + p.collisionPadding),
-        );
+        )
+        .force("jitter", (alpha: number) => {
+          if (alpha > JITTER_ALPHA_THRESHOLD) return;
+          for (const sn of sim.nodes()) {
+            if (sn.fx !== undefined) continue;
+            const s =
+              sn._gn.type === "tentacle"
+                ? JITTER_STRENGTH_TENTACLE
+                : JITTER_STRENGTH_SESSION;
+            sn.vx = (sn.vx ?? 0) + (Math.random() - 0.5) * s;
+            sn.vy = (sn.vy ?? 0) + (Math.random() - 0.5) * s;
+          }
+        });
     };
 
     if (simRef.current) {

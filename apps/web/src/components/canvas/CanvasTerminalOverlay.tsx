@@ -13,6 +13,8 @@ type CanvasTerminalOverlayProps = {
   screenX: number;
   screenY: number;
   onClose: () => void;
+  onMove?: (left: number, top: number) => void;
+  onResize?: (width: number, height: number) => void;
 };
 
 const renderWorkspaceLabel = (mode: string) => (mode === "worktree" ? "WORKTREE" : "MAIN");
@@ -92,12 +94,27 @@ export const CanvasTerminalOverlay = ({
   screenX,
   screenY,
   onClose,
+  onMove,
+  onResize,
 }: CanvasTerminalOverlayProps) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(
     null,
   );
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  // Report size changes (user resize via CSS resize handle)
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el || !onResize) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      onResize(entry.contentRect.width, entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onResize]);
 
   const isActive = node.type === "active-session";
 
@@ -118,14 +135,19 @@ export const CanvasTerminalOverlay = ({
     [offset],
   );
 
-  const handleHeaderPointerMove = useCallback((e: React.PointerEvent) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    setOffset({
-      x: drag.origX + (e.clientX - drag.startX),
-      y: drag.origY + (e.clientY - drag.startY),
-    });
-  }, []);
+  const handleHeaderPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const next = {
+        x: drag.origX + (e.clientX - drag.startX),
+        y: drag.origY + (e.clientY - drag.startY),
+      };
+      setOffset(next);
+      onMove?.(screenX + next.x, screenY + next.y);
+    },
+    [screenX, screenY, onMove],
+  );
 
   const handleHeaderPointerUp = useCallback(() => {
     dragRef.current = null;

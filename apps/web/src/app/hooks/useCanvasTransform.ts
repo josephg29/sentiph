@@ -13,6 +13,7 @@ const ZOOM_FACTOR = 0.1;
 
 type UseCanvasTransformResult = {
   transform: CanvasTransform;
+  isPanning: boolean;
   svgRef: React.RefObject<SVGSVGElement | null>;
   handleWheel: (e: React.WheelEvent<SVGSVGElement>) => void;
   handlePointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -55,6 +56,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     });
   });
 
+  const [isPanning, setIsPanning] = useState(false);
   const panState = useRef<{
     startX: number;
     startY: number;
@@ -125,6 +127,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
         startTx: transform.translateX,
         startTy: transform.translateY,
       };
+      setIsPanning(true);
       (e.target as SVGSVGElement).setPointerCapture?.(e.pointerId);
     },
     [transform.translateX, transform.translateY],
@@ -143,6 +146,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   const handlePointerUp = useCallback(() => {
     panState.current = null;
+    setIsPanning(false);
   }, []);
 
   const zoomIn = useCallback(() => {
@@ -214,6 +218,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   return {
     transform,
+    isPanning,
     svgRef,
     handleWheel,
     handlePointerDown,
