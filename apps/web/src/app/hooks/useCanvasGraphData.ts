@@ -6,22 +6,25 @@ import type { GraphEdge, GraphNode } from "../canvas/types";
 import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
 import { normalizeConversationSessionSummary } from "../normalizers";
 
+const MOCK_SESSIONS_ENABLED = true;
+const MOCK_SESSIONS_PER_TENTACLE = 5;
+
 const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
 const INACTIVE_SESSION_RADIUS = 10;
 
-// Obsidian-style palette: teals, cyans, yellows, greens
-const NODE_COLORS = [
-  "#00b8d4",
-  "#4dd0e1",
-  "#66bb6a",
-  "#cddc39",
-  "#26c6da",
-  "#81c784",
-  "#aed581",
-  "#ffee58",
-  "#4db6ac",
-  "#7986cb",
+// Must match the Deck tab's OCTOPUS_COLORS for consistent tentacle colors
+const OCTOPUS_COLORS = [
+  "#ff6b2b",
+  "#ff2d6b",
+  "#00ffaa",
+  "#bf5fff",
+  "#00c8ff",
+  "#ffee00",
+  "#39ff14",
+  "#ff4df0",
+  "#00fff7",
+  "#ff9500",
 ];
 
 function hashString(str: string): number {
@@ -35,7 +38,7 @@ function hashString(str: string): number {
 const tentacleColor = (tentacleId: string, deckColor: string | null | undefined) =>
   deckColor && deckColor.length > 0
     ? deckColor
-    : (NODE_COLORS[hashString(tentacleId) % NODE_COLORS.length] as string);
+    : (OCTOPUS_COLORS[hashString(tentacleId) % OCTOPUS_COLORS.length] as string);
 
 type UseCanvasGraphDataOptions = {
   columns: TentacleView;
@@ -242,6 +245,60 @@ export const useCanvasGraphData = ({
     };
     nodes.push(sessionNode);
     edges.push({ source: tentacleNodeId, target: sessionNodeId });
+  }
+
+  // Mock session nodes attached to real tentacles for layout development
+  if (MOCK_SESSIONS_ENABLED) {
+    const MOCK_LABELS = [
+      "fix auth token refresh",
+      "add retry logic",
+      "update CI config",
+      "redesign sidebar",
+      "implement rate limiting",
+      "migrate schema",
+      "add full-text search",
+      "push notification worker",
+      "redis cache invalidation",
+      "structured log format",
+    ];
+    const MOCK_STATES = ["live", "idle", "queued", "blocked"] as const;
+
+    const tentacleNodes = nodes.filter((n) => n.type === "tentacle");
+    let mockSeed = 42;
+    const rng = () => {
+      mockSeed = (mockSeed * 16807 + 0) % 2147483647;
+      return (mockSeed - 1) / 2147483646;
+    };
+
+    for (const tNode of tentacleNodes) {
+      for (let j = 0; j < MOCK_SESSIONS_PER_TENTACLE; j++) {
+        const isActive = rng() > 0.4;
+        const mockId = `mock-${tNode.tentacleId}-${j}`;
+        const nodeId = isActive ? `a:${mockId}` : `i:${mockId}`;
+        const prev = prevNodes.get(nodeId);
+        const jitterX = (rng() - 0.5) * 100;
+        const jitterY = (rng() - 0.5) * 100;
+        const label = MOCK_LABELS[Math.floor(rng() * MOCK_LABELS.length)]!;
+
+        const sessionNode: GraphNode = {
+          id: nodeId,
+          type: isActive ? "active-session" : "inactive-session",
+          x: prev?.x ?? tNode.x + jitterX,
+          y: prev?.y ?? tNode.y + jitterY,
+          vx: prev?.vx ?? 0,
+          vy: prev?.vy ?? 0,
+          pinned: prev?.pinned ?? false,
+          radius: isActive ? ACTIVE_SESSION_RADIUS : INACTIVE_SESSION_RADIUS,
+          tentacleId: tNode.tentacleId,
+          label,
+          color: tNode.color,
+          sessionId: mockId,
+          ...(isActive ? { agentState: MOCK_STATES[Math.floor(rng() * MOCK_STATES.length)]! } : {}),
+        };
+        nodes.push(sessionNode);
+        edges.push({ source: tNode.id, target: nodeId });
+      }
+    }
   }
 
   // Update position cache

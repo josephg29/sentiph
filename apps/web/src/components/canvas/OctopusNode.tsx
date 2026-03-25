@@ -109,6 +109,15 @@ export const OctopusNode = ({
       }}
       style={{ cursor: "grab" }}
     >
+      {/* Invisible hit area for pointer events */}
+      <rect
+        x={-GLYPH_W / 2}
+        y={-GLYPH_H / 2}
+        width={GLYPH_W}
+        height={GLYPH_H}
+        fill="transparent"
+      />
+
       {/* Edges — light tint of parent color */}
       {connectedNodes.map((target) => (
         <path
@@ -142,6 +151,7 @@ export const OctopusNode = ({
             justifyContent: "center",
             width: "100%",
             height: "100%",
+            pointerEvents: "none",
           }}
         >
           <OctopusGlyph

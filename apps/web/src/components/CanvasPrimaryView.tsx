@@ -53,9 +53,9 @@ export const CanvasPrimaryView = ({ columns }: CanvasPrimaryViewProps) => {
     (e: React.PointerEvent, nodeId: string) => {
       setDragNodeId(nodeId);
       pinNode(nodeId);
-      (e.target as SVGElement).closest("svg")?.setPointerCapture(e.pointerId);
+      svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [pinNode],
+    [pinNode, svgRef],
   );
 
   const handleSvgPointerMove = useCallback(
