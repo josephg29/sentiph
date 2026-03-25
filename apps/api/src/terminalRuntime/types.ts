@@ -214,6 +214,7 @@ export type TerminalRuntime = {
   ): TentaclePullRequestSnapshot | null;
   mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
   createTentacle(options: {
+    tentacleId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TentacleAgentProvider;

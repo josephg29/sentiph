@@ -33,7 +33,11 @@ type UseTentacleMutationsResult = {
   setEditingTentacleId: Dispatch<SetStateAction<string | null>>;
   beginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
   submitTentacleRename: (tentacleId: string, currentTentacleName: string) => Promise<void>;
-  createTentacle: (workspaceMode: TentacleWorkspaceMode) => Promise<void>;
+  createTentacle: (
+    workspaceMode: TentacleWorkspaceMode,
+    agentProvider?: TentacleAgentProvider,
+    tentacleId?: string,
+  ) => Promise<void>;
   createTentacleAgent: (input: {
     tentacleId: string;
     anchorAgentId: string;
@@ -121,7 +125,11 @@ export const useTentacleMutations = ({
   );
 
   const createTentacle = useCallback(
-    async (workspaceMode: TentacleWorkspaceMode, agentProvider?: TentacleAgentProvider) => {
+    async (
+      workspaceMode: TentacleWorkspaceMode,
+      agentProvider?: TentacleAgentProvider,
+      tentacleId?: string,
+    ) => {
       try {
         setIsCreatingTentacle(true);
         setLoadError(null);
@@ -134,6 +142,7 @@ export const useTentacleMutations = ({
           body: JSON.stringify({
             workspaceMode,
             agentProvider: agentProvider ?? "claude-code",
+            ...(tentacleId ? { tentacleId } : {}),
           }),
         });
 

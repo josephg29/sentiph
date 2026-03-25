@@ -529,8 +529,17 @@ export const App = () => {
             }}
             canvasPrimaryViewProps={{
               columns,
-              onCreateTentacleAgent: (tentacleId, anchorAgentId, placement) => {
-                void createTentacleAgent({ tentacleId, anchorAgentId, placement });
+              onCreateAgent: (tentacleId) => {
+                const isRuntime = columns.some((col) => col.tentacleId === tentacleId);
+                if (isRuntime) {
+                  void createTentacleAgent({
+                    tentacleId,
+                    anchorAgentId: `${tentacleId}-root`,
+                    placement: "down",
+                  });
+                } else {
+                  void createTentacle("shared", undefined, tentacleId);
+                }
               },
             }}
             conversationsPrimaryViewProps={{

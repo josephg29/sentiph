@@ -305,17 +305,22 @@ export const createTerminalRuntime = ({
   });
 
   const createTentacle = ({
+    tentacleId: requestedTentacleId,
     tentacleName,
     workspaceMode = "shared",
     agentProvider,
     initialPrompt,
   }: {
+    tentacleId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TentacleAgentProvider;
     initialPrompt?: string;
   }): AgentSnapshot => {
-    const tentacleId = allocateTentacleId();
+    const tentacleId =
+      requestedTentacleId && !tentacles.has(requestedTentacleId)
+        ? requestedTentacleId
+        : allocateTentacleId();
     const tentacle: PersistedTentacle = {
       tentacleId,
       tentacleName: tentacleName ?? tentacleId,

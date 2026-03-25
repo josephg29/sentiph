@@ -20,14 +20,10 @@ type ContextMenuState = {
 
 type CanvasPrimaryViewProps = {
   columns: TentacleView;
-  onCreateTentacleAgent?: (
-    tentacleId: string,
-    anchorAgentId: string,
-    placement: "up" | "down",
-  ) => void;
+  onCreateAgent?: (tentacleId: string) => void;
 };
 
-export const CanvasPrimaryView = ({ columns, onCreateTentacleAgent }: CanvasPrimaryViewProps) => {
+export const CanvasPrimaryView = ({ columns, onCreateAgent }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [overlayNode, setOverlayNode] = useState<GraphNode | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
@@ -155,11 +151,11 @@ export const CanvasPrimaryView = ({ columns, onCreateTentacleAgent }: CanvasPrim
 
   const handleCreateAgent = useCallback(
     (tentacleId: string) => {
-      if (!onCreateTentacleAgent) return;
-      onCreateTentacleAgent(tentacleId, `${tentacleId}-root`, "down");
+      if (!onCreateAgent) return;
       setContextMenu(null);
+      onCreateAgent(tentacleId);
     },
-    [onCreateTentacleAgent],
+    [onCreateAgent],
   );
 
   // Separate tentacle and session nodes for render order
@@ -247,7 +243,7 @@ export const CanvasPrimaryView = ({ columns, onCreateTentacleAgent }: CanvasPrim
               className="canvas-context-menu-item"
               onClick={() => handleCreateAgent(contextMenu.tentacleId)}
             >
-              New Agent Terminal
+              Create new agent
             </button>
           </div>
         </>

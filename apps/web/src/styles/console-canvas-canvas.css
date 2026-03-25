@@ -459,7 +459,12 @@
   cursor: pointer;
 }
 
-.canvas-context-menu-item:hover {
+.canvas-context-menu-item:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent-primary) 25%, transparent);
   color: var(--accent-primary);
+}
+
+.canvas-context-menu-item:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }

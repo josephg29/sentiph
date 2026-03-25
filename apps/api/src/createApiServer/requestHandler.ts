@@ -489,6 +489,7 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
 
   try {
     const createTentacleInput: {
+      tentacleId?: string;
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TentacleAgentProvider;
@@ -503,6 +504,13 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
       createTentacleInput.agentProvider = agentProviderResult.agentProvider;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
+    if (
+      bodyPayload &&
+      typeof bodyPayload.tentacleId === "string" &&
+      bodyPayload.tentacleId.trim().length > 0
+    ) {
+      createTentacleInput.tentacleId = bodyPayload.tentacleId.trim();
+    }
 
     // Support prompt resolution via template name + variables, or a raw string.
     if (

@@ -178,9 +178,10 @@ export const useCanvasGraphData = ({
     };
     nodes.push(node);
 
-    // Active agents from columns
+    // Active agents from columns (skip internal root terminals)
     if (activeCol) {
       for (const agent of activeCol.agents) {
+        if (!agent.parentAgentId) continue;
         const sessionNodeId = buildActiveSessionNodeId(agent.agentId);
         const prevSession = prevNodes.get(sessionNodeId);
         const jitter = () => (Math.random() - 0.5) * 60;
