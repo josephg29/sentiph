@@ -9,7 +9,7 @@ Octogent is a pnpm monorepo with three runtime layers:
 ## Core boundaries
 
 - Domain model lives in `packages/core/src/domain`.
-- Application logic lives in `packages/core/src/application` (currently `buildTentacleColumns`).
+- Application logic lives in `packages/core/src/application` (currently `buildTerminalList`).
 - Boundary interfaces live in `packages/core/src/ports`.
 - Test/local adapters live in `packages/core/src/adapters`.
 
@@ -20,7 +20,7 @@ The web and API apps both depend on `@octogent/core`.
 - `src/App.tsx` is orchestration-only: state wiring, polling hooks, and page-level composition.
 - `src/app/*` holds pure app logic:
   - `constants.ts`, `types.ts`, `normalizers.ts`, `githubMetrics.ts`
-  - hooks (`usePersistedUiState`, `useTentacleMutations`, `useTentacleBoardInteractions`, telemetry + monitor polling hooks)
+  - hooks (`usePersistedUiState`, `useTerminalMutations`, `useTerminalBoardInteractions`, telemetry + monitor polling hooks)
 - `src/components/*` holds UI sections (sidebar, board, terminal, status strip, GitHub view, Monitor view, dialogs).
 - `src/components/ui/*` holds reusable primitives (`ActionButton`, `StatusBadge`).
 - `src/runtime/*` holds runtime adapters and endpoint builders.
@@ -45,7 +45,7 @@ The web and API apps both depend on `@octogent/core`.
 
 ## Runtime API surface
 
-- `GET /api/agent-snapshots`
+- `GET /api/terminal-snapshots`
 - `GET /api/codex/usage`
 - `GET /api/claude/usage`
 - `GET /api/github/summary`
@@ -58,10 +58,16 @@ The web and API apps both depend on `@octogent/core`.
 - `GET /api/conversations`
 - `GET /api/conversations/:sessionId`
 - `GET /api/conversations/:sessionId/export?format=json|md`
-- `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
-- `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
-- `DELETE /api/tentacles/:tentacleId`
-- `WS /api/terminals/:tentacleId/ws`
+- `POST /api/terminals` (`{ "workspaceMode"?: "shared" | "worktree", "agentProvider"?: string }`)
+- `PATCH /api/terminals/:terminalId` (`{ "name": string }`)
+- `DELETE /api/terminals/:terminalId`
+- `GET /api/tentacles/:tentacleId/git/status`
+- `POST /api/tentacles/:tentacleId/git/commit`
+- `POST /api/tentacles/:tentacleId/git/push`
+- `POST /api/tentacles/:tentacleId/git/sync`
+- `GET /api/tentacles/:tentacleId/git/pr`
+- `POST /api/tentacles/:tentacleId/git/pr/merge`
+- `WS /api/terminals/:terminalId/ws`
 
 ## Persistence and runtime model
 
@@ -69,7 +75,7 @@ The web and API apps both depend on `@octogent/core`.
 - Conversation transcripts persist in `.octogent/state/transcripts/<sessionId>.jsonl`.
 - Monitor config persists in `.octogent/state/monitor-config.json`.
 - Monitor cache persists in `.octogent/state/monitor-cache.json`.
-- Registry document is versioned (`version: 2`) and stores tentacles plus `uiState`.
+- Registry document is versioned (`version: 3`, auto-migrates from v2) and stores terminals plus `uiState`.
 - Startup restores tentacles from the registry; no implicit default tentacle is created.
 - Tentacle terminals run as in-process PTY sessions created on websocket demand (no tmux dependency).
 - Disconnecting a terminal websocket does not immediately kill the PTY; sessions remain alive through an idle grace window for reload/reconnect continuity.

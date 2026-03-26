@@ -28,13 +28,13 @@
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
 - Runtime restores UI state from that registry on startup and serves it via `GET /api/ui-state`.
 - Runtime serves monitor config/feed from monitor state files via `GET/PATCH /api/monitor/config`, `GET /api/monitor/feed`, and `POST /api/monitor/refresh`.
-- Each tentacle maps to an in-process PTY session when a terminal websocket is connected.
+- Each terminal maps to an in-process PTY session when a terminal websocket is connected.
 - Session disconnects enter an idle grace window (`5 minutes` by default) so browser reloads can reconnect without killing the PTY.
 - Reconnected websockets receive bounded server-side scrollback replay (up to `512 KiB` by default) before live output resumes.
 - `workspaceMode: "shared"` tentacles run in the main workspace root.
 - `workspaceMode: "worktree"` tentacles run in `.octogent/worktrees/<tentacleId>`.
 - PTY sessions do not persist across API restarts.
-- `DELETE /api/tentacles/:tentacleId` removes registry state and closes any active PTY session for that tentacle.
+- `DELETE /api/terminals/:terminalId` removes registry state and closes any active PTY session for that terminal.
 - Deleting a worktree tentacle removes both its worktree directory (`git worktree remove --force`) and its tentacle branch (`git branch -D octogent/<tentacleId>`).
 - `PATCH /api/ui-state` updates and persists frontend UI preferences.
 

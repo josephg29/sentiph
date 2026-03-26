@@ -55,9 +55,9 @@ Keep top-level React containers focused on orchestration. Move pure constants/ty
 
 Keep `src/styles.css` as an import manifest and split CSS into focused modules under `src/styles/*` (foundation, chrome, sidebar, board, terminal, console overrides). Use semantic file names (not numbered prefixes) and preserve import order to avoid unintended cascade changes.
 
-### Tentacle Layout Preference
+### Terminal Layout Preference
 
-For pane-based UI layout, keep each tentacle as a full-height column. Spawned agents for that tentacle should stack vertically within the same column (below the tentacle/root pane), while other tentacle columns remain on the left and right sides.
+Each terminal is a full-height column (1:1 terminal-to-column). A tentacle is a conceptual context/folder that multiple terminals can reference — it is no longer the visual column unit. Terminal columns are arranged side by side and scroll horizontally when they exceed available space.
 
 ### Product Domain Copy Preference
 
@@ -186,13 +186,13 @@ Octogent is a web-first command surface for running multiple coding agents in pa
 
 ### Key domain concepts
 
-- **AgentSnapshot**: Immutable agent state (`live`/`idle`/`queued`/`blocked`) belonging to a tentacle.
-- **TentacleColumn**: UI grouping of agents by tentacle, sorted by creation time.
+- **TerminalSnapshot**: Immutable terminal state (`live`/`idle`/`queued`/`blocked`) with `terminalId`, `tentacleId`, and optional `workspaceMode`.
+- **Terminal**: A single visual column. A tentacle is a conceptual context/folder that multiple terminals can reference.
 
 ### Runtime layers
 
 - **Orchestration** (`createApiServer.ts`, `terminalRuntime.ts`, `App.tsx`): Thin entry points wiring dependencies.
-- **Core logic** in `packages/core/src/` (domain types, application functions like `buildTentacleColumns`).
+- **Core logic** in `packages/core/src/` (domain types, application functions like `buildTerminalList`).
 - **API adapters** in `apps/api/src/` (request handler, PTY session runtime, registry, worktree manager, conversation storage).
 - **UI modules** in `apps/web/src/` — pure app logic in `app/` (hooks, normalizers, constants), components organized by feature in `components/` (sidebar, board, terminal, dialogs), reusable primitives in `components/ui/`.
 
