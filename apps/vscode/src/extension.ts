@@ -57,11 +57,21 @@ function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): stri
   const isDev = process.env.OCTOGENT_DEV === "1";
 
   if (isDev) {
+    const devCsp = [
+      `default-src 'none'`,
+      `style-src 'unsafe-inline' http://localhost:5173`,
+      `script-src 'unsafe-inline' http://localhost:5173`,
+      `connect-src http://localhost:5173 ws://localhost:5173`,
+      `font-src http://localhost:5173 data:`,
+      `img-src http://localhost:5173 data:`,
+    ].join("; ");
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="${devCsp}">
   <title>Octogent</title>
 </head>
 <body>

@@ -40,4 +40,7 @@ export const broadcastMessage = (session: TerminalSession, message: TerminalServ
   for (const client of session.clients) {
     sendMessage(client, message);
   }
+  for (const listener of session.directListeners) {
+    listener(message);
+  }
 };

@@ -30,6 +30,7 @@ import {
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
+import type { DirectSessionListener } from "./terminalRuntime/types";
 import {
   type CreateTerminalRuntimeOptions,
   type PersistedTerminal,
@@ -44,6 +45,7 @@ import {
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
+  DirectSessionListener,
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
@@ -884,6 +886,18 @@ export const createTerminalRuntime = ({
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {
       return sessionRuntime.handleUpgrade(request, socket, head);
+    },
+
+    connectDirect(terminalId: string, listener: DirectSessionListener): (() => void) | null {
+      return sessionRuntime.connectDirect(terminalId, listener);
+    },
+
+    writeInput(terminalId: string, data: string): boolean {
+      return sessionRuntime.writeInput(terminalId, data);
+    },
+
+    resizeTerminal(terminalId: string, cols: number, rows: number): boolean {
+      return sessionRuntime.resizeSession(terminalId, cols, rows);
     },
 
     close() {

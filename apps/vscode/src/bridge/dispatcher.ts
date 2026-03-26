@@ -18,11 +18,45 @@ type DispatcherOptions = {
 };
 
 export function createDispatcher({ runtime, workspaceCwd, panel }: DispatcherOptions): () => void {
+  // Track direct PTY connections per terminal so we can clean up on dispose.
+  const terminalDisconnects = new Map<string, () => void>();
+
+  const ensureTerminalConnected = (terminalId: string) => {
+    if (terminalDisconnects.has(terminalId)) {
+      return;
+    }
+
+    const disconnect = runtime.connectDirect(terminalId, (message) => {
+      if (message.type === "output") {
+        panel.webview.postMessage({ type: "terminalOutput", terminalId, data: message.data });
+      } else if (message.type === "state") {
+        panel.webview.postMessage({ type: "terminalState", terminalId, state: message.state });
+      } else if (message.type === "history") {
+        panel.webview.postMessage({ type: "terminalHistory", terminalId, data: message.data });
+      }
+    });
+
+    if (disconnect) {
+      terminalDisconnects.set(terminalId, disconnect);
+    }
+  };
+
+  const disconnectAllTerminals = () => {
+    for (const disconnect of terminalDisconnects.values()) {
+      disconnect();
+    }
+    terminalDisconnects.clear();
+  };
+
   const listener = panel.webview.onDidReceiveMessage(async (message: ExtensionIncomingMessage) => {
     // Fire-and-forget terminal I/O messages (no id field)
     if (!("id" in message)) {
-      if (message.type === "terminalInput" || message.type === "terminalResize") {
-        console.warn(`[octogent] ${message.type} not yet wired to PTY session`);
+      if (message.type === "terminalInput") {
+        ensureTerminalConnected(message.terminalId);
+        runtime.writeInput(message.terminalId, message.data);
+      } else if (message.type === "terminalResize") {
+        ensureTerminalConnected(message.terminalId);
+        runtime.resizeTerminal(message.terminalId, message.cols, message.rows);
       }
       return;
     }
@@ -30,7 +64,7 @@ export function createDispatcher({ runtime, workspaceCwd, panel }: DispatcherOpt
     const req = message as WebviewRequest;
 
     try {
-      const payload = await handleRequest(req, runtime, workspaceCwd);
+      const payload = await handleRequest(req, runtime, workspaceCwd, ensureTerminalConnected);
       panel.webview.postMessage({ id: req.id, type: "response", payload });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -38,20 +72,34 @@ export function createDispatcher({ runtime, workspaceCwd, panel }: DispatcherOpt
     }
   });
 
-  return () => listener.dispose();
+  return () => {
+    listener.dispose();
+    disconnectAllTerminals();
+  };
 }
 
 async function handleRequest(
   req: WebviewRequest,
   runtime: TerminalRuntime,
   workspaceCwd: string,
+  ensureTerminalConnected: (terminalId: string) => void,
 ): Promise<unknown> {
   switch (req.type) {
-    case "listTerminalSnapshots":
-      return runtime.listTerminalSnapshots();
+    case "listTerminalSnapshots": {
+      const snapshots = runtime.listTerminalSnapshots();
+      // Auto-connect all existing terminals so their PTY output flows to the webview.
+      for (const snapshot of snapshots) {
+        ensureTerminalConnected(snapshot.terminalId);
+      }
+      return snapshots;
+    }
 
-    case "createTerminal":
-      return runtime.createTerminal(req.payload);
+    case "createTerminal": {
+      const snapshot = runtime.createTerminal(req.payload);
+      // Connect the newly created terminal immediately.
+      ensureTerminalConnected(snapshot.terminalId);
+      return snapshot;
+    }
 
     case "deleteTerminal":
       return runtime.deleteTerminal(req.payload.terminalId);

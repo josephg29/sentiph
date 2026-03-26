@@ -16,7 +16,6 @@ import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
-import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
@@ -268,23 +267,6 @@ export const VsCodeApp = () => {
 
   return (
     <div className="page console-shell">
-      <ConsoleHeader
-        backendLivenessStatus="live"
-        isAgentsSidebarVisible={isAgentsSidebarVisible}
-        isCreatingTentacle={isCreatingTerminal}
-        onCreateSharedTentacle={(provider) => {
-          setLoadError(null);
-          void createTerminal("shared", provider);
-        }}
-        onCreateWorktreeTentacle={(provider) => {
-          setLoadError(null);
-          void createTerminal("worktree", provider);
-        }}
-        onToggleAgentsSidebar={() => {
-          setIsAgentsSidebarVisible((current) => !current);
-        }}
-      />
-
       <ConsolePrimaryNav
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}

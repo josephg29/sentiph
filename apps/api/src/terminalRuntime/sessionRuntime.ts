@@ -22,7 +22,7 @@ import {
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
-import type { PersistedTerminal, TerminalSession } from "./types";
+import type { DirectSessionListener, PersistedTerminal, TerminalSession } from "./types";
 
 type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
@@ -311,6 +311,7 @@ export const createSessionRuntime = ({
       tentacleId,
       pty,
       clients: new Set(),
+      directListeners: new Set(),
       cols: DEFAULT_PTY_COLS,
       rows: DEFAULT_PTY_ROWS,
       agentState: stateTracker.currentState,
@@ -469,7 +470,7 @@ export const createSessionRuntime = ({
       websocket.on("close", () => {
         session.clients.delete(websocket);
         appendDebugLog(session, `ws-close session=${sessionId} clients=${session.clients.size}`);
-        if (session.clients.size === 0) {
+        if (session.clients.size === 0 && session.directListeners.size === 0) {
           appendDebugLog(
             session,
             `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`,
@@ -492,9 +493,81 @@ export const createSessionRuntime = ({
     }
   };
 
+  const connectDirect = (
+    terminalId: string,
+    listener: DirectSessionListener,
+  ): (() => void) | null => {
+    const resolvedSession = resolveSession(terminalId);
+    if (!resolvedSession) {
+      return null;
+    }
+    const { sessionId, tentacleId } = resolvedSession;
+
+    let session: TerminalSession;
+    try {
+      session = ensureSession(sessionId, tentacleId);
+    } catch {
+      return null;
+    }
+
+    session.directListeners.add(listener);
+    clearIdleCloseTimer(session);
+    ensureAgentBootstrapped(sessionId, session);
+
+    // Send history and current state to the new listener
+    if (session.scrollbackChunks.length > 0) {
+      listener({ type: "history", data: session.scrollbackChunks.join("") });
+    }
+    listener({ type: "state", state: session.agentState });
+
+    return () => {
+      session.directListeners.delete(listener);
+      if (session.clients.size === 0 && session.directListeners.size === 0) {
+        clearIdleCloseTimer(session);
+        session.idleCloseTimer = setTimeout(() => {
+          closeSession(sessionId);
+        }, sessionIdleGraceMs);
+      }
+    };
+  };
+
+  const writeInput = (terminalId: string, data: string): boolean => {
+    const session = sessions.get(terminalId);
+    if (!session) {
+      return false;
+    }
+
+    session.pty.write(data);
+    if (/[\r\n]/.test(data)) {
+      emitStateIfChanged(session, terminalId, session.stateTracker.observeSubmit(Date.now()));
+    }
+    return true;
+  };
+
+  const resizeSession = (terminalId: string, cols: number, rows: number): boolean => {
+    const session = sessions.get(terminalId);
+    if (!session) {
+      return false;
+    }
+
+    const nextCols = Math.max(20, Math.floor(cols));
+    const nextRows = Math.max(10, Math.floor(rows));
+    if (session.cols === nextCols && session.rows === nextRows) {
+      return true;
+    }
+
+    session.cols = nextCols;
+    session.rows = nextRows;
+    session.pty.resize(nextCols, nextRows);
+    return true;
+  };
+
   return {
     closeSession,
     handleUpgrade,
+    connectDirect,
+    writeInput,
+    resizeSession,
     close,
   };
 };

@@ -31,11 +31,14 @@ export type TerminalServerMessage =
   | TerminalOutputMessage
   | TerminalHistoryMessage;
 
+export type DirectSessionListener = (message: TerminalServerMessage) => void;
+
 export type TerminalSession = {
   terminalId: string;
   tentacleId: string;
   pty: IPty;
   clients: Set<WebSocket>;
+  directListeners: Set<DirectSessionListener>;
   cols: number;
   rows: number;
   agentState: AgentRuntimeState;
@@ -221,5 +224,8 @@ export type TerminalRuntime = {
     socket: import("node:stream").Duplex,
     head: Buffer,
   ): boolean;
+  connectDirect(terminalId: string, listener: DirectSessionListener): (() => void) | null;
+  writeInput(terminalId: string, data: string): boolean;
+  resizeTerminal(terminalId: string, cols: number, rows: number): boolean;
   close(): void;
 };
