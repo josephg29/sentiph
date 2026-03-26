@@ -49,7 +49,7 @@ export const CanvasTerminalColumn = ({
         </div>
         <div className="canvas-terminal-column-actions">
           <span
-            className="canvas-terminal-column-tentacle-tag"
+            className="canvas-terminal-column-tag"
             style={{ background: node.color }}
           >
             {tentacleName}
