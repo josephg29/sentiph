@@ -39,20 +39,20 @@ const toWebSocketBase = (runtimeBaseUrl: string): string | null => {
   }
 };
 
-export const buildAgentSnapshotsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+export const buildTerminalSnapshotsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
-    return "/api/agent-snapshots";
+    return "/api/terminal-snapshots";
   }
 
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/agent-snapshots");
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/terminal-snapshots");
 };
 
-export const buildTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+export const buildTerminalsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
-    return "/api/tentacles";
+    return "/api/terminals";
   }
 
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/tentacles");
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/terminals");
 };
 
 export const buildCodexUsageUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
@@ -168,34 +168,6 @@ export const buildTentacleRenameUrl = (
   }
 
   return buildAbsoluteUrl(runtimeBaseUrl, `/api/tentacles/${encodedTentacleId}`);
-};
-
-export const buildTentacleAgentsUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const encodedTentacleId = encodeURIComponent(tentacleId);
-  const path = `/api/tentacles/${encodedTentacleId}/agents`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildTentacleAgentUrl = (
-  tentacleId: string,
-  agentId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const encodedTentacleId = encodeURIComponent(tentacleId);
-  const encodedAgentId = encodeURIComponent(agentId);
-  const path = `/api/tentacles/${encodedTentacleId}/agents/${encodedAgentId}`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
 const buildTentacleGitActionUrl = (

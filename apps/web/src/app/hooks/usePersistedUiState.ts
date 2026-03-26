@@ -5,14 +5,14 @@ import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
 import { DEFAULT_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
 import {
-  DEFAULT_TENTACLE_COMPLETION_SOUND,
-  type TentacleCompletionSoundId,
+  DEFAULT_TERMINAL_COMPLETION_SOUND,
+  type TerminalCompletionSoundId,
 } from "../notificationSounds";
 import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
-import type { FrontendUiStateSnapshot, TentacleView } from "../types";
+import type { FrontendUiStateSnapshot, TerminalView } from "../types";
 
 type UsePersistedUiStateOptions = {
-  columns: TentacleView;
+  columns: TerminalView;
 };
 
 type UsePersistedUiStateResult = {
@@ -40,12 +40,12 @@ type UsePersistedUiStateResult = {
   setIsClaudeUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isCodexUsageSectionExpanded: boolean;
   setIsCodexUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
-  tentacleCompletionSound: TentacleCompletionSoundId;
-  setTentacleCompletionSound: Dispatch<SetStateAction<TentacleCompletionSoundId>>;
-  minimizedTentacleIds: string[];
-  setMinimizedTentacleIds: Dispatch<SetStateAction<string[]>>;
-  tentacleWidths: Record<string, number>;
-  setTentacleWidths: Dispatch<SetStateAction<Record<string, number>>>;
+  terminalCompletionSound: TerminalCompletionSoundId;
+  setTerminalCompletionSound: Dispatch<SetStateAction<TerminalCompletionSoundId>>;
+  minimizedTerminalIds: string[];
+  setMinimizedTerminalIds: Dispatch<SetStateAction<string[]>>;
+  terminalWidths: Record<string, number>;
+  setTerminalWidths: Dispatch<SetStateAction<Record<string, number>>>;
   canvasOpenTerminalIds: string[];
   setCanvasOpenTerminalIds: Dispatch<SetStateAction<string[]>>;
   canvasTerminalsPanelWidth: number | null;
@@ -53,7 +53,7 @@ type UsePersistedUiStateResult = {
   readUiState: (signal?: AbortSignal) => Promise<FrontendUiStateSnapshot | null>;
   applyHydratedUiState: (
     snapshot: FrontendUiStateSnapshot | null,
-    nextColumns: TentacleView,
+    nextColumns: TerminalView,
   ) => void;
 };
 
@@ -71,12 +71,11 @@ export const usePersistedUiState = ({
   const [isClaudeUsageVisible, setIsClaudeUsageVisible] = useState(true);
   const [isClaudeUsageSectionExpanded, setIsClaudeUsageSectionExpanded] = useState(true);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
-  const [tentacleCompletionSound, setTentacleCompletionSound] = useState<TentacleCompletionSoundId>(
-    DEFAULT_TENTACLE_COMPLETION_SOUND,
-  );
+  const [terminalCompletionSound, setTerminalCompletionSound] =
+    useState<TerminalCompletionSoundId>(DEFAULT_TERMINAL_COMPLETION_SOUND);
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
-  const [minimizedTentacleIds, setMinimizedTentacleIds] = useState<string[]>([]);
-  const [tentacleWidths, setTentacleWidths] = useState<Record<string, number>>({});
+  const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>([]);
+  const [terminalWidths, setTerminalWidths] = useState<Record<string, number>>({});
   const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>([]);
   const [canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth] = useState<number | null>(null);
 
@@ -108,7 +107,7 @@ export const usePersistedUiState = ({
   }, []);
 
   const applyHydratedUiState = useCallback(
-    (snapshot: FrontendUiStateSnapshot | null, nextColumns: TentacleView) => {
+    (snapshot: FrontendUiStateSnapshot | null, nextColumns: TerminalView) => {
       if (!snapshot) {
         return;
       }
@@ -161,24 +160,24 @@ export const usePersistedUiState = ({
         setIsClaudeUsageSectionExpanded(snapshot.isClaudeUsageSectionExpanded);
       }
 
-      if (snapshot.tentacleCompletionSound !== undefined) {
-        setTentacleCompletionSound(snapshot.tentacleCompletionSound);
+      if (snapshot.terminalCompletionSound !== undefined) {
+        setTerminalCompletionSound(snapshot.terminalCompletionSound);
       }
 
-      if (snapshot.minimizedTentacleIds) {
-        const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
-        setMinimizedTentacleIds(
-          snapshot.minimizedTentacleIds.filter((tentacleId) => activeTentacleIds.has(tentacleId)),
+      if (snapshot.minimizedTerminalIds) {
+        const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
+        setMinimizedTerminalIds(
+          snapshot.minimizedTerminalIds.filter((id) => activeTerminalIds.has(id)),
         );
       }
 
-      if (snapshot.tentacleWidths) {
-        const activeTentacleIds = new Set(nextColumns.map((column) => column.tentacleId));
-        setTentacleWidths(
-          Object.entries(snapshot.tentacleWidths).reduce<Record<string, number>>(
-            (acc, [tentacleId, width]) => {
-              if (activeTentacleIds.has(tentacleId)) {
-                acc[tentacleId] = width;
+      if (snapshot.terminalWidths) {
+        const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
+        setTerminalWidths(
+          Object.entries(snapshot.terminalWidths).reduce<Record<string, number>>(
+            (acc, [id, width]) => {
+              if (activeTerminalIds.has(id)) {
+                acc[id] = width;
               }
               return acc;
             },
@@ -203,7 +202,7 @@ export const usePersistedUiState = ({
       return;
     }
 
-    const activeTentacleIds = new Set(columns.map((column) => column.tentacleId));
+    const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
     const payload: FrontendUiStateSnapshot = {
       activePrimaryNav,
       isAgentsSidebarVisible,
@@ -216,14 +215,12 @@ export const usePersistedUiState = ({
       isClaudeUsageVisible,
       isClaudeUsageSectionExpanded,
       isCodexUsageSectionExpanded,
-      tentacleCompletionSound,
-      minimizedTentacleIds: minimizedTentacleIds.filter((tentacleId) =>
-        activeTentacleIds.has(tentacleId),
-      ),
-      tentacleWidths: Object.entries(tentacleWidths).reduce<Record<string, number>>(
-        (acc, [tentacleId, width]) => {
-          if (activeTentacleIds.has(tentacleId)) {
-            acc[tentacleId] = width;
+      terminalCompletionSound,
+      minimizedTerminalIds: minimizedTerminalIds.filter((id) => activeTerminalIds.has(id)),
+      terminalWidths: Object.entries(terminalWidths).reduce<Record<string, number>>(
+        (acc, [id, width]) => {
+          if (activeTerminalIds.has(id)) {
+            acc[id] = width;
           }
           return acc;
         },
@@ -264,10 +261,10 @@ export const usePersistedUiState = ({
     isClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
     isUiStateHydrated,
-    minimizedTentacleIds,
+    minimizedTerminalIds,
     sidebarWidth,
-    tentacleCompletionSound,
-    tentacleWidths,
+    terminalCompletionSound,
+    terminalWidths,
   ]);
 
   return {
@@ -295,12 +292,12 @@ export const usePersistedUiState = ({
     setIsClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
     setIsCodexUsageSectionExpanded,
-    tentacleCompletionSound,
-    setTentacleCompletionSound,
-    minimizedTentacleIds,
-    setMinimizedTentacleIds,
-    tentacleWidths,
-    setTentacleWidths,
+    terminalCompletionSound,
+    setTerminalCompletionSound,
+    minimizedTerminalIds,
+    setMinimizedTerminalIds,
+    terminalWidths,
+    setTerminalWidths,
     canvasOpenTerminalIds,
     setCanvasOpenTerminalIds,
     canvasTerminalsPanelWidth,

@@ -1,4 +1,4 @@
-.tentacles {
+.terminals {
   display: flex;
   flex-direction: row;
   gap: 0;
@@ -9,7 +9,7 @@
   overflow-y: hidden;
 }
 
-.tentacles > .empty-state {
+.terminals > .empty-state {
   flex: 1 0 100%;
 }
 

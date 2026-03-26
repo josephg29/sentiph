@@ -45,7 +45,7 @@
   opacity: 1;
 }
 
-.canvas-node-label--tentacle {
+.canvas-node-label--terminal {
   font-size: 15px;
   font-weight: 700;
 }
@@ -94,11 +94,11 @@
 
 /* ─── Node interactivity ───────────────────────────────────────────────────── */
 
-.canvas-node--tentacle {
+.canvas-node--terminal {
   cursor: grab;
 }
 
-.canvas-node--tentacle:active {
+.canvas-node--terminal:active {
   cursor: grabbing;
 }
 
@@ -349,7 +349,7 @@
   white-space: nowrap;
 }
 
-.canvas-terminal-column-tentacle-tag {
+.canvas-terminal-column-tag {
   font-family: var(--font-main);
   font-size: 0.65rem;
   font-weight: 800;
@@ -405,7 +405,7 @@
   overflow: hidden;
 }
 
-.canvas-terminal-column-body .tentacle-terminal {
+.canvas-terminal-column-body .terminal-pane {
   min-height: 0;
   flex: 1 1 auto;
   display: flex;

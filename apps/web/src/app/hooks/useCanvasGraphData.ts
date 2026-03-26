@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
-import type { ConversationSessionSummary, TentacleView } from "../types";
+import type { ConversationSessionSummary, TerminalView } from "../types";
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
 import { normalizeConversationSessionSummary } from "../normalizers";
@@ -38,7 +38,7 @@ const tentacleColor = (tentacleId: string, deckColor: string | null | undefined)
     : (OCTOPUS_COLORS[hashString(tentacleId) % OCTOPUS_COLORS.length] as string);
 
 type UseCanvasGraphDataOptions = {
-  columns: TentacleView;
+  columns: TerminalView;
   enabled: boolean;
 };
 
@@ -117,8 +117,8 @@ export const useCanvasGraphData = ({
     void fetchInactiveSessions();
   }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
 
-  const activeAgentIds = new Set(
-    columns.flatMap((col) => col.agents.map((agent) => agent.agentId)),
+  const activeTerminalIds = new Set(
+    columns.map((terminal) => terminal.terminalId),
   );
 
   // Build a map of deck tentacles for color/label lookup
@@ -132,19 +132,19 @@ export const useCanvasGraphData = ({
   const prevNodes = prevNodesRef.current;
   const seenTentacleIds = new Set<string>();
 
-  // Merge: start with all deck tentacles, overlay active agent data from columns
-  const activeTentacleMap = new Map(columns.map((col) => [col.tentacleId, col]));
+  // Build a map of active terminals by tentacleId
+  const activeTerminalMap = new Map(columns.map((terminal) => [terminal.tentacleId, terminal]));
 
-  // Build tentacle list: all deck tentacles + any columns-only tentacles
+  // Build tentacle list: all deck tentacles + any terminal-only tentacles
   const allTentacleIds: string[] = [];
   for (const dt of deckTentacles) {
     allTentacleIds.push(dt.tentacleId);
     seenTentacleIds.add(dt.tentacleId);
   }
-  for (const col of columns) {
-    if (!seenTentacleIds.has(col.tentacleId)) {
-      allTentacleIds.push(col.tentacleId);
-      seenTentacleIds.add(col.tentacleId);
+  for (const terminal of columns) {
+    if (!seenTentacleIds.has(terminal.tentacleId)) {
+      allTentacleIds.push(terminal.tentacleId);
+      seenTentacleIds.add(terminal.tentacleId);
     }
   }
 
@@ -155,9 +155,9 @@ export const useCanvasGraphData = ({
     const tentacleNodeId = buildTentacleNodeId(tentacleId);
     const prev = prevNodes.get(tentacleNodeId);
     const deck = deckMap.get(tentacleId);
-    const activeCol = activeTentacleMap.get(tentacleId);
+    const activeTerminal = activeTerminalMap.get(tentacleId);
     const color = tentacleColor(tentacleId, deck?.color);
-    const label = deck?.displayName ?? activeCol?.tentacleName ?? tentacleId;
+    const label = deck?.displayName ?? activeTerminal?.tentacleName ?? tentacleId;
 
     const angle = (2 * Math.PI * i) / Math.max(totalTentacles, 1);
     const spread = 300;
@@ -174,43 +174,40 @@ export const useCanvasGraphData = ({
       tentacleId,
       label,
       color,
-      workspaceMode: activeCol?.tentacleWorkspaceMode,
+      ...(activeTerminal ? { workspaceMode: activeTerminal.workspaceMode } : {}),
     };
     nodes.push(node);
 
-    // Active agents from columns (skip internal root terminals)
-    if (activeCol) {
-      for (const agent of activeCol.agents) {
-        if (!agent.parentAgentId) continue;
-        const sessionNodeId = buildActiveSessionNodeId(agent.agentId);
-        const prevSession = prevNodes.get(sessionNodeId);
-        const jitter = () => (Math.random() - 0.5) * 60;
+    // Active terminal session node
+    if (activeTerminal) {
+      const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
+      const prevSession = prevNodes.get(sessionNodeId);
+      const jitter = () => (Math.random() - 0.5) * 60;
 
-        const sessionNode: GraphNode = {
-          id: sessionNodeId,
-          type: "active-session",
-          x: prevSession?.x ?? node.x + jitter(),
-          y: prevSession?.y ?? node.y + jitter(),
-          vx: prevSession?.vx ?? 0,
-          vy: prevSession?.vy ?? 0,
-          pinned: prevSession?.pinned ?? false,
-          radius: ACTIVE_SESSION_RADIUS,
-          tentacleId,
-          label: agent.label || agent.agentId,
-          color,
-          sessionId: agent.agentId,
-          agentState: agent.state,
-        };
-        nodes.push(sessionNode);
-        edges.push({ source: tentacleNodeId, target: sessionNodeId });
-      }
+      const sessionNode: GraphNode = {
+        id: sessionNodeId,
+        type: "active-session",
+        x: prevSession?.x ?? node.x + jitter(),
+        y: prevSession?.y ?? node.y + jitter(),
+        vx: prevSession?.vx ?? 0,
+        vy: prevSession?.vy ?? 0,
+        pinned: prevSession?.pinned ?? false,
+        radius: ACTIVE_SESSION_RADIUS,
+        tentacleId,
+        label: activeTerminal.label || activeTerminal.terminalId,
+        color,
+        sessionId: activeTerminal.terminalId,
+        agentState: activeTerminal.state,
+      };
+      nodes.push(sessionNode);
+      edges.push({ source: tentacleNodeId, target: sessionNodeId });
     }
   }
 
   // Inactive sessions from conversations
   for (const session of inactiveSessions) {
     if (!session.tentacleId || !seenTentacleIds.has(session.tentacleId)) continue;
-    if (activeAgentIds.has(session.sessionId)) continue;
+    if (activeTerminalIds.has(session.sessionId)) continue;
 
     const tentacleNodeId = buildTentacleNodeId(session.tentacleId);
     const sessionNodeId = buildInactiveSessionNodeId(session.sessionId);

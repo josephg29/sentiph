@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { TentacleTerminal } from "../src/components/TentacleTerminal";
+import { Terminal } from "../src/components/Terminal";
 
 type Listener = (event: { data: unknown }) => void;
 
@@ -37,7 +37,7 @@ class MockWebSocket {
   }
 }
 
-describe("TentacleTerminal", () => {
+describe("Terminal", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -45,10 +45,10 @@ describe("TentacleTerminal", () => {
     MockWebSocket.instances = [];
   });
 
-  it("renders codex badge and updates it from websocket state events", async () => {
+  it("renders idle badge and updates it from websocket state events", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    render(<TentacleTerminal terminalId="tentacle-a" />);
+    render(<Terminal terminalId="tentacle-a" />);
 
     expect(screen.getByText("IDLE")).toBeInTheDocument();
 
@@ -75,42 +75,10 @@ describe("TentacleTerminal", () => {
     });
   });
 
-  it("renders add controls and calls the requested insert handlers", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-    const onAddAbove = vi.fn();
-    const onAddBelow = vi.fn();
-    const onDelete = vi.fn();
-
-    render(
-      <TentacleTerminal
-        terminalId="tentacle-a-root"
-        onAddAbove={onAddAbove}
-        onAddBelow={onAddBelow}
-        onDelete={onDelete}
-      />,
-    );
-
-    screen.getByRole("button", { name: "Add terminal above tentacle-a-root" }).click();
-    screen.getByRole("button", { name: "Add terminal below tentacle-a-root" }).click();
-    screen.getByRole("button", { name: "Delete terminal tentacle-a-root" }).click();
-
-    expect(onAddAbove).toHaveBeenCalledTimes(1);
-    expect(onAddBelow).toHaveBeenCalledTimes(1);
-    expect(onDelete).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders a disabled delete control when no delete handler is provided", async () => {
+  it("renders terminal with the provided terminal label", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    render(<TentacleTerminal terminalId="tentacle-a-root" />);
-
-    expect(screen.getByRole("button", { name: "Delete terminal tentacle-a-root" })).toBeDisabled();
-  });
-
-  it("renders terminal header with the provided terminal label", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-
-    render(<TentacleTerminal terminalId="tentacle-a-agent-1" terminalLabel="tentacle-a-agent-1" />);
+    render(<Terminal terminalId="tentacle-a-agent-1" terminalLabel="tentacle-a-agent-1" />);
 
     expect(screen.getByText("tentacle-a-agent-1")).toBeInTheDocument();
   });

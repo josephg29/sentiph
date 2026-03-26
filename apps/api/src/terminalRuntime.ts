@@ -3,14 +3,14 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
-import type { AgentSnapshot } from "@octogent/core";
+import type { TerminalSnapshot } from "@octogent/core";
 import { WebSocketServer } from "ws";
 
 import {
   DEFAULT_AGENT_PROVIDER,
-  TENTACLE_ID_PREFIX,
-  TENTACLE_REGISTRY_RELATIVE_PATH,
-  TENTACLE_TRANSCRIPT_RELATIVE_PATH,
+  TERMINAL_ID_PREFIX,
+  TERMINAL_REGISTRY_RELATIVE_PATH,
+  TERMINAL_TRANSCRIPT_RELATIVE_PATH,
 } from "./terminalRuntime/constants";
 import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
@@ -24,21 +24,20 @@ import {
 } from "./terminalRuntime/conversations";
 import { broadcastMessage } from "./terminalRuntime/protocol";
 import {
-  loadTentacleRegistry,
-  persistTentacleRegistry,
-  pruneUiStateTentacleReferences,
+  loadTerminalRegistry,
+  persistTerminalRegistry,
+  pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import {
   type CreateTerminalRuntimeOptions,
-  type PersistedTentacle,
-  type PersistedTentacleAgent,
+  type PersistedTerminal,
   type PersistedUiState,
   RuntimeInputError,
   type TentacleGitStatusSnapshot,
   type TentaclePullRequestSnapshot,
-  type TentacleAgentProvider,
+  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
   type TerminalSession,
 } from "./terminalRuntime/types";
@@ -47,11 +46,11 @@ import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 export type {
   GitClient,
   PersistedUiState,
-  TentacleAgentProvider,
-  TentacleCompletionSound,
+  TerminalAgentProvider,
+  TerminalCompletionSound,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
-export { isTentacleAgentProvider, isTentacleCompletionSound } from "./terminalRuntime/types";
+export { isTerminalAgentProvider, isTerminalCompletionSound } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const createTerminalRuntime = ({
@@ -60,25 +59,20 @@ export const createTerminalRuntime = ({
 }: CreateTerminalRuntimeOptions) => {
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
-  const registryPath = join(workspaceCwd, TENTACLE_REGISTRY_RELATIVE_PATH);
-  const registryState = loadTentacleRegistry(registryPath);
-  const tentacles = registryState.tentacles;
-  const tentacleAgents = registryState.tentacleAgents;
+  const registryPath = join(workspaceCwd, TERMINAL_REGISTRY_RELATIVE_PATH);
+  const registryState = loadTerminalRegistry(registryPath);
+  const terminals = registryState.terminals;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir =
     process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
-  const transcriptDirectoryPath = join(workspaceCwd, TENTACLE_TRANSCRIPT_RELATIVE_PATH);
+  const transcriptDirectoryPath = join(workspaceCwd, TERMINAL_TRANSCRIPT_RELATIVE_PATH);
   const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
 
   const installHooksInDirectory = (targetCwd: string) => {
     const targetClaudeDir = join(targetCwd, ".claude");
     const targetSettingsPath = join(targetClaudeDir, "settings.json");
 
-    // Always generate hooks config with $OCTOGENT_SESSION_ID for session isolation.
-    // Include $OCTOGENT_SESSION_ID so the handler can identify which octogent
-    // session the hook originates from and ignore hooks from external Claude
-    // sessions (e.g. VS Code) that share the same working directory.
     const hooksConfig = {
       hooks: {
         SessionStart: [
@@ -157,15 +151,9 @@ export const createTerminalRuntime = ({
   };
 
   const persistRegistry = () => {
-    uiState = pruneUiStateTentacleReferences(uiState, tentacles);
-    for (const tentacleId of [...tentacleAgents.keys()]) {
-      if (!tentacles.has(tentacleId)) {
-        tentacleAgents.delete(tentacleId);
-      }
-    }
-    persistTentacleRegistry(registryPath, {
-      tentacles,
-      tentacleAgents,
+    uiState = pruneUiStateTerminalReferences(uiState, terminals);
+    persistTerminalRegistry(registryPath, {
+      terminals,
       uiState,
     });
   };
@@ -173,58 +161,17 @@ export const createTerminalRuntime = ({
   const worktreeManager = createWorktreeManager({
     workspaceCwd,
     gitClient,
-    tentacles,
+    terminals,
   });
-
-  const buildRootAgentId = (tentacleId: string) => `${tentacleId}-root`;
-
-  const getTentacleAgentList = (tentacleId: string): PersistedTentacleAgent[] =>
-    tentacleAgents.get(tentacleId) ?? [];
-
-  const setTentacleAgentList = (tentacleId: string, agents: PersistedTentacleAgent[]) => {
-    tentacleAgents.set(
-      tentacleId,
-      agents.map((agent, index) => ({
-        ...agent,
-        order: index,
-      })),
-    );
-  };
-
-  const findTentacleByAgentId = (agentId: string): string | null => {
-    for (const [tentacleId, agents] of tentacleAgents.entries()) {
-      if (agents.some((agent) => agent.agentId === agentId)) {
-        return tentacleId;
-      }
-    }
-    return null;
-  };
 
   const resolveTerminalSession = (
     terminalId: string,
   ): { sessionId: string; tentacleId: string } | null => {
-    if (tentacles.has(terminalId)) {
-      return {
-        sessionId: buildRootAgentId(terminalId),
-        tentacleId: terminalId,
-      };
-    }
-
-    if (terminalId.endsWith("-root")) {
-      const tentacleId = terminalId.slice(0, -"-root".length);
-      if (tentacles.has(tentacleId)) {
-        return {
-          sessionId: terminalId,
-          tentacleId,
-        };
-      }
-    }
-
-    const childTentacleId = findTentacleByAgentId(terminalId);
-    if (childTentacleId) {
+    const terminal = terminals.get(terminalId);
+    if (terminal) {
       return {
         sessionId: terminalId,
-        tentacleId: childTentacleId,
+        tentacleId: terminal.tentacleId,
       };
     }
 
@@ -233,7 +180,7 @@ export const createTerminalRuntime = ({
 
   const sessionRuntime = createSessionRuntime({
     websocketServer,
-    tentacles,
+    terminals,
     sessions,
     resolveTerminalSession,
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
@@ -242,88 +189,67 @@ export const createTerminalRuntime = ({
     transcriptDirectoryPath,
   });
 
-  const allocateTentacleId = () => {
-    let candidateTentacleNumber = 1;
-    while (candidateTentacleNumber < Number.MAX_SAFE_INTEGER) {
-      const candidateTentacleId = `${TENTACLE_ID_PREFIX}${candidateTentacleNumber}`;
-      if (tentacles.has(candidateTentacleId)) {
-        candidateTentacleNumber += 1;
+  const allocateTerminalId = () => {
+    let candidateNumber = 1;
+    while (candidateNumber < Number.MAX_SAFE_INTEGER) {
+      const candidateId = `${TERMINAL_ID_PREFIX}${candidateNumber}`;
+      if (terminals.has(candidateId)) {
+        candidateNumber += 1;
         continue;
       }
 
-      if (sessions.has(candidateTentacleId)) {
-        candidateTentacleNumber += 1;
+      if (sessions.has(candidateId)) {
+        candidateNumber += 1;
         continue;
       }
 
-      if (worktreeManager.hasTentacleWorktree(candidateTentacleId)) {
-        candidateTentacleNumber += 1;
+      if (worktreeManager.hasTentacleWorktree(candidateId)) {
+        candidateNumber += 1;
         continue;
       }
 
-      return candidateTentacleId;
+      return candidateId;
     }
 
-    throw new Error("Unable to allocate tentacle id.");
+    throw new Error("Unable to allocate terminal id.");
   };
 
-  const allocateTentacleAgentId = (tentacleId: string) => {
-    const existingAgentIds = new Set(
-      getTentacleAgentList(tentacleId).map((agent) => agent.agentId),
-    );
-    let candidateAgentNumber = 1;
-    while (candidateAgentNumber < Number.MAX_SAFE_INTEGER) {
-      const candidateAgentId = `${tentacleId}-agent-${candidateAgentNumber}`;
-      if (existingAgentIds.has(candidateAgentId) || sessions.has(candidateAgentId)) {
-        candidateAgentNumber += 1;
-        continue;
-      }
-
-      return candidateAgentId;
-    }
-
-    throw new Error("Unable to allocate tentacle agent id.");
-  };
-
-  const buildRootSnapshot = (tentacle: PersistedTentacle): AgentSnapshot => ({
-    agentId: buildRootAgentId(tentacle.tentacleId),
-    label: buildRootAgentId(tentacle.tentacleId),
+  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => ({
+    terminalId: terminal.terminalId,
+    label: terminal.terminalId,
     state: "live",
-    tentacleId: tentacle.tentacleId,
-    tentacleName: tentacle.tentacleName,
-    tentacleWorkspaceMode: tentacle.workspaceMode,
-    createdAt: tentacle.createdAt,
+    tentacleId: terminal.tentacleId,
+    tentacleName: terminal.tentacleName,
+    workspaceMode: terminal.workspaceMode,
+    createdAt: terminal.createdAt,
   });
 
-  const toTentacleAgentSnapshot = (agent: PersistedTentacleAgent): AgentSnapshot => ({
-    agentId: agent.agentId,
-    label: agent.label,
-    state: "live",
-    tentacleId: agent.tentacleId,
-    parentAgentId: agent.parentAgentId,
-    createdAt: agent.createdAt,
-  });
-
-  const createTentacle = ({
-    tentacleId: requestedTentacleId,
+  const createTerminal = ({
+    terminalId: requestedTerminalId,
     tentacleName,
     workspaceMode = "shared",
     agentProvider,
     initialPrompt,
   }: {
-    tentacleId?: string;
+    terminalId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
-    agentProvider?: TentacleAgentProvider;
+    agentProvider?: TerminalAgentProvider;
     initialPrompt?: string;
-  }): AgentSnapshot => {
-    const tentacleId =
-      requestedTentacleId && !tentacles.has(requestedTentacleId)
-        ? requestedTentacleId
-        : allocateTentacleId();
-    const tentacle: PersistedTentacle = {
+  }): TerminalSnapshot => {
+    const terminalId =
+      requestedTerminalId && !terminals.has(requestedTerminalId)
+        ? requestedTerminalId
+        : allocateTerminalId();
+
+    // For now, tentacleId = terminalId (1:1 mapping).
+    // Future: allow specifying an existing tentacleId to share context.
+    const tentacleId = terminalId;
+
+    const terminal: PersistedTerminal = {
+      terminalId,
       tentacleId,
-      tentacleName: tentacleName ?? tentacleId,
+      tentacleName: tentacleName ?? terminalId,
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
@@ -335,82 +261,74 @@ export const createTerminalRuntime = ({
       worktreeManager.createTentacleWorktree(tentacleId);
     }
 
-    // Install hooks in the tentacle's working directory. For worktree tentacles
-    // this writes to the worktree's own .claude/settings.json; for shared
-    // tentacles it updates the main workspace's .claude/settings.json so that
-    // newly added hook types (e.g. Notification) are always present.
+    // Install hooks in the terminal's working directory.
     try {
       const hookTargetCwd = shouldCreateWorktree
         ? worktreeManager.getTentacleWorkspaceCwd(tentacleId)
         : workspaceCwd;
       installHooksInDirectory(hookTargetCwd);
     } catch {
-      // Best-effort: hooks installation should not block tentacle creation.
+      // Best-effort: hooks installation should not block terminal creation.
     }
 
-    tentacles.set(tentacleId, tentacle);
-    const rootAgentId = buildRootAgentId(tentacleId);
-    const initialAgentId = allocateTentacleAgentId(tentacleId);
-    setTentacleAgentList(tentacleId, [
-      {
-        agentId: initialAgentId,
-        tentacleId,
-        label: initialAgentId,
-        createdAt: new Date().toISOString(),
-        parentAgentId: rootAgentId,
-        order: 0,
-      },
-    ]);
+    terminals.set(terminalId, terminal);
     persistRegistry();
 
-    return buildRootSnapshot(tentacle);
+    return toTerminalSnapshot(terminal);
   };
 
   const readUiState = (): PersistedUiState => {
-    const normalized = pruneUiStateTentacleReferences(uiState, tentacles);
+    const normalized = pruneUiStateTerminalReferences(uiState, terminals);
     const result: PersistedUiState = { ...normalized };
-    if (normalized.minimizedTentacleIds) {
-      result.minimizedTentacleIds = [...normalized.minimizedTentacleIds];
+    if (normalized.minimizedTerminalIds) {
+      result.minimizedTerminalIds = [...normalized.minimizedTerminalIds];
     }
-    if (normalized.tentacleWidths) {
-      result.tentacleWidths = { ...normalized.tentacleWidths };
+    if (normalized.terminalWidths) {
+      result.terminalWidths = { ...normalized.terminalWidths };
     }
-    if (normalized.tentacleCompletionSound !== undefined) {
-      result.tentacleCompletionSound = normalized.tentacleCompletionSound;
+    if (normalized.terminalCompletionSound !== undefined) {
+      result.terminalCompletionSound = normalized.terminalCompletionSound;
     }
     return result;
   };
 
   const resolveWorktreeTentacleContext = (
     tentacleId: string,
-  ): { tentacle: PersistedTentacle; workspaceCwd: string } | null => {
-    const tentacle = tentacles.get(tentacleId);
-    if (!tentacle) {
+  ): { terminal: PersistedTerminal; workspaceCwd: string } | null => {
+    // Find any terminal belonging to this tentacle
+    let terminal: PersistedTerminal | undefined;
+    for (const t of terminals.values()) {
+      if (t.tentacleId === tentacleId) {
+        terminal = t;
+        break;
+      }
+    }
+    if (!terminal) {
       return null;
     }
 
-    if (tentacle.workspaceMode !== "worktree") {
+    if (terminal.workspaceMode !== "worktree") {
       throw new RuntimeInputError(
-        "Git lifecycle actions are only available for worktree tentacles.",
+        "Git lifecycle actions are only available for worktree terminals.",
       );
     }
 
     return {
-      tentacle,
+      terminal,
       workspaceCwd: worktreeManager.getTentacleWorkspaceCwd(tentacleId),
     };
   };
 
   const readWorktreeGitStatus = (
     tentacleId: string,
-    tentacle: PersistedTentacle,
+    terminal: PersistedTerminal,
     workspaceCwd: string,
   ): TentacleGitStatusSnapshot => {
     try {
       const status = gitClient.readWorktreeStatus({ cwd: workspaceCwd });
       return {
         tentacleId,
-        workspaceMode: tentacle.workspaceMode,
+        workspaceMode: terminal.workspaceMode,
         branchName: status.branchName,
         upstreamBranchName: status.upstreamBranchName,
         isDirty: status.isDirty,
@@ -436,10 +354,10 @@ export const createTerminalRuntime = ({
 
   const emptyPullRequestSnapshot = (
     tentacleId: string,
-    tentacle: PersistedTentacle,
+    terminal: PersistedTerminal,
   ): TentaclePullRequestSnapshot => ({
     tentacleId,
-    workspaceMode: tentacle.workspaceMode,
+    workspaceMode: terminal.workspaceMode,
     status: "none",
     number: null,
     url: null,
@@ -453,18 +371,18 @@ export const createTerminalRuntime = ({
 
   const readWorktreePullRequest = (
     tentacleId: string,
-    tentacle: PersistedTentacle,
+    terminal: PersistedTerminal,
     workspaceCwd: string,
   ): TentaclePullRequestSnapshot => {
     try {
       const pullRequest = gitClient.readCurrentBranchPullRequest({ cwd: workspaceCwd });
       if (!pullRequest) {
-        return emptyPullRequestSnapshot(tentacleId, tentacle);
+        return emptyPullRequestSnapshot(tentacleId, terminal);
       }
 
       return {
         tentacleId,
-        workspaceMode: tentacle.workspaceMode,
+        workspaceMode: terminal.workspaceMode,
         status: toPullRequestStatus(pullRequest.state),
         number: pullRequest.number,
         url: pullRequest.url,
@@ -485,14 +403,10 @@ export const createTerminalRuntime = ({
   };
 
   return {
-    listAgentSnapshots(): AgentSnapshot[] {
-      const snapshots: AgentSnapshot[] = [];
-      for (const tentacle of tentacles.values()) {
-        snapshots.push(buildRootSnapshot(tentacle));
-        const agents = getTentacleAgentList(tentacle.tentacleId);
-        for (const agent of agents) {
-          snapshots.push(toTentacleAgentSnapshot(agent));
-        }
+    listTerminalSnapshots(): TerminalSnapshot[] {
+      const snapshots: TerminalSnapshot[] = [];
+      for (const terminal of terminals.values()) {
+        snapshots.push(toTerminalSnapshot(terminal));
       }
       return snapshots;
     },
@@ -569,14 +483,14 @@ export const createTerminalRuntime = ({
       if (patch.isCodexUsageSectionExpanded !== undefined) {
         uiState.isCodexUsageSectionExpanded = patch.isCodexUsageSectionExpanded;
       }
-      if (patch.tentacleCompletionSound !== undefined) {
-        uiState.tentacleCompletionSound = patch.tentacleCompletionSound;
+      if (patch.terminalCompletionSound !== undefined) {
+        uiState.terminalCompletionSound = patch.terminalCompletionSound;
       }
-      if (patch.minimizedTentacleIds !== undefined) {
-        uiState.minimizedTentacleIds = [...patch.minimizedTentacleIds];
+      if (patch.minimizedTerminalIds !== undefined) {
+        uiState.minimizedTerminalIds = [...patch.minimizedTerminalIds];
       }
-      if (patch.tentacleWidths !== undefined) {
-        uiState.tentacleWidths = { ...patch.tentacleWidths };
+      if (patch.terminalWidths !== undefined) {
+        uiState.terminalWidths = { ...patch.terminalWidths };
       }
       if (patch.canvasOpenTerminalIds !== undefined) {
         uiState.canvasOpenTerminalIds = [...patch.canvasOpenTerminalIds];
@@ -595,7 +509,7 @@ export const createTerminalRuntime = ({
         return null;
       }
 
-      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreeGitStatus(tentacleId, context.terminal, context.workspaceCwd);
     },
 
     commitTentacleWorktree(tentacleId: string, message: string): TentacleGitStatusSnapshot | null {
@@ -622,7 +536,7 @@ export const createTerminalRuntime = ({
         );
       }
 
-      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreeGitStatus(tentacleId, context.terminal, context.workspaceCwd);
     },
 
     pushTentacleWorktree(tentacleId: string): TentacleGitStatusSnapshot | null {
@@ -641,7 +555,7 @@ export const createTerminalRuntime = ({
         );
       }
 
-      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreeGitStatus(tentacleId, context.terminal, context.workspaceCwd);
     },
 
     syncTentacleWorktree(tentacleId: string, baseRef?: string): TentacleGitStatusSnapshot | null {
@@ -652,7 +566,7 @@ export const createTerminalRuntime = ({
 
       const statusBeforeSync = readWorktreeGitStatus(
         tentacleId,
-        context.tentacle,
+        context.terminal,
         context.workspaceCwd,
       );
       if (statusBeforeSync.isDirty) {
@@ -681,7 +595,7 @@ export const createTerminalRuntime = ({
         );
       }
 
-      return readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreeGitStatus(tentacleId, context.terminal, context.workspaceCwd);
     },
 
     readTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null {
@@ -690,7 +604,7 @@ export const createTerminalRuntime = ({
         return null;
       }
 
-      return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreePullRequest(tentacleId, context.terminal, context.workspaceCwd);
     },
 
     createTentaclePullRequest(
@@ -709,14 +623,14 @@ export const createTerminalRuntime = ({
 
       const existingPullRequest = readWorktreePullRequest(
         tentacleId,
-        context.tentacle,
+        context.terminal,
         context.workspaceCwd,
       );
       if (existingPullRequest.status === "open") {
         throw new RuntimeInputError("An open pull request already exists for this branch.");
       }
 
-      const status = readWorktreeGitStatus(tentacleId, context.tentacle, context.workspaceCwd);
+      const status = readWorktreeGitStatus(tentacleId, context.terminal, context.workspaceCwd);
       if (status.hasConflicts) {
         throw new RuntimeInputError("Resolve git conflicts before creating a pull request.");
       }
@@ -736,12 +650,12 @@ export const createTerminalRuntime = ({
           headRef: status.branchName,
         });
         if (!pullRequest) {
-          return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
+          return readWorktreePullRequest(tentacleId, context.terminal, context.workspaceCwd);
         }
 
         return {
           tentacleId,
-          workspaceMode: context.tentacle.workspaceMode,
+          workspaceMode: context.terminal.workspaceMode,
           status: toPullRequestStatus(pullRequest.state),
           number: pullRequest.number,
           url: pullRequest.url,
@@ -769,7 +683,7 @@ export const createTerminalRuntime = ({
 
       const currentPullRequest = readWorktreePullRequest(
         tentacleId,
-        context.tentacle,
+        context.terminal,
         context.workspaceCwd,
       );
       if (currentPullRequest.status !== "open") {
@@ -795,132 +709,33 @@ export const createTerminalRuntime = ({
         );
       }
 
-      return readWorktreePullRequest(tentacleId, context.tentacle, context.workspaceCwd);
+      return readWorktreePullRequest(tentacleId, context.terminal, context.workspaceCwd);
     },
 
-    createTentacle,
+    createTerminal,
 
-    createTentacleAgent({
-      tentacleId,
-      anchorAgentId,
-      placement,
-    }: {
-      tentacleId: string;
-      anchorAgentId: string;
-      placement: "up" | "down";
-    }): AgentSnapshot | null {
-      const tentacle = tentacles.get(tentacleId);
-      if (!tentacle) {
+    renameTerminal(terminalId: string, tentacleName: string): TerminalSnapshot | null {
+      const terminal = terminals.get(terminalId);
+      if (!terminal) {
         return null;
       }
 
-      const rootAgentId = buildRootAgentId(tentacleId);
-      const existingAgents = getTentacleAgentList(tentacleId);
-      const orderedAgentIds = [rootAgentId, ...existingAgents.map((agent) => agent.agentId)];
-      const anchorIndex = orderedAgentIds.indexOf(anchorAgentId);
-      if (anchorIndex === -1) {
-        throw new RuntimeInputError("Anchor agent was not found in this tentacle.");
-      }
-
-      const nextAgentId = allocateTentacleAgentId(tentacleId);
-      const nextAgent: PersistedTentacleAgent = {
-        agentId: nextAgentId,
-        tentacleId,
-        label: nextAgentId,
-        createdAt: new Date().toISOString(),
-        parentAgentId: rootAgentId,
-        order: 0,
-      };
-
-      const insertionIndex = placement === "up" ? anchorIndex : anchorIndex + 1;
-      const boundedInsertionIndex = Math.max(1, insertionIndex);
-      const nextOrderedAgentIds = [...orderedAgentIds];
-      nextOrderedAgentIds.splice(boundedInsertionIndex, 0, nextAgentId);
-      const nextChildOrder = nextOrderedAgentIds.slice(1);
-      const nextAgentById = new Map(
-        [...existingAgents, nextAgent].map((agent) => [agent.agentId, agent] as const),
-      );
-      setTentacleAgentList(
-        tentacleId,
-        nextChildOrder.map((agentId) => {
-          const agent = nextAgentById.get(agentId);
-          if (!agent) {
-            throw new RuntimeInputError("Unable to reorder tentacle agents.");
-          }
-          return agent;
-        }),
-      );
+      terminal.tentacleName = tentacleName;
       persistRegistry();
-
-      return toTentacleAgentSnapshot(nextAgent);
+      return toTerminalSnapshot(terminal);
     },
 
-    deleteTentacleAgent({
-      tentacleId,
-      agentId,
-    }: {
-      tentacleId: string;
-      agentId: string;
-    }): boolean | null {
-      const tentacle = tentacles.get(tentacleId);
-      if (!tentacle) {
-        return null;
-      }
-
-      const rootAgentId = buildRootAgentId(tentacleId);
-      if (agentId === rootAgentId) {
-        throw new RuntimeInputError("Root terminal cannot be deleted from terminal controls.");
-      }
-
-      const existingAgents = getTentacleAgentList(tentacleId);
-      if (!existingAgents.some((agent) => agent.agentId === agentId)) {
+    deleteTerminal(terminalId: string): boolean {
+      const terminal = terminals.get(terminalId);
+      if (!terminal) {
         return false;
       }
 
-      const nextAgents = existingAgents
-        .filter((agent) => agent.agentId !== agentId)
-        .map((agent) =>
-          agent.parentAgentId === agentId
-            ? {
-                ...agent,
-                parentAgentId: rootAgentId,
-              }
-            : agent,
-        );
-
-      sessionRuntime.closeSession(agentId);
-      setTentacleAgentList(tentacleId, nextAgents);
-      persistRegistry();
-      return true;
-    },
-
-    renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null {
-      const tentacle = tentacles.get(tentacleId);
-      if (!tentacle) {
-        return null;
+      sessionRuntime.closeSession(terminalId);
+      if (terminal.workspaceMode === "worktree") {
+        worktreeManager.removeTentacleWorktree(terminal.tentacleId);
       }
-
-      tentacle.tentacleName = tentacleName;
-      persistRegistry();
-      return buildRootSnapshot(tentacle);
-    },
-
-    deleteTentacle(tentacleId: string): boolean {
-      const tentacle = tentacles.get(tentacleId);
-      if (!tentacle) {
-        return false;
-      }
-
-      const rootAgentId = buildRootAgentId(tentacleId);
-      sessionRuntime.closeSession(rootAgentId);
-      for (const agent of getTentacleAgentList(tentacleId)) {
-        sessionRuntime.closeSession(agent.agentId);
-      }
-      if (tentacle.workspaceMode === "worktree") {
-        worktreeManager.removeTentacleWorktree(tentacleId);
-      }
-      tentacleAgents.delete(tentacleId);
-      tentacles.delete(tentacleId);
+      terminals.delete(terminalId);
       persistRegistry();
       return true;
     },
@@ -937,7 +752,6 @@ export const createTerminalRuntime = ({
 
       const hookPayloadRecord = payload as Record<string, unknown>;
 
-      // ── Notification hook: detect permission_prompt and idle_prompt ──
       if (hookName === "notification") {
         if (!octogentSessionId) {
           return { ok: true };
@@ -968,7 +782,6 @@ export const createTerminalRuntime = ({
         return { ok: true };
       }
 
-      // ── PreToolUse hook: detect AskUserQuestion tool ──
       if (hookName === "pre-tool-use") {
         if (!octogentSessionId) {
           return { ok: true };
@@ -1008,23 +821,17 @@ export const createTerminalRuntime = ({
         return { ok: true };
       }
 
-      // If an octogent session ID was provided (from the OCTOGENT_SESSION_ID env var),
-      // use it directly to match the session. This prevents external Claude sessions
-      // (e.g. VS Code) from bleeding into tentacle conversation histories.
       let matchedSessionId: string | null = null;
 
       if (octogentSessionId && sessions.has(octogentSessionId)) {
         matchedSessionId = octogentSessionId;
         console.log(`[Hook] Matched session by octogent_session param: ${matchedSessionId}`);
       } else if (octogentSessionId) {
-        // The param was provided but doesn't match any active session — skip.
         console.log(
           `[Hook] octogent_session=${octogentSessionId} not found in active sessions, skipping.`,
         );
         return { ok: true };
       } else {
-        // No octogent_session param — this hook likely came from an external Claude
-        // session (e.g. VS Code). Skip to avoid conversation bleed.
         console.log(
           "[Hook] No octogent_session param — ignoring hook from external Claude session.",
         );
@@ -1035,8 +842,6 @@ export const createTerminalRuntime = ({
       const turns = parseClaudeTranscript(transcriptPath);
       console.log(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
 
-      // The Stop hook payload includes the last assistant message which may not
-      // yet be written to the transcript file. Append it if it's missing.
       const lastAssistantMessage =
         typeof hookPayload.last_assistant_message === "string"
           ? hookPayload.last_assistant_message.trim()

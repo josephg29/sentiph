@@ -1,4 +1,4 @@
-import { buildTentacleColumns } from "@octogent/core";
+import { buildTerminalList } from "@octogent/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
@@ -11,14 +11,14 @@ import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
-import { useTentacleBoardInteractions } from "./app/hooks/useTentacleBoardInteractions";
-import { useTentacleCompletionNotification } from "./app/hooks/useTentacleCompletionNotification";
+import { useTerminalBoardInteractions } from "./app/hooks/useTerminalBoardInteractions";
+import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
-import { useTentacleMutations } from "./app/hooks/useTentacleMutations";
-import { useTentacleNameInputFocus } from "./app/hooks/useTentacleNameInputFocus";
-import { useTentacleStateReconciliation } from "./app/hooks/useTentacleStateReconciliation";
+import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
+import { useTerminalNameInputFocus } from "./app/hooks/useTerminalNameInputFocus";
+import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { clampSidebarWidth } from "./app/normalizers";
-import type { TentacleView } from "./app/types";
+import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
@@ -29,26 +29,22 @@ import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { TelemetryTape } from "./components/TelemetryTape";
-import { HttpAgentSnapshotReader } from "./runtime/HttpAgentSnapshotReader";
-import { buildAgentSnapshotsUrl } from "./runtime/runtimeEndpoints";
-
-const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
-  agentId === `${tentacleId}-root`;
+import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
+import { buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
 
 export const App = () => {
-  const [columns, setColumns] = useState<TentacleView>([]);
+  const [terminals, setTerminals] = useState<TerminalView>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [tentacleStates, setTentacleStates] = useState<Record<string, AgentRuntimeState>>({});
-  const [selectedTentacleId, setSelectedTentacleId] = useState<string | null>(null);
+  const [terminalStates, setTerminalStates] = useState<Record<string, AgentRuntimeState>>({});
   const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
-  const tentaclesRef = useRef<HTMLElement | null>(null);
-  const tentacleNameInputRef = useRef<HTMLInputElement | null>(null);
+  const terminalsRef = useRef<HTMLElement | null>(null);
+  const terminalNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     activePrimaryNav,
@@ -64,7 +60,7 @@ export const App = () => {
     isMonitorVisible,
     isRuntimeStatusStripVisible,
     isUiStateHydrated,
-    minimizedTentacleIds,
+    minimizedTerminalIds,
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
@@ -76,115 +72,69 @@ export const App = () => {
     setIsMonitorVisible,
     setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
-    setMinimizedTentacleIds,
+    setMinimizedTerminalIds,
     setSidebarWidth,
-    setTentacleCompletionSound,
-    setTentacleWidths,
+    setTerminalCompletionSound,
+    setTerminalWidths,
     sidebarWidth,
-    tentacleCompletionSound,
-    tentacleWidths,
+    terminalCompletionSound,
+    terminalWidths,
     canvasOpenTerminalIds,
     setCanvasOpenTerminalIds,
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
-  } = usePersistedUiState({ columns });
+  } = usePersistedUiState({ columns: terminals });
 
-  const visibleColumns = useMemo(
-    () => columns.filter((column) => !minimizedTentacleIds.includes(column.tentacleId)),
-    [columns, minimizedTentacleIds],
+  const visibleTerminals = useMemo(
+    () => terminals.filter((terminal) => !minimizedTerminalIds.includes(terminal.terminalId)),
+    [terminals, minimizedTerminalIds],
   );
 
   useEffect(() => {
-    const visibleTentacleIds = new Set(visibleColumns.map((column) => column.tentacleId));
-    setSelectedTentacleId((currentSelectedTentacleId) => {
-      if (currentSelectedTentacleId !== null && visibleTentacleIds.has(currentSelectedTentacleId)) {
-        return currentSelectedTentacleId;
-      }
-
-      return visibleColumns[0]?.tentacleId ?? null;
-    });
-  }, [visibleColumns]);
-
-  useEffect(() => {
-    const firstVisibleTerminalId =
-      visibleColumns
-        .flatMap((column) =>
-          column.agents
-            .filter((agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId))
-            .map((agent) => agent.agentId),
-        )
-        .at(0) ?? null;
-
-    const selectedTentacleVisibleTerminalIds =
-      selectedTentacleId === null
-        ? []
-        : (visibleColumns
-            .find((column) => column.tentacleId === selectedTentacleId)
-            ?.agents.filter((agent) => !isInternalRootTerminal(selectedTentacleId, agent.agentId))
-            .map((agent) => agent.agentId) ?? []);
-
+    const visibleTerminalIds = new Set(visibleTerminals.map((terminal) => terminal.terminalId));
     setSelectedTerminalId((currentSelectedTerminalId) => {
-      if (selectedTentacleVisibleTerminalIds.length > 0) {
-        if (
-          currentSelectedTerminalId !== null &&
-          selectedTentacleVisibleTerminalIds.includes(currentSelectedTerminalId)
-        ) {
-          return currentSelectedTerminalId;
-        }
-        return selectedTentacleVisibleTerminalIds[0] ?? null;
-      }
-
-      const activeVisibleTerminalIds = new Set(
-        visibleColumns.flatMap((column) =>
-          column.agents
-            .filter((agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId))
-            .map((agent) => agent.agentId),
-        ),
-      );
       if (
         currentSelectedTerminalId !== null &&
-        activeVisibleTerminalIds.has(currentSelectedTerminalId)
+        visibleTerminalIds.has(currentSelectedTerminalId)
       ) {
         return currentSelectedTerminalId;
       }
 
-      return firstVisibleTerminalId;
+      return visibleTerminals[0]?.terminalId ?? null;
     });
-  }, [selectedTentacleId, visibleColumns]);
+  }, [visibleTerminals]);
 
   const readColumns = useCallback(async (signal?: AbortSignal) => {
     const readerOptions: { endpoint: string; signal?: AbortSignal } = {
-      endpoint: buildAgentSnapshotsUrl(),
+      endpoint: buildTerminalSnapshotsUrl(),
     };
     if (signal) {
       readerOptions.signal = signal;
     }
-    const reader = new HttpAgentSnapshotReader(readerOptions);
-    return buildTentacleColumns(reader);
+    const reader = new HttpTerminalSnapshotReader(readerOptions);
+    return buildTerminalList(reader);
   }, []);
 
   const {
-    beginTentacleNameEdit,
-    cancelTentacleRename,
-    clearPendingDeleteTentacle,
-    confirmDeleteTentacle,
-    createTentacle,
-    createTentacleAgent,
-    deleteTentacleAgent,
-    editingTentacleId,
-    isCreatingTentacle,
-    isDeletingTentacleId,
-    pendingDeleteTentacle,
-    requestDeleteTentacle,
-    setEditingTentacleId,
-    setTentacleNameDraft,
-    submitTentacleRename,
-    tentacleNameDraft,
-  } = useTentacleMutations({
+    beginTerminalNameEdit,
+    cancelTerminalRename,
+    clearPendingDeleteTerminal,
+    confirmDeleteTerminal,
+    createTerminal,
+    editingTerminalId,
+    isCreatingTerminal,
+    isDeletingTerminalId,
+    pendingDeleteTerminal,
+    requestDeleteTerminal,
+    setEditingTerminalId,
+    setTerminalNameDraft,
+    submitTerminalRename,
+    terminalNameDraft,
+  } = useTerminalMutations({
     readColumns: async () => readColumns(),
-    setColumns,
+    setColumns: setTerminals,
     setLoadError,
-    setMinimizedTentacleIds,
+    setMinimizedTerminalIds,
   });
 
   const {
@@ -208,14 +158,14 @@ export const App = () => {
     syncTentacleBranch,
     mergeTentaclePullRequest,
   } = useTentacleGitLifecycle({
-    columns,
+    columns: terminals,
   });
 
   useInitialColumnsHydration({
     readColumns,
     readUiState,
     applyHydratedUiState,
-    setColumns,
+    setColumns: setTerminals,
     setLoadError,
     setIsLoading,
     setIsUiStateHydrated,
@@ -227,36 +177,36 @@ export const App = () => {
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
   const {
-    handleMaximizeTentacle,
-    handleMinimizeTentacle,
-    handleTentacleDividerKeyDown,
-    handleTentacleDividerPointerDown,
-    handleTentacleHeaderWheel,
-  } = useTentacleBoardInteractions({
-    tentaclesRef,
-    visibleColumns,
-    tentacleWidths,
-    setTentacleWidths,
-    setMinimizedTentacleIds,
-    editingTentacleId,
-    setEditingTentacleId,
-    setTentacleNameDraft,
+    handleMaximizeTerminal,
+    handleMinimizeTerminal,
+    handleTerminalDividerKeyDown,
+    handleTerminalDividerPointerDown,
+    handleTerminalHeaderWheel,
+  } = useTerminalBoardInteractions({
+    terminalsRef,
+    visibleColumns: visibleTerminals,
+    terminalWidths,
+    setTerminalWidths,
+    setMinimizedTerminalIds,
+    editingTerminalId,
+    setEditingTerminalId,
+    setTerminalNameDraft,
   });
 
-  useTentacleNameInputFocus({
-    columns,
-    editingTentacleId,
-    setEditingTentacleId,
-    tentacleNameInputRef,
+  useTerminalNameInputFocus({
+    columns: terminals,
+    editingTerminalId,
+    setEditingTerminalId,
+    terminalNameInputRef,
   });
-  useTentacleStateReconciliation({
-    columns,
-    setMinimizedTentacleIds,
-    setTentacleStates,
+  useTerminalStateReconciliation({
+    columns: terminals,
+    setMinimizedTerminalIds,
+    setTerminalStates,
   });
-  const { playCompletionSoundPreview } = useTentacleCompletionNotification(
-    tentacleStates,
-    tentacleCompletionSound,
+  const { playCompletionSoundPreview } = useTerminalCompletionNotification(
+    terminalStates,
+    terminalCompletionSound,
   );
   const {
     monitorConfig,
@@ -315,9 +265,9 @@ export const App = () => {
   });
   const hasSidebarActionPanel =
     isPendingClearAllConversations ||
-    pendingDeleteTentacle !== null ||
+    pendingDeleteTerminal !== null ||
     (openGitTentacleId !== null &&
-      columns.find((column) => column.tentacleId === openGitTentacleId)?.tentacleWorkspaceMode ===
+      terminals.find((terminal) => terminal.tentacleId === openGitTentacleId)?.workspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
@@ -336,12 +286,12 @@ export const App = () => {
       />
     ) : (
       <SidebarActionPanel
-        pendingDeleteTentacle={pendingDeleteTentacle}
-        isDeletingTentacleId={isDeletingTentacleId}
-        clearPendingDeleteTentacle={clearPendingDeleteTentacle}
-        confirmDeleteTentacle={confirmDeleteTentacle}
+        pendingDeleteTerminal={pendingDeleteTerminal}
+        isDeletingTerminalId={isDeletingTerminalId}
+        clearPendingDeleteTerminal={clearPendingDeleteTerminal}
+        confirmDeleteTerminal={confirmDeleteTerminal}
         openGitTentacleId={openGitTentacleId}
-        columns={columns}
+        columns={terminals}
         openGitTentacleStatus={openGitTentacleStatus}
         openGitTentaclePullRequest={openGitTentaclePullRequest}
         gitCommitMessageDraft={gitCommitMessageDraft}
@@ -355,7 +305,7 @@ export const App = () => {
         pushTentacleBranch={pushTentacleBranch}
         syncTentacleBranch={syncTentacleBranch}
         mergeTentaclePullRequest={mergeTentaclePullRequest}
-        requestDeleteTentacle={requestDeleteTentacle}
+        requestDeleteTerminal={requestDeleteTerminal}
       />
     )
   ) : null;
@@ -367,15 +317,15 @@ export const App = () => {
     setIsAgentsSidebarVisible(true);
   }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
 
-  const handleTentacleStateChange = useCallback((tentacleId: string, state: AgentRuntimeState) => {
-    setTentacleStates((current) => {
-      if (current[tentacleId] === state) {
+  const handleTerminalStateChange = useCallback((terminalId: string, state: AgentRuntimeState) => {
+    setTerminalStates((current) => {
+      if (current[terminalId] === state) {
         return current;
       }
 
       return {
         ...current,
-        [tentacleId]: state,
+        [terminalId]: state,
       };
     });
   }, []);
@@ -385,14 +335,14 @@ export const App = () => {
       <ConsoleHeader
         backendLivenessStatus={backendLivenessStatus}
         isAgentsSidebarVisible={isAgentsSidebarVisible}
-        isCreatingTentacle={isCreatingTentacle}
+        isCreatingTentacle={isCreatingTerminal}
         onCreateSharedTentacle={(provider) => {
           setLoadError(null);
-          void createTentacle("shared", provider);
+          void createTerminal("shared", provider);
         }}
         onCreateWorktreeTentacle={(provider) => {
           setLoadError(null);
-          void createTentacle("worktree", provider);
+          void createTerminal("worktree", provider);
         }}
         onToggleAgentsSidebar={() => {
           setIsAgentsSidebarVisible((current) => !current);
@@ -424,7 +374,7 @@ export const App = () => {
             <ActiveAgentsSidebar
               claudeUsageSnapshot={claudeUsageSnapshot}
               claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
-              columns={columns}
+              terminals={terminals}
               codexUsageSnapshot={codexUsageSnapshot}
               codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
               isLoading={isLoading}
@@ -445,9 +395,9 @@ export const App = () => {
               onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
               isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
               onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
-              tentacleStates={tentacleStates}
-              minimizedTentacleIds={minimizedTentacleIds}
-              onMaximizeTentacle={handleMaximizeTentacle}
+              terminalStates={terminalStates}
+              minimizedTerminalIds={minimizedTerminalIds}
+              onMaximizeTerminal={handleMaximizeTerminal}
               onRefreshClaudeUsage={refreshClaudeUsage}
               onRefreshCodexUsage={refreshCodexUsage}
               actionPanel={sidebarActionPanel}
@@ -527,27 +477,19 @@ export const App = () => {
               onCodexUsageVisibilityChange: setIsCodexUsageVisible,
               onMonitorVisibilityChange: setIsMonitorVisible,
               onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
-              onPreviewTentacleCompletionSound: playCompletionSoundPreview,
-              onTentacleCompletionSoundChange: setTentacleCompletionSound,
-              tentacleCompletionSound,
+              onPreviewTerminalCompletionSound: playCompletionSoundPreview,
+              onTerminalCompletionSoundChange: setTerminalCompletionSound,
+              terminalCompletionSound,
             }}
             canvasPrimaryViewProps={{
-              columns,
+              columns: terminals,
               isUiStateHydrated,
               canvasOpenTerminalIds,
               canvasTerminalsPanelWidth,
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (tentacleId) => {
-                const isRuntime = columns.some((col) => col.tentacleId === tentacleId);
-                if (isRuntime) {
-                  return createTentacleAgent({
-                    tentacleId,
-                    anchorAgentId: `${tentacleId}-root`,
-                    placement: "down",
-                  });
-                }
-                void createTentacle("shared", undefined, tentacleId);
+                void createTerminal("shared", undefined, tentacleId);
                 return undefined;
               },
               onNavigateToConversation: (sessionId) => {
@@ -595,61 +537,46 @@ export const App = () => {
               selectedSession,
               sessions: conversationSessions,
             }}
-            tentacleBoardProps={{
-              columns,
-              editingTentacleId,
+            terminalBoardProps={{
+              terminals,
+              editingTerminalId: editingTerminalId,
               gitStatusByTentacleId,
               gitStatusLoadingByTentacleId,
               pullRequestByTentacleId,
               pullRequestLoadingByTentacleId,
-              isDeletingTentacleId,
+              isDeletingTerminalId: isDeletingTerminalId,
               isLoading,
               loadError,
-              onBeginTentacleNameEdit: beginTentacleNameEdit,
-              onCancelTentacleRename: cancelTentacleRename,
-              onMinimizeTentacle: handleMinimizeTentacle,
-              onOpenTentacleGitActions: (tentacleId) => {
+              onBeginTerminalNameEdit: beginTerminalNameEdit,
+              onCancelTerminalRename: cancelTerminalRename,
+              onMinimizeTerminal: handleMinimizeTerminal,
+              onOpenTerminalGitActions: (terminalId) => {
                 setIsAgentsSidebarVisible(true);
-                openTentacleGitActions(tentacleId);
+                openTentacleGitActions(terminalId);
               },
-              onRequestDeleteTentacle: (tentacleId, tentacleName, workspaceMode) => {
+              onRequestDeleteTerminal: (terminalId, terminalName, workspaceMode) => {
                 setIsAgentsSidebarVisible(true);
                 closeTentacleGitActions();
-                requestDeleteTentacle(tentacleId, tentacleName, {
+                requestDeleteTerminal(terminalId, terminalName, {
                   workspaceMode,
-                  intent: "delete-tentacle",
+                  intent: "delete-terminal",
                 });
               },
-              onSubmitTentacleRename: (tentacleId, currentTentacleName) => {
-                void submitTentacleRename(tentacleId, currentTentacleName);
+              onSubmitTerminalRename: (terminalId, currentTerminalName) => {
+                void submitTerminalRename(terminalId, currentTerminalName);
               },
-              onTentacleDividerKeyDown: handleTentacleDividerKeyDown,
-              onTentacleDividerPointerDown: handleTentacleDividerPointerDown,
-              onTentacleHeaderWheel: handleTentacleHeaderWheel,
-              onTentacleNameDraftChange: setTentacleNameDraft,
-              onSelectTentacle: setSelectedTentacleId,
+              onTerminalDividerKeyDown: handleTerminalDividerKeyDown,
+              onTerminalDividerPointerDown: handleTerminalDividerPointerDown,
+              onTerminalHeaderWheel: handleTerminalHeaderWheel,
+              onTerminalNameDraftChange: setTerminalNameDraft,
               onSelectTerminal: setSelectedTerminalId,
-              onTentacleStateChange: handleTentacleStateChange,
-              onCreateTentacleAgent: (tentacleId, anchorAgentId, placement) => {
-                void createTentacleAgent({
-                  tentacleId,
-                  anchorAgentId,
-                  placement,
-                });
-              },
-              onDeleteTentacleAgent: (tentacleId, agentId) => {
-                void deleteTentacleAgent({
-                  tentacleId,
-                  agentId,
-                });
-              },
-              selectedTentacleId,
+              onTerminalStateChange: handleTerminalStateChange,
               selectedTerminalId,
-              tentacleNameDraft,
-              tentacleNameInputRef,
-              tentacleWidths,
-              tentaclesRef,
-              visibleColumns,
+              terminalNameDraft: terminalNameDraft,
+              terminalNameInputRef,
+              terminalWidths: terminalWidths,
+              terminalsRef,
+              visibleTerminals,
             }}
           />
         </div>

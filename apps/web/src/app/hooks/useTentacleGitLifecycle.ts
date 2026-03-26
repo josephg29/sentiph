@@ -12,11 +12,11 @@ import {
 import type {
   TentacleGitStatusSnapshot,
   TentaclePullRequestSnapshot,
-  TentacleView,
+  TerminalView,
 } from "../types";
 
 type UseTentacleGitLifecycleOptions = {
-  columns: TentacleView;
+  columns: TerminalView;
 };
 
 type UseTentacleGitLifecycleResult = {
@@ -242,7 +242,7 @@ export const useTentacleGitLifecycle = ({
   const worktreeTentacleIds = useMemo(
     () =>
       columns
-        .filter((column) => column.tentacleWorkspaceMode === "worktree")
+        .filter((column) => column.workspaceMode === "worktree")
         .map((column) => column.tentacleId),
     [columns],
   );
@@ -367,7 +367,7 @@ export const useTentacleGitLifecycle = ({
             Accept: "application/json",
             ...request.headers,
           },
-          body: request.body,
+          body: request.body ?? null,
         });
 
         if (!response.ok) {
@@ -417,7 +417,7 @@ export const useTentacleGitLifecycle = ({
             Accept: "application/json",
             ...request.headers,
           },
-          body: request.body,
+          body: request.body ?? null,
         });
 
         if (!response.ok) {

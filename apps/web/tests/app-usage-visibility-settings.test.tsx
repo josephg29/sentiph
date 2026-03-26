@@ -17,7 +17,7 @@ describe("App usage visibility settings", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([]);
       }
 
@@ -76,7 +76,7 @@ describe("App usage visibility settings", () => {
     expect(within(sidebar).getByText("Codex token usage")).toBeInTheDocument();
     expect(within(sidebar).getByText("Claude token usage")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "[5] Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "[6] Settings" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show runtime status strip" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show bottom telemetry tape" }));
     fireEvent.click(screen.getByRole("switch", { name: "Show Monitor workspace view" }));

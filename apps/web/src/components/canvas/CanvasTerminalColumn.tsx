@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
-import type { TentacleView } from "../../app/types";
+import type { TerminalView } from "../../app/types";
 import { type AgentRuntimeState, AgentStateBadge } from "../AgentStateBadge";
-import { TentacleTerminal } from "../TentacleTerminal";
+import { Terminal } from "../Terminal";
 
 type CanvasTerminalColumnProps = {
   node: GraphNode;
-  columns: TentacleView;
+  terminals: TerminalView;
   isFocused?: boolean;
   onClose: () => void;
   onFocus?: () => void;
@@ -15,16 +15,16 @@ type CanvasTerminalColumnProps = {
 
 export const CanvasTerminalColumn = ({
   node,
-  columns,
+  terminals,
   isFocused,
   onClose,
   onFocus,
 }: CanvasTerminalColumnProps) => {
   const [agentState, setAgentState] = useState<AgentRuntimeState>("idle");
 
-  const column = columns.find((col) => col.tentacleId === node.tentacleId);
-  const tentacleName = column?.tentacleName ?? node.tentacleId;
-  const workspaceMode = column?.tentacleWorkspaceMode ?? "shared";
+  const terminal = terminals.find((t) => t.tentacleId === node.tentacleId);
+  const tentacleName = terminal?.tentacleName ?? node.tentacleId;
+  const workspaceMode = terminal?.workspaceMode ?? "shared";
 
   const handleFocus = useCallback(() => {
     onFocus?.();
@@ -66,7 +66,7 @@ export const CanvasTerminalColumn = ({
         </div>
       </div>
       <div className="canvas-terminal-column-body">
-        <TentacleTerminal
+        <Terminal
           terminalId={node.sessionId}
           terminalLabel={node.label}
           onAgentRuntimeStateChange={setAgentState}

@@ -1,17 +1,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { TENTACLE_REGISTRY_VERSION } from "./constants";
+import { TERMINAL_REGISTRY_VERSION } from "./constants";
 
 import { toErrorMessage } from "./systemClients";
 import type {
-  PersistedTentacle,
-  PersistedTentacleAgent,
+  PersistedTerminal,
   PersistedUiState,
-  TentacleRegistryDocument,
   TentacleWorkspaceMode,
+  TerminalRegistryDocument,
 } from "./types";
-import { isTentacleCompletionSound } from "./types";
+import { isTerminalCompletionSound } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -63,54 +62,60 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
   }
 
-  if (isTentacleCompletionSound(value.tentacleCompletionSound)) {
-    nextState.tentacleCompletionSound = value.tentacleCompletionSound;
+  // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
+  const completionSoundValue = value.terminalCompletionSound ?? value.tentacleCompletionSound;
+  if (isTerminalCompletionSound(completionSoundValue)) {
+    nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  if (Array.isArray(value.minimizedTentacleIds)) {
-    const minimizedTentacleIds = value.minimizedTentacleIds.filter(
-      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+  // Accept both old (minimizedTentacleIds) and new (minimizedTerminalIds) field names
+  const minimizedIds = value.minimizedTerminalIds ?? value.minimizedTentacleIds;
+  if (Array.isArray(minimizedIds)) {
+    const ids = minimizedIds.filter(
+      (id): id is string => typeof id === "string",
     );
-    nextState.minimizedTentacleIds = [...new Set(minimizedTentacleIds)];
+    nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
-  if (isRecord(value.tentacleWidths)) {
-    const tentacleWidths = Object.entries(value.tentacleWidths).reduce<Record<string, number>>(
-      (acc, [tentacleId, width]) => {
+  // Accept both old (tentacleWidths) and new (terminalWidths) field names
+  const widths = value.terminalWidths ?? value.tentacleWidths;
+  if (isRecord(widths)) {
+    const terminalWidths = Object.entries(widths).reduce<Record<string, number>>(
+      (acc, [id, width]) => {
         if (typeof width === "number" && Number.isFinite(width)) {
-          acc[tentacleId] = width;
+          acc[id] = width;
         }
         return acc;
       },
       {},
     );
-    nextState.tentacleWidths = tentacleWidths;
+    nextState.terminalWidths = terminalWidths;
   }
 
   return nextState;
 };
 
-export const pruneUiStateTentacleReferences = (
+export const pruneUiStateTerminalReferences = (
   uiState: PersistedUiState,
-  tentacles: Map<string, PersistedTentacle>,
+  terminals: Map<string, PersistedTerminal>,
 ): PersistedUiState => {
-  const activeTentacleIds = new Set(tentacles.keys());
+  const activeTerminalIds = new Set(terminals.keys());
   const nextState: PersistedUiState = {
     ...uiState,
   };
 
-  if (nextState.minimizedTentacleIds) {
-    nextState.minimizedTentacleIds = nextState.minimizedTentacleIds.filter((tentacleId) =>
-      activeTentacleIds.has(tentacleId),
+  if (nextState.minimizedTerminalIds) {
+    nextState.minimizedTerminalIds = nextState.minimizedTerminalIds.filter((id) =>
+      activeTerminalIds.has(id),
     );
   }
 
-  if (nextState.tentacleWidths) {
-    nextState.tentacleWidths = Object.entries(nextState.tentacleWidths).reduce<
+  if (nextState.terminalWidths) {
+    nextState.terminalWidths = Object.entries(nextState.terminalWidths).reduce<
       Record<string, number>
-    >((acc, [tentacleId, width]) => {
-      if (activeTentacleIds.has(tentacleId)) {
-        acc[tentacleId] = width;
+    >((acc, [id, width]) => {
+      if (activeTerminalIds.has(id)) {
+        acc[id] = width;
       }
       return acc;
     }, {});
@@ -119,38 +124,21 @@ export const pruneUiStateTentacleReferences = (
   return nextState;
 };
 
-export const parseRegistryDocument = (
-  raw: string,
+/**
+ * Migrate a v1/v2 registry document to v3 terminal format.
+ * Each old tentacle entry becomes a terminal where terminalId = tentacleId.
+ * Child agents are dropped.
+ */
+const migrateV2ToV3 = (
+  record: Record<string, unknown>,
   registryPath: string,
-): {
-  tentacles: Map<string, PersistedTentacle>;
-  tentacleAgents: Map<string, PersistedTentacleAgent[]>;
-  uiState: PersistedUiState;
-} => {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Invalid tentacle registry JSON (${registryPath}): ${toErrorMessage(error)}`);
-  }
-
-  if (parsed === null || typeof parsed !== "object") {
-    throw new Error(`Invalid tentacle registry shape (${registryPath}).`);
-  }
-
-  const record = parsed as Record<string, unknown>;
-  if (record.version !== 1 && record.version !== TENTACLE_REGISTRY_VERSION) {
-    throw new Error(
-      `Unsupported tentacle registry version in ${registryPath}: ${String(record.version)}`,
-    );
-  }
-
+): Map<string, PersistedTerminal> => {
   const rawTentacles = record.tentacles;
   if (!Array.isArray(rawTentacles)) {
-    throw new Error(`Invalid tentacle registry tentacles array (${registryPath}).`);
+    throw new Error(`Invalid registry tentacles array (${registryPath}).`);
   }
 
-  const tentacles = new Map<string, PersistedTentacle>();
+  const terminals = new Map<string, PersistedTerminal>();
   for (const item of rawTentacles) {
     if (item === null || typeof item !== "object") {
       throw new Error(`Invalid tentacle entry in registry (${registryPath}).`);
@@ -171,11 +159,12 @@ export const parseRegistryDocument = (
         ? rawWorkspaceMode
         : "shared";
 
-    if (tentacles.has(tentacleId)) {
+    if (terminals.has(tentacleId)) {
       throw new Error(`Duplicate tentacle id in registry (${registryPath}): ${tentacleId}`);
     }
 
-    tentacles.set(tentacleId, {
+    terminals.set(tentacleId, {
+      terminalId: tentacleId,
       tentacleId,
       tentacleName,
       createdAt,
@@ -183,84 +172,98 @@ export const parseRegistryDocument = (
     });
   }
 
-  const tentacleAgents = new Map<string, PersistedTentacleAgent[]>();
-  if (Array.isArray(record.agents)) {
-    const seenAgentIds = new Set<string>();
-    for (const item of record.agents) {
-      if (item === null || typeof item !== "object") {
-        throw new Error(`Invalid tentacle agent entry in registry (${registryPath}).`);
-      }
+  return terminals;
+};
 
-      const entry = item as Record<string, unknown>;
-      const agentId = typeof entry.agentId === "string" ? entry.agentId : null;
-      const tentacleId = typeof entry.tentacleId === "string" ? entry.tentacleId : null;
-      const label = typeof entry.label === "string" ? entry.label : null;
-      const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
-      const parentAgentId = typeof entry.parentAgentId === "string" ? entry.parentAgentId : null;
+const parseV3Terminals = (
+  record: Record<string, unknown>,
+  registryPath: string,
+): Map<string, PersistedTerminal> => {
+  const rawTerminals = record.terminals;
+  if (!Array.isArray(rawTerminals)) {
+    throw new Error(`Invalid registry terminals array (${registryPath}).`);
+  }
 
-      if (!agentId || !tentacleId || !label || !createdAt || !parentAgentId) {
-        throw new Error(`Incomplete tentacle agent entry in registry (${registryPath}).`);
-      }
-
-      if (seenAgentIds.has(agentId)) {
-        throw new Error(`Duplicate tentacle agent id in registry (${registryPath}): ${agentId}`);
-      }
-      seenAgentIds.add(agentId);
-
-      if (!tentacles.has(tentacleId)) {
-        continue;
-      }
-
-      const rawOrder = entry.order;
-      const order =
-        typeof rawOrder === "number" && Number.isFinite(rawOrder) && rawOrder >= 0
-          ? Math.floor(rawOrder)
-          : Number.MAX_SAFE_INTEGER;
-      const nextAgents = tentacleAgents.get(tentacleId) ?? [];
-      nextAgents.push({
-        agentId,
-        tentacleId,
-        label,
-        createdAt,
-        parentAgentId,
-        order,
-      });
-      tentacleAgents.set(tentacleId, nextAgents);
+  const terminals = new Map<string, PersistedTerminal>();
+  for (const item of rawTerminals) {
+    if (item === null || typeof item !== "object") {
+      throw new Error(`Invalid terminal entry in registry (${registryPath}).`);
     }
+
+    const entry = item as Record<string, unknown>;
+    const terminalId = typeof entry.terminalId === "string" ? entry.terminalId : null;
+    const tentacleId = typeof entry.tentacleId === "string" ? entry.tentacleId : null;
+    const tentacleName = typeof entry.tentacleName === "string" ? entry.tentacleName : null;
+    const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+
+    if (!terminalId || !tentacleId || !tentacleName || !createdAt) {
+      throw new Error(`Incomplete terminal entry in registry (${registryPath}).`);
+    }
+
+    const rawWorkspaceMode = entry.workspaceMode;
+    const workspaceMode: TentacleWorkspaceMode =
+      rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
+        ? rawWorkspaceMode
+        : "shared";
+
+    if (terminals.has(terminalId)) {
+      throw new Error(`Duplicate terminal id in registry (${registryPath}): ${terminalId}`);
+    }
+
+    terminals.set(terminalId, {
+      terminalId,
+      tentacleId,
+      tentacleName,
+      createdAt,
+      workspaceMode,
+    });
   }
 
-  for (const [tentacleId, agents] of tentacleAgents.entries()) {
-    const normalizedAgents = [...agents]
-      .sort((left, right) => {
-        if (left.order !== right.order) {
-          return left.order - right.order;
-        }
-        const leftTime = new Date(left.createdAt).getTime();
-        const rightTime = new Date(right.createdAt).getTime();
-        if (leftTime !== rightTime) {
-          return leftTime - rightTime;
-        }
-        return left.agentId.localeCompare(right.agentId);
-      })
-      .map((agent, index) => ({
-        ...agent,
-        order: index,
-      }));
-    tentacleAgents.set(tentacleId, normalizedAgents);
+  return terminals;
+};
+
+export const parseRegistryDocument = (
+  raw: string,
+  registryPath: string,
+): {
+  terminals: Map<string, PersistedTerminal>;
+  uiState: PersistedUiState;
+} => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`Invalid terminal registry JSON (${registryPath}): ${toErrorMessage(error)}`);
   }
+
+  if (parsed === null || typeof parsed !== "object") {
+    throw new Error(`Invalid terminal registry shape (${registryPath}).`);
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const version = record.version;
+
+  if (version !== 1 && version !== 2 && version !== TERMINAL_REGISTRY_VERSION) {
+    throw new Error(
+      `Unsupported terminal registry version in ${registryPath}: ${String(version)}`,
+    );
+  }
+
+  const terminals =
+    version === 1 || version === 2
+      ? migrateV2ToV3(record, registryPath)
+      : parseV3Terminals(record, registryPath);
 
   return {
-    tentacles,
-    tentacleAgents,
-    uiState: pruneUiStateTentacleReferences(parsePersistedUiState(record.uiState), tentacles),
+    terminals,
+    uiState: pruneUiStateTerminalReferences(parsePersistedUiState(record.uiState), terminals),
   };
 };
 
-export const loadTentacleRegistry = (registryPath: string) => {
+export const loadTerminalRegistry = (registryPath: string) => {
   if (!existsSync(registryPath)) {
     return {
-      tentacles: new Map<string, PersistedTentacle>(),
-      tentacleAgents: new Map<string, PersistedTentacleAgent[]>(),
+      terminals: new Map<string, PersistedTerminal>(),
       uiState: {} as PersistedUiState,
     };
   }
@@ -269,18 +272,16 @@ export const loadTentacleRegistry = (registryPath: string) => {
   return parseRegistryDocument(raw, registryPath);
 };
 
-export const persistTentacleRegistry = (
+export const persistTerminalRegistry = (
   registryPath: string,
   state: {
-    tentacles: Map<string, PersistedTentacle>;
-    tentacleAgents: Map<string, PersistedTentacleAgent[]>;
+    terminals: Map<string, PersistedTerminal>;
     uiState: PersistedUiState;
   },
 ) => {
-  const document: TentacleRegistryDocument = {
-    version: TENTACLE_REGISTRY_VERSION,
-    tentacles: [...state.tentacles.values()],
-    agents: [...state.tentacleAgents.values()].flat().map((agent) => ({ ...agent })),
+  const document: TerminalRegistryDocument = {
+    version: TERMINAL_REGISTRY_VERSION,
+    terminals: [...state.terminals.values()],
     uiState: state.uiState,
   };
 

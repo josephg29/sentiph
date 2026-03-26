@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   buildTentacleRenameUrl,
-  buildTentaclesUrl,
+  buildTerminalsUrl,
   buildTerminalSocketUrl,
 } from "../runtime/runtimeEndpoints";
-import { TentacleTerminal } from "./TentacleTerminal";
+import { Terminal } from "./Terminal";
 import { ActionButton } from "./ui/ActionButton";
 
 type SandboxAgent = {
@@ -15,7 +15,7 @@ type SandboxAgent = {
 };
 
 const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
-  const response = await fetch(buildTentaclesUrl(), {
+  const response = await fetch(buildTerminalsUrl(), {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -182,13 +182,10 @@ export const SandboxPrimaryView = () => {
       <div className="sandbox-terminals">
         {agents.map((agent) => (
           <div key={agent.terminalId} className="sandbox-terminal-panel">
-            <TentacleTerminal
+            <Terminal
               terminalId={agent.terminalId}
               terminalLabel="Sandbox Agent"
               {...(agent.initialPrompt ? { initialPrompt: agent.initialPrompt } : {})}
-              onDelete={() => {
-                void removeAgent(agent.tentacleId);
-              }}
             />
             <SandboxPromptInput terminalId={agent.terminalId} />
           </div>

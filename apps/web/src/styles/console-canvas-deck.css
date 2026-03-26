@@ -296,7 +296,7 @@
   background: rgba(224, 85, 85, 0.1);
 }
 
-/* ─── Add tentacle form ──────────────────────────────────────────────────── */
+/* ─── Add terminal form ──────────────────────────────────────────────────── */
 
 .deck-add-form {
   display: flex;
@@ -1107,7 +1107,7 @@
   animation: deck-content-fade 200ms ease-out;
 }
 
-.deck-detail-terminal .tentacle-terminal {
+.deck-detail-terminal .terminal-pane {
   flex: 1;
   display: flex;
   flex-direction: column;

@@ -3,23 +3,36 @@ import { join } from "node:path";
 
 import { TENTACLE_WORKTREE_BRANCH_PREFIX, TENTACLE_WORKTREE_RELATIVE_PATH } from "./constants";
 import { toErrorMessage } from "./systemClients";
-import type { GitClient, PersistedTentacle } from "./types";
+import type { GitClient, PersistedTerminal } from "./types";
 import { RuntimeInputError } from "./types";
 
 type CreateWorktreeManagerOptions = {
   workspaceCwd: string;
   gitClient: GitClient;
-  tentacles: Map<string, PersistedTentacle>;
+  terminals: Map<string, PersistedTerminal>;
 };
 
 type RemoveTentacleWorktreeOptions = {
   bestEffort?: boolean;
 };
 
+/** Find any terminal belonging to the given tentacleId and return it. */
+const findTerminalForTentacle = (
+  terminals: Map<string, PersistedTerminal>,
+  tentacleId: string,
+): PersistedTerminal | undefined => {
+  for (const terminal of terminals.values()) {
+    if (terminal.tentacleId === tentacleId) {
+      return terminal;
+    }
+  }
+  return undefined;
+};
+
 export const createWorktreeManager = ({
   workspaceCwd,
   gitClient,
-  tentacles,
+  terminals,
 }: CreateWorktreeManagerOptions) => {
   const getTentacleWorktreePath = (tentacleId: string) =>
     join(workspaceCwd, TENTACLE_WORKTREE_RELATIVE_PATH, tentacleId);
@@ -27,12 +40,12 @@ export const createWorktreeManager = ({
     `${TENTACLE_WORKTREE_BRANCH_PREFIX}${tentacleId}`;
 
   const getTentacleWorkspaceCwd = (tentacleId: string) => {
-    const tentacle = tentacles.get(tentacleId);
-    if (!tentacle) {
-      throw new Error(`Unknown tentacle: ${tentacleId}`);
+    const terminal = findTerminalForTentacle(terminals, tentacleId);
+    if (!terminal) {
+      throw new Error(`No terminal found for tentacle: ${tentacleId}`);
     }
 
-    if (tentacle.workspaceMode === "worktree") {
+    if (terminal.workspaceMode === "worktree") {
       return getTentacleWorktreePath(tentacleId);
     }
 
@@ -43,7 +56,7 @@ export const createWorktreeManager = ({
     gitClient.assertAvailable();
     if (!gitClient.isRepository(workspaceCwd)) {
       throw new RuntimeInputError(
-        "Worktree tentacles require a git repository at the workspace root.",
+        "Worktree terminals require a git repository at the workspace root.",
       );
     }
   };

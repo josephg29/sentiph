@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { TentacleAgentProvider } from "../app/types";
+import type { TerminalAgentProvider } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
-const PROVIDER_LABELS: Record<TentacleAgentProvider, string> = {
+const PROVIDER_LABELS: Record<TerminalAgentProvider, string> = {
   codex: "Codex",
   "claude-code": "Claude Code",
 };
 
 const AGENT_PROVIDER_STORAGE_KEY = "octogent:defaultAgentProvider";
 
-const readStoredProvider = (): TentacleAgentProvider => {
+const readStoredProvider = (): TerminalAgentProvider => {
   try {
     const stored = localStorage.getItem(AGENT_PROVIDER_STORAGE_KEY);
     if (stored === "codex" || stored === "claude-code") {
@@ -22,7 +22,7 @@ const readStoredProvider = (): TentacleAgentProvider => {
   return "claude-code";
 };
 
-const storeProvider = (provider: TentacleAgentProvider) => {
+const storeProvider = (provider: TerminalAgentProvider) => {
   try {
     localStorage.setItem(AGENT_PROVIDER_STORAGE_KEY, provider);
   } catch {
@@ -37,9 +37,9 @@ type SplitTentacleButtonProps = {
   variant: "primary" | "info";
   disabled: boolean;
   isCreating: boolean;
-  defaultProvider: TentacleAgentProvider;
-  onProviderChange: (provider: TentacleAgentProvider) => void;
-  onCreate: (provider: TentacleAgentProvider) => void;
+  defaultProvider: TerminalAgentProvider;
+  onProviderChange: (provider: TerminalAgentProvider) => void;
+  onCreate: (provider: TerminalAgentProvider) => void;
 };
 
 const SplitTentacleButton = ({
@@ -66,7 +66,7 @@ const SplitTentacleButton = ({
   }, []);
 
   const handleSelect = useCallback(
-    (provider: TentacleAgentProvider) => {
+    (provider: TerminalAgentProvider) => {
       onProviderChange(provider);
       storeProvider(provider);
       setIsOpen(false);
@@ -158,8 +158,8 @@ type ConsoleHeaderProps = {
   onToggleAgentsSidebar: () => void;
   backendLivenessStatus: "live" | "offline";
   isCreatingTentacle: boolean;
-  onCreateSharedTentacle: (provider: TentacleAgentProvider) => void;
-  onCreateWorktreeTentacle: (provider: TentacleAgentProvider) => void;
+  onCreateSharedTentacle: (provider: TerminalAgentProvider) => void;
+  onCreateWorktreeTentacle: (provider: TerminalAgentProvider) => void;
 };
 
 export const ConsoleHeader = ({
@@ -170,7 +170,7 @@ export const ConsoleHeader = ({
   onCreateSharedTentacle,
   onCreateWorktreeTentacle,
 }: ConsoleHeaderProps) => {
-  const [defaultProvider, setDefaultProvider] = useState<TentacleAgentProvider>(readStoredProvider);
+  const [defaultProvider, setDefaultProvider] = useState<TerminalAgentProvider>(readStoredProvider);
 
   return (
     <header className="chrome">

@@ -1,18 +1,18 @@
 import {
-  TENTACLE_COMPLETION_SOUND_OPTIONS,
-  type TentacleCompletionSoundId,
+  TERMINAL_COMPLETION_SOUND_OPTIONS,
+  type TerminalCompletionSoundId,
 } from "../app/notificationSounds";
 import { ActionButton } from "./ui/ActionButton";
 
 type SettingsPrimaryViewProps = {
-  tentacleCompletionSound: TentacleCompletionSoundId;
+  terminalCompletionSound: TerminalCompletionSoundId;
   isRuntimeStatusStripVisible: boolean;
   isMonitorVisible: boolean;
   isBottomTelemetryVisible: boolean;
   isCodexUsageVisible: boolean;
   isClaudeUsageVisible: boolean;
-  onTentacleCompletionSoundChange: (soundId: TentacleCompletionSoundId) => void;
-  onPreviewTentacleCompletionSound: (soundId: TentacleCompletionSoundId) => void;
+  onTerminalCompletionSoundChange: (soundId: TerminalCompletionSoundId) => void;
+  onPreviewTerminalCompletionSound: (soundId: TerminalCompletionSoundId) => void;
   onRuntimeStatusStripVisibilityChange: (visible: boolean) => void;
   onMonitorVisibilityChange: (visible: boolean) => void;
   onBottomTelemetryVisibilityChange: (visible: boolean) => void;
@@ -21,14 +21,14 @@ type SettingsPrimaryViewProps = {
 };
 
 export const SettingsPrimaryView = ({
-  tentacleCompletionSound,
+  terminalCompletionSound,
   isRuntimeStatusStripVisible,
   isMonitorVisible,
   isBottomTelemetryVisible,
   isCodexUsageVisible,
   isClaudeUsageVisible,
-  onTentacleCompletionSoundChange,
-  onPreviewTentacleCompletionSound,
+  onTerminalCompletionSoundChange,
+  onPreviewTerminalCompletionSound,
   onRuntimeStatusStripVisibilityChange,
   onMonitorVisibilityChange,
   onBottomTelemetryVisibilityChange,
@@ -47,15 +47,15 @@ export const SettingsPrimaryView = ({
         role="radiogroup"
         aria-label="Tentacle completion notification sound"
       >
-        {TENTACLE_COMPLETION_SOUND_OPTIONS.map((option) => (
+        {TERMINAL_COMPLETION_SOUND_OPTIONS.map((option) => (
           <button
-            aria-checked={tentacleCompletionSound === option.id}
+            aria-checked={terminalCompletionSound === option.id}
             className="settings-sound-option"
-            data-active={tentacleCompletionSound === option.id ? "true" : "false"}
+            data-active={terminalCompletionSound === option.id ? "true" : "false"}
             key={option.id}
             onClick={() => {
-              onTentacleCompletionSoundChange(option.id);
-              onPreviewTentacleCompletionSound(option.id);
+              onTerminalCompletionSoundChange(option.id);
+              onPreviewTerminalCompletionSound(option.id);
             }}
             role="radio"
             type="button"
@@ -71,7 +71,7 @@ export const SettingsPrimaryView = ({
           aria-label="Preview selected completion sound"
           className="settings-sound-preview"
           onClick={() => {
-            onPreviewTentacleCompletionSound(tentacleCompletionSound);
+            onPreviewTerminalCompletionSound(terminalCompletionSound);
           }}
           size="dense"
           variant="accent"

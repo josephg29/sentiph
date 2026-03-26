@@ -1,4 +1,4 @@
-.tentacle-terminal {
+.terminal-pane {
   min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -25,7 +25,7 @@
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
-.tentacle-terminal--selected .terminal-header {
+.terminal-pane--selected .terminal-header {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
@@ -336,7 +336,7 @@
     width: 100% !important;
   }
 
-  .tentacles {
+  .terminals {
     overflow-x: auto;
   }
 }

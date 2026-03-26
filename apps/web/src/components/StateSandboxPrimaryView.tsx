@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { buildTentacleRenameUrl, buildTentaclesUrl } from "../runtime/runtimeEndpoints";
+import { buildTentacleRenameUrl, buildTerminalsUrl } from "../runtime/runtimeEndpoints";
 import type { AgentRuntimeState } from "./AgentStateBadge";
-import { TentacleTerminal } from "./TentacleTerminal";
+import { Terminal } from "./Terminal";
 
 type SandboxAgent = {
   tentacleId: string;
@@ -52,7 +52,7 @@ export const StateSandboxPrimaryView = () => {
     try {
       setIsCreating(true);
       setError(null);
-      const response = await fetch(buildTentaclesUrl(), {
+      const response = await fetch(buildTerminalsUrl(), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -148,12 +148,9 @@ export const StateSandboxPrimaryView = () => {
       </div>
       <div className="state-sandbox-body">
         <div className="state-sandbox-terminal">
-          <TentacleTerminal
+          <Terminal
             terminalId={agent.terminalId}
             terminalLabel="State Sandbox Agent"
-            onDelete={() => {
-              void handleDelete();
-            }}
             onAgentRuntimeStateChange={handleStateChange}
           />
         </div>

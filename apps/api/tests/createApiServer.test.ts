@@ -456,10 +456,10 @@ describe("createApiServer", () => {
     writeFileSync(turnsPath, JSON.stringify(turns), "utf8");
   };
 
-  it("returns snapshots for GET /api/agent-snapshots", async () => {
+  it("returns snapshots for GET /api/terminal-snapshots", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const response = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -473,26 +473,26 @@ describe("createApiServer", () => {
   it("returns session summaries for GET /api/conversations", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    writeConversationTranscript(workspaceCwd, "tentacle-1-root", [
+    writeConversationTranscript(workspaceCwd, "terminal-1", [
       {
         type: "session_start",
-        eventId: "tentacle-1-root:1",
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
+        eventId: "terminal-1:1",
+        sessionId: "terminal-1",
+        tentacleId: "terminal-1",
         timestamp: "2026-03-05T10:00:00.000Z",
       },
       {
         type: "session_end",
-        eventId: "tentacle-1-root:5",
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
+        eventId: "terminal-1:5",
+        sessionId: "terminal-1",
+        tentacleId: "terminal-1",
         reason: "pty_exit",
         exitCode: 0,
         signal: 0,
         timestamp: "2026-03-05T10:00:04.000Z",
       },
     ]);
-    writeClaudeTurns(workspaceCwd, "tentacle-1-root", [
+    writeClaudeTurns(workspaceCwd, "terminal-1", [
       {
         turnId: "turn-1",
         role: "user",
@@ -523,8 +523,8 @@ describe("createApiServer", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([
       {
-        sessionId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
+        sessionId: "terminal-1",
+        tentacleId: "terminal-1",
         startedAt: "2026-03-05T10:00:00.000Z",
         endedAt: "2026-03-05T10:00:04.000Z",
         lastEventAt: "2026-03-05T10:00:04.000Z",
@@ -542,16 +542,16 @@ describe("createApiServer", () => {
   it("returns assembled conversation details and export payloads", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    writeConversationTranscript(workspaceCwd, "tentacle-2-agent-1", [
+    writeConversationTranscript(workspaceCwd, "terminal-2-agent-1", [
       {
         type: "session_start",
-        eventId: "tentacle-2-agent-1:1",
-        sessionId: "tentacle-2-agent-1",
-        tentacleId: "tentacle-2",
+        eventId: "terminal-2-agent-1:1",
+        sessionId: "terminal-2-agent-1",
+        tentacleId: "terminal-2",
         timestamp: "2026-03-05T11:00:00.000Z",
       },
     ]);
-    writeClaudeTurns(workspaceCwd, "tentacle-2-agent-1", [
+    writeClaudeTurns(workspaceCwd, "terminal-2-agent-1", [
       {
         turnId: "turn-1",
         role: "user",
@@ -572,7 +572,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const detailResponse = await fetch(`${baseUrl}/api/conversations/tentacle-2-agent-1`, {
+    const detailResponse = await fetch(`${baseUrl}/api/conversations/terminal-2-agent-1`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -580,7 +580,7 @@ describe("createApiServer", () => {
     });
     expect(detailResponse.status).toBe(200);
     await expect(detailResponse.json()).resolves.toMatchObject({
-      sessionId: "tentacle-2-agent-1",
+      sessionId: "terminal-2-agent-1",
       turnCount: 2,
       turns: [
         {
@@ -595,7 +595,7 @@ describe("createApiServer", () => {
     });
 
     const jsonExportResponse = await fetch(
-      `${baseUrl}/api/conversations/tentacle-2-agent-1/export?format=json`,
+      `${baseUrl}/api/conversations/terminal-2-agent-1/export?format=json`,
       {
         method: "GET",
         headers: {
@@ -605,12 +605,12 @@ describe("createApiServer", () => {
     );
     expect(jsonExportResponse.status).toBe(200);
     await expect(jsonExportResponse.json()).resolves.toMatchObject({
-      sessionId: "tentacle-2-agent-1",
+      sessionId: "terminal-2-agent-1",
       turnCount: 2,
     });
 
     const markdownExportResponse = await fetch(
-      `${baseUrl}/api/conversations/tentacle-2-agent-1/export?format=md`,
+      `${baseUrl}/api/conversations/terminal-2-agent-1/export?format=md`,
       {
         method: "GET",
       },
@@ -627,12 +627,12 @@ describe("createApiServer", () => {
   it("returns 400 for unsupported conversation export format", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    writeConversationTranscript(workspaceCwd, "tentacle-3-agent-1", [
+    writeConversationTranscript(workspaceCwd, "terminal-3-agent-1", [
       {
         type: "session_start",
-        eventId: "tentacle-3-agent-1:1",
-        sessionId: "tentacle-3-agent-1",
-        tentacleId: "tentacle-3",
+        eventId: "terminal-3-agent-1:1",
+        sessionId: "terminal-3-agent-1",
+        tentacleId: "terminal-3",
         timestamp: "2026-03-05T12:00:00.000Z",
       },
     ]);
@@ -642,7 +642,7 @@ describe("createApiServer", () => {
     });
 
     const response = await fetch(
-      `${baseUrl}/api/conversations/tentacle-3-agent-1/export?format=txt`,
+      `${baseUrl}/api/conversations/terminal-3-agent-1/export?format=txt`,
       {
         method: "GET",
         headers: {
@@ -659,7 +659,7 @@ describe("createApiServer", () => {
   it("rejects non-local browser origins for HTTP endpoints", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const response = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -678,7 +678,7 @@ describe("createApiServer", () => {
     const baseUrl = await startServer();
     const origin = "http://localhost:5173";
 
-    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const response = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -694,7 +694,7 @@ describe("createApiServer", () => {
   it("rejects non-local CORS preflight requests", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/tentacles`, {
+    const response = await fetch(`${baseUrl}/api/terminals`, {
       method: "OPTIONS",
       headers: {
         Origin: "https://attacker.example",
@@ -707,7 +707,7 @@ describe("createApiServer", () => {
 
   it("rejects websocket upgrades from non-local origins", async () => {
     const baseUrl = await startServer();
-    const wsUrl = new URL(`${toWebSocketBaseUrl(baseUrl)}/api/terminals/tentacle-1/ws`);
+    const wsUrl = new URL(`${toWebSocketBaseUrl(baseUrl)}/api/terminals/terminal-1/ws`);
 
     const opened = await new Promise<boolean>((resolve) => {
       const socket = createConnection({
@@ -745,10 +745,10 @@ describe("createApiServer", () => {
     expect(opened).toBe(false);
   });
 
-  it("returns 405 for unsupported methods on /api/agent-snapshots", async () => {
+  it("returns 405 for unsupported methods on /api/terminal-snapshots", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const response = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "POST",
     });
 
@@ -758,7 +758,7 @@ describe("createApiServer", () => {
   it("sanitizes unexpected internal errors from API responses", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/tentacles/%E0%A4%A`, {
+    const response = await fetch(`${baseUrl}/api/terminals/%E0%A4%A`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -988,7 +988,7 @@ describe("createApiServer", () => {
   it("returns 413 when create tentacle body exceeds size limit", async () => {
     const baseUrl = await startServer();
 
-    const response = await fetch(`${baseUrl}/api/tentacles`, {
+    const response = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1015,7 +1015,7 @@ describe("createApiServer", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        minimizedTentacleIds: ["tentacle-1"],
+        minimizedTerminalIds: ["terminal-1"],
         blob: "x".repeat(1024 * 1024 + 1),
       }),
     });
@@ -1036,13 +1036,13 @@ describe("createApiServer", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        tentacleCompletionSound: "laser-zap",
+        terminalCompletionSound: "laser-zap",
       }),
     });
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "tentacleCompletionSound must be one of the supported sound identifiers.",
+      error: "terminalCompletionSound must be one of the supported sound identifiers.",
     });
   });
 
@@ -1054,7 +1054,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const createResponse = await fetch(`${firstBaseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${firstBaseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1079,10 +1079,10 @@ describe("createApiServer", () => {
         isClaudeUsageVisible: false,
         isClaudeUsageSectionExpanded: false,
         isCodexUsageSectionExpanded: false,
-        tentacleCompletionSound: "double-beep",
-        minimizedTentacleIds: ["tentacle-1"],
-        tentacleWidths: {
-          "tentacle-1": 420,
+        terminalCompletionSound: "double-beep",
+        minimizedTerminalIds: ["terminal-1"],
+        terminalWidths: {
+          "terminal-1": 420,
         },
       }),
     });
@@ -1098,10 +1098,10 @@ describe("createApiServer", () => {
       isClaudeUsageVisible: false,
       isClaudeUsageSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
-      tentacleCompletionSound: "double-beep",
-      minimizedTentacleIds: ["tentacle-1"],
-      tentacleWidths: {
-        "tentacle-1": 420,
+      terminalCompletionSound: "double-beep",
+      minimizedTerminalIds: ["terminal-1"],
+      terminalWidths: {
+        "terminal-1": 420,
       },
     });
 
@@ -1133,10 +1133,10 @@ describe("createApiServer", () => {
       isClaudeUsageVisible: false,
       isClaudeUsageSectionExpanded: false,
       isCodexUsageSectionExpanded: false,
-      tentacleCompletionSound: "double-beep",
-      minimizedTentacleIds: ["tentacle-1"],
-      tentacleWidths: {
-        "tentacle-1": 420,
+      terminalCompletionSound: "double-beep",
+      minimizedTerminalIds: ["terminal-1"],
+      terminalWidths: {
+        "terminal-1": 420,
       },
     });
   });
@@ -1144,7 +1144,7 @@ describe("createApiServer", () => {
   it("creates new tentacles with unique incremental ids", async () => {
     const baseUrl = await startServer();
 
-    const createFirstResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createFirstResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1156,16 +1156,16 @@ describe("createApiServer", () => {
     expect(createFirstResponse.status).toBe(201);
     await expect(createFirstResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        agentId: "tentacle-1-root",
-        label: "tentacle-1-root",
+        terminalId: "terminal-1",
+        label: "terminal-1",
         state: "live",
-        tentacleId: "tentacle-1",
+        tentacleId: "terminal-1",
         tentacleName: "planner",
-        tentacleWorkspaceMode: "shared",
+        workspaceMode: "shared",
       }),
     );
 
-    const createSecondResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createSecondResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1175,16 +1175,16 @@ describe("createApiServer", () => {
     expect(createSecondResponse.status).toBe(201);
     await expect(createSecondResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        agentId: "tentacle-2-root",
-        label: "tentacle-2-root",
+        terminalId: "terminal-2",
+        label: "terminal-2",
         state: "live",
-        tentacleId: "tentacle-2",
-        tentacleName: "tentacle-2",
-        tentacleWorkspaceMode: "shared",
+        tentacleId: "terminal-2",
+        tentacleName: "terminal-2",
+        workspaceMode: "shared",
       }),
     );
 
-    const renameResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-2`, {
+    const renameResponse = await fetch(`${baseUrl}/api/terminals/terminal-2`, {
       method: "PATCH",
       headers: {
         Accept: "application/json",
@@ -1196,12 +1196,12 @@ describe("createApiServer", () => {
     expect(renameResponse.status).toBe(200);
     await expect(renameResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        tentacleId: "tentacle-2",
+        tentacleId: "terminal-2",
         tentacleName: "reviewer",
       }),
     );
 
-    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -1212,26 +1212,16 @@ describe("createApiServer", () => {
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          agentId: "tentacle-1-root",
-          tentacleId: "tentacle-1",
+          terminalId: "terminal-1",
+          tentacleId: "terminal-1",
           tentacleName: "planner",
-          tentacleWorkspaceMode: "shared",
+          workspaceMode: "shared",
         }),
         expect.objectContaining({
-          agentId: "tentacle-1-agent-1",
-          tentacleId: "tentacle-1",
-          parentAgentId: "tentacle-1-root",
-        }),
-        expect.objectContaining({
-          agentId: "tentacle-2-root",
-          tentacleId: "tentacle-2",
+          terminalId: "terminal-2",
+          tentacleId: "terminal-2",
           tentacleName: "reviewer",
-          tentacleWorkspaceMode: "shared",
-        }),
-        expect.objectContaining({
-          agentId: "tentacle-2-agent-1",
-          tentacleId: "tentacle-2",
-          parentAgentId: "tentacle-2-root",
+          workspaceMode: "shared",
         }),
       ]),
     );
@@ -1240,7 +1230,7 @@ describe("createApiServer", () => {
   it("reuses the minimum available tentacle number after deletions", async () => {
     const baseUrl = await startServer();
 
-    const createFirstResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createFirstResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1248,7 +1238,7 @@ describe("createApiServer", () => {
     });
     expect(createFirstResponse.status).toBe(201);
 
-    const createSecondResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createSecondResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1256,7 +1246,7 @@ describe("createApiServer", () => {
     });
     expect(createSecondResponse.status).toBe(201);
 
-    const deleteFirstResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const deleteFirstResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -1264,7 +1254,7 @@ describe("createApiServer", () => {
     });
     expect(deleteFirstResponse.status).toBe(204);
 
-    const createThirdResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createThirdResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1273,146 +1263,9 @@ describe("createApiServer", () => {
     expect(createThirdResponse.status).toBe(201);
     await expect(createThirdResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        tentacleId: "tentacle-1",
+        tentacleId: "terminal-1",
       }),
     );
-  });
-
-  it("creates child terminal agents above or below an anchor terminal", async () => {
-    const baseUrl = await startServer();
-
-    const createTentacleResponse = await fetch(`${baseUrl}/api/tentacles`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(createTentacleResponse.status).toBe(201);
-
-    const addBelowRootResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/agents`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        anchorAgentId: "tentacle-1-root",
-        placement: "down",
-      }),
-    });
-    expect(addBelowRootResponse.status).toBe(201);
-    await expect(addBelowRootResponse.json()).resolves.toEqual(
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-2",
-        tentacleId: "tentacle-1",
-      }),
-    );
-
-    const addAboveChildResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/agents`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        anchorAgentId: "tentacle-1-agent-1",
-        placement: "up",
-      }),
-    });
-    expect(addAboveChildResponse.status).toBe(201);
-    await expect(addAboveChildResponse.json()).resolves.toEqual(
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-3",
-        tentacleId: "tentacle-1",
-      }),
-    );
-
-    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        agentId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
-      }),
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-2",
-        tentacleId: "tentacle-1",
-      }),
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-3",
-        tentacleId: "tentacle-1",
-      }),
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-1",
-        tentacleId: "tentacle-1",
-      }),
-    ]);
-
-    const deleteAgentResponse = await fetch(
-      `${baseUrl}/api/tentacles/tentacle-1/agents/tentacle-1-agent-1`,
-      {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
-    expect(deleteAgentResponse.status).toBe(204);
-
-    const listAfterDeleteResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(listAfterDeleteResponse.status).toBe(200);
-    await expect(listAfterDeleteResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        agentId: "tentacle-1-root",
-        tentacleId: "tentacle-1",
-      }),
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-2",
-        tentacleId: "tentacle-1",
-        parentAgentId: "tentacle-1-root",
-      }),
-      expect.objectContaining({
-        agentId: "tentacle-1-agent-3",
-        tentacleId: "tentacle-1",
-        parentAgentId: "tentacle-1-root",
-      }),
-    ]);
-  });
-
-  it("returns 409 when deleting the root terminal through the agent endpoint", async () => {
-    const baseUrl = await startServer();
-
-    const createTentacleResponse = await fetch(`${baseUrl}/api/tentacles`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(createTentacleResponse.status).toBe(201);
-
-    const deleteRootResponse = await fetch(
-      `${baseUrl}/api/tentacles/tentacle-1/agents/tentacle-1-root`,
-      {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
-    expect(deleteRootResponse.status).toBe(409);
-    await expect(deleteRootResponse.json()).resolves.toEqual({
-      error: "Root terminal cannot be deleted from terminal controls.",
-    });
   });
 
   it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {
@@ -1438,7 +1291,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1447,7 +1300,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        tentacleId: "tentacle-1",
+        tentacleId: "terminal-1",
       }),
     );
   });
@@ -1455,7 +1308,7 @@ describe("createApiServer", () => {
   it("skips tentacle ids that already have an existing worktree directory", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    mkdirSync(join(workspaceCwd, ".octogent", "worktrees", "tentacle-1"), {
+    mkdirSync(join(workspaceCwd, ".octogent", "worktrees", "terminal-1"), {
       recursive: true,
     });
 
@@ -1463,7 +1316,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1472,7 +1325,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        tentacleId: "tentacle-2",
+        tentacleId: "terminal-2",
       }),
     );
   });
@@ -1484,7 +1337,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1496,19 +1349,20 @@ describe("createApiServer", () => {
 
     const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
     const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
-      tentacles: Array<{ tentacleId: string; workspaceMode: "shared" | "worktree" }>;
+      terminals: Array<{ terminalId: string; tentacleId: string; workspaceMode: "shared" | "worktree" }>;
     };
-    expect(registryDocument.tentacles).toEqual(
+    expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          tentacleId: "tentacle-1",
+          terminalId: "terminal-1",
+          tentacleId: "terminal-1",
           workspaceMode: "shared",
         }),
       ]),
     );
   });
 
-  it("creates isolated worktree tentacles with dedicated cwd", async () => {
+  it("creates isolated worktree terminals with dedicated cwd", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -1517,7 +1371,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1531,29 +1385,30 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
-        tentacleId: "tentacle-1",
+        tentacleId: "terminal-1",
         tentacleName: "planner",
-        tentacleWorkspaceMode: "worktree",
+        workspaceMode: "worktree",
       }),
     );
 
-    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/tentacle-1",
+        branchName: "octogent/terminal-1",
         baseRef: "HEAD",
       }),
     );
 
     const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
     const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
-      tentacles: Array<{ tentacleId: string; workspaceMode: "shared" | "worktree" }>;
+      terminals: Array<{ terminalId: string; tentacleId: string; workspaceMode: "shared" | "worktree" }>;
     };
-    expect(registryDocument.tentacles).toEqual(
+    expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          tentacleId: "tentacle-1",
+          terminalId: "terminal-1",
+          tentacleId: "terminal-1",
           workspaceMode: "worktree",
         }),
       ]),
@@ -1569,7 +1424,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1581,10 +1436,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
@@ -1595,7 +1450,7 @@ describe("createApiServer", () => {
       defaultBaseBranchName: "main",
     });
 
-    const statusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/status`, {
+    const statusResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/status`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -1603,10 +1458,10 @@ describe("createApiServer", () => {
     });
     expect(statusResponse.status).toBe(200);
     await expect(statusResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
@@ -1621,7 +1476,7 @@ describe("createApiServer", () => {
   it("returns 409 for git status on shared tentacles", async () => {
     const baseUrl = await startServer();
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1629,7 +1484,7 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const statusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/status`, {
+    const statusResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/status`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -1637,7 +1492,7 @@ describe("createApiServer", () => {
     });
     expect(statusResponse.status).toBe(409);
     await expect(statusResponse.json()).resolves.toEqual({
-      error: "Git lifecycle actions are only available for worktree tentacles.",
+      error: "Git lifecycle actions are only available for worktree terminals.",
     });
   });
 
@@ -1650,7 +1505,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1662,10 +1517,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: true,
       aheadCount: 0,
       behindCount: 0,
@@ -1676,7 +1531,7 @@ describe("createApiServer", () => {
       defaultBaseBranchName: "main",
     });
 
-    const commitResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/commit`, {
+    const commitResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/commit`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1689,10 +1544,10 @@ describe("createApiServer", () => {
     expect(commitResponse.status).toBe(200);
     expect(gitClient.getLastCommitMessage(worktreePath)).toBe("feat: add worktree git actions");
     await expect(commitResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 1,
       behindCount: 0,
@@ -1713,7 +1568,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1725,8 +1580,8 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
-    const commitResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/commit`, {
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
+    const commitResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/commit`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1752,7 +1607,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1764,9 +1619,9 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
       upstreamBranchName: null,
       isDirty: false,
       aheadCount: 3,
@@ -1778,7 +1633,7 @@ describe("createApiServer", () => {
       defaultBaseBranchName: "main",
     });
 
-    const pushResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/push`, {
+    const pushResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/push`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1787,10 +1642,10 @@ describe("createApiServer", () => {
     expect(pushResponse.status).toBe(200);
     expect(gitClient.getPushCount(worktreePath)).toBe(1);
     await expect(pushResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -1811,7 +1666,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1823,10 +1678,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 4,
@@ -1837,7 +1692,7 @@ describe("createApiServer", () => {
       defaultBaseBranchName: "main",
     });
 
-    const syncResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/sync`, {
+    const syncResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/sync`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1850,10 +1705,10 @@ describe("createApiServer", () => {
     expect(syncResponse.status).toBe(200);
     expect(gitClient.getSyncBaseRefs(worktreePath)).toEqual(["main"]);
     await expect(syncResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -1874,7 +1729,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1886,20 +1741,20 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreePullRequest(worktreePath, {
       number: 142,
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
     });
 
-    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/pr`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -1907,14 +1762,14 @@ describe("createApiServer", () => {
     });
     expect(prStatusResponse.status).toBe(200);
     await expect(prStatusResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
       status: "open",
       number: 142,
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
@@ -1930,7 +1785,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1942,10 +1797,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -1956,7 +1811,7 @@ describe("createApiServer", () => {
       defaultBaseBranchName: "main",
     });
 
-    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/pr`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1970,14 +1825,14 @@ describe("createApiServer", () => {
     });
     expect(createPrResponse.status).toBe(200);
     await expect(createPrResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
       status: "open",
       number: 101,
       url: "https://github.com/hesamsheikh/octogent/pull/101",
       title: "feat: expose worktree lifecycle actions",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
@@ -1993,7 +1848,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2005,10 +1860,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/tentacle-1",
-      upstreamBranchName: "origin/octogent/tentacle-1",
+      branchName: "octogent/terminal-1",
+      upstreamBranchName: "origin/octogent/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -2023,14 +1878,14 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: existing worktree lifecycle PR",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
     });
 
-    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+    const createPrResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/pr`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2059,7 +1914,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2071,20 +1926,20 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const worktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setWorktreePullRequest(worktreePath, {
       number: 190,
       url: "https://github.com/hesamsheikh/octogent/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
     });
 
-    const mergeResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr/merge`, {
+    const mergeResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/pr/merge`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2093,14 +1948,14 @@ describe("createApiServer", () => {
     expect(mergeResponse.status).toBe(200);
     expect(gitClient.getPullRequestState(worktreePath)).toBe("MERGED");
     await expect(mergeResponse.json()).resolves.toEqual({
-      tentacleId: "tentacle-1",
+      tentacleId: "terminal-1",
       workspaceMode: "worktree",
       status: "merged",
       number: 190,
       url: "https://github.com/hesamsheikh/octogent/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
-      headRef: "octogent/tentacle-1",
+      headRef: "octogent/terminal-1",
       isDraft: false,
       mergeable: "UNKNOWN",
       mergeStateStatus: "MERGED",
@@ -2110,7 +1965,7 @@ describe("createApiServer", () => {
   it("returns 409 for PR actions on shared tentacles", async () => {
     const baseUrl = await startServer();
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2118,7 +1973,7 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1/git/pr`, {
+    const prStatusResponse = await fetch(`${baseUrl}/api/tentacles/terminal-1/git/pr`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -2126,7 +1981,7 @@ describe("createApiServer", () => {
     });
     expect(prStatusResponse.status).toBe(409);
     await expect(prStatusResponse.json()).resolves.toEqual({
-      error: "Git lifecycle actions are only available for worktree tentacles.",
+      error: "Git lifecycle actions are only available for worktree terminals.",
     });
   });
 
@@ -2139,7 +1994,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2151,15 +2006,15 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/tentacle-1",
+        branchName: "octogent/terminal-1",
       }),
     );
 
-    const deleteResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const deleteResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -2167,7 +2022,7 @@ describe("createApiServer", () => {
     });
     expect(deleteResponse.status).toBe(204);
     expect(gitClient.getWorktree(expectedWorktreePath)).toBeNull();
-    expect(gitClient.hasBranch("octogent/tentacle-1")).toBe(false);
+    expect(gitClient.hasBranch("octogent/terminal-1")).toBe(false);
   });
 
   it("returns 409 and keeps tentacle state when worktree deletion fails", async () => {
@@ -2179,7 +2034,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2191,10 +2046,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "tentacle-1");
+    const expectedWorktreePath = join(workspaceCwd, ".octogent", "worktrees", "terminal-1");
     gitClient.setFailRemoveWorktree(true);
 
-    const deleteResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const deleteResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -2202,16 +2057,16 @@ describe("createApiServer", () => {
     });
     expect(deleteResponse.status).toBe(409);
     await expect(deleteResponse.json()).resolves.toEqual({
-      error: expect.stringContaining("Unable to remove worktree for tentacle-1"),
+      error: expect.stringContaining("Unable to remove worktree for terminal-1"),
     });
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/tentacle-1",
+        branchName: "octogent/terminal-1",
       }),
     );
 
-    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -2221,13 +2076,8 @@ describe("createApiServer", () => {
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          agentId: "tentacle-1-root",
-          tentacleId: "tentacle-1",
-        }),
-        expect.objectContaining({
-          agentId: "tentacle-1-agent-1",
-          tentacleId: "tentacle-1",
-          parentAgentId: "tentacle-1-root",
+          terminalId: "terminal-1",
+          tentacleId: "terminal-1",
         }),
       ]),
     );
@@ -2236,7 +2086,7 @@ describe("createApiServer", () => {
   it("returns 400 when workspace mode is invalid", async () => {
     const baseUrl = await startServer();
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2249,7 +2099,7 @@ describe("createApiServer", () => {
 
     expect(createResponse.status).toBe(400);
     await expect(createResponse.json()).resolves.toEqual({
-      error: "Tentacle workspace mode must be either 'shared' or 'worktree'.",
+      error: "Terminal workspace mode must be either 'shared' or 'worktree'.",
     });
   });
 
@@ -2263,7 +2113,7 @@ describe("createApiServer", () => {
       gitClient,
     });
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2275,10 +2125,10 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(400);
     await expect(createResponse.json()).resolves.toEqual({
-      error: "Worktree tentacles require a git repository at the workspace root.",
+      error: "Worktree terminals require a git repository at the workspace root.",
     });
 
-    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -2291,7 +2141,7 @@ describe("createApiServer", () => {
   it("returns 400 when tentacle name is empty after trimming", async () => {
     const baseUrl = await startServer();
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2302,7 +2152,7 @@ describe("createApiServer", () => {
 
     expect(createResponse.status).toBe(400);
 
-    const validCreateResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const validCreateResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2310,7 +2160,7 @@ describe("createApiServer", () => {
     });
     expect(validCreateResponse.status).toBe(201);
 
-    const renameResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const renameResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "PATCH",
       headers: {
         Accept: "application/json",
@@ -2325,7 +2175,7 @@ describe("createApiServer", () => {
   it("deletes a tentacle and removes it from snapshots", async () => {
     const baseUrl = await startServer();
 
-    const createResponse = await fetch(`${baseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2333,7 +2183,7 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const deleteResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const deleteResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -2341,7 +2191,7 @@ describe("createApiServer", () => {
     });
     expect(deleteResponse.status).toBe(204);
 
-    const listResponse = await fetch(`${baseUrl}/api/agent-snapshots`, {
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -2350,7 +2200,7 @@ describe("createApiServer", () => {
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
 
-    const missingResponse = await fetch(`${baseUrl}/api/tentacles/tentacle-1`, {
+    const missingResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
       method: "DELETE",
       headers: {
         Accept: "application/json",
@@ -2367,7 +2217,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const createResponse = await fetch(`${firstBaseUrl}/api/tentacles`, {
+    const createResponse = await fetch(`${firstBaseUrl}/api/terminals`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -2386,7 +2236,7 @@ describe("createApiServer", () => {
       workspaceCwd,
     });
 
-    const listResponse = await fetch(`${secondBaseUrl}/api/agent-snapshots`, {
+    const listResponse = await fetch(`${secondBaseUrl}/api/terminal-snapshots`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -2397,14 +2247,9 @@ describe("createApiServer", () => {
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          agentId: "tentacle-1-root",
-          tentacleId: "tentacle-1",
+          terminalId: "terminal-1",
+          tentacleId: "terminal-1",
           tentacleName: "planner",
-        }),
-        expect.objectContaining({
-          agentId: "tentacle-1-agent-1",
-          tentacleId: "tentacle-1",
-          parentAgentId: "tentacle-1-root",
         }),
       ]),
     );

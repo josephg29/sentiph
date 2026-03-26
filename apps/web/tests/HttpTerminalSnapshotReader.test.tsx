@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { HttpAgentSnapshotReader } from "../src/runtime/HttpAgentSnapshotReader";
+import { HttpTerminalSnapshotReader } from "../src/runtime/HttpTerminalSnapshotReader";
 
-describe("HttpAgentSnapshotReader", () => {
+describe("HttpTerminalSnapshotReader", () => {
   it("loads snapshots and filters out malformed payload entries", async () => {
-    const reader = new HttpAgentSnapshotReader({
-      endpoint: "https://runtime.example.com/api/agent-snapshots",
+    const reader = new HttpTerminalSnapshotReader({
+      endpoint: "https://runtime.example.com/api/terminal-snapshots",
       fetcher: async () => ({
         ok: true,
         status: 200,
         json: async () => [
           {
-            agentId: "agent-1",
+            terminalId: "agent-1",
             label: "root-a",
             state: "live",
             tentacleId: "tentacle-a",
@@ -25,9 +25,9 @@ describe("HttpAgentSnapshotReader", () => {
       }),
     });
 
-    await expect(reader.listAgentSnapshots()).resolves.toEqual([
+    await expect(reader.listTerminalSnapshots()).resolves.toEqual([
       {
-        agentId: "agent-1",
+        terminalId: "agent-1",
         label: "root-a",
         state: "live",
         tentacleId: "tentacle-a",
@@ -38,8 +38,8 @@ describe("HttpAgentSnapshotReader", () => {
   });
 
   it("throws when API response is not ok", async () => {
-    const reader = new HttpAgentSnapshotReader({
-      endpoint: "https://runtime.example.com/api/agent-snapshots",
+    const reader = new HttpTerminalSnapshotReader({
+      endpoint: "https://runtime.example.com/api/terminal-snapshots",
       fetcher: async () => ({
         ok: false,
         status: 503,
@@ -47,8 +47,8 @@ describe("HttpAgentSnapshotReader", () => {
       }),
     });
 
-    await expect(reader.listAgentSnapshots()).rejects.toThrow(
-      "Unable to load agent snapshots (503)",
+    await expect(reader.listTerminalSnapshots()).rejects.toThrow(
+      "Unable to load terminal snapshots (503)",
     );
   });
 });

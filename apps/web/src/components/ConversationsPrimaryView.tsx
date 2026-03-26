@@ -147,11 +147,9 @@ export const ConversationsPrimaryView = ({
                   <MarkdownContent
                     content={turn.content}
                     className="conversations-turn-content"
-                    highlightTerm={
-                      turn.turnId === highlightedTurnId && searchQuery.length > 0
-                        ? searchQuery
-                        : undefined
-                    }
+                    {...(turn.turnId === highlightedTurnId && searchQuery.length > 0
+                      ? { highlightTerm: searchQuery }
+                      : {})}
                   />
                 </li>
               ))}

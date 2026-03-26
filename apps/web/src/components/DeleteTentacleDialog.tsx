@@ -1,38 +1,38 @@
 import { useEffect, useState } from "react";
 
-import type { PendingDeleteTentacle } from "../app/hooks/useTentacleMutations";
+import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { ActionButton } from "./ui/ActionButton";
 
 type DeleteTentacleDialogProps = {
-  pendingDeleteTentacle: PendingDeleteTentacle;
-  isDeletingTentacleId: string | null;
+  pendingDeleteTerminal: PendingDeleteTerminal;
+  isDeletingTerminalId: string | null;
   onCancel: () => void;
   onConfirmDelete: () => void;
 };
 
 export const DeleteTentacleDialog = ({
-  pendingDeleteTentacle,
-  isDeletingTentacleId,
+  pendingDeleteTerminal,
+  isDeletingTerminalId,
   onCancel,
   onConfirmDelete,
 }: DeleteTentacleDialogProps) => {
   const [cleanupConfirmationInput, setCleanupConfirmationInput] = useState("");
   const isCleanupIntent =
-    pendingDeleteTentacle.intent === "cleanup-worktree" &&
-    pendingDeleteTentacle.workspaceMode === "worktree";
+    pendingDeleteTerminal.intent === "cleanup-worktree" &&
+    pendingDeleteTerminal.workspaceMode === "worktree";
   const isCleanupConfirmationValid =
-    !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTentacle.tentacleId;
+    !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
 
   useEffect(() => {
     setCleanupConfirmationInput("");
-  }, [pendingDeleteTentacle.tentacleId, pendingDeleteTentacle.intent]);
+  }, [pendingDeleteTerminal.terminalId, pendingDeleteTerminal.intent]);
 
   return (
     <section
-      aria-label={`Delete confirmation for ${pendingDeleteTentacle.tentacleId}`}
+      aria-label={`Delete confirmation for ${pendingDeleteTerminal.terminalId}`}
       className="delete-confirm-dialog"
       onKeyDown={(event) => {
-        if (event.key !== "Escape" || isDeletingTentacleId !== null) {
+        if (event.key !== "Escape" || isDeletingTerminalId !== null) {
           return;
         }
         event.preventDefault();
@@ -47,7 +47,7 @@ export const DeleteTentacleDialog = ({
           <ActionButton
             aria-label="Close sidebar action panel"
             className="delete-confirm-close"
-            disabled={isDeletingTentacleId !== null}
+            disabled={isDeletingTerminalId !== null}
             onClick={onCancel}
             size="dense"
             variant="accent"
@@ -60,12 +60,12 @@ export const DeleteTentacleDialog = ({
         <p className="delete-confirm-message">
           {isCleanupIntent ? (
             <>
-              Cleanup <strong>{pendingDeleteTentacle.tentacleName}</strong> and delete the tentacle
+              Cleanup <strong>{pendingDeleteTerminal.tentacleName}</strong> and delete the tentacle
               session metadata.
             </>
           ) : (
             <>
-              Delete <strong>{pendingDeleteTentacle.tentacleName}</strong> and terminate all of its
+              Delete <strong>{pendingDeleteTerminal.tentacleName}</strong> and terminate all of its
               active sessions.
             </>
           )}
@@ -78,15 +78,15 @@ export const DeleteTentacleDialog = ({
         <dl className="delete-confirm-details">
           <div>
             <dt>Name</dt>
-            <dd>{pendingDeleteTentacle.tentacleName}</dd>
+            <dd>{pendingDeleteTerminal.tentacleName}</dd>
           </div>
           <div>
             <dt>ID</dt>
-            <dd>{pendingDeleteTentacle.tentacleId}</dd>
+            <dd>{pendingDeleteTerminal.terminalId}</dd>
           </div>
           <div>
             <dt>Mode</dt>
-            <dd>{pendingDeleteTentacle.workspaceMode === "worktree" ? "worktree" : "shared"}</dd>
+            <dd>{pendingDeleteTerminal.workspaceMode === "worktree" ? "worktree" : "shared"}</dd>
           </div>
         </dl>
         {isCleanupIntent && (
@@ -115,16 +115,16 @@ export const DeleteTentacleDialog = ({
           Cancel
         </ActionButton>
         <ActionButton
-          aria-label={`Confirm delete ${pendingDeleteTentacle.tentacleId}`}
+          aria-label={`Confirm delete ${pendingDeleteTerminal.terminalId}`}
           className="delete-confirm-submit"
           disabled={
-            isDeletingTentacleId === pendingDeleteTentacle.tentacleId || !isCleanupConfirmationValid
+            isDeletingTerminalId === pendingDeleteTerminal.terminalId || !isCleanupConfirmationValid
           }
           onClick={onConfirmDelete}
           size="dense"
           variant="danger"
         >
-          {isDeletingTentacleId === pendingDeleteTentacle.tentacleId
+          {isDeletingTerminalId === pendingDeleteTerminal.terminalId
             ? "Deleting..."
             : isCleanupIntent
               ? "Cleanup"

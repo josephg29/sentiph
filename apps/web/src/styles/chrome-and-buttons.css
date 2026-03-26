@@ -155,7 +155,7 @@
   outline-offset: 1px;
 }
 
-.chrome-create-tentacle {
+.chrome-create-terminal {
   --action-button-border: var(--border-subtle);
   --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
   --action-button-color: #121212;
@@ -166,13 +166,13 @@
   --action-button-padding-x: 0.44rem;
 }
 
-.chrome-create-tentacle--worktree {
+.chrome-create-terminal--worktree {
   --action-button-border: color-mix(in srgb, #9bc8ff 45%, var(--border-subtle));
   --action-button-bg: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
   --action-button-color: #9bc8ff;
 }
 
-/* Split button for tentacle creation with provider dropdown */
+/* Split button for terminal creation with provider dropdown */
 .split-button {
   position: relative;
   display: inline-flex;

@@ -16,7 +16,7 @@ describe("hotkeys helpers", () => {
 
   it("returns null for unsupported nav keys", () => {
     expect(parsePrimaryNavKey("0")).toBeNull();
-    expect(parsePrimaryNavKey("6")).toBeNull();
+    expect(parsePrimaryNavKey("10")).toBeNull();
     expect(parsePrimaryNavKey("x")).toBeNull();
     expect(parsePrimaryNavKey("/")).toBeNull();
   });

@@ -4,7 +4,7 @@ import type { WebSocket } from "ws";
 
 import type { TerminalServerMessage, TerminalSession } from "./types";
 
-export const getTentacleId = (request: IncomingMessage) => {
+export const getTerminalId = (request: IncomingMessage) => {
   if (!request.url) {
     return null;
   }

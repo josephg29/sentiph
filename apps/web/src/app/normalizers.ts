@@ -1,5 +1,5 @@
 import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, PRIMARY_NAV_MAX } from "./constants";
-import { isTentacleCompletionSoundId } from "./notificationSounds";
+import { isTerminalCompletionSoundId } from "./notificationSounds";
 import type {
   ClaudeUsageSnapshot,
   CodexUsageSnapshot,
@@ -239,22 +239,24 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isClaudeUsageSectionExpanded = record.isClaudeUsageSectionExpanded;
   }
 
-  if (isTentacleCompletionSoundId(record.tentacleCompletionSound)) {
-    nextState.tentacleCompletionSound = record.tentacleCompletionSound;
+  const completionSoundValue = record.terminalCompletionSound ?? record.tentacleCompletionSound;
+  if (isTerminalCompletionSoundId(completionSoundValue)) {
+    nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  if (Array.isArray(record.minimizedTentacleIds)) {
-    nextState.minimizedTentacleIds = [...new Set(record.minimizedTentacleIds)].filter(
-      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+  const minimizedIdsValue = record.minimizedTerminalIds ?? record.minimizedTentacleIds;
+  if (Array.isArray(minimizedIdsValue)) {
+    nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter(
+      (id): id is string => typeof id === "string",
     );
   }
 
-  const rawTentacleWidths = asRecord(record.tentacleWidths);
-  if (rawTentacleWidths) {
-    nextState.tentacleWidths = Object.entries(rawTentacleWidths).reduce<Record<string, number>>(
-      (acc, [tentacleId, width]) => {
+  const rawTerminalWidths = asRecord(record.terminalWidths ?? record.tentacleWidths);
+  if (rawTerminalWidths) {
+    nextState.terminalWidths = Object.entries(rawTerminalWidths).reduce<Record<string, number>>(
+      (acc, [terminalId, width]) => {
         if (typeof width === "number" && Number.isFinite(width)) {
-          acc[tentacleId] = width;
+          acc[terminalId] = width;
         }
         return acc;
       },

@@ -10,47 +10,33 @@ describe("App active agents sidebar", () => {
     resetAppTestHarness();
   });
 
-  it("renders active agents grouped by tentacle in the sidebar", async () => {
+  it("renders terminals individually in the sidebar", async () => {
     const longWorkerLabel = "worker-1-with-a-very-long-label-that-should-truncate-in-the-sidebar";
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "tentacle-a-root",
-          label: "tentacle-a-root",
-          state: "live",
-          tentacleId: "tentacle-a",
-          createdAt: "2026-02-24T10:00:00.000Z",
-        },
-        {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
-          parentAgentId: "tentacle-a-root",
-          createdAt: "2026-02-24T10:01:00.000Z",
+          tentacleName: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
         },
         {
-          agentId: "agent-2",
+          terminalId: "terminal-2",
           label: longWorkerLabel,
           state: "idle",
           tentacleId: "tentacle-a",
-          parentAgentId: "tentacle-a-root",
+          tentacleName: "tentacle-a",
           createdAt: "2026-02-24T10:05:00.000Z",
         },
         {
-          agentId: "tentacle-b-root",
-          label: "tentacle-b-root",
-          state: "live",
-          tentacleId: "tentacle-b",
-          createdAt: "2026-02-24T11:00:00.000Z",
-        },
-        {
-          agentId: "agent-3",
+          terminalId: "terminal-3",
           label: "reviewer",
           state: "idle",
           tentacleId: "tentacle-b",
-          parentAgentId: "tentacle-b-root",
-          createdAt: "2026-02-24T11:01:00.000Z",
+          tentacleName: "tentacle-b",
+          createdAt: "2026-02-24T11:00:00.000Z",
         },
       ]),
     );
@@ -58,29 +44,29 @@ describe("App active agents sidebar", () => {
     render(<App />);
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    const tentacleAGroup = within(sidebar).getByLabelText("Active agents in tentacle-a");
-    const tentacleBGroup = within(sidebar).getByLabelText("Active agents in tentacle-b");
+    const terminal1Group = within(sidebar).getByLabelText("Terminal terminal-1");
+    const terminal3Group = within(sidebar).getByLabelText("Terminal terminal-3");
 
-    expect(within(tentacleAGroup).getByText("2 agents")).toBeInTheDocument();
-    expect(within(tentacleBGroup).getByText("1 agent")).toBeInTheDocument();
-    expect(within(tentacleAGroup).getByText("core-planner")).toBeInTheDocument();
-    expect(within(tentacleAGroup).getByText(longWorkerLabel)).toBeInTheDocument();
-    expect(within(tentacleBGroup).getByText("reviewer")).toBeInTheDocument();
+    expect(within(sidebar).getByText("3 terminals")).toBeInTheDocument();
+    expect(within(terminal1Group).getByText("core-planner")).toBeInTheDocument();
+    expect(within(sidebar).getByText(longWorkerLabel)).toBeInTheDocument();
+    expect(within(terminal3Group).getByText("reviewer")).toBeInTheDocument();
 
-    const childAgentLabel = within(tentacleAGroup).getByText(longWorkerLabel);
-    expect(childAgentLabel).toHaveAttribute("title", longWorkerLabel);
-    const childAgentRow = childAgentLabel.closest("li");
-    expect(childAgentRow).toHaveClass("active-agents-agent-row");
+    const longLabel = within(sidebar).getByText(longWorkerLabel);
+    expect(longLabel).toHaveAttribute("title", longWorkerLabel);
+    const agentRow = longLabel.closest("li");
+    expect(agentRow).toHaveClass("active-agents-agent-row");
   });
 
   it("collapses and expands the active agents sidebar section", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
+          tentacleName: "tentacle-a",
           createdAt: "2026-02-24T10:00:00.000Z",
         },
       ]),
@@ -89,15 +75,15 @@ describe("App active agents sidebar", () => {
     render(<App />);
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    const tentacleGroupLabel = "Active agents in tentacle-a";
-    expect(within(sidebar).getByLabelText(tentacleGroupLabel)).toBeInTheDocument();
+    const terminalGroupLabel = "Terminal terminal-1";
+    expect(within(sidebar).getByLabelText(terminalGroupLabel)).toBeInTheDocument();
 
     const collapseButton = within(sidebar).getByRole("button", {
       name: "Collapse Active Agents section",
     });
     fireEvent.click(collapseButton);
 
-    expect(within(sidebar).queryByLabelText(tentacleGroupLabel)).toBeNull();
+    expect(within(sidebar).queryByLabelText(terminalGroupLabel)).toBeNull();
     expect(
       within(sidebar).getByRole("button", {
         name: "Expand Active Agents section",
@@ -110,7 +96,7 @@ describe("App active agents sidebar", () => {
       }),
     );
 
-    expect(within(sidebar).getByLabelText(tentacleGroupLabel)).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText(terminalGroupLabel)).toBeInTheDocument();
   });
 
   it("toggles the active agents sidebar", async () => {
@@ -127,7 +113,7 @@ describe("App active agents sidebar", () => {
 
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
     expect(screen.queryByRole("separator", { name: "Resize Active Agents sidebar" })).toBeNull();
-    expect(screen.getByLabelText("Tentacle board").closest(".workspace-shell")).toHaveClass(
+    expect(screen.getByLabelText("Main content canvas").closest(".workspace-shell")).toHaveClass(
       "workspace-shell--full",
     );
     expect(screen.getByRole("button", { name: "Show Active Agents sidebar" })).toBeInTheDocument();

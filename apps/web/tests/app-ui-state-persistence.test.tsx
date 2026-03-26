@@ -17,10 +17,10 @@ describe("App UI state persistence", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([
           {
-            agentId: "agent-1",
+            terminalId: "terminal-1",
             label: "core-planner",
             state: "live",
             tentacleId: "tentacle-a",
@@ -58,10 +58,10 @@ describe("App UI state persistence", () => {
           isClaudeUsageVisible: true,
           isCodexUsageSectionExpanded: false,
           isClaudeUsageSectionExpanded: false,
-          tentacleCompletionSound: "retro-beep",
-          minimizedTentacleIds: ["tentacle-a"],
-          tentacleWidths: {
-            "tentacle-a": 450,
+          terminalCompletionSound: "retro-beep",
+          minimizedTerminalIds: ["terminal-1"],
+          terminalWidths: {
+            "terminal-1": 450,
           },
         });
       }
@@ -85,6 +85,7 @@ describe("App UI state persistence", () => {
 
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     await waitFor(() => {
       expect(sidebar).toHaveStyle({ width: "380px" });
@@ -99,16 +100,16 @@ describe("App UI state persistence", () => {
         name: "Expand Claude token usage section",
       }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("All tentacles minimized")).toBeInTheDocument();
+    expect(await screen.findByText("All terminals minimized")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Maximize tentacle tentacle-a" }));
+    fireEvent.click(screen.getByRole("button", { name: "Maximize terminal terminal-1" }));
 
     await waitFor(() => {
-      expect(uiStatePatchBodies.some((body) => Array.isArray(body.minimizedTentacleIds))).toBe(
+      expect(uiStatePatchBodies.some((body) => Array.isArray(body.minimizedTerminalIds))).toBe(
         true,
       );
     });
-    expect(uiStatePatchBodies.at(-1)?.minimizedTentacleIds).toEqual([]);
+    expect(uiStatePatchBodies.at(-1)?.minimizedTerminalIds).toEqual([]);
     expect(uiStatePatchBodies.at(-1)?.isClaudeUsageSectionExpanded).toBe(false);
     expect(uiStatePatchBodies.at(-1)?.isRuntimeStatusStripVisible).toBe(false);
     expect(uiStatePatchBodies.at(-1)?.isMonitorVisible).toBe(false);
@@ -116,12 +117,12 @@ describe("App UI state persistence", () => {
     expect(uiStatePatchBodies.at(-1)?.isCodexUsageVisible).toBe(true);
     expect(uiStatePatchBodies.at(-1)?.isClaudeUsageVisible).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "[5] Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "[6] Settings" }));
     fireEvent.click(screen.getByRole("radio", { name: /Double beep/i }));
 
     await waitFor(() => {
       expect(
-        uiStatePatchBodies.some((body) => body.tentacleCompletionSound === "double-beep"),
+        uiStatePatchBodies.some((body) => body.terminalCompletionSound === "double-beep"),
       ).toBe(true);
     });
   });

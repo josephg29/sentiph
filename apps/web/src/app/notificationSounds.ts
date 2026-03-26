@@ -1,4 +1,4 @@
-export const TENTACLE_COMPLETION_SOUND_IDS = [
+export const TERMINAL_COMPLETION_SOUND_IDS = [
   "soft-chime",
   "retro-beep",
   "double-beep",
@@ -7,12 +7,12 @@ export const TENTACLE_COMPLETION_SOUND_IDS = [
   "silent",
 ] as const;
 
-export type TentacleCompletionSoundId = (typeof TENTACLE_COMPLETION_SOUND_IDS)[number];
+export type TerminalCompletionSoundId = (typeof TERMINAL_COMPLETION_SOUND_IDS)[number];
 
-export const DEFAULT_TENTACLE_COMPLETION_SOUND: TentacleCompletionSoundId = "pop";
+export const DEFAULT_TERMINAL_COMPLETION_SOUND: TerminalCompletionSoundId = "pop";
 
-export const TENTACLE_COMPLETION_SOUND_OPTIONS: Array<{
-  id: TentacleCompletionSoundId;
+export const TERMINAL_COMPLETION_SOUND_OPTIONS: Array<{
+  id: TerminalCompletionSoundId;
   label: string;
   description: string;
 }> = [
@@ -48,9 +48,9 @@ export const TENTACLE_COMPLETION_SOUND_OPTIONS: Array<{
   },
 ];
 
-export const isTentacleCompletionSoundId = (value: unknown): value is TentacleCompletionSoundId =>
+export const isTerminalCompletionSoundId = (value: unknown): value is TerminalCompletionSoundId =>
   typeof value === "string" &&
-  TENTACLE_COMPLETION_SOUND_IDS.includes(value as TentacleCompletionSoundId);
+  TERMINAL_COMPLETION_SOUND_IDS.includes(value as TerminalCompletionSoundId);
 
 type WaveformType = "sine" | "square";
 
@@ -63,7 +63,7 @@ type ToneStep = {
 
 const SAMPLE_RATE = 8_000;
 
-const SOUND_PATTERNS: Record<TentacleCompletionSoundId, ToneStep[]> = {
+const SOUND_PATTERNS: Record<TerminalCompletionSoundId, ToneStep[]> = {
   "soft-chime": [
     { durationMs: 120, frequencyHz: 660, gain: 0.28, waveform: "sine" },
     { durationMs: 95, frequencyHz: 880, gain: 0.24, waveform: "sine" },
@@ -144,8 +144,8 @@ const buildStepSamples = (step: ToneStep): Int16Array => {
   return samples;
 };
 
-export const buildTentacleCompletionSoundDataUrl = (
-  soundId: TentacleCompletionSoundId,
+export const buildTerminalCompletionSoundDataUrl = (
+  soundId: TerminalCompletionSoundId,
 ): string | null => {
   const pattern = SOUND_PATTERNS[soundId];
   if (pattern.length === 0) {

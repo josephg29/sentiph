@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { buildAgentSnapshotsUrl } from "../../runtime/runtimeEndpoints";
+import { buildTerminalSnapshotsUrl } from "../../runtime/runtimeEndpoints";
 import { BACKEND_LIVENESS_SCAN_INTERVAL_MS } from "../constants";
 
 export type BackendLivenessStatus = "live" | "offline";
@@ -19,7 +19,7 @@ export const useBackendLivenessPolling = (): BackendLivenessStatus => {
 
       isInFlight = true;
       try {
-        const response = await fetch(buildAgentSnapshotsUrl(), {
+        const response = await fetch(buildTerminalSnapshotsUrl(), {
           method: "GET",
           headers: {
             Accept: "application/json",

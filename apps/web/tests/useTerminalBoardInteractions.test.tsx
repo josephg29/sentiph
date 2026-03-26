@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { measureTentacleBoardViewportWidth } from "../src/app/hooks/useTentacleBoardInteractions";
+import { measureTerminalBoardViewportWidth } from "../src/app/hooks/useTerminalBoardInteractions";
 
-describe("measureTentacleBoardViewportWidth", () => {
+describe("measureTerminalBoardViewportWidth", () => {
   it("subtracts horizontal padding from board width", () => {
     const board = document.createElement("main");
     vi.spyOn(board, "getBoundingClientRect").mockReturnValue({
@@ -21,6 +21,6 @@ describe("measureTentacleBoardViewportWidth", () => {
       paddingRight: "8px",
     } as CSSStyleDeclaration);
 
-    expect(measureTentacleBoardViewportWidth(board)).toBe(984);
+    expect(measureTerminalBoardViewportWidth(board)).toBe(984);
   });
 });

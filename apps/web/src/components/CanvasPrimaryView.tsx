@@ -4,7 +4,7 @@ import type { GraphNode } from "../app/canvas/types";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
-import type { TentacleView } from "../app/types";
+import type { TerminalView } from "../app/types";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
@@ -21,7 +21,7 @@ type ContextMenuState =
     };
 
 type CanvasPrimaryViewProps = {
-  columns: TentacleView;
+  columns: TerminalView;
   isUiStateHydrated?: boolean;
   canvasOpenTerminalIds?: string[];
   canvasTerminalsPanelWidth?: number | null;
@@ -423,7 +423,7 @@ export const CanvasPrimaryView = ({
               <CanvasTerminalColumn
                 key={nodeId}
                 node={node}
-                columns={columns}
+                terminals={columns}
                 isFocused={selectedNodeId === nodeId}
                 onClose={() => handleCloseTerminal(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}

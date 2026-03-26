@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { AgentRuntimeState } from "../../components/AgentStateBadge";
 import {
-  buildTentacleCompletionSoundDataUrl,
-  type TentacleCompletionSoundId,
+  buildTerminalCompletionSoundDataUrl,
+  type TerminalCompletionSoundId,
 } from "../notificationSounds";
 
-const createCompletionAudio = (soundId: TentacleCompletionSoundId): HTMLAudioElement | null => {
+const createCompletionAudio = (soundId: TerminalCompletionSoundId): HTMLAudioElement | null => {
   if (soundId === "silent" || typeof Audio === "undefined") {
     return null;
   }
@@ -15,7 +15,7 @@ const createCompletionAudio = (soundId: TentacleCompletionSoundId): HTMLAudioEle
     return null;
   }
 
-  const source = buildTentacleCompletionSoundDataUrl(soundId);
+  const source = buildTerminalCompletionSoundDataUrl(soundId);
   if (!source) {
     return null;
   }
@@ -25,16 +25,16 @@ const createCompletionAudio = (soundId: TentacleCompletionSoundId): HTMLAudioEle
   return audio;
 };
 
-export const useTentacleCompletionNotification = (
-  tentacleStates: Record<string, AgentRuntimeState>,
-  selectedSound: TentacleCompletionSoundId,
+export const useTerminalCompletionNotification = (
+  terminalStates: Record<string, AgentRuntimeState>,
+  selectedSound: TerminalCompletionSoundId,
 ) => {
-  const previousTentacleStatesRef = useRef<Record<string, AgentRuntimeState>>({});
-  const audioCacheRef = useRef<Partial<Record<TentacleCompletionSoundId, HTMLAudioElement | null>>>(
+  const previousTerminalStatesRef = useRef<Record<string, AgentRuntimeState>>({});
+  const audioCacheRef = useRef<Partial<Record<TerminalCompletionSoundId, HTMLAudioElement | null>>>(
     {},
   );
 
-  const playCompletionSound = useCallback((soundId: TentacleCompletionSoundId) => {
+  const playCompletionSound = useCallback((soundId: TerminalCompletionSoundId) => {
     if (soundId === "silent") {
       return;
     }
@@ -62,22 +62,22 @@ export const useTentacleCompletionNotification = (
   }, []);
 
   useEffect(() => {
-    const previousTentacleStates = previousTentacleStatesRef.current;
-    const shouldPlayCompletionSound = Object.entries(tentacleStates).some(
-      ([tentacleId, state]) =>
-        previousTentacleStates[tentacleId] === "processing" && state === "idle",
+    const previousTerminalStates = previousTerminalStatesRef.current;
+    const shouldPlayCompletionSound = Object.entries(terminalStates).some(
+      ([terminalId, state]) =>
+        previousTerminalStates[terminalId] === "processing" && state === "idle",
     );
-    previousTentacleStatesRef.current = tentacleStates;
+    previousTerminalStatesRef.current = terminalStates;
 
     if (!shouldPlayCompletionSound) {
       return;
     }
 
     playCompletionSound(selectedSound);
-  }, [playCompletionSound, selectedSound, tentacleStates]);
+  }, [playCompletionSound, selectedSound, terminalStates]);
 
   const playCompletionSoundPreview = useCallback(
-    (soundId?: TentacleCompletionSoundId) => {
+    (soundId?: TerminalCompletionSoundId) => {
       playCompletionSound(soundId ?? selectedSound);
     },
     [playCompletionSound, selectedSound],

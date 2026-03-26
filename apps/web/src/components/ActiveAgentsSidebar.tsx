@@ -1,4 +1,4 @@
-import type { AgentState, TentacleColumn } from "@octogent/core";
+import type { AgentState, TerminalSnapshot } from "@octogent/core";
 import { useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
@@ -17,7 +17,7 @@ const fallbackAgentRuntimeStateByAgentState: Record<AgentState, AgentRuntimeStat
 };
 
 type ActiveAgentsSidebarProps = {
-  columns: TentacleColumn[];
+  terminals: TerminalSnapshot[];
   isLoading: boolean;
   loadError: string | null;
   sidebarWidth: number;
@@ -30,9 +30,9 @@ type ActiveAgentsSidebarProps = {
   onClaudeUsageSectionExpandedChange: (expanded: boolean) => void;
   isCodexUsageSectionExpanded: boolean;
   onCodexUsageSectionExpandedChange: (expanded: boolean) => void;
-  tentacleStates?: Record<string, AgentRuntimeState>;
-  minimizedTentacleIds?: string[];
-  onMaximizeTentacle?: (tentacleId: string) => void;
+  terminalStates?: Record<string, AgentRuntimeState>;
+  minimizedTerminalIds?: string[];
+  onMaximizeTerminal?: (terminalId: string) => void;
   codexUsageSnapshot?: {
     message?: string | null;
     primaryUsedPercent?: number | null;
@@ -84,11 +84,8 @@ const resolveUsageStatusMessage = ({
   return status === "unavailable" ? unavailableLabel : errorLabel;
 };
 
-const isInternalRootTerminal = (tentacleId: string, agentId: string) =>
-  agentId === `${tentacleId}-root`;
-
 export const ActiveAgentsSidebar = ({
-  columns,
+  terminals,
   isLoading,
   loadError,
   sidebarWidth,
@@ -101,9 +98,9 @@ export const ActiveAgentsSidebar = ({
   onClaudeUsageSectionExpandedChange,
   isCodexUsageSectionExpanded,
   onCodexUsageSectionExpandedChange,
-  tentacleStates = {},
-  minimizedTentacleIds = [],
-  onMaximizeTentacle,
+  terminalStates = {},
+  minimizedTerminalIds = [],
+  onMaximizeTerminal,
   codexUsageSnapshot = null,
   codexUsageStatus = "loading",
   claudeUsageSnapshot = null,
@@ -114,15 +111,11 @@ export const ActiveAgentsSidebar = ({
   bodyContent,
 }: ActiveAgentsSidebarProps) => {
   const sidebarRef = useRef<HTMLElement | null>(null);
-  const resolveAgentAgentRuntimeState = (
-    tentacleId: string,
+  const resolveTerminalRuntimeState = (
+    terminalId: string,
     agentState: AgentState,
-    isPrimaryVisibleTerminal: boolean,
   ): AgentRuntimeState => {
-    if (isPrimaryVisibleTerminal) {
-      return tentacleStates[tentacleId] ?? fallbackAgentRuntimeStateByAgentState[agentState];
-    }
-    return fallbackAgentRuntimeStateByAgentState[agentState];
+    return terminalStates[terminalId] ?? fallbackAgentRuntimeStateByAgentState[agentState];
   };
 
   const primaryUsagePercent = useMemo(() => {
@@ -228,7 +221,7 @@ export const ActiveAgentsSidebar = ({
                     type="button"
                   >
                     <span className="active-agents-section-title">Active Agents</span>
-                    <span className="active-agents-section-meta">{columns.length} tentacles</span>
+                    <span className="active-agents-section-meta">{terminals.length} terminals</span>
                     <span className="active-agents-section-chevron" aria-hidden="true">
                       {isActiveAgentsSectionExpanded ? "▾" : "▸"}
                     </span>
@@ -240,35 +233,29 @@ export const ActiveAgentsSidebar = ({
                         <p className="active-agents-status">Loading active agents...</p>
                       )}
 
-                      {!isLoading && columns.length === 0 && (
-                        <p className="active-agents-status">No active tentacles right now.</p>
+                      {!isLoading && terminals.length === 0 && (
+                        <p className="active-agents-status">No active terminals right now.</p>
                       )}
 
                       {!isLoading &&
-                        columns.map((column) => {
-                          const visibleAgents = column.agents.filter(
-                            (agent) => !isInternalRootTerminal(column.tentacleId, agent.agentId),
-                          );
-                          const agentCountLabel = visibleAgents.length === 1 ? "agent" : "agents";
+                        terminals.map((terminal) => {
+                          const terminalName = terminal.tentacleName ?? terminal.terminalId;
                           return (
                             <section
-                              key={column.tentacleId}
-                              aria-label={`Active agents in ${column.tentacleId}`}
+                              key={terminal.terminalId}
+                              aria-label={`Terminal ${terminal.terminalId}`}
                               className="active-agents-group"
                             >
                               <div className="active-agents-group-header">
                                 <div className="active-agents-group-header-text">
-                                  <h3>{column.tentacleName}</h3>
+                                  <h3>{terminalName}</h3>
                                 </div>
-                                <span className="active-agents-group-count">
-                                  {visibleAgents.length} {agentCountLabel}
-                                </span>
-                                {minimizedTentacleIds.includes(column.tentacleId) && (
+                                {minimizedTerminalIds.includes(terminal.terminalId) && (
                                   <ActionButton
-                                    aria-label={`Maximize tentacle ${column.tentacleId}`}
+                                    aria-label={`Maximize terminal ${terminal.terminalId}`}
                                     className="active-agents-maximize"
                                     onClick={() => {
-                                      onMaximizeTentacle?.(column.tentacleId);
+                                      onMaximizeTerminal?.(terminal.terminalId);
                                     }}
                                     size="compact"
                                     variant="accent"
@@ -278,20 +265,17 @@ export const ActiveAgentsSidebar = ({
                                 )}
                               </div>
                               <ul>
-                                {visibleAgents.map((agent, index) => (
-                                  <li className="active-agents-agent-row" key={agent.agentId}>
-                                    <span className="active-agents-agent-label" title={agent.label}>
-                                      {agent.label}
-                                    </span>
-                                    <AgentStateBadge
-                                      state={resolveAgentAgentRuntimeState(
-                                        column.tentacleId,
-                                        agent.state,
-                                        index === 0,
-                                      )}
-                                    />
-                                  </li>
-                                ))}
+                                <li className="active-agents-agent-row">
+                                  <span className="active-agents-agent-label" title={terminal.label}>
+                                    {terminal.label}
+                                  </span>
+                                  <AgentStateBadge
+                                    state={resolveTerminalRuntimeState(
+                                      terminal.terminalId,
+                                      terminal.state,
+                                    )}
+                                  />
+                                </li>
                               </ul>
                             </section>
                           );

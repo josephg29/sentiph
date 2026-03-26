@@ -23,7 +23,7 @@ vi.mock("../src/terminalRuntime/ptyEnvironment", () => ({
 }));
 
 import { createSessionRuntime } from "../src/terminalRuntime/sessionRuntime";
-import type { PersistedTentacle, TerminalSession } from "../src/terminalRuntime/types";
+import type { PersistedTerminal, TerminalSession } from "../src/terminalRuntime/types";
 
 class FakePty extends EventEmitter {
   write = vi.fn();
@@ -123,10 +123,11 @@ describe("createSessionRuntime", () => {
 
   it("keeps a session alive across reconnects and replays scrollback history", () => {
     const tentacleId = "tentacle-1";
-    const tentacles = new Map<string, PersistedTentacle>([
+    const terminals = new Map<string, PersistedTerminal>([
       [
         tentacleId,
         {
+          terminalId: tentacleId,
           tentacleId,
           tentacleName: tentacleId,
           createdAt: new Date().toISOString(),
@@ -142,7 +143,7 @@ describe("createSessionRuntime", () => {
 
     const runtime = createSessionRuntime({
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
-      tentacles,
+      terminals,
       sessions,
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
@@ -184,10 +185,11 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const tentacleId = "tentacle-1";
-    const tentacles = new Map<string, PersistedTentacle>([
+    const terminals = new Map<string, PersistedTerminal>([
       [
         tentacleId,
         {
+          terminalId: tentacleId,
           tentacleId,
           tentacleName: tentacleId,
           createdAt: new Date().toISOString(),
@@ -203,7 +205,7 @@ describe("createSessionRuntime", () => {
 
     const runtime = createSessionRuntime({
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
-      tentacles,
+      terminals,
       sessions,
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
@@ -233,10 +235,11 @@ describe("createSessionRuntime", () => {
 
   it("truncates oversize chunks to the configured scrollback size", () => {
     const tentacleId = "tentacle-1";
-    const tentacles = new Map<string, PersistedTentacle>([
+    const terminals = new Map<string, PersistedTerminal>([
       [
         tentacleId,
         {
+          terminalId: tentacleId,
           tentacleId,
           tentacleName: tentacleId,
           createdAt: new Date().toISOString(),
@@ -252,7 +255,7 @@ describe("createSessionRuntime", () => {
 
     const runtime = createSessionRuntime({
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
-      tentacles,
+      terminals,
       sessions,
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
@@ -287,10 +290,11 @@ describe("createSessionRuntime", () => {
 
   it("ignores duplicate resize payloads for the same terminal size", () => {
     const tentacleId = "tentacle-1";
-    const tentacles = new Map<string, PersistedTentacle>([
+    const terminals = new Map<string, PersistedTerminal>([
       [
         tentacleId,
         {
+          terminalId: tentacleId,
           tentacleId,
           tentacleName: tentacleId,
           createdAt: new Date().toISOString(),
@@ -306,7 +310,7 @@ describe("createSessionRuntime", () => {
 
     const runtime = createSessionRuntime({
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
-      tentacles,
+      terminals,
       sessions,
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
@@ -334,10 +338,11 @@ describe("createSessionRuntime", () => {
 
   it("writes normalized transcript events for each terminal session", async () => {
     const tentacleId = "tentacle-1";
-    const tentacles = new Map<string, PersistedTentacle>([
+    const terminals = new Map<string, PersistedTerminal>([
       [
         tentacleId,
         {
+          terminalId: tentacleId,
           tentacleId,
           tentacleName: tentacleId,
           createdAt: new Date().toISOString(),
@@ -353,7 +358,7 @@ describe("createSessionRuntime", () => {
 
     const runtime = createSessionRuntime({
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
-      tentacles,
+      terminals,
       sessions,
       getTentacleWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,

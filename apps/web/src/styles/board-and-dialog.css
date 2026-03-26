@@ -39,10 +39,10 @@
   color: #cf8a8a;
 }
 
-.tentacle-column {
+.terminal-column {
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--bg-surface-1) 80%, #151515);
-  min-width: var(--tentacle-column-min-width);
+  min-width: var(--terminal-column-min-width);
   flex: 0 1 auto;
   height: 100%;
   min-height: 0;
@@ -53,7 +53,7 @@
   transition: border-color 180ms ease;
 }
 
-.tentacle-terminals {
+.terminal-body {
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -62,21 +62,21 @@
   scrollbar-gutter: stable;
 }
 
-.tentacle-terminals .tentacle-terminal {
+.terminal-body .terminal-pane {
   min-height: 0;
   flex: 1 1 auto;
 }
 
-.tentacle-terminals--stacked .tentacle-terminal {
+.terminal-body--stacked .terminal-pane {
   flex: 0 0 50%;
   min-height: 50%;
 }
 
-.tentacle-terminals .tentacle-terminal + .tentacle-terminal {
+.terminal-body .terminal-pane + .terminal-pane {
   border-top: 1px solid var(--border-subtle);
 }
 
-.tentacle-terminals-empty {
+.terminal-body-empty {
   min-height: 0;
   height: 100%;
   display: flex;
@@ -90,16 +90,16 @@
   text-align: center;
 }
 
-.tentacle-terminals-empty p {
+.terminal-body-empty p {
   margin: 0;
   font-size: 0.72rem;
 }
 
-.tentacle-create-first-terminal {
+.terminal-create-first {
   min-width: 6.2rem;
 }
 
-.tentacle-divider {
+.terminal-divider {
   flex: 0 0 6px;
   cursor: col-resize;
   border-left: 1px solid var(--border-subtle);
@@ -107,12 +107,12 @@
   background: linear-gradient(180deg, #121212, #070707);
 }
 
-.tentacle-divider:focus-visible {
+.terminal-divider:focus-visible {
   outline: 1px solid var(--accent-primary);
   outline-offset: -1px;
 }
 
-.tentacle-column-header {
+.terminal-column-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -125,11 +125,11 @@
   );
 }
 
-.tentacle-column-header--editing {
+.terminal-column-header--editing {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.tentacle-column-header h2 {
+.terminal-column-header h2 {
   margin: 0;
   display: flex;
   align-items: center;
@@ -145,14 +145,14 @@
   color: #121212;
 }
 
-.tentacle-column-heading {
+.terminal-column-heading {
   display: flex;
   align-items: center;
   min-width: 0;
   grid-column: 1;
 }
 
-.tentacle-name-display {
+.terminal-name-display {
   border: 0;
   background: transparent;
   color: inherit;
@@ -169,12 +169,12 @@
   white-space: nowrap;
 }
 
-.tentacle-name-display:focus-visible {
+.terminal-name-display:focus-visible {
   outline: 1px solid #121212;
   outline-offset: -1px;
 }
 
-.tentacle-name-editor {
+.terminal-name-editor {
   margin: 0;
   flex: 1;
   border: 0;
@@ -190,12 +190,12 @@
   padding: 0.3rem 0.45rem;
 }
 
-.tentacle-name-editor:focus-visible {
+.terminal-name-editor:focus-visible {
   outline: 1px solid #121212;
   outline-offset: -1px;
 }
 
-.tentacle-workspace-badge {
+.terminal-workspace-badge {
   border: 1px solid color-mix(in srgb, #121212 35%, transparent);
   background: color-mix(in srgb, #ffffff 28%, var(--accent-primary));
   color: #121212;
@@ -209,17 +209,17 @@
   white-space: nowrap;
 }
 
-.tentacle-workspace-badge--worktree {
+.terminal-workspace-badge--worktree {
   background: color-mix(in srgb, #99c8ff 68%, #d7ebff 32%);
 }
 
-.tentacle-workspace-badge--shared {
+.terminal-workspace-badge--shared {
   background: color-mix(in srgb, var(--accent-primary) 78%, #fff5d8 22%);
 }
 
-.tentacle-git-status-badge,
-.tentacle-git-metric-badge,
-.tentacle-pr-status-badge {
+.terminal-git-status-badge,
+.terminal-git-metric-badge,
+.terminal-pr-status-badge {
   border: 1px solid color-mix(in srgb, #121212 36%, transparent);
   color: #121212;
   font-family: var(--font-main);
@@ -232,34 +232,34 @@
   white-space: nowrap;
 }
 
-.tentacle-git-status-badge {
+.terminal-git-status-badge {
   background: color-mix(in srgb, #b9e6c8 74%, #ffffff 26%);
 }
 
-.tentacle-git-metric-badge {
+.terminal-git-metric-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.12rem;
   background: color-mix(in srgb, #b7d6ff 74%, #ffffff 26%);
 }
 
-.tentacle-pr-status-badge {
+.terminal-pr-status-badge {
   background: color-mix(in srgb, #9ad9ff 70%, #ffffff 30%);
 }
 
-.tentacle-git-ahead-count {
+.terminal-git-ahead-count {
   color: #0f6b2e;
 }
 
-.tentacle-git-behind-count {
+.terminal-git-behind-count {
   color: #8f1f2b;
 }
 
-.tentacle-git-metric-separator {
+.terminal-git-metric-separator {
   color: color-mix(in srgb, #121212 66%, #ffffff 34%);
 }
 
-.tentacle-git-cluster {
+.terminal-git-cluster {
   display: inline-flex;
   align-items: center;
   gap: 0.14rem;
@@ -268,14 +268,14 @@
   padding: 0.1rem 0.14rem;
 }
 
-.tentacle-header-git-center {
+.terminal-header-git-center {
   grid-column: 2;
   justify-self: center;
   display: inline-flex;
   align-items: center;
 }
 
-.tentacle-header-actions {
+.terminal-header-actions {
   grid-column: 3;
   justify-self: end;
   display: flex;
@@ -284,19 +284,19 @@
   margin-right: 0.2rem;
 }
 
-.tentacle-minimize {
+.terminal-minimize {
   --action-button-color: #9bc8ff;
 }
 
-.tentacle-git {
+.terminal-git {
   --action-button-color: #9ee4c0;
 }
 
-.tentacle-rename {
+.terminal-rename {
   --action-button-color: var(--accent-primary);
 }
 
-.tentacle-delete {
+.terminal-delete {
   --action-button-color: #ff9a9a;
 }
 

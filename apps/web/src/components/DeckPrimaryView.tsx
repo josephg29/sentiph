@@ -1,12 +1,12 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
-import type { TentacleAgentProvider } from "../app/types";
+import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckTentacleUrl,
   buildDeckTentaclesUrl,
   buildDeckVaultFileUrl,
-  buildTentaclesUrl,
+  buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
 import {
   type OctopusAccessory,
@@ -14,10 +14,10 @@ import {
   type OctopusExpression,
   OctopusGlyph,
 } from "./EmptyOctopus";
-import { TentacleTerminal } from "./TentacleTerminal";
+import { Terminal } from "./Terminal";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
-const AGENT_PROVIDER_OPTIONS: { value: TentacleAgentProvider; label: string }[] = [
+const AGENT_PROVIDER_OPTIONS: { value: TerminalAgentProvider; label: string }[] = [
   { value: "claude-code", label: "Claude Code" },
   { value: "codex", label: "Codex" },
 ];
@@ -107,7 +107,13 @@ const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
 // ─── Components ──────────────────────────────────────────────────────────────
 
 const TodoList = ({ items }: { items: { text: string; done: boolean }[] }) => {
-  const lastDoneIndex = items.findLastIndex((item) => item.done);
+  let lastDoneIndex = -1;
+  for (let idx = items.length - 1; idx >= 0; idx--) {
+    if (items[idx]?.done) {
+      lastDoneIndex = idx;
+      break;
+    }
+  }
   const scrollRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -288,8 +294,8 @@ const TentaclePod = ({
 
 type ActionCardsProps = {
   compact?: boolean;
-  selectedAgent: TentacleAgentProvider;
-  setSelectedAgent: (agent: TentacleAgentProvider) => void;
+  selectedAgent: TerminalAgentProvider;
+  setSelectedAgent: (agent: TerminalAgentProvider) => void;
   agentMenuOpen: boolean;
   setAgentMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
   agentMenuRef: React.RefObject<HTMLDivElement | null>;
@@ -682,7 +688,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const [selectedAgent, setSelectedAgent] = useState<TentacleAgentProvider>("claude-code");
+  const [selectedAgent, setSelectedAgent] = useState<TerminalAgentProvider>("claude-code");
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
@@ -782,7 +788,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   const handleLaunchAgent = useCallback(async () => {
     setIsLaunchingAgent(true);
     try {
-      const response = await fetch(buildTentaclesUrl(), {
+      const response = await fetch(buildTerminalsUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
@@ -1059,7 +1065,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
                 <strong>{focus.terminalLabel}</strong>
               </span>
             </header>
-            <TentacleTerminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
+            <Terminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
           </div>
         )}
       </div>

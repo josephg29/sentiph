@@ -27,7 +27,7 @@ const mockGithubRuntimeRequests = () => {
     const url = String(input);
     const method = init?.method ?? "GET";
 
-    if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+    if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
       return jsonResponse([]);
     }
 
@@ -89,7 +89,7 @@ describe("App GitHub runtime views", () => {
     mockGithubRuntimeRequests();
 
     const { container } = render(<App />);
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
 
     fireEvent.click(
       screen.getByRole("button", {

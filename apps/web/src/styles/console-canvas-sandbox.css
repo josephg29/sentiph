@@ -64,7 +64,7 @@
   border-right: none;
 }
 
-.sandbox-terminal-panel .tentacle-terminal {
+.sandbox-terminal-panel .terminal-pane {
   flex: 1;
   min-height: 0;
 }

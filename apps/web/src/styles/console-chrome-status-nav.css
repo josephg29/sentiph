@@ -72,7 +72,7 @@
   background: color-mix(in srgb, #000000 16%, transparent);
 }
 
-.console-shell .chrome-create-tentacle {
+.console-shell .chrome-create-terminal {
   --action-button-font-size: 0.7rem;
   --action-button-padding-y: 0.22rem;
   --action-button-padding-x: 0.38rem;

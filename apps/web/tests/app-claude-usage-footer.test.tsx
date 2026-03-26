@@ -9,7 +9,7 @@ const mockClaudeUsageRequests = () => {
     const url = String(input);
     const method = init?.method ?? "GET";
 
-    if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+    if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
       return jsonResponse([]);
     }
 

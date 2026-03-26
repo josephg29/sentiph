@@ -13,19 +13,18 @@ import { MonitorInputError, type MonitorService } from "../monitor";
 import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
 import {
   RuntimeInputError,
-  type TentacleAgentProvider,
+  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
 } from "../terminalRuntime";
 import {
   RequestBodyTooLargeError,
   parseMonitorConfigPatch,
-  parseTentacleAgentCreateInput,
-  parseTentacleAgentProvider,
+  parseTerminalAgentProvider,
   parseTentacleCommitMessage,
-  parseTentacleName,
+  parseTerminalName,
   parseTentaclePullRequestCreateInput,
   parseTentacleSyncBaseRef,
-  parseTentacleWorkspaceMode,
+  parseTerminalWorkspaceMode,
   parseUiStatePatch,
   readJsonBody,
 } from "./requestParsers";
@@ -122,11 +121,11 @@ const readJsonBodyOrWriteError = async (
   }
 };
 
-const handleAgentSnapshotsRoute: ApiRouteHandler = async (
+const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
 ) => {
-  if (requestUrl.pathname !== "/api/agent-snapshots") {
+  if (requestUrl.pathname !== "/api/terminal-snapshots") {
     return false;
   }
 
@@ -135,7 +134,7 @@ const handleAgentSnapshotsRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const payload = runtime.listAgentSnapshots();
+  const payload = runtime.listTerminalSnapshots();
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };
@@ -451,11 +450,11 @@ const handleConversationExportRoute: ApiRouteHandler = async (
   return true;
 };
 
-const handleTentaclesCollectionRoute: ApiRouteHandler = async (
+const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime, workspaceCwd },
 ) => {
-  if (requestUrl.pathname !== "/api/tentacles") {
+  if (requestUrl.pathname !== "/api/terminals") {
     return false;
   }
 
@@ -469,47 +468,47 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const nameResult = parseTentacleName(bodyReadResult.payload);
+  const nameResult = parseTerminalName(bodyReadResult.payload);
   if (nameResult.error) {
     writeJson(response, 400, { error: nameResult.error }, corsOrigin);
     return true;
   }
 
-  const workspaceModeResult = parseTentacleWorkspaceMode(bodyReadResult.payload);
+  const workspaceModeResult = parseTerminalWorkspaceMode(bodyReadResult.payload);
   if (workspaceModeResult.error) {
     writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
     return true;
   }
 
-  const agentProviderResult = parseTentacleAgentProvider(bodyReadResult.payload);
+  const agentProviderResult = parseTerminalAgentProvider(bodyReadResult.payload);
   if (agentProviderResult.error) {
     writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
     return true;
   }
 
   try {
-    const createTentacleInput: {
-      tentacleId?: string;
+    const createTerminalInput: {
+      terminalId?: string;
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
-      agentProvider?: TentacleAgentProvider;
+      agentProvider?: TerminalAgentProvider;
       initialPrompt?: string;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
     if (nameResult.name !== undefined) {
-      createTentacleInput.tentacleName = nameResult.name;
+      createTerminalInput.tentacleName = nameResult.name;
     }
     if (agentProviderResult.agentProvider !== undefined) {
-      createTentacleInput.agentProvider = agentProviderResult.agentProvider;
+      createTerminalInput.agentProvider = agentProviderResult.agentProvider;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
     if (
       bodyPayload &&
-      typeof bodyPayload.tentacleId === "string" &&
-      bodyPayload.tentacleId.trim().length > 0
+      typeof bodyPayload.terminalId === "string" &&
+      bodyPayload.terminalId.trim().length > 0
     ) {
-      createTentacleInput.tentacleId = bodyPayload.tentacleId.trim();
+      createTerminalInput.terminalId = bodyPayload.terminalId.trim();
     }
 
     // Support prompt resolution via template name + variables, or a raw string.
@@ -530,11 +529,11 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
             )
           : {};
 
-      // Auto-inject tentacleId variable so callers don't have to guess it.
+      // Auto-inject terminalId variable so callers don't have to guess it.
       // The runtime hasn't allocated the ID yet, so we use the tentacle name
       // when provided (sandbox always passes its name).
-      if (!templateVars.tentacleId && createTentacleInput.tentacleName) {
-        templateVars.tentacleId = createTentacleInput.tentacleName;
+      if (!templateVars.terminalId && createTerminalInput.tentacleName) {
+        templateVars.terminalId = createTerminalInput.tentacleName;
       }
 
       // Auto-inject apiPort so prompt templates can reference the local API.
@@ -542,8 +541,8 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
         templateVars.apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
       }
 
-      // Auto-inject existingTentacles summary so planner-style prompts have context.
-      if (!templateVars.existingTentacles) {
+      // Auto-inject existingTerminals summary so planner-style prompts have context.
+      if (!templateVars.existingTerminals) {
         const deckTentacles = readDeckTentacles(workspaceCwd);
         if (deckTentacles.length > 0) {
           const listing = deckTentacles
@@ -552,29 +551,29 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
                 `- **${t.displayName}** (\`${t.tentacleId}\`): ${t.description || "(no description)"}`,
             )
             .join("\n");
-          templateVars.existingTentacles = `## Existing Tentacles\n\nThe following departments already exist:\n\n${listing}\n\nConsider these when proposing new departments — avoid duplicates and note any gaps.`;
+          templateVars.existingTerminals = `## Existing Terminals\n\nThe following departments already exist:\n\n${listing}\n\nConsider these when proposing new departments — avoid duplicates and note any gaps.`;
         } else {
-          templateVars.existingTentacles =
-            "## Existing Tentacles\n\nNo department tentacles exist yet. You are starting from scratch.";
+          templateVars.existingTerminals =
+            "## Existing Terminals\n\nNo department terminals exist yet. You are starting from scratch.";
         }
       }
 
       const resolved = await resolvePrompt(workspaceCwd, templateName, templateVars);
       if (resolved !== undefined) {
-        createTentacleInput.initialPrompt = resolved;
+        createTerminalInput.initialPrompt = resolved;
       }
     } else if (
       bodyPayload &&
       typeof bodyPayload.initialPrompt === "string" &&
       bodyPayload.initialPrompt.trim().length > 0
     ) {
-      createTentacleInput.initialPrompt = bodyPayload.initialPrompt.trim();
+      createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
     }
 
-    const snapshot = runtime.createTentacle(createTentacleInput);
+    const snapshot = runtime.createTerminal(createTerminalInput);
     const payload: Record<string, unknown> = { ...snapshot };
-    if (createTentacleInput.initialPrompt) {
-      payload.initialPrompt = createTentacleInput.initialPrompt;
+    if (createTerminalInput.initialPrompt) {
+      payload.initialPrompt = createTerminalInput.initialPrompt;
     }
     writeJson(response, 201, payload, corsOrigin);
     return true;
@@ -588,9 +587,7 @@ const handleTentaclesCollectionRoute: ApiRouteHandler = async (
   }
 };
 
-const TENTACLE_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)$/;
-const TENTACLE_AGENT_COLLECTION_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/agents$/;
-const TENTACLE_AGENT_ITEM_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/agents\/([^/]+)$/;
+const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
 const TENTACLE_GIT_ACTION_PATH_PATTERN =
   /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
 const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
@@ -797,105 +794,11 @@ const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
   }
 };
 
-const handleTentacleAgentCollectionRoute: ApiRouteHandler = async (
+const handleTerminalItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
 ) => {
-  const agentCollectionMatch = requestUrl.pathname.match(TENTACLE_AGENT_COLLECTION_PATH_PATTERN);
-  if (!agentCollectionMatch) {
-    return false;
-  }
-
-  if (request.method !== "POST") {
-    writeMethodNotAllowed(response, corsOrigin);
-    return true;
-  }
-
-  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
-  if (!bodyReadResult.ok) {
-    return true;
-  }
-
-  const createInput = parseTentacleAgentCreateInput(bodyReadResult.payload);
-  if (createInput.error || !createInput.anchorAgentId || !createInput.placement) {
-    writeJson(
-      response,
-      400,
-      { error: createInput.error ?? "Invalid tentacle agent input." },
-      corsOrigin,
-    );
-    return true;
-  }
-
-  const tentacleId = decodeURIComponent(agentCollectionMatch[1] ?? "");
-  try {
-    const payload = runtime.createTentacleAgent({
-      tentacleId,
-      anchorAgentId: createInput.anchorAgentId,
-      placement: createInput.placement,
-    });
-    if (!payload) {
-      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
-      return true;
-    }
-
-    writeJson(response, 201, payload, corsOrigin);
-    return true;
-  } catch (error) {
-    if (error instanceof RuntimeInputError) {
-      writeJson(response, 400, { error: error.message }, corsOrigin);
-      return true;
-    }
-    throw error;
-  }
-};
-
-const handleTentacleAgentItemRoute: ApiRouteHandler = async (
-  { request, response, requestUrl, corsOrigin },
-  { runtime },
-) => {
-  const agentItemMatch = requestUrl.pathname.match(TENTACLE_AGENT_ITEM_PATH_PATTERN);
-  if (!agentItemMatch) {
-    return false;
-  }
-
-  if (request.method !== "DELETE") {
-    writeMethodNotAllowed(response, corsOrigin);
-    return true;
-  }
-
-  const tentacleId = decodeURIComponent(agentItemMatch[1] ?? "");
-  const agentId = decodeURIComponent(agentItemMatch[2] ?? "");
-  try {
-    const deleted = runtime.deleteTentacleAgent({
-      tentacleId,
-      agentId,
-    });
-    if (deleted === null) {
-      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
-      return true;
-    }
-    if (!deleted) {
-      writeJson(response, 404, { error: "Terminal agent not found." }, corsOrigin);
-      return true;
-    }
-
-    writeNoContent(response, 204, corsOrigin);
-    return true;
-  } catch (error) {
-    if (error instanceof RuntimeInputError) {
-      writeJson(response, 409, { error: error.message }, corsOrigin);
-      return true;
-    }
-    throw error;
-  }
-};
-
-const handleTentacleItemRoute: ApiRouteHandler = async (
-  { request, response, requestUrl, corsOrigin },
-  { runtime },
-) => {
-  const renameMatch = requestUrl.pathname.match(TENTACLE_ITEM_PATH_PATTERN);
+  const renameMatch = requestUrl.pathname.match(TERMINAL_ITEM_PATH_PATTERN);
   if (!renameMatch) {
     return false;
   }
@@ -905,12 +808,12 @@ const handleTentacleItemRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const tentacleId = decodeURIComponent(renameMatch[1] ?? "");
+  const terminalId = decodeURIComponent(renameMatch[1] ?? "");
   if (request.method === "DELETE") {
     try {
-      const deleted = runtime.deleteTentacle(tentacleId);
+      const deleted = runtime.deleteTerminal(terminalId);
       if (!deleted) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
         return true;
       }
 
@@ -930,20 +833,20 @@ const handleTentacleItemRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const nameResult = parseTentacleName(bodyReadResult.payload);
+  const nameResult = parseTerminalName(bodyReadResult.payload);
   if (nameResult.error) {
     writeJson(response, 400, { error: nameResult.error }, corsOrigin);
     return true;
   }
 
   if (!nameResult.provided || !nameResult.name) {
-    writeJson(response, 400, { error: "Tentacle name is required." }, corsOrigin);
+    writeJson(response, 400, { error: "Terminal name is required." }, corsOrigin);
     return true;
   }
 
-  const payload = runtime.renameTentacle(tentacleId, nameResult.name);
+  const payload = runtime.renameTerminal(terminalId, nameResult.name);
   if (!payload) {
-    writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+    writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
     return true;
   }
 
@@ -1156,7 +1059,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["hooks", [handleHookRoute]],
   ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
   ["deck", [handleDeckTentaclesRoute, handleDeckTentacleItemRoute, handleDeckVaultFileRoute]],
-  ["agent-snapshots", [handleAgentSnapshotsRoute]],
+  ["terminal-snapshots", [handleTerminalSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],
   ["github", [handleGithubSummaryRoute]],
@@ -1172,14 +1075,17 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     ],
   ],
   [
+    "terminals",
+    [
+      handleTerminalsCollectionRoute,
+      handleTerminalItemRoute,
+    ],
+  ],
+  [
     "tentacles",
     [
-      handleTentaclesCollectionRoute,
-      handleTentacleAgentCollectionRoute,
-      handleTentacleAgentItemRoute,
       handleTentacleGitRoute,
       handleTentacleGitPullRequestRoute,
-      handleTentacleItemRoute,
     ],
   ],
 ]);

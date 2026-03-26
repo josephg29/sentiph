@@ -1,26 +1,26 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
 import { MockWebSocket, jsonResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
-describe("App tentacle presence and runtime state", () => {
+describe("App terminal presence and runtime state", () => {
   afterEach(() => {
     cleanup();
     resetAppTestHarness();
   });
 
-  it("renders tentacle columns when API returns agent snapshots", async () => {
+  it("renders terminal columns when API returns terminal snapshots", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
-          tentacleWorkspaceMode: "worktree",
+          workspaceMode: "worktree",
           createdAt: "2026-02-24T10:00:00.000Z",
         },
       ]),
@@ -28,27 +28,28 @@ describe("App tentacle presence and runtime state", () => {
 
     render(<App />);
 
-    const tentacleColumn = await screen.findByLabelText("tentacle-a");
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+    const terminalColumn = await screen.findByLabelText("terminal-1");
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    expect(tentacleColumn).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rename tentacle tentacle-a" })).toBeInTheDocument();
-    expect(within(tentacleColumn).getByText("WORKTREE")).toBeInTheDocument();
-    expect(within(tentacleColumn).getByText("core-planner")).toBeInTheDocument();
+    expect(terminalColumn).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename terminal terminal-1" })).toBeInTheDocument();
+    expect(within(terminalColumn).getByText("WORKTREE")).toBeInTheDocument();
+    expect(within(terminalColumn).getByText("core-planner")).toBeInTheDocument();
     expect(within(sidebar).getByText("core-planner")).toBeInTheDocument();
-    expect(screen.getByTestId("terminal-agent-1")).toBeInTheDocument();
+    expect(screen.getByTestId("terminal-terminal-1")).toBeInTheDocument();
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
-    expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/agent-1/ws");
+    expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/terminal-1/ws");
   });
 
-  it("keeps sidebar root badge synced with the terminal idle/processing state", async () => {
+  it("keeps sidebar badge synced with the terminal idle/processing state", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
@@ -59,11 +60,12 @@ describe("App tentacle presence and runtime state", () => {
 
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    const tentacleGroup = within(sidebar).getByLabelText("Active agents in tentacle-a");
+    const terminalGroup = within(sidebar).getByLabelText("Terminal terminal-1");
 
     await waitFor(() => {
-      const idleBadge = within(tentacleGroup).getByText("IDLE");
+      const idleBadge = within(terminalGroup).getByText("IDLE");
       expect(idleBadge).toHaveClass("pill", "terminal-state-badge", "idle");
     });
 
@@ -74,12 +76,12 @@ describe("App tentacle presence and runtime state", () => {
     socket?.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {
-      const processingBadge = within(tentacleGroup).getByText("PROCESSING");
+      const processingBadge = within(terminalGroup).getByText("PROCESSING");
       expect(processingBadge).toHaveClass("pill", "terminal-state-badge", "processing");
     });
   });
 
-  it("plays a completion notification only when tentacle state moves from processing to idle", async () => {
+  it("plays a completion notification only when terminal state moves from processing to idle", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const play = vi.fn().mockResolvedValue(undefined);
@@ -90,10 +92,10 @@ describe("App tentacle presence and runtime state", () => {
     }));
     vi.stubGlobal("Audio", MockAudio as unknown as typeof Audio);
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
@@ -103,7 +105,8 @@ describe("App tentacle presence and runtime state", () => {
     );
 
     render(<App />);
-    await screen.findByLabelText("tentacle-a");
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+    await screen.findByLabelText("terminal-1");
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
@@ -130,10 +133,10 @@ describe("App tentacle presence and runtime state", () => {
 
   it("closes terminal websocket when app unmounts", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse([
         {
-          agentId: "agent-1",
+          terminalId: "terminal-1",
           label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
@@ -143,7 +146,8 @@ describe("App tentacle presence and runtime state", () => {
     );
 
     const { unmount } = render(<App />);
-    await screen.findByLabelText("tentacle-a");
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+    await screen.findByLabelText("terminal-1");
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });

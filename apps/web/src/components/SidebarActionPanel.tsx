@@ -1,19 +1,19 @@
-import type { PendingDeleteTentacle } from "../app/hooks/useTentacleMutations";
+import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import type {
   TentacleGitStatusSnapshot,
   TentaclePullRequestSnapshot,
-  TentacleView,
+  TerminalView,
 } from "../app/types";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { TentacleGitActionsDialog } from "./TentacleGitActionsDialog";
 
 type SidebarActionPanelProps = {
-  pendingDeleteTentacle: PendingDeleteTentacle | null;
-  isDeletingTentacleId: string | null;
-  clearPendingDeleteTentacle: () => void;
-  confirmDeleteTentacle: () => Promise<void>;
+  pendingDeleteTerminal: PendingDeleteTerminal | null;
+  isDeletingTerminalId: string | null;
+  clearPendingDeleteTerminal: () => void;
+  confirmDeleteTerminal: () => Promise<void>;
   openGitTentacleId: string | null;
-  columns: TentacleView;
+  columns: TerminalView;
   openGitTentacleStatus: TentacleGitStatusSnapshot | null;
   openGitTentaclePullRequest: TentaclePullRequestSnapshot | null;
   gitCommitMessageDraft: string;
@@ -27,21 +27,21 @@ type SidebarActionPanelProps = {
   pushTentacleBranch: () => Promise<void>;
   syncTentacleBranch: () => Promise<void>;
   mergeTentaclePullRequest: () => Promise<void>;
-  requestDeleteTentacle: (
+  requestDeleteTerminal: (
     tentacleId: string,
     tentacleName: string,
     options: {
       workspaceMode: "shared" | "worktree";
-      intent: "delete-tentacle" | "cleanup-worktree";
+      intent: "delete-terminal" | "cleanup-worktree";
     },
   ) => void;
 };
 
 export const SidebarActionPanel = ({
-  pendingDeleteTentacle,
-  isDeletingTentacleId,
-  clearPendingDeleteTentacle,
-  confirmDeleteTentacle,
+  pendingDeleteTerminal,
+  isDeletingTerminalId,
+  clearPendingDeleteTerminal,
+  confirmDeleteTerminal,
   openGitTentacleId,
   columns,
   openGitTentacleStatus,
@@ -57,27 +57,27 @@ export const SidebarActionPanel = ({
   pushTentacleBranch,
   syncTentacleBranch,
   mergeTentaclePullRequest,
-  requestDeleteTentacle,
+  requestDeleteTerminal,
 }: SidebarActionPanelProps) => {
-  const openGitTentacleColumn =
+  const openGitTentacleTerminal =
     openGitTentacleId !== null
-      ? columns.find((column) => column.tentacleId === openGitTentacleId)
+      ? columns.find((terminal) => terminal.tentacleId === openGitTentacleId)
       : null;
 
-  if (pendingDeleteTentacle) {
+  if (pendingDeleteTerminal) {
     return (
       <DeleteTentacleDialog
-        isDeletingTentacleId={isDeletingTentacleId}
-        onCancel={clearPendingDeleteTentacle}
+        isDeletingTerminalId={isDeletingTerminalId}
+        onCancel={clearPendingDeleteTerminal}
         onConfirmDelete={() => {
-          void confirmDeleteTentacle();
+          void confirmDeleteTerminal();
         }}
-        pendingDeleteTentacle={pendingDeleteTentacle}
+        pendingDeleteTerminal={pendingDeleteTerminal}
       />
     );
   }
 
-  if (openGitTentacleColumn && openGitTentacleColumn.tentacleWorkspaceMode === "worktree") {
+  if (openGitTentacleTerminal && openGitTentacleTerminal.workspaceMode === "worktree") {
     return (
       <TentacleGitActionsDialog
         errorMessage={gitDialogError}
@@ -104,18 +104,18 @@ export const SidebarActionPanel = ({
           void syncTentacleBranch();
         }}
         onCleanupWorktree={() => {
-          requestDeleteTentacle(
-            openGitTentacleColumn.tentacleId,
-            openGitTentacleColumn.tentacleName,
+          requestDeleteTerminal(
+            openGitTentacleTerminal.tentacleId,
+            openGitTentacleTerminal.tentacleName ?? openGitTentacleTerminal.tentacleId,
             {
-              workspaceMode: openGitTentacleColumn.tentacleWorkspaceMode,
+              workspaceMode: openGitTentacleTerminal.workspaceMode ?? "shared",
               intent: "cleanup-worktree",
             },
           );
           closeTentacleGitActions();
         }}
-        tentacleId={openGitTentacleColumn.tentacleId}
-        tentacleName={openGitTentacleColumn.tentacleName}
+        tentacleId={openGitTentacleTerminal.tentacleId}
+        tentacleName={openGitTentacleTerminal.tentacleName ?? openGitTentacleTerminal.tentacleId}
       />
     );
   }

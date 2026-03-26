@@ -3,18 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
-import { ActionButton } from "./ui/ActionButton";
 
 import "xterm/css/xterm.css";
 
-type TentacleTerminalProps = {
+type TerminalProps = {
   terminalId: string;
   terminalLabel?: string;
   isSelected?: boolean;
   initialPrompt?: string;
-  onAddAbove?: () => void;
-  onAddBelow?: () => void;
-  onDelete?: () => void;
   onSelectTerminal?: (terminalId: string) => void;
   onAgentRuntimeStateChange?: (state: AgentRuntimeState) => void;
 };
@@ -37,25 +33,6 @@ type TerminalHistoryMessage = {
 type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage | TerminalHistoryMessage;
 const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
-const TerminalAddIcon = ({ direction }: { direction: "up" | "down" }) => {
-  const arrow = direction === "up" ? "↑" : "↓";
-  return (
-    <span aria-hidden="true" className="terminal-add-icon">
-      <span className="terminal-add-icon-prompt">&gt;_</span>
-      <span className="terminal-add-icon-arrow">{arrow}</span>
-    </span>
-  );
-};
-
-const TerminalDeleteIcon = () => (
-  <svg aria-hidden="true" className="terminal-delete-icon" viewBox="0 0 16 16">
-    <path
-      d="M5 2h6l.7 1.5H14v1H2v-1h2.3L5 2Zm-1 4h8l-.6 7.2c-.1 1-.9 1.8-1.9 1.8H6.5c-1 0-1.8-.8-1.9-1.8L4 6Zm2 1v6h1V7H6Zm3 0v6h1V7H9Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
 const PromptInjectIcon = () => (
   <svg
     aria-hidden="true"
@@ -68,17 +45,14 @@ const PromptInjectIcon = () => (
   </svg>
 );
 
-export const TentacleTerminal = ({
+export const Terminal = ({
   terminalId,
   terminalLabel,
   isSelected,
   initialPrompt,
-  onAddAbove,
-  onAddBelow,
-  onDelete,
   onSelectTerminal,
   onAgentRuntimeStateChange,
-}: TentacleTerminalProps) => {
+}: TerminalProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
@@ -373,7 +347,7 @@ export const TentacleTerminal = ({
 
   return (
     <div
-      className={`tentacle-terminal${isSelected ? " tentacle-terminal--selected" : ""}`}
+      className={`terminal-pane${isSelected ? " terminal-pane--selected" : ""}`}
       data-selected={isSelected ? "true" : "false"}
       onFocusCapture={() => {
         onSelectTerminal?.(terminalId);
@@ -416,41 +390,6 @@ export const TentacleTerminal = ({
           </div>
         )}
         <div className="terminal-header-actions">
-          <ActionButton
-            aria-label={`Add terminal above ${terminalId}`}
-            className="terminal-add terminal-add-up"
-            onClick={() => {
-              onAddAbove?.();
-            }}
-            size="compact"
-            variant="info"
-          >
-            <TerminalAddIcon direction="up" />
-          </ActionButton>
-          <ActionButton
-            aria-label={`Add terminal below ${terminalId}`}
-            className="terminal-add terminal-add-down"
-            onClick={() => {
-              onAddBelow?.();
-            }}
-            size="compact"
-            variant="info"
-          >
-            <TerminalAddIcon direction="down" />
-          </ActionButton>
-          <ActionButton
-            aria-label={`Delete terminal ${terminalId}`}
-            className="terminal-delete"
-            disabled={!onDelete}
-            onClick={() => {
-              onDelete?.();
-            }}
-            size="compact"
-            title={onDelete ? "Delete terminal" : "Root terminal cannot be deleted"}
-            variant="danger"
-          >
-            <TerminalDeleteIcon />
-          </ActionButton>
           <AgentStateBadge state={agentState} />
         </div>
       </div>

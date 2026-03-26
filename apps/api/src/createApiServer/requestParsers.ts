@@ -3,10 +3,10 @@ import type { IncomingMessage } from "node:http";
 import type { MonitorConfigPatchInput } from "../monitor";
 import {
   type PersistedUiState,
-  type TentacleAgentProvider,
+  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
-  isTentacleAgentProvider,
-  isTentacleCompletionSound,
+  isTerminalAgentProvider,
+  isTerminalCompletionSound,
 } from "../terminalRuntime";
 
 export const MAX_JSON_BODY_BYTES = 1024 * 1024;
@@ -33,7 +33,7 @@ export const readJsonBody = async (request: IncomingMessage): Promise<unknown> =
   return JSON.parse(payload);
 };
 
-export const parseTentacleName = (payload: unknown) => {
+export const parseTerminalName = (payload: unknown) => {
   if (payload === null || payload === undefined) {
     return {
       provided: false,
@@ -63,7 +63,7 @@ export const parseTentacleName = (payload: unknown) => {
     return {
       provided: true,
       name: undefined as string | undefined,
-      error: "Tentacle name must be a string.",
+      error: "Terminal name must be a string.",
     };
   }
 
@@ -72,7 +72,7 @@ export const parseTentacleName = (payload: unknown) => {
     return {
       provided: true,
       name: undefined as string | undefined,
-      error: "Tentacle name cannot be empty.",
+      error: "Terminal name cannot be empty.",
     };
   }
 
@@ -83,7 +83,7 @@ export const parseTentacleName = (payload: unknown) => {
   };
 };
 
-export const parseTentacleWorkspaceMode = (payload: unknown) => {
+export const parseTerminalWorkspaceMode = (payload: unknown) => {
   if (payload === null || payload === undefined) {
     return {
       workspaceMode: "shared" as TentacleWorkspaceMode,
@@ -109,7 +109,7 @@ export const parseTentacleWorkspaceMode = (payload: unknown) => {
   if (rawWorkspaceMode !== "shared" && rawWorkspaceMode !== "worktree") {
     return {
       workspaceMode: "shared" as TentacleWorkspaceMode,
-      error: "Tentacle workspace mode must be either 'shared' or 'worktree'.",
+      error: "Terminal workspace mode must be either 'shared' or 'worktree'.",
     };
   }
 
@@ -119,17 +119,17 @@ export const parseTentacleWorkspaceMode = (payload: unknown) => {
   };
 };
 
-export const parseTentacleAgentProvider = (payload: unknown) => {
+export const parseTerminalAgentProvider = (payload: unknown) => {
   if (payload === null || payload === undefined) {
     return {
-      agentProvider: undefined as TentacleAgentProvider | undefined,
+      agentProvider: undefined as TerminalAgentProvider | undefined,
       error: null as string | null,
     };
   }
 
   if (typeof payload !== "object") {
     return {
-      agentProvider: undefined as TentacleAgentProvider | undefined,
+      agentProvider: undefined as TerminalAgentProvider | undefined,
       error: "Expected a JSON object body.",
     };
   }
@@ -137,15 +137,15 @@ export const parseTentacleAgentProvider = (payload: unknown) => {
   const rawAgentProvider = (payload as Record<string, unknown>).agentProvider;
   if (rawAgentProvider === undefined) {
     return {
-      agentProvider: undefined as TentacleAgentProvider | undefined,
+      agentProvider: undefined as TerminalAgentProvider | undefined,
       error: null as string | null,
     };
   }
 
-  if (!isTentacleAgentProvider(rawAgentProvider)) {
+  if (!isTerminalAgentProvider(rawAgentProvider)) {
     return {
-      agentProvider: undefined as TentacleAgentProvider | undefined,
-      error: "Tentacle agent provider must be either 'codex' or 'claude-code'.",
+      agentProvider: undefined as TerminalAgentProvider | undefined,
+      error: "Terminal agent provider must be either 'codex' or 'claude-code'.",
     };
   }
 
@@ -296,45 +296,6 @@ export const parseTentaclePullRequestCreateInput = (
   };
 };
 
-export const parseTentacleAgentCreateInput = (
-  payload: unknown,
-): {
-  anchorAgentId: string | null;
-  placement: "up" | "down" | null;
-  error: string | null;
-} => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
-    return {
-      anchorAgentId: null,
-      placement: null,
-      error: "Expected a JSON object body.",
-    };
-  }
-
-  const record = payload as Record<string, unknown>;
-  if (typeof record.anchorAgentId !== "string" || record.anchorAgentId.trim().length === 0) {
-    return {
-      anchorAgentId: null,
-      placement: null,
-      error: "anchorAgentId must be a non-empty string.",
-    };
-  }
-
-  if (record.placement !== "up" && record.placement !== "down") {
-    return {
-      anchorAgentId: null,
-      placement: null,
-      error: "placement must be either 'up' or 'down'.",
-    };
-  }
-
-  return {
-    anchorAgentId: record.anchorAgentId.trim(),
-    placement: record.placement,
-    error: null,
-  };
-};
-
 export const parseUiStatePatch = (
   payload: unknown,
 ): { patch: PersistedUiState | null; error: string | null } => {
@@ -462,64 +423,70 @@ export const parseUiStatePatch = (
     patch.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
   }
 
-  if (record.tentacleCompletionSound !== undefined) {
-    if (!isTentacleCompletionSound(record.tentacleCompletionSound)) {
+  // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
+  const completionSoundKey = record.terminalCompletionSound ?? record.tentacleCompletionSound;
+  if (completionSoundKey !== undefined) {
+    if (!isTerminalCompletionSound(completionSoundKey)) {
       return {
         patch: null,
-        error: "tentacleCompletionSound must be one of the supported sound identifiers.",
+        error: "terminalCompletionSound must be one of the supported sound identifiers.",
       };
     }
-    patch.tentacleCompletionSound = record.tentacleCompletionSound;
+    patch.terminalCompletionSound = completionSoundKey;
   }
 
-  if (record.minimizedTentacleIds !== undefined) {
-    if (!Array.isArray(record.minimizedTentacleIds)) {
+  // Accept both old (minimizedTentacleIds) and new (minimizedTerminalIds) field names
+  const minimizedKey = record.minimizedTerminalIds ?? record.minimizedTentacleIds;
+  if (minimizedKey !== undefined) {
+    if (!Array.isArray(minimizedKey)) {
       return {
         patch: null,
-        error: "minimizedTentacleIds must be an array of strings.",
+        error: "minimizedTerminalIds must be an array of strings.",
       };
     }
 
-    const minimizedTentacleIds = record.minimizedTentacleIds.filter(
-      (tentacleId): tentacleId is string => typeof tentacleId === "string",
+    const minimizedTerminalIds = minimizedKey.filter(
+      (id): id is string => typeof id === "string",
     );
-    if (minimizedTentacleIds.length !== record.minimizedTentacleIds.length) {
+    if (minimizedTerminalIds.length !== minimizedKey.length) {
       return {
         patch: null,
-        error: "minimizedTentacleIds must be an array of strings.",
+        error: "minimizedTerminalIds must be an array of strings.",
       };
     }
-    patch.minimizedTentacleIds = [...new Set(minimizedTentacleIds)];
+    patch.minimizedTerminalIds = [...new Set(minimizedTerminalIds)];
   }
 
-  if (record.tentacleWidths !== undefined) {
+  // Accept both old (tentacleWidths) and new (terminalWidths) field names
+  const widthsKey = record.terminalWidths ?? record.tentacleWidths;
+  if (widthsKey !== undefined) {
     if (
-      record.tentacleWidths === null ||
-      typeof record.tentacleWidths !== "object" ||
-      Array.isArray(record.tentacleWidths)
+      widthsKey === null ||
+      typeof widthsKey !== "object" ||
+      Array.isArray(widthsKey)
     ) {
       return {
         patch: null,
-        error: "tentacleWidths must be an object map of numbers.",
+        error: "terminalWidths must be an object map of numbers.",
       };
     }
 
-    const tentacleWidths = Object.entries(record.tentacleWidths).reduce<Record<string, number>>(
-      (acc, [tentacleId, width]) => {
+    const terminalWidths = Object.entries(widthsKey).reduce<Record<string, number>>(
+      (acc, [id, width]) => {
         if (typeof width === "number" && Number.isFinite(width)) {
-          acc[tentacleId] = width;
+          acc[id] = width;
         }
         return acc;
       },
       {},
     );
-    if (Object.keys(tentacleWidths).length !== Object.keys(record.tentacleWidths).length) {
+    if (Object.keys(terminalWidths).length !== Object.keys(widthsKey).length) {
       return {
         patch: null,
-        error: "tentacleWidths must be an object map of numbers.",
+        error: "terminalWidths must be an object map of numbers.",
       };
     }
-    patch.tentacleWidths = tentacleWidths;
+    patch.terminalWidths = terminalWidths;
   }
 
   if (record.canvasOpenTerminalIds !== undefined) {

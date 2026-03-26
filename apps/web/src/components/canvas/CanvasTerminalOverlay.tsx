@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
-import type { ConversationSessionDetail, ConversationTurn, TentacleView } from "../../app/types";
+import type { ConversationSessionDetail, ConversationTurn, TerminalView } from "../../app/types";
 import { buildConversationSessionUrl } from "../../runtime/runtimeEndpoints";
 import { normalizeConversationSessionDetail } from "../../app/normalizers";
-import { TentacleTerminal } from "../TentacleTerminal";
+import { Terminal } from "../Terminal";
 import { type AgentRuntimeState, AgentStateBadge } from "../AgentStateBadge";
 import { MarkdownContent } from "../ui/MarkdownContent";
 
 type CanvasTerminalOverlayProps = {
   node: GraphNode;
-  columns: TentacleView;
+  terminals: TerminalView;
   screenX: number;
   screenY: number;
   onClose: () => void;
@@ -91,7 +91,7 @@ const TranscriptViewer = ({ sessionId }: { sessionId: string }) => {
 
 export const CanvasTerminalOverlay = ({
   node,
-  columns,
+  terminals,
   screenX,
   screenY,
   onClose,
@@ -120,9 +120,9 @@ export const CanvasTerminalOverlay = ({
 
   const isActive = node.type === "active-session";
 
-  const column = columns.find((col) => col.tentacleId === node.tentacleId);
-  const tentacleName = column?.tentacleName ?? node.tentacleId;
-  const workspaceMode = column?.tentacleWorkspaceMode ?? "shared";
+  const terminal = terminals.find((t) => t.tentacleId === node.tentacleId);
+  const tentacleName = terminal?.tentacleName ?? node.tentacleId;
+  const workspaceMode = terminal?.workspaceMode ?? "shared";
 
   const handleHeaderPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -189,8 +189,8 @@ export const CanvasTerminalOverlay = ({
             </button>
           </div>
         </div>
-        <div className="tentacle-terminals">
-          <TentacleTerminal
+        <div className="terminal-terminals">
+          <Terminal
             terminalId={node.sessionId}
             terminalLabel={node.label}
             onAgentRuntimeStateChange={setAgentState}

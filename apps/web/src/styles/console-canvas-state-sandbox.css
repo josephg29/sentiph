@@ -94,7 +94,7 @@
   min-width: 0;
 }
 
-.state-sandbox-terminal .tentacle-terminal {
+.state-sandbox-terminal .terminal-pane {
   flex: 1;
   min-height: 0;
 }

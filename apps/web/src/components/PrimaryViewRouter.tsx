@@ -1,7 +1,7 @@
 import type { ComponentProps, RefObject } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
-import type { TentacleView } from "../app/types";
+import type { TerminalView } from "../app/types";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
@@ -11,7 +11,7 @@ import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { StateSandboxPrimaryView } from "./StateSandboxPrimaryView";
-import { TentacleBoard } from "./TentacleBoard";
+import { TerminalBoard } from "./TerminalBoard";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -22,48 +22,40 @@ type PrimaryViewRouterProps = {
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
   conversationsPrimaryViewProps: ComponentProps<typeof ConversationsPrimaryView>;
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
-  tentacleBoardProps: {
-    columns: TentacleView;
-    editingTentacleId: string | null;
-    gitStatusByTentacleId: ComponentProps<typeof TentacleBoard>["gitStatusByTentacleId"];
+  terminalBoardProps: {
+    terminals: TerminalView;
+    editingTerminalId: string | null;
+    gitStatusByTentacleId: ComponentProps<typeof TerminalBoard>["gitStatusByTentacleId"];
     gitStatusLoadingByTentacleId: ComponentProps<
-      typeof TentacleBoard
+      typeof TerminalBoard
     >["gitStatusLoadingByTentacleId"];
-    pullRequestByTentacleId: ComponentProps<typeof TentacleBoard>["pullRequestByTentacleId"];
+    pullRequestByTentacleId: ComponentProps<typeof TerminalBoard>["pullRequestByTentacleId"];
     pullRequestLoadingByTentacleId: ComponentProps<
-      typeof TentacleBoard
+      typeof TerminalBoard
     >["pullRequestLoadingByTentacleId"];
-    isDeletingTentacleId: string | null;
+    isDeletingTerminalId: string | null;
     isLoading: boolean;
     loadError: string | null;
-    onBeginTentacleNameEdit: (tentacleId: string, currentTentacleName: string) => void;
-    onCancelTentacleRename: () => void;
-    onMinimizeTentacle: (tentacleId: string) => void;
-    onOpenTentacleGitActions: (tentacleId: string) => void;
-    onRequestDeleteTentacle: ComponentProps<typeof TentacleBoard>["onRequestDeleteTentacle"];
-    onSubmitTentacleRename: (tentacleId: string, currentTentacleName: string) => void;
-    onTentacleDividerKeyDown: ComponentProps<typeof TentacleBoard>["onTentacleDividerKeyDown"];
-    onTentacleDividerPointerDown: ComponentProps<
-      typeof TentacleBoard
-    >["onTentacleDividerPointerDown"];
-    onTentacleHeaderWheel: ComponentProps<typeof TentacleBoard>["onTentacleHeaderWheel"];
-    onTentacleNameDraftChange: (name: string) => void;
-    onSelectTentacle: (tentacleId: string) => void;
+    onBeginTerminalNameEdit: (terminalId: string, currentTerminalName: string) => void;
+    onCancelTerminalRename: () => void;
+    onMinimizeTerminal: (terminalId: string) => void;
+    onOpenTerminalGitActions: (terminalId: string) => void;
+    onRequestDeleteTerminal: ComponentProps<typeof TerminalBoard>["onRequestDeleteTerminal"];
+    onSubmitTerminalRename: (terminalId: string, currentTerminalName: string) => void;
+    onTerminalDividerKeyDown: ComponentProps<typeof TerminalBoard>["onTerminalDividerKeyDown"];
+    onTerminalDividerPointerDown: ComponentProps<
+      typeof TerminalBoard
+    >["onTerminalDividerPointerDown"];
+    onTerminalHeaderWheel: ComponentProps<typeof TerminalBoard>["onTerminalHeaderWheel"];
+    onTerminalNameDraftChange: (name: string) => void;
     onSelectTerminal: (terminalId: string) => void;
-    onTentacleStateChange: (tentacleId: string, state: AgentRuntimeState) => void;
-    onCreateTentacleAgent: (
-      tentacleId: string,
-      anchorAgentId: string,
-      placement: "up" | "down",
-    ) => void;
-    onDeleteTentacleAgent: (tentacleId: string, agentId: string) => void;
-    selectedTentacleId: string | null;
+    onTerminalStateChange: (terminalId: string, state: AgentRuntimeState) => void;
     selectedTerminalId: string | null;
-    tentacleNameDraft: string;
-    tentacleNameInputRef: RefObject<HTMLInputElement | null>;
-    tentacleWidths: Record<string, number>;
-    tentaclesRef: RefObject<HTMLElement | null>;
-    visibleColumns: TentacleView;
+    terminalNameDraft: string;
+    terminalNameInputRef: RefObject<HTMLInputElement | null>;
+    terminalWidths: Record<string, number>;
+    terminalsRef: RefObject<HTMLElement | null>;
+    visibleTerminals: TerminalView;
   };
 };
 
@@ -76,7 +68,7 @@ export const PrimaryViewRouter = ({
   settingsPrimaryViewProps,
   conversationsPrimaryViewProps,
   canvasPrimaryViewProps,
-  tentacleBoardProps,
+  terminalBoardProps,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
     return <DeckPrimaryView onSidebarContent={onDeckSidebarContent} />;
@@ -117,7 +109,7 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 9) {
-    return <TentacleBoard {...tentacleBoardProps} />;
+    return <TerminalBoard {...terminalBoardProps} />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

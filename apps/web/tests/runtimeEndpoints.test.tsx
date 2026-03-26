@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildAgentSnapshotsUrl,
+  buildTerminalSnapshotsUrl,
   buildClaudeUsageUrl,
   buildCodexUsageUrl,
   buildConversationExportUrl,
@@ -11,8 +11,6 @@ import {
   buildMonitorConfigUrl,
   buildMonitorFeedUrl,
   buildMonitorRefreshUrl,
-  buildTentacleAgentUrl,
-  buildTentacleAgentsUrl,
   buildTentacleGitCommitUrl,
   buildTentacleGitPullRequestMergeUrl,
   buildTentacleGitPullRequestUrl,
@@ -20,29 +18,29 @@ import {
   buildTentacleGitStatusUrl,
   buildTentacleGitSyncUrl,
   buildTentacleRenameUrl,
-  buildTentaclesUrl,
+  buildTerminalsUrl,
   buildTerminalSocketUrl,
   buildUiStateUrl,
 } from "../src/runtime/runtimeEndpoints";
 
 describe("runtimeEndpoints", () => {
   it("returns same-origin API path when runtime base URL is not configured", () => {
-    expect(buildAgentSnapshotsUrl()).toBe("/api/agent-snapshots");
+    expect(buildTerminalSnapshotsUrl()).toBe("/api/terminal-snapshots");
   });
 
   it("builds absolute API URL when runtime base URL is configured", () => {
-    expect(buildAgentSnapshotsUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/agent-snapshots",
+    expect(buildTerminalSnapshotsUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/terminal-snapshots",
     );
   });
 
-  it("builds tentacle creation URL on same origin by default", () => {
-    expect(buildTentaclesUrl()).toBe("/api/tentacles");
+  it("builds terminal creation URL on same origin by default", () => {
+    expect(buildTerminalsUrl()).toBe("/api/terminals");
   });
 
-  it("builds absolute tentacle creation URL when runtime base URL is configured", () => {
-    expect(buildTentaclesUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/tentacles",
+  it("builds absolute terminal creation URL when runtime base URL is configured", () => {
+    expect(buildTerminalsUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/terminals",
     );
   });
 
@@ -139,36 +137,10 @@ describe("runtimeEndpoints", () => {
     expect(buildTentacleRenameUrl("tentacle-main")).toBe("/api/tentacles/tentacle-main");
   });
 
-  it("builds tentacle child-agent creation URL on same origin by default", () => {
-    expect(buildTentacleAgentsUrl("tentacle-main")).toBe("/api/tentacles/tentacle-main/agents");
-  });
-
   it("builds absolute tentacle rename URL when runtime base URL is configured", () => {
     expect(buildTentacleRenameUrl("tentacle-main", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/tentacles/tentacle-main",
     );
-  });
-
-  it("builds absolute tentacle child-agent creation URL when runtime base URL is configured", () => {
-    expect(buildTentacleAgentsUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/tentacles/tentacle-main/agents",
-    );
-  });
-
-  it("builds tentacle child-agent item URL on same origin by default", () => {
-    expect(buildTentacleAgentUrl("tentacle-main", "tentacle-main-agent-2")).toBe(
-      "/api/tentacles/tentacle-main/agents/tentacle-main-agent-2",
-    );
-  });
-
-  it("builds absolute tentacle child-agent item URL when runtime base URL is configured", () => {
-    expect(
-      buildTentacleAgentUrl(
-        "tentacle-main",
-        "tentacle-main-agent-2",
-        "https://runtime.example.com",
-      ),
-    ).toBe("https://runtime.example.com/api/tentacles/tentacle-main/agents/tentacle-main-agent-2");
   });
 
   it("builds tentacle git lifecycle URLs on same origin by default", () => {

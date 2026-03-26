@@ -1,11 +1,11 @@
-import { TENTACLE_ID_PREFIX } from "./constants";
+import { TERMINAL_ID_PREFIX } from "./constants";
 
-export const parseTentacleNumber = (tentacleId: string): number | null => {
-  if (!tentacleId.startsWith(TENTACLE_ID_PREFIX)) {
+export const parseTerminalNumber = (terminalId: string): number | null => {
+  if (!terminalId.startsWith(TERMINAL_ID_PREFIX)) {
     return null;
   }
 
-  const numericPart = tentacleId.slice(TENTACLE_ID_PREFIX.length);
+  const numericPart = terminalId.slice(TERMINAL_ID_PREFIX.length);
   if (!/^\d+$/.test(numericPart)) {
     return null;
   }

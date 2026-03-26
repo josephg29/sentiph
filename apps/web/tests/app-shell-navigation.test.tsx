@@ -15,8 +15,10 @@ describe("App shell and navigation", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("No active tentacles")).toBeInTheDocument();
-    expect(screen.getByText("When agents start, tentacles will appear here.")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+
+    expect(await screen.findByText("No active terminals")).toBeInTheDocument();
+    expect(screen.getByText("When agents start, terminals will appear here.")).toBeInTheDocument();
     expect(screen.getByTestId("empty-octopus")).toBeInTheDocument();
   });
 
@@ -25,7 +27,7 @@ describe("App shell and navigation", () => {
 
     render(<App />);
 
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
     expect(screen.getByLabelText("Runtime status strip")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
@@ -33,20 +35,20 @@ describe("App shell and navigation", () => {
     expect(screen.queryByRole("textbox", { name: "Context search input" })).not.toBeInTheDocument();
     expect(screen.queryByText("Agent Runtime")).not.toBeInTheDocument();
     expect(await screen.findByText("LIVE")).toBeInTheDocument();
-    expect(screen.getByText("Press 1-5 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 1-9 to navigate")).toBeInTheDocument();
   });
 
-  it("supports keyboard-first primary navigation with number keys 1-5", async () => {
+  it("supports keyboard-first primary navigation with number keys 1-9", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
 
     fireEvent.keyDown(window, { key: "4" });
 
     expect(
       screen.getByRole("button", {
-        name: "[4] Conversations",
+        name: "[4] Monitor",
       }),
     ).toHaveAttribute("aria-current", "page");
   });
@@ -55,11 +57,11 @@ describe("App shell and navigation", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[5] Settings",
+        name: "[6] Settings",
       }),
     );
 
@@ -82,11 +84,11 @@ describe("App shell and navigation", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[4] Conversations",
+        name: "[5] Conversations",
       }),
     );
 
@@ -104,9 +106,9 @@ describe("App shell and navigation", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse([]));
 
     render(<App />);
-    await screen.findByText("No active tentacles");
+    await screen.findByLabelText("Active Agents sidebar");
 
-    fireEvent.click(screen.getByRole("button", { name: "[5] Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "[6] Settings" }));
     fireEvent.click(screen.getByRole("radio", { name: /Retro beep/i }));
 
     expect(MockAudio).toHaveBeenCalledTimes(1);

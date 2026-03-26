@@ -15,15 +15,15 @@ describe("App board scroll behavior", () => {
     resetAppTestHarness();
   });
 
-  it("scrolls the board horizontally from tentacle headers without hijacking terminal wheel events", async () => {
+  it("scrolls the board horizontally from terminal headers without hijacking terminal wheel events", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url.endsWith("/api/agent-snapshots")) {
+      if (url.endsWith("/api/terminal-snapshots")) {
         return jsonResponse([
           {
-            agentId: "agent-1",
+            terminalId: "terminal-1",
             label: "core-planner",
             state: "live",
             tentacleId: "tentacle-a",
@@ -46,9 +46,10 @@ describe("App board scroll behavior", () => {
 
     render(<App />);
 
-    const board = await screen.findByLabelText("Tentacle board");
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+    const board = await screen.findByLabelText("Terminal board");
     const headerNameButton = await screen.findByRole("button", { name: "tentacle-a" });
-    const terminal = await screen.findByTestId("terminal-agent-1");
+    const terminal = await screen.findByTestId("terminal-terminal-1");
 
     expect(board.scrollLeft).toBe(0);
 

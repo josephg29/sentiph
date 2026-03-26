@@ -72,7 +72,7 @@
   font-size: 0.74rem;
 }
 
-.console-shell .tentacles {
+.console-shell .terminals {
   background: #050607;
   padding: 0;
   gap: 0;
@@ -93,55 +93,55 @@
   font-size: 0.84rem;
 }
 
-.console-shell .tentacle-column {
+.console-shell .terminal-column {
   border: 1px solid #2b2f36;
   background: #0b0d10;
 }
 
-.console-shell .tentacle-divider {
+.console-shell .terminal-divider {
   flex-basis: 6px;
   border-left: 1px solid #2b2f36;
   border-right: 1px solid #11151b;
   background: linear-gradient(180deg, #141920, #0b0f15);
 }
 
-.console-shell .tentacle-column-header {
+.console-shell .terminal-column-header {
   background: #161b23;
   border-bottom: 1px solid #2b2f36;
 }
 
-.console-shell .tentacle-column-header h2 {
+.console-shell .terminal-column-header h2 {
   color: #d6a21a;
   font-size: 0.78rem;
 }
 
-.console-shell .tentacle-name-editor {
+.console-shell .terminal-name-editor {
   background: #1e2631;
   color: #e6e8ec;
 }
 
-.console-shell .tentacle-workspace-badge {
+.console-shell .terminal-workspace-badge {
   background: #233346;
   border-color: #2f4258;
   color: #bad8ff;
 }
 
-.console-shell .tentacle-workspace-badge--shared {
+.console-shell .terminal-workspace-badge--shared {
   background: #3a2f14;
   border-color: #604a1a;
   color: #f3cf72;
 }
 
-.console-shell .tentacle-git-cluster {
+.console-shell .terminal-git-cluster {
   background: #1d2734;
   border-color: #2f4258;
 }
 
-.console-shell .tentacle-header-actions {
+.console-shell .terminal-header-actions {
   gap: 0.14rem;
 }
 
-.console-shell .tentacle-terminal {
+.console-shell .terminal-pane {
   background: #0b0d10;
 }
 
@@ -155,7 +155,7 @@
   color: #121212;
 }
 
-.console-shell .tentacle-terminal--selected .terminal-header {
+.console-shell .terminal-pane--selected .terminal-header {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
@@ -165,7 +165,7 @@
   color: #121212;
 }
 
-.console-shell .tentacle-terminal--selected .terminal-title {
+.console-shell .terminal-pane--selected .terminal-title {
   color: #121212;
 }
 

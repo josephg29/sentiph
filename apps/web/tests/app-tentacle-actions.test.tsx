@@ -9,23 +9,23 @@ import {
   resetAppTestHarness,
 } from "./test-utils/appTestHarness";
 
-describe("App tentacle create/rename/delete actions", () => {
+describe("App terminal create/rename/delete actions", () => {
   afterEach(() => {
     cleanup();
     resetAppTestHarness();
   });
 
-  it("creates a shared-codebase tentacle and refreshes columns plus sidebar listings", async () => {
+  it("creates a shared-codebase terminal and refreshes columns plus sidebar listings", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         const afterCreate = fetchMock.mock.calls.some(
           ([calledUrl, calledInit]) =>
-            String(calledUrl).endsWith("/api/tentacles") &&
+            String(calledUrl).endsWith("/api/terminals") &&
             (calledInit?.method ?? "GET") === "POST",
         );
 
@@ -33,255 +33,16 @@ describe("App tentacle create/rename/delete actions", () => {
           afterCreate
             ? [
                 {
-                  agentId: "tentacle-1-root",
-                  label: "tentacle-1-root",
-                  state: "live",
-                  tentacleId: "tentacle-1",
-                  createdAt: "2026-02-24T10:00:00.000Z",
-                },
-                {
-                  agentId: "tentacle-1-agent-1",
-                  label: "tentacle-1-agent-1",
-                  state: "live",
-                  tentacleId: "tentacle-1",
-                  parentAgentId: "tentacle-1-root",
-                  createdAt: "2026-02-24T10:00:30.000Z",
-                },
-                {
-                  agentId: "tentacle-2-root",
-                  label: "tentacle-2-root",
-                  state: "live",
-                  tentacleId: "tentacle-2",
-                  createdAt: "2026-02-24T10:05:00.000Z",
-                },
-                {
-                  agentId: "tentacle-2-agent-1",
-                  label: "tentacle-2-agent-1",
-                  state: "live",
-                  tentacleId: "tentacle-2",
-                  parentAgentId: "tentacle-2-root",
-                  createdAt: "2026-02-24T10:05:30.000Z",
-                },
-              ]
-            : [
-                {
-                  agentId: "tentacle-1-root",
-                  label: "tentacle-1-root",
-                  state: "live",
-                  tentacleId: "tentacle-1",
-                  createdAt: "2026-02-24T10:00:00.000Z",
-                },
-                {
-                  agentId: "tentacle-1-agent-1",
-                  label: "tentacle-1-agent-1",
-                  state: "live",
-                  tentacleId: "tentacle-1",
-                  parentAgentId: "tentacle-1-root",
-                  createdAt: "2026-02-24T10:00:30.000Z",
-                },
-              ],
-        );
-      }
-
-      if (url.endsWith("/api/tentacles") && method === "POST") {
-        expect(init?.body).toBe(JSON.stringify({ workspaceMode: "shared" }));
-        return jsonResponse(
-          {
-            agentId: "tentacle-2-root",
-            label: "tentacle-2-root",
-            state: "live",
-            tentacleId: "tentacle-2",
-            createdAt: "2026-02-24T10:05:00.000Z",
-          },
-          201,
-        );
-      }
-
-      return notFoundResponse();
-    });
-
-    render(<App />);
-
-    await screen.findByLabelText("tentacle-1");
-    fireEvent.click(screen.getByRole("button", { name: "Create tentacle in main codebase" }));
-
-    const tentacleTwoColumn = await screen.findByLabelText("tentacle-2");
-    const sidebar = await screen.findByLabelText("Active Agents sidebar");
-
-    expect(tentacleTwoColumn).toBeInTheDocument();
-    expect(within(sidebar).getByLabelText("Active agents in tentacle-1")).toBeInTheDocument();
-    expect(within(sidebar).getByLabelText("Active agents in tentacle-2")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(
-        MockWebSocket.instances.some((socket) => socket.url.includes("/tentacle-2-agent-1/ws")),
-      ).toBe(true);
-    });
-  });
-
-  it("creates child terminal agents above or below a selected terminal", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-
-    const snapshots: Array<{
-      agentId: string;
-      label: string;
-      state: "live";
-      tentacleId: string;
-      tentacleName: string;
-      createdAt: string;
-      parentAgentId?: string;
-    }> = [
-      {
-        agentId: "tentacle-a-root",
-        label: "tentacle-a-root",
-        state: "live",
-        tentacleId: "tentacle-a",
-        tentacleName: "tentacle-a",
-        createdAt: "2026-02-24T10:00:00.000Z",
-      },
-    ];
-
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const url = String(input);
-      const method = init?.method ?? "GET";
-
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
-        return jsonResponse(snapshots);
-      }
-
-      if (url.endsWith("/api/tentacles/tentacle-a/agents") && method === "POST") {
-        const payload = JSON.parse(String(init?.body ?? "{}")) as {
-          anchorAgentId?: string;
-          placement?: string;
-        };
-
-        if (payload.anchorAgentId === "tentacle-a-root" && payload.placement === "down") {
-          snapshots.push({
-            agentId: "tentacle-a-agent-1",
-            label: "tentacle-a-agent-1",
-            state: "live",
-            tentacleId: "tentacle-a",
-            tentacleName: "tentacle-a",
-            createdAt: "2026-02-24T10:01:00.000Z",
-            parentAgentId: "tentacle-a-root",
-          });
-          return jsonResponse(
-            {
-              agentId: "tentacle-a-agent-1",
-            },
-            201,
-          );
-        }
-
-        if (payload.anchorAgentId === "tentacle-a-agent-1" && payload.placement === "up") {
-          snapshots.splice(1, 0, {
-            agentId: "tentacle-a-agent-2",
-            label: "tentacle-a-agent-2",
-            state: "live",
-            tentacleId: "tentacle-a",
-            tentacleName: "tentacle-a",
-            createdAt: "2026-02-24T10:02:00.000Z",
-            parentAgentId: "tentacle-a-root",
-          });
-          return jsonResponse(
-            {
-              agentId: "tentacle-a-agent-2",
-            },
-            201,
-          );
-        }
-      }
-
-      if (
-        url.match(/\/api\/tentacles\/tentacle-a\/agents\/tentacle-a-agent-[0-9]+$/) &&
-        method === "DELETE"
-      ) {
-        const agentId = url.split("/").at(-1) ?? "";
-        const index = snapshots.findIndex((snapshot) => snapshot.agentId === agentId);
-        if (index >= 0) {
-          snapshots.splice(index, 1);
-        }
-        for (const snapshot of snapshots) {
-          if (snapshot.parentAgentId === agentId) {
-            snapshot.parentAgentId = "tentacle-a-root";
-          }
-        }
-        return new Response(null, { status: 204 });
-      }
-
-      return notFoundResponse();
-    });
-
-    render(<App />);
-
-    await screen.findByLabelText("tentacle-a");
-    expect(
-      screen.getByRole("button", { name: "Create first terminal in tentacle-a" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Create first terminal in tentacle-a" }));
-    await screen.findByRole("button", { name: "Add terminal below tentacle-a-agent-1" });
-
-    fireEvent.click(screen.getByRole("button", { name: "Add terminal above tentacle-a-agent-1" }));
-
-    await waitFor(() => {
-      const mountedTerminalLabels = screen
-        .getAllByLabelText(/^Terminal /)
-        .map((element) => element.getAttribute("aria-label"));
-      expect(mountedTerminalLabels).toEqual([
-        "Terminal tentacle-a-agent-2",
-        "Terminal tentacle-a-agent-1",
-      ]);
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Delete terminal tentacle-a-agent-1" }));
-
-    await waitFor(() => {
-      const mountedTerminalLabels = screen
-        .getAllByLabelText(/^Terminal /)
-        .map((element) => element.getAttribute("aria-label"));
-      expect(mountedTerminalLabels).toEqual(["Terminal tentacle-a-agent-2"]);
-      expect(
-        screen.queryByRole("button", { name: "Delete terminal tentacle-a-agent-1" }),
-      ).toBeNull();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Delete terminal tentacle-a-agent-2" }));
-    await waitFor(() => {
-      expect(screen.queryByLabelText("Terminal tentacle-a-agent-2")).toBeNull();
-      expect(
-        screen.getByRole("button", { name: "Create first terminal in tentacle-a" }),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("creates an isolated-worktree tentacle and starts inline editing immediately", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const url = String(input);
-      const method = init?.method ?? "GET";
-
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
-        const afterCreate = fetchMock.mock.calls.some(
-          ([calledUrl, calledInit]) =>
-            String(calledUrl).endsWith("/api/tentacles") &&
-            (calledInit?.method ?? "GET") === "POST",
-        );
-
-        return jsonResponse(
-          afterCreate
-            ? [
-                {
-                  agentId: "tentacle-1-root",
-                  label: "tentacle-1-root",
+                  terminalId: "terminal-1",
+                  label: "terminal-1",
                   state: "live",
                   tentacleId: "tentacle-1",
                   tentacleName: "tentacle-1",
                   createdAt: "2026-02-24T10:00:00.000Z",
                 },
                 {
-                  agentId: "tentacle-2-root",
-                  label: "tentacle-2-root",
+                  terminalId: "terminal-2",
+                  label: "terminal-2",
                   state: "live",
                   tentacleId: "tentacle-2",
                   tentacleName: "tentacle-2",
@@ -290,8 +51,8 @@ describe("App tentacle create/rename/delete actions", () => {
               ]
             : [
                 {
-                  agentId: "tentacle-1-root",
-                  label: "tentacle-1-root",
+                  terminalId: "terminal-1",
+                  label: "terminal-1",
                   state: "live",
                   tentacleId: "tentacle-1",
                   tentacleName: "tentacle-1",
@@ -301,12 +62,15 @@ describe("App tentacle create/rename/delete actions", () => {
         );
       }
 
-      if (url.endsWith("/api/tentacles") && method === "POST") {
-        expect(init?.body).toBe(JSON.stringify({ workspaceMode: "worktree" }));
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
+      }
+
+      if (url.endsWith("/api/terminals") && method === "POST") {
         return jsonResponse(
           {
-            agentId: "tentacle-2-root",
-            label: "tentacle-2-root",
+            terminalId: "terminal-2",
+            label: "terminal-2",
             state: "live",
             tentacleId: "tentacle-2",
             tentacleName: "tentacle-2",
@@ -321,17 +85,103 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    await screen.findByLabelText("tentacle-1");
+    await screen.findByLabelText("terminal-1");
+    fireEvent.click(screen.getByRole("button", { name: "Create tentacle in main codebase" }));
+
+    const terminalTwoColumn = await screen.findByLabelText("terminal-2");
+    const sidebar = await screen.findByLabelText("Active Agents sidebar");
+
+    expect(terminalTwoColumn).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText("Terminal terminal-1")).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText("Terminal terminal-2")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        MockWebSocket.instances.some((socket) => socket.url.includes("/terminal-2/ws")),
+      ).toBe(true);
+    });
+  });
+
+  it("creates an isolated-worktree terminal and starts inline editing immediately", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
+        const afterCreate = fetchMock.mock.calls.some(
+          ([calledUrl, calledInit]) =>
+            String(calledUrl).endsWith("/api/terminals") &&
+            (calledInit?.method ?? "GET") === "POST",
+        );
+
+        return jsonResponse(
+          afterCreate
+            ? [
+                {
+                  terminalId: "terminal-1",
+                  label: "terminal-1",
+                  state: "live",
+                  tentacleId: "tentacle-1",
+                  tentacleName: "tentacle-1",
+                  createdAt: "2026-02-24T10:00:00.000Z",
+                },
+                {
+                  terminalId: "terminal-2",
+                  label: "terminal-2",
+                  state: "live",
+                  tentacleId: "tentacle-2",
+                  tentacleName: "tentacle-2",
+                  createdAt: "2026-02-24T10:05:00.000Z",
+                },
+              ]
+            : [
+                {
+                  terminalId: "terminal-1",
+                  label: "terminal-1",
+                  state: "live",
+                  tentacleId: "tentacle-1",
+                  tentacleName: "tentacle-1",
+                  createdAt: "2026-02-24T10:00:00.000Z",
+                },
+              ],
+        );
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
+      }
+
+      if (url.endsWith("/api/terminals") && method === "POST") {
+        return jsonResponse(
+          {
+            terminalId: "terminal-2",
+            label: "terminal-2",
+            state: "live",
+            tentacleId: "tentacle-2",
+            tentacleName: "tentacle-2",
+            createdAt: "2026-02-24T10:05:00.000Z",
+          },
+          201,
+        );
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    await screen.findByLabelText("terminal-1");
     fireEvent.click(screen.getByRole("button", { name: "Create tentacle with isolated worktree" }));
 
-    const nameEditor = await screen.findByLabelText("Tentacle name for tentacle-2");
+    const nameEditor = await screen.findByLabelText("Terminal name for terminal-2");
     expect(nameEditor).toHaveValue("tentacle-2");
     expect(document.activeElement).toBe(nameEditor);
     expect((nameEditor as HTMLInputElement).selectionStart).toBe(0);
     expect((nameEditor as HTMLInputElement).selectionEnd).toBe("tentacle-2".length);
   });
 
-  it("renames an existing tentacle inline from the column header", async () => {
+  it("renames an existing terminal inline from the column header", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     let tentacleName = "tentacle-a";
@@ -339,10 +189,10 @@ describe("App tentacle create/rename/delete actions", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([
           {
-            agentId: "agent-1",
+            terminalId: "terminal-a",
             label: "core-planner",
             state: "live",
             tentacleId: "tentacle-a",
@@ -352,12 +202,16 @@ describe("App tentacle create/rename/delete actions", () => {
         ]);
       }
 
-      if (url.endsWith("/api/tentacles/tentacle-a") && method === "PATCH") {
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
+      }
+
+      if (url.endsWith("/api/terminals/terminal-a") && method === "PATCH") {
         expect(init?.body).toBe(JSON.stringify({ name: "research" }));
         tentacleName = "research";
         return jsonResponse({
-          agentId: "tentacle-a-root",
-          label: "tentacle-a-root",
+          terminalId: "terminal-a",
+          label: "core-planner",
           state: "live",
           tentacleId: "tentacle-a",
           tentacleName,
@@ -369,40 +223,44 @@ describe("App tentacle create/rename/delete actions", () => {
     });
 
     render(<App />);
-    const tentacleColumn = await screen.findByLabelText("tentacle-a");
-    fireEvent.click(screen.getByRole("button", { name: "Rename tentacle tentacle-a" }));
-    const nameEditor = await within(tentacleColumn).findByLabelText("Tentacle name for tentacle-a");
+    const terminalColumn = await screen.findByLabelText("terminal-a");
+    fireEvent.click(screen.getByRole("button", { name: "Rename terminal terminal-a" }));
+    const nameEditor = await within(terminalColumn).findByLabelText(
+      "Terminal name for terminal-a",
+    );
     fireEvent.change(nameEditor, { target: { value: "research" } });
     fireEvent.keyDown(nameEditor, { key: "Enter" });
 
     await waitFor(() => {
-      expect(within(tentacleColumn).getByRole("button", { name: "research" })).toBeInTheDocument();
+      expect(
+        within(terminalColumn).getByRole("button", { name: "research" }),
+      ).toBeInTheDocument();
     });
   });
 
-  it("deletes a tentacle from the header action and refreshes board and sidebar", async () => {
+  it("deletes a terminal from the header action and refreshes board and sidebar", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    let includeTentacleB = true;
+    let includeTerminalB = true;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse(
-          includeTentacleB
+          includeTerminalB
             ? [
                 {
-                  agentId: "tentacle-a-root",
-                  label: "tentacle-a-root",
+                  terminalId: "terminal-a",
+                  label: "terminal-a",
                   state: "live",
                   tentacleId: "tentacle-a",
                   tentacleName: "tentacle-a",
                   createdAt: "2026-02-24T10:00:00.000Z",
                 },
                 {
-                  agentId: "tentacle-b-root",
-                  label: "tentacle-b-root",
+                  terminalId: "terminal-b",
+                  label: "terminal-b",
                   state: "live",
                   tentacleId: "tentacle-b",
                   tentacleName: "tentacle-b",
@@ -411,8 +269,8 @@ describe("App tentacle create/rename/delete actions", () => {
               ]
             : [
                 {
-                  agentId: "tentacle-a-root",
-                  label: "tentacle-a-root",
+                  terminalId: "terminal-a",
+                  label: "terminal-a",
                   state: "live",
                   tentacleId: "tentacle-a",
                   tentacleName: "tentacle-a",
@@ -422,8 +280,12 @@ describe("App tentacle create/rename/delete actions", () => {
         );
       }
 
-      if (url.endsWith("/api/tentacles/tentacle-b") && method === "DELETE") {
-        includeTentacleB = false;
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
+      }
+
+      if (url.endsWith("/api/terminals/terminal-b") && method === "DELETE") {
+        includeTerminalB = false;
         return new Response(null, { status: 204 });
       }
 
@@ -432,80 +294,90 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    const tentacleBColumn = await screen.findByLabelText("tentacle-b");
+    const terminalBColumn = await screen.findByLabelText("terminal-b");
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
-    expect(within(sidebar).getByLabelText("Active agents in tentacle-b")).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText("Terminal terminal-b")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-b" }));
-    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for tentacle-b");
+    fireEvent.click(screen.getByRole("button", { name: "Delete terminal terminal-b" }));
+    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for terminal-b");
     expect(deletePanel).toBeInTheDocument();
     expect(within(deletePanel).getByText("This action cannot be undone.")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Delete confirmation for tentacle-b" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete tentacle-b" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Delete confirmation for terminal-b" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete terminal-b" }));
 
     await waitFor(() => {
-      expect(tentacleBColumn).not.toBeInTheDocument();
-      expect(within(sidebar).queryByLabelText("Active agents in tentacle-b")).toBeNull();
+      expect(terminalBColumn).not.toBeInTheDocument();
+      expect(within(sidebar).queryByLabelText("Terminal terminal-b")).toBeNull();
     });
   });
 
   it("closes the delete confirmation panel with Escape", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      jsonResponse([
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/api/ui-state")) {
+        return jsonResponse({ activePrimaryNav: 9 });
+      }
+      return jsonResponse([
         {
-          agentId: "tentacle-a-root",
-          label: "tentacle-a-root",
+          terminalId: "terminal-a",
+          label: "terminal-a",
           state: "live",
           tentacleId: "tentacle-a",
           tentacleName: "tentacle-a",
           createdAt: "2026-02-24T10:00:00.000Z",
         },
-      ]),
-    );
+      ]);
+    });
 
     render(<App />);
-    await screen.findByLabelText("tentacle-a");
+    await screen.findByLabelText("terminal-a");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete tentacle tentacle-a" }));
-    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for tentacle-a");
+    fireEvent.click(screen.getByRole("button", { name: "Delete terminal terminal-a" }));
+    const deletePanel = within(sidebar).getByLabelText("Delete confirmation for terminal-a");
     expect(deletePanel).toBeInTheDocument();
     expect(
       within(deletePanel).getByRole("button", { name: "Close sidebar action panel" }),
     ).toBeInTheDocument();
 
     fireEvent.keyDown(deletePanel, { key: "Escape" });
-    expect(screen.queryByLabelText("Delete confirmation for tentacle-a")).toBeNull();
+    expect(screen.queryByLabelText("Delete confirmation for terminal-a")).toBeNull();
   });
 
-  it("shows git actions for worktree tentacles and commits with user message", async () => {
+  it("shows git actions for worktree terminals and commits with user message", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([
           {
-            agentId: "tentacle-a-root",
-            label: "tentacle-a-root",
+            terminalId: "terminal-a",
+            label: "terminal-a",
             state: "live",
             tentacleId: "tentacle-a",
             tentacleName: "tentacle-a",
-            tentacleWorkspaceMode: "shared",
+            workspaceMode: "shared",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
           {
-            agentId: "tentacle-b-root",
-            label: "tentacle-b-root",
+            terminalId: "terminal-b",
+            label: "terminal-b",
             state: "live",
             tentacleId: "tentacle-b",
             tentacleName: "tentacle-b",
-            tentacleWorkspaceMode: "worktree",
+            workspaceMode: "worktree",
             createdAt: "2026-02-24T10:05:00.000Z",
           },
         ]);
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
       }
 
       if (url.endsWith("/api/tentacles/tentacle-b/git/status") && method === "GET") {
@@ -544,10 +416,10 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    await screen.findByLabelText("tentacle-b");
+    await screen.findByLabelText("terminal-b");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
-    expect(screen.queryByRole("button", { name: "Open git actions for tentacle-a" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-b" }));
+    expect(screen.queryByRole("button", { name: "Open git actions for terminal-a" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for terminal-b" }));
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-b");
     expect(screen.queryByRole("dialog", { name: "Git actions for tentacle-b" })).toBeNull();
@@ -577,18 +449,22 @@ describe("App tentacle create/rename/delete actions", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([
           {
-            agentId: "tentacle-pr-root",
-            label: "tentacle-pr-root",
+            terminalId: "terminal-pr",
+            label: "terminal-pr",
             state: "live",
             tentacleId: "tentacle-pr",
             tentacleName: "tentacle-pr",
-            tentacleWorkspaceMode: "worktree",
+            workspaceMode: "worktree",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]);
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
       }
 
       if (url.endsWith("/api/tentacles/tentacle-pr/git/status") && method === "GET") {
@@ -643,9 +519,9 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    const tentacleColumn = await screen.findByLabelText("tentacle-pr");
+    const terminalColumn = await screen.findByLabelText("terminal-pr");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
-    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-pr" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for terminal-pr" }));
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-pr");
     expect(
@@ -664,7 +540,7 @@ describe("App tentacle create/rename/delete actions", () => {
     });
 
     await waitFor(() => {
-      expect(within(tentacleColumn).getByText("PR MERGED #215")).toBeInTheDocument();
+      expect(within(terminalColumn).getByText("PR MERGED #215")).toBeInTheDocument();
     });
   });
 
@@ -675,18 +551,22 @@ describe("App tentacle create/rename/delete actions", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([
           {
-            agentId: "tentacle-blocked-root",
-            label: "tentacle-blocked-root",
+            terminalId: "terminal-blocked",
+            label: "terminal-blocked",
             state: "live",
             tentacleId: "tentacle-blocked",
             tentacleName: "tentacle-blocked",
-            tentacleWorkspaceMode: "worktree",
+            workspaceMode: "worktree",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]);
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
       }
 
       if (url.endsWith("/api/tentacles/tentacle-blocked/git/status") && method === "GET") {
@@ -725,9 +605,11 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    await screen.findByLabelText("tentacle-blocked");
+    await screen.findByLabelText("terminal-blocked");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
-    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-blocked" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open git actions for terminal-blocked" }),
+    );
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-blocked");
     fireEvent.click(within(gitPanel).getByRole("button", { name: "Open commit options" }));
@@ -746,49 +628,53 @@ describe("App tentacle create/rename/delete actions", () => {
     ).toBeInTheDocument();
   });
 
-  it("requires explicit confirmation before cleanup of a worktree tentacle", async () => {
+  it("requires explicit confirmation before cleanup of a worktree terminal", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    let includeWorktreeTentacle = true;
+    let includeWorktreeTerminal = true;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
-      if (url.endsWith("/api/agent-snapshots") && method === "GET") {
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse(
-          includeWorktreeTentacle
+          includeWorktreeTerminal
             ? [
                 {
-                  agentId: "tentacle-main-root",
-                  label: "tentacle-main-root",
+                  terminalId: "terminal-main",
+                  label: "terminal-main",
                   state: "live",
                   tentacleId: "tentacle-main",
                   tentacleName: "tentacle-main",
-                  tentacleWorkspaceMode: "shared",
+                  workspaceMode: "shared",
                   createdAt: "2026-02-24T10:00:00.000Z",
                 },
                 {
-                  agentId: "tentacle-wt-root",
-                  label: "tentacle-wt-root",
+                  terminalId: "terminal-wt",
+                  label: "terminal-wt",
                   state: "live",
                   tentacleId: "tentacle-wt",
                   tentacleName: "tentacle-wt",
-                  tentacleWorkspaceMode: "worktree",
+                  workspaceMode: "worktree",
                   createdAt: "2026-02-24T10:05:00.000Z",
                 },
               ]
             : [
                 {
-                  agentId: "tentacle-main-root",
-                  label: "tentacle-main-root",
+                  terminalId: "terminal-main",
+                  label: "terminal-main",
                   state: "live",
                   tentacleId: "tentacle-main",
                   tentacleName: "tentacle-main",
-                  tentacleWorkspaceMode: "shared",
+                  workspaceMode: "shared",
                   createdAt: "2026-02-24T10:00:00.000Z",
                 },
               ],
         );
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({ activePrimaryNav: 9 });
       }
 
       if (url.endsWith("/api/tentacles/tentacle-wt/git/status") && method === "GET") {
@@ -822,8 +708,8 @@ describe("App tentacle create/rename/delete actions", () => {
         });
       }
 
-      if (url.endsWith("/api/tentacles/tentacle-wt") && method === "DELETE") {
-        includeWorktreeTentacle = false;
+      if (url.endsWith("/api/terminals/terminal-wt") && method === "DELETE") {
+        includeWorktreeTerminal = false;
         return new Response(null, { status: 204 });
       }
 
@@ -832,15 +718,15 @@ describe("App tentacle create/rename/delete actions", () => {
 
     render(<App />);
 
-    await screen.findByLabelText("tentacle-wt");
+    await screen.findByLabelText("terminal-wt");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
-    fireEvent.click(screen.getByRole("button", { name: "Open git actions for tentacle-wt" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for terminal-wt" }));
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-wt");
     fireEvent.click(within(gitPanel).getByRole("button", { name: "Cleanup worktree" }));
 
     const deleteDialog = await within(sidebar).findByLabelText(
-      "Delete confirmation for tentacle-wt",
+      "Delete confirmation for terminal-wt",
     );
     expect(
       within(deleteDialog).getByText(
@@ -849,18 +735,18 @@ describe("App tentacle create/rename/delete actions", () => {
     ).toBeInTheDocument();
 
     const confirmButton = within(deleteDialog).getByRole("button", {
-      name: "Confirm delete tentacle-wt",
+      name: "Confirm delete terminal-wt",
     });
     expect(confirmButton).toBeDisabled();
 
     fireEvent.change(within(deleteDialog).getByLabelText("Type tentacle ID to confirm cleanup"), {
-      target: { value: "tentacle-wt" },
+      target: { value: "terminal-wt" },
     });
     expect(confirmButton).not.toBeDisabled();
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(screen.queryByLabelText("tentacle-wt")).toBeNull();
+      expect(screen.queryByLabelText("terminal-wt")).toBeNull();
     });
   });
 });

@@ -1,4 +1,4 @@
-import type { AgentSnapshot, AgentSnapshotReader, AgentState } from "@octogent/core";
+import type { AgentState, TerminalSnapshot, TerminalSnapshotReader } from "@octogent/core";
 
 type HttpResponse = {
   ok: boolean;
@@ -14,7 +14,7 @@ type HttpRequestInit = {
 
 type HttpFetcher = (input: string, init: HttpRequestInit) => Promise<HttpResponse>;
 
-type HttpAgentSnapshotReaderOptions = {
+type HttpTerminalSnapshotReaderOptions = {
   endpoint: string;
   fetcher?: HttpFetcher;
   signal?: AbortSignal;
@@ -23,7 +23,7 @@ type HttpAgentSnapshotReaderOptions = {
 const isAgentState = (value: unknown): value is AgentState =>
   value === "live" || value === "idle" || value === "queued" || value === "blocked";
 
-const isAgentSnapshot = (value: unknown): value is AgentSnapshot => {
+const isTerminalSnapshot = (value: unknown): value is TerminalSnapshot => {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -31,25 +31,24 @@ const isAgentSnapshot = (value: unknown): value is AgentSnapshot => {
   const snapshot = value as Record<string, unknown>;
 
   return (
-    typeof snapshot.agentId === "string" &&
+    typeof snapshot.terminalId === "string" &&
     typeof snapshot.label === "string" &&
     isAgentState(snapshot.state) &&
     typeof snapshot.tentacleId === "string" &&
     (snapshot.tentacleName === undefined || typeof snapshot.tentacleName === "string") &&
-    (snapshot.tentacleWorkspaceMode === undefined ||
-      snapshot.tentacleWorkspaceMode === "shared" ||
-      snapshot.tentacleWorkspaceMode === "worktree") &&
-    typeof snapshot.createdAt === "string" &&
-    (snapshot.parentAgentId === undefined || typeof snapshot.parentAgentId === "string")
+    (snapshot.workspaceMode === undefined ||
+      snapshot.workspaceMode === "shared" ||
+      snapshot.workspaceMode === "worktree") &&
+    typeof snapshot.createdAt === "string"
   );
 };
 
-export class HttpAgentSnapshotReader implements AgentSnapshotReader {
+export class HttpTerminalSnapshotReader implements TerminalSnapshotReader {
   private readonly endpoint: string;
   private readonly fetcher: HttpFetcher;
   private readonly signal: AbortSignal | undefined;
 
-  constructor({ endpoint, fetcher, signal }: HttpAgentSnapshotReaderOptions) {
+  constructor({ endpoint, fetcher, signal }: HttpTerminalSnapshotReaderOptions) {
     this.endpoint = endpoint;
     this.fetcher =
       fetcher ??
@@ -61,7 +60,7 @@ export class HttpAgentSnapshotReader implements AgentSnapshotReader {
     this.signal = signal;
   }
 
-  async listAgentSnapshots(): Promise<AgentSnapshot[]> {
+  async listTerminalSnapshots(): Promise<TerminalSnapshot[]> {
     const requestInit: HttpRequestInit = {
       method: "GET",
       headers: {
@@ -75,7 +74,7 @@ export class HttpAgentSnapshotReader implements AgentSnapshotReader {
     const response = await this.fetcher(this.endpoint, requestInit);
 
     if (!response.ok) {
-      throw new Error(`Unable to load agent snapshots (${response.status})`);
+      throw new Error(`Unable to load terminal snapshots (${response.status})`);
     }
 
     const payload: unknown = await response.json();
@@ -83,6 +82,6 @@ export class HttpAgentSnapshotReader implements AgentSnapshotReader {
       return [];
     }
 
-    return payload.filter(isAgentSnapshot);
+    return payload.filter(isTerminalSnapshot);
   }
 }

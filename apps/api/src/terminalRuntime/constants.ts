@@ -1,12 +1,12 @@
-export const TENTACLE_ID_PREFIX = "tentacle-";
-export const TENTACLE_REGISTRY_VERSION = 2;
-export const TENTACLE_REGISTRY_RELATIVE_PATH = ".octogent/state/tentacles.json";
-export const TENTACLE_TRANSCRIPT_RELATIVE_PATH = ".octogent/state/transcripts";
+export const TERMINAL_ID_PREFIX = "terminal-";
+export const TERMINAL_REGISTRY_VERSION = 3;
+export const TERMINAL_REGISTRY_RELATIVE_PATH = ".octogent/state/tentacles.json";
+export const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".octogent/state/transcripts";
 export const TENTACLE_WORKTREE_RELATIVE_PATH = ".octogent/worktrees";
 export const TENTACLE_WORKTREE_BRANCH_PREFIX = "octogent/";
 export const DEFAULT_AGENT_PROVIDER = "claude-code" as const;
 
-export const TENTACLE_BOOTSTRAP_COMMANDS: Record<string, string> = {
+export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   codex: "codex",
   "claude-code": "claude",
 };

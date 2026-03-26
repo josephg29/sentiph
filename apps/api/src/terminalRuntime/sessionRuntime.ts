@@ -9,7 +9,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import {
   DEFAULT_AGENT_PROVIDER,
-  TENTACLE_BOOTSTRAP_COMMANDS,
+  TERMINAL_BOOTSTRAP_COMMANDS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
@@ -19,14 +19,14 @@ import {
   ensureTranscriptDirectory,
   transcriptFilenameForSession,
 } from "./conversations";
-import { broadcastMessage, getTentacleId, sendMessage } from "./protocol";
+import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
-import type { PersistedTentacle, TerminalSession } from "./types";
+import type { PersistedTerminal, TerminalSession } from "./types";
 
 type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
-  tentacles: Map<string, PersistedTentacle>;
+  terminals: Map<string, PersistedTerminal>;
   sessions: Map<string, TerminalSession>;
   resolveTerminalSession?: (terminalId: string) => {
     sessionId: string;
@@ -42,7 +42,7 @@ type CreateSessionRuntimeOptions = {
 
 export const createSessionRuntime = ({
   websocketServer,
-  tentacles,
+  terminals,
   sessions,
   resolveTerminalSession,
   getTentacleWorkspaceCwd,
@@ -167,12 +167,13 @@ export const createSessionRuntime = ({
   const resolveSession =
     resolveTerminalSession ??
     ((terminalId: string) => {
-      if (!tentacles.has(terminalId)) {
+      if (!terminals.has(terminalId)) {
         return null;
       }
+      const terminal = terminals.get(terminalId);
       return {
         sessionId: terminalId,
-        tentacleId: terminalId,
+        tentacleId: terminal?.tentacleId ?? terminalId,
       };
     });
 
@@ -253,10 +254,10 @@ export const createSessionRuntime = ({
     }
 
     session.isBootstrapCommandSent = true;
-    const tentacle = tentacles.get(session.tentacleId);
-    const provider = tentacle?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
+    const terminal = terminals.get(session.terminalId);
+    const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
     const bootstrapCommand =
-      TENTACLE_BOOTSTRAP_COMMANDS[provider] ?? TENTACLE_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
@@ -279,13 +280,9 @@ export const createSessionRuntime = ({
       return existingSession;
     }
 
-    if (!tentacles.has(tentacleId)) {
-      throw new Error(`Unknown tentacle: ${tentacleId}`);
-    }
-
     const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
     if (!existsSync(tentacleCwd)) {
-      throw new Error(`Tentacle working directory does not exist: ${tentacleCwd}`);
+      throw new Error(`Terminal working directory does not exist: ${tentacleCwd}`);
     }
 
     ensureNodePtySpawnHelperExecutable();
@@ -310,6 +307,7 @@ export const createSessionRuntime = ({
     const debugLog = createDebugLog(sessionId);
     const transcriptLog = createTranscriptLog(sessionId);
     const session: TerminalSession = {
+      terminalId: sessionId,
       tentacleId,
       pty,
       clients: new Set(),
@@ -379,10 +377,10 @@ export const createSessionRuntime = ({
       sessions.delete(sessionId);
     });
 
-    // Propagate initial prompt from the tentacle definition, if set.
-    const tentacleRecord = tentacles.get(tentacleId);
-    if (tentacleRecord?.initialPrompt) {
-      session.initialPrompt = tentacleRecord.initialPrompt;
+    // Propagate initial prompt from the terminal definition, if set.
+    const terminalRecord = terminals.get(sessionId);
+    if (terminalRecord?.initialPrompt) {
+      session.initialPrompt = terminalRecord.initialPrompt;
     }
 
     sessions.set(sessionId, session);
@@ -390,7 +388,7 @@ export const createSessionRuntime = ({
   };
 
   const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
-    const terminalId = getTentacleId(request);
+    const terminalId = getTerminalId(request);
     if (!terminalId) {
       return false;
     }

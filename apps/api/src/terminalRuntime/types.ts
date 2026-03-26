@@ -1,6 +1,6 @@
 import type { WriteStream } from "node:fs";
 
-import type { AgentSnapshot } from "@octogent/core";
+import type { TerminalSnapshot } from "@octogent/core";
 import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
@@ -32,6 +32,7 @@ export type TerminalServerMessage =
   | TerminalHistoryMessage;
 
 export type TerminalSession = {
+  terminalId: string;
   tentacleId: string;
   pty: IPty;
   clients: Set<WebSocket>;
@@ -56,14 +57,14 @@ export type TerminalSession = {
 
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
-export type TentacleAgentProvider = "codex" | "claude-code";
+export type TerminalAgentProvider = "codex" | "claude-code";
 
-export const TENTACLE_AGENT_PROVIDERS: TentacleAgentProvider[] = ["codex", "claude-code"];
+export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["codex", "claude-code"];
 
-export const isTentacleAgentProvider = (value: unknown): value is TentacleAgentProvider =>
-  typeof value === "string" && TENTACLE_AGENT_PROVIDERS.includes(value as TentacleAgentProvider);
+export const isTerminalAgentProvider = (value: unknown): value is TerminalAgentProvider =>
+  typeof value === "string" && TERMINAL_AGENT_PROVIDERS.includes(value as TerminalAgentProvider);
 
-export const TENTACLE_COMPLETION_SOUND_IDS = [
+export const TERMINAL_COMPLETION_SOUND_IDS = [
   "soft-chime",
   "retro-beep",
   "double-beep",
@@ -72,28 +73,20 @@ export const TENTACLE_COMPLETION_SOUND_IDS = [
   "silent",
 ] as const;
 
-export type TentacleCompletionSound = (typeof TENTACLE_COMPLETION_SOUND_IDS)[number];
+export type TerminalCompletionSound = (typeof TERMINAL_COMPLETION_SOUND_IDS)[number];
 
-export const isTentacleCompletionSound = (value: unknown): value is TentacleCompletionSound =>
+export const isTerminalCompletionSound = (value: unknown): value is TerminalCompletionSound =>
   typeof value === "string" &&
-  TENTACLE_COMPLETION_SOUND_IDS.includes(value as TentacleCompletionSound);
+  TERMINAL_COMPLETION_SOUND_IDS.includes(value as TerminalCompletionSound);
 
-export type PersistedTentacle = {
+export type PersistedTerminal = {
+  terminalId: string;
   tentacleId: string;
   tentacleName: string;
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
-  agentProvider?: TentacleAgentProvider;
+  agentProvider?: TerminalAgentProvider;
   initialPrompt?: string;
-};
-
-export type PersistedTentacleAgent = {
-  agentId: string;
-  tentacleId: string;
-  label: string;
-  createdAt: string;
-  parentAgentId: string;
-  order: number;
 };
 
 export type TentacleGitStatusSnapshot = {
@@ -146,17 +139,16 @@ export type PersistedUiState = {
   isClaudeUsageVisible?: boolean;
   isClaudeUsageSectionExpanded?: boolean;
   isCodexUsageSectionExpanded?: boolean;
-  tentacleCompletionSound?: TentacleCompletionSound;
-  minimizedTentacleIds?: string[];
-  tentacleWidths?: Record<string, number>;
+  terminalCompletionSound?: TerminalCompletionSound;
+  minimizedTerminalIds?: string[];
+  terminalWidths?: Record<string, number>;
   canvasOpenTerminalIds?: string[];
   canvasTerminalsPanelWidth?: number;
 };
 
-export type TentacleRegistryDocument = {
-  version: 2;
-  tentacles: PersistedTentacle[];
-  agents?: PersistedTentacleAgent[];
+export type TerminalRegistryDocument = {
+  version: 3;
+  terminals: PersistedTerminal[];
   uiState?: PersistedUiState;
 };
 
@@ -196,7 +188,7 @@ export type CreateTerminalRuntimeOptions = {
 };
 
 export type TerminalRuntime = {
-  listAgentSnapshots(): AgentSnapshot[];
+  listTerminalSnapshots(): TerminalSnapshot[];
   listConversationSessions(): ConversationSessionSummary[];
   readConversationSession(sessionId: string): ConversationSessionDetail | null;
   exportConversationSession(sessionId: string, format: "json" | "md"): string | null;
@@ -215,20 +207,14 @@ export type TerminalRuntime = {
     input: { title: string; body?: string; baseRef?: string },
   ): TentaclePullRequestSnapshot | null;
   mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
-  createTentacle(options: {
-    tentacleId?: string;
+  createTerminal(options: {
+    terminalId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
-    agentProvider?: TentacleAgentProvider;
-  }): AgentSnapshot;
-  createTentacleAgent(options: {
-    tentacleId: string;
-    anchorAgentId: string;
-    placement: "up" | "down";
-  }): AgentSnapshot | null;
-  deleteTentacleAgent(options: { tentacleId: string; agentId: string }): boolean | null;
-  renameTentacle(tentacleId: string, tentacleName: string): AgentSnapshot | null;
-  deleteTentacle(tentacleId: string): boolean;
+    agentProvider?: TerminalAgentProvider;
+  }): TerminalSnapshot;
+  renameTerminal(terminalId: string, tentacleName: string): TerminalSnapshot | null;
+  deleteTerminal(terminalId: string): boolean;
   handleHook(hookName: string, payload: unknown, octogentSessionId?: string): { ok: boolean };
   handleUpgrade(
     request: import("node:http").IncomingMessage,

@@ -1,7 +1,7 @@
-import type { buildTentacleColumns } from "@octogent/core";
-import type { TentacleCompletionSoundId } from "./notificationSounds";
+import type { buildTerminalList } from "@octogent/core";
+import type { TerminalCompletionSoundId } from "./notificationSounds";
 
-export type TentacleView = Awaited<ReturnType<typeof buildTentacleColumns>>;
+export type TerminalView = Awaited<ReturnType<typeof buildTerminalList>>;
 
 export type CodexUsageSnapshot = {
   status: "ok" | "unavailable" | "error";
@@ -79,20 +79,20 @@ export type FrontendUiStateSnapshot = {
   isClaudeUsageVisible?: boolean;
   isCodexUsageSectionExpanded?: boolean;
   isClaudeUsageSectionExpanded?: boolean;
-  tentacleCompletionSound?: TentacleCompletionSoundId;
-  minimizedTentacleIds?: string[];
-  tentacleWidths?: Record<string, number>;
+  terminalCompletionSound?: TerminalCompletionSoundId;
+  minimizedTerminalIds?: string[];
+  terminalWidths?: Record<string, number>;
   canvasOpenTerminalIds?: string[];
   canvasTerminalsPanelWidth?: number;
 };
 
-export type TentacleWorkspaceMode = "shared" | "worktree";
+export type TerminalWorkspaceMode = "shared" | "worktree";
 
-export type TentacleAgentProvider = "codex" | "claude-code";
+export type TerminalAgentProvider = "codex" | "claude-code";
 
 export type TentacleGitStatusSnapshot = {
   tentacleId: string;
-  workspaceMode: TentacleWorkspaceMode;
+  workspaceMode: TerminalWorkspaceMode;
   branchName: string;
   upstreamBranchName: string | null;
   isDirty: boolean;
@@ -107,7 +107,7 @@ export type TentacleGitStatusSnapshot = {
 
 export type TentaclePullRequestSnapshot = {
   tentacleId: string;
-  workspaceMode: TentacleWorkspaceMode;
+  workspaceMode: TerminalWorkspaceMode;
   status: "none" | "open" | "merged" | "closed";
   number: number | null;
   url: string | null;
