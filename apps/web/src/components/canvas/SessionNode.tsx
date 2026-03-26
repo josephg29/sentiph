@@ -28,6 +28,15 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       }}
       style={{ cursor: "pointer" }}
     >
+      {/* Focused shine — white glow behind everything */}
+      {isSelected && (
+        <circle
+          className="canvas-node-focus-glow"
+          r={node.radius + 12}
+          fill="#ffffff"
+        />
+      )}
+
       {/* Subtle glow halo */}
       <circle
         className={`canvas-node-bloom${isLive ? " canvas-node-bloom--pulse" : ""}`}
@@ -43,11 +52,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         fill={color}
         opacity={isActive ? 1 : 0.4}
       />
-
-      {/* Selection ring */}
-      {isSelected && (
-        <circle r={node.radius + 4} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.6} />
-      )}
 
       {/* Label — hidden by default, CSS shows on hover */}
       <text

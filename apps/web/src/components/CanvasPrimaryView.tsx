@@ -424,7 +424,9 @@ export const CanvasPrimaryView = ({
                 key={nodeId}
                 node={node}
                 columns={columns}
+                isFocused={selectedNodeId === nodeId}
                 onClose={() => handleCloseTerminal(nodeId)}
+                onFocus={() => setSelectedNodeId(nodeId)}
               />
             ))}
           </div>

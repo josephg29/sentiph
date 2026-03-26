@@ -74,6 +74,24 @@
   }
 }
 
+/* ─── Focused node glow ────────────────────────────────────────────────────── */
+
+.canvas-node-focus-glow {
+  pointer-events: none;
+  filter: blur(5px);
+  animation: canvas-focus-glow-breathe 3s ease-in-out infinite;
+}
+
+@keyframes canvas-focus-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 /* ─── Node interactivity ───────────────────────────────────────────────────── */
 
 .canvas-node--tentacle {
@@ -326,6 +344,22 @@
   white-space: nowrap;
 }
 
+.canvas-terminal-column-tentacle-tag {
+  font-family: var(--font-main);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: 0;
+  border: 1.5px solid #121212;
+  color: #121212;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
 .canvas-terminal-column-badge {
   font-size: 0.55rem;
   font-weight: 800;
@@ -334,6 +368,10 @@
   border-radius: 3px;
   background: rgba(0, 0, 0, 0.2);
   color: inherit;
+}
+
+.canvas-terminal-column--focused {
+  border-left: 2px solid var(--accent-primary);
 }
 
 .canvas-terminal-column-actions {
