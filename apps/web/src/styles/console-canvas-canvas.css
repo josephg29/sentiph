@@ -370,9 +370,6 @@
   color: inherit;
 }
 
-.canvas-terminal-column--focused {
-  border-left: 2px solid var(--accent-primary);
-}
 
 .canvas-terminal-column-actions {
   display: flex;

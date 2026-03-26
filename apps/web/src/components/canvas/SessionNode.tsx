@@ -53,12 +53,12 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         opacity={isActive ? 1 : 0.4}
       />
 
-      {/* Label — hidden by default, CSS shows on hover */}
+      {/* Label — always visible */}
       <text
         y={node.radius + 16}
         textAnchor="middle"
-        className={`canvas-node-label canvas-node-label--session${isActive ? "" : " canvas-node-label--inactive"}`}
-        fill="#d4d4d4"
+        className="canvas-node-label canvas-node-label--session canvas-node-label--always"
+        fill="var(--accent-primary)"
       >
         {node.label.length > 24 ? `${node.label.slice(0, 22)}..` : node.label}
       </text>

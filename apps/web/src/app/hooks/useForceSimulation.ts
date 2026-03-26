@@ -39,8 +39,8 @@ const ALPHA_MIN = 0.001;
 const ALPHA_TARGET = 0.008; // Small positive value keeps simulation warm for idle jitter
 
 // Idle jitter — random nudges when the simulation has settled
-const JITTER_STRENGTH_SESSION = 0.8;
-const JITTER_STRENGTH_TENTACLE = 0.15;
+const JITTER_STRENGTH_SESSION = 0.25;
+const JITTER_STRENGTH_TENTACLE = 0.05;
 const JITTER_ALPHA_THRESHOLD = 1.0;
 const REHEAT_ALPHA = 0.8;
 
