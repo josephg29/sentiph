@@ -93,7 +93,7 @@ describe("App GitHub runtime views", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[2] GitHub",
+        name: "[3] GitHub",
       }),
     );
 

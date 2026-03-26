@@ -12,6 +12,7 @@ describe("App Monitor runtime", () => {
   });
 
   it("saves X credentials, renders monitor feed rows, and supports manual refresh", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const monitorConfigPatchBodies: Array<Record<string, unknown>> = [];
     let refreshCount = 0;
 
@@ -184,7 +185,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[3] Monitor",
+        name: "[4] Monitor",
       }),
     );
 
@@ -402,7 +403,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[3] Monitor",
+        name: "[4] Monitor",
       }),
     );
 
@@ -422,6 +423,7 @@ describe("App Monitor runtime", () => {
   });
 
   it("does not call monitor APIs when Monitor is disabled, even if bottom telemetry is enabled", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     let monitorConfigCalls = 0;
     let monitorFeedCalls = 0;
     let monitorRefreshCalls = 0;
@@ -485,7 +487,7 @@ describe("App Monitor runtime", () => {
     await screen.findByLabelText("Active Agents sidebar");
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "[3] Monitor" }));
+    fireEvent.click(screen.getByRole("button", { name: "[4] Monitor" }));
     expect(await screen.findByLabelText("Monitor primary view disabled")).toBeInTheDocument();
 
     expect(monitorConfigCalls).toBe(0);

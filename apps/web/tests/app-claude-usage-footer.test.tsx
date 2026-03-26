@@ -70,7 +70,7 @@ describe("App claude usage footer", () => {
 
     const sidebar = await screen.findByLabelText("Active Agents sidebar");
     expect(
-      within(sidebar).getByRole("progressbar", { name: "Claude 5H token usage" }),
+      within(sidebar).getByRole("progressbar", { name: "Claude current session usage" }),
     ).toBeInTheDocument();
 
     fireEvent.click(
@@ -80,7 +80,7 @@ describe("App claude usage footer", () => {
     );
 
     expect(
-      within(sidebar).queryByRole("progressbar", { name: "Claude 5H token usage" }),
+      within(sidebar).queryByRole("progressbar", { name: "Claude current session usage" }),
     ).toBeNull();
     expect(
       within(sidebar).getByRole("button", {
@@ -95,7 +95,7 @@ describe("App claude usage footer", () => {
     );
 
     expect(
-      within(sidebar).getByRole("progressbar", { name: "Claude 5H token usage" }),
+      within(sidebar).getByRole("progressbar", { name: "Claude current session usage" }),
     ).toBeInTheDocument();
   });
 

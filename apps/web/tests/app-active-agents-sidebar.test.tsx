@@ -113,9 +113,8 @@ describe("App active agents sidebar", () => {
 
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
     expect(screen.queryByRole("separator", { name: "Resize Active Agents sidebar" })).toBeNull();
-    expect(screen.getByLabelText("Main content canvas").closest(".workspace-shell")).toHaveClass(
-      "workspace-shell--full",
-    );
+    const canvas = screen.getByLabelText("Main content canvas");
+    expect(canvas.querySelector(".workspace-shell")).toHaveClass("workspace-shell--full");
     expect(screen.getByRole("button", { name: "Show Active Agents sidebar" })).toBeInTheDocument();
   });
 

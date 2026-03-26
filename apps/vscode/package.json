@@ -1,0 +1,52 @@
+{
+  "name": "octogent",
+  "displayName": "Octogent",
+  "description": "Multi-agent coding command surface for VS Code",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "octogent",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "octogent.openDashboard",
+        "title": "Octogent: Open Dashboard"
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "concurrently \"pnpm dev:ext\" \"pnpm dev:webview\"",
+    "dev:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node --sourcemap --watch",
+    "dev:webview": "vite --config webview/vite.config.ts",
+    "build": "pnpm build:ext && pnpm build:webview",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node --minify",
+    "build:webview": "vite build --config webview/vite.config.ts",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@octogent/core": "workspace:*",
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "@tomjs/vite-plugin-vscode": "^2.6.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@types/vscode": "^1.96.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@xterm/addon-fit": "^0.11.0",
+    "concurrently": "^9.1.0",
+    "esbuild": "^0.25.0",
+    "marked": "^17.0.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite": "^6.2.0",
+    "xterm": "^5.3.0"
+  }
+}

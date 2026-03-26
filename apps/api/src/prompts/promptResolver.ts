@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const PROMPTS_RELATIVE_PATH = "prompts";
+const PROMPTS_RELATIVE_PATH = ".octogent/prompts";
 
 /**
  * Interpolate `{{key}}` placeholders in a template string with values from the
