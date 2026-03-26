@@ -16,6 +16,7 @@ import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
+import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
@@ -53,6 +54,10 @@ export const VsCodeApp = () => {
     sidebarWidth,
     terminalCompletionSound,
     terminalWidths,
+    canvasOpenTerminalIds,
+    setCanvasOpenTerminalIds,
+    canvasTerminalsPanelWidth,
+    setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
 
   const visibleTerminals = useMemo(
@@ -263,6 +268,23 @@ export const VsCodeApp = () => {
 
   return (
     <div className="page console-shell">
+      <ConsoleHeader
+        backendLivenessStatus="live"
+        isAgentsSidebarVisible={isAgentsSidebarVisible}
+        isCreatingTentacle={isCreatingTerminal}
+        onCreateSharedTentacle={(provider) => {
+          setLoadError(null);
+          void createTerminal("shared", provider);
+        }}
+        onCreateWorktreeTentacle={(provider) => {
+          setLoadError(null);
+          void createTerminal("worktree", provider);
+        }}
+        onToggleAgentsSidebar={() => {
+          setIsAgentsSidebarVisible((current) => !current);
+        }}
+      />
+
       <ConsolePrimaryNav
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}
@@ -325,6 +347,25 @@ export const VsCodeApp = () => {
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}
             onDeckSidebarContent={setDeckSidebarContent}
+            canvasPrimaryViewProps={{
+              columns: terminals,
+              isUiStateHydrated,
+              canvasOpenTerminalIds,
+              canvasTerminalsPanelWidth,
+              onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
+              onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
+              onCreateAgent: async (tentacleId) => {
+                void createTerminal("shared", undefined, tentacleId);
+                return undefined;
+              },
+              onNavigateToConversation: (sessionId) => {
+                selectSession(sessionId);
+                setActivePrimaryNav(3);
+              },
+              onDeleteActiveSession: (tentacleId, sessionId) => {
+                void deleteSession(sessionId);
+              },
+            }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
               highlightedTurnId: conversationsHighlightedTurnId,

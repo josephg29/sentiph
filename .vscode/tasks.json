@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:vscode",
+      "type": "shell",
+      "command": "pnpm --filter octogent dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "." },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "build started|ready in"
+        }
+      }
+    }
+  ]
+}

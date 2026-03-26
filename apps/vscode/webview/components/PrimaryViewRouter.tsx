@@ -3,6 +3,7 @@ import type { ComponentProps, RefObject } from "react";
 import type { PrimaryNavIndex } from "../app/constants";
 import type { TerminalView } from "../app/types";
 import type { AgentRuntimeState } from "./AgentStateBadge";
+import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { TerminalBoard } from "./TerminalBoard";
@@ -10,6 +11,7 @@ import { TerminalBoard } from "./TerminalBoard";
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
   onDeckSidebarContent?: (content: import("react").ReactNode) => void;
+  canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
   conversationsPrimaryViewProps: ComponentProps<typeof ConversationsPrimaryView>;
   terminalBoardProps: {
     terminals: TerminalView;
@@ -51,6 +53,7 @@ type PrimaryViewRouterProps = {
 export const PrimaryViewRouter = ({
   activePrimaryNav,
   onDeckSidebarContent,
+  canvasPrimaryViewProps,
   conversationsPrimaryViewProps,
   terminalBoardProps,
 }: PrimaryViewRouterProps) => {
@@ -62,6 +65,6 @@ export const PrimaryViewRouter = ({
     return <ConversationsPrimaryView {...conversationsPrimaryViewProps} />;
   }
 
-  // Default: Agents (nav index 1)
-  return <TerminalBoard {...terminalBoardProps} />;
+  // Default: Agents (nav index 1) — Canvas view matching the web app
+  return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
 };

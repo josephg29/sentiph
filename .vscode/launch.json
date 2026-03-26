@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/apps/vscode/dist/**/*.js"
+      ],
+      "env": {
+        "OCTOGENT_DEV": "1"
+      },
+      "preLaunchTask": "dev:vscode"
+    }
+  ]
+}

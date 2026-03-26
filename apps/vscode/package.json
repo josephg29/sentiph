@@ -10,7 +10,7 @@
     "vscode": "^1.96.0"
   },
   "categories": ["Other"],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -22,10 +22,11 @@
   },
   "scripts": {
     "dev": "concurrently \"pnpm dev:ext\" \"pnpm dev:webview\"",
-    "dev:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node --sourcemap --watch",
+    "dev:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch --banner:js=\"const _importMetaUrl=require('url').pathToFileURL(__filename)\" --define:import.meta.url=_importMetaUrl",
     "dev:webview": "vite --config webview/vite.config.ts",
-    "build": "pnpm build:ext && pnpm build:webview",
-    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node --minify",
+    "build": "pnpm build:ext && pnpm copy:native && pnpm build:webview",
+    "copy:native": "mkdir -p dist/prebuilds/darwin-arm64 && cp ../../node_modules/.pnpm/node-pty@1.1.0/node_modules/node-pty/prebuilds/darwin-arm64/pty.node dist/prebuilds/darwin-arm64/pty.node",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --banner:js=\"const _importMetaUrl=require('url').pathToFileURL(__filename)\" --define:import.meta.url=_importMetaUrl",
     "build:webview": "vite build --config webview/vite.config.ts",
     "package": "vsce package --no-dependencies",
     "test": "vitest run"
@@ -36,9 +37,11 @@
   },
   "devDependencies": {
     "@tomjs/vite-plugin-vscode": "^2.6.0",
+    "@types/d3-force": "^3.0.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@types/vscode": "^1.96.0",
+    "d3-force": "^3.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@xterm/addon-fit": "^0.11.0",
     "concurrently": "^9.1.0",
