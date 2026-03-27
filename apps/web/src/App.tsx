@@ -22,7 +22,6 @@ import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
-import { ConsoleHeader } from "./components/ConsoleHeader";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
@@ -332,23 +331,6 @@ export const App = () => {
 
   return (
     <div className="page console-shell">
-      <ConsoleHeader
-        backendLivenessStatus={backendLivenessStatus}
-        isAgentsSidebarVisible={isAgentsSidebarVisible}
-        isCreatingTentacle={isCreatingTerminal}
-        onCreateSharedTentacle={(provider) => {
-          setLoadError(null);
-          void createTerminal("shared", provider);
-        }}
-        onCreateWorktreeTentacle={(provider) => {
-          setLoadError(null);
-          void createTerminal("worktree", provider);
-        }}
-        onToggleAgentsSidebar={() => {
-          setIsAgentsSidebarVisible((current) => !current);
-        }}
-      />
-
       {isRuntimeStatusStripVisible && (
         <RuntimeStatusStrip
           githubCommitCount30d={githubCommitCount30d}
