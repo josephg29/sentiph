@@ -55,7 +55,7 @@ const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
 const sendPromptToTerminal = (terminalId: string, prompt: string) => {
   const ws = new WebSocket(buildTerminalSocketUrl(terminalId));
   ws.addEventListener("open", () => {
-    ws.send(JSON.stringify({ type: "input", data: prompt }));
+    ws.send(JSON.stringify({ type: "input", data: `${prompt}\r` }));
     ws.close();
   });
 };

@@ -806,7 +806,7 @@ export const createTerminalRuntime = ({
       const lines = undelivered.map(
         (m) => `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
       );
-      const prompt = `${lines.join("\n")}\n`;
+      const prompt = `${lines.join("\n")}\r`;
 
       console.log(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
 

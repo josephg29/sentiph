@@ -269,7 +269,7 @@ export const createSessionRuntime = ({
         }
         session.isInitialPromptSent = true;
         appendDebugLog(session, `initial-prompt session=${sessionId}`);
-        session.pty.write(session.initialPrompt ?? "");
+        session.pty.write(`${session.initialPrompt ?? ""}\r`);
       }, INITIAL_PROMPT_DELAY_MS);
     }
   };
