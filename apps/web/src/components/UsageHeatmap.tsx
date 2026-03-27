@@ -310,7 +310,7 @@ const MONTH_LABELS = [
 ];
 
 const INTENSITY_COLORS = [
-  "#161b22",
+  "transparent",
   "#3d2008",
   "#6b3a0e",
   "#b5611a",
