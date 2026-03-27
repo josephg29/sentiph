@@ -12,18 +12,18 @@ type UsageChartSectionProps = {
 type BarSegmentMode = "project" | "model";
 
 const SEGMENT_COLORS = [
-  "#d4c432",
-  "#3a8fd4",
-  "#d43a3a",
-  "#e8a820",
-  "#2a6cb8",
-  "#c4443a",
-  "#f0d040",
-  "#4ea8de",
-  "#e05a4a",
-  "#b8a018",
-  "#5088c8",
-  "#e07060",
+  "#ff5722",
+  "#ffa726",
+  "#ffffff",
+  "#ffcc02",
+  "#e64a19",
+  "#ffb74d",
+  "#f5f5f5",
+  "#ff8a65",
+  "#ffd54f",
+  "#ff7043",
+  "#ffe082",
+  "#ffab91",
 ];
 
 const formatTokenCount = (tokens: number): string => {
@@ -302,7 +302,7 @@ const BarChartView = ({
 
 const CELL_GAP = 3;
 const CELL_RADIUS = 2;
-const WEEKS_TO_SHOW = 52;
+const WEEKS_TO_SHOW = 26;
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -424,6 +424,9 @@ const HeatmapView = ({
     <svg
       className="usage-chart-svg"
       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      preserveAspectRatio="none"
+      width="100%"
+      height="100%"
       role="img"
       aria-label="Token usage heatmap"
     >
@@ -533,6 +536,27 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
   );
   const colorMap = useMemo(() => buildColorMap(segmentKeys), [segmentKeys]);
 
+  const stats = useMemo(() => {
+    if (days.length === 0) return null;
+    const peakDay = days.reduce((best, d) => (d.totalTokens > best.totalTokens ? d : best), days[0]!);
+    const avgPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
+    const topModel = models[0] ?? "—";
+    const topProject = projects[0] ?? "—";
+
+    let streak = 0;
+    let maxStreak = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (days[i]!.totalTokens > 0) {
+        streak++;
+        if (streak > maxStreak) maxStreak = streak;
+      } else {
+        streak = 0;
+      }
+    }
+
+    return { peakDay, avgPerSession, topModel, topProject, maxStreak };
+  }, [days, totalTokens, totalSessions, models, projects]);
+
   return (
     <section className="usage-heatmap" aria-label="Claude token usage chart">
       <header className="usage-heatmap-header">
@@ -593,14 +617,43 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
             setHoveredBar={setHoveredBar}
           />
         </div>
-        <div className="usage-chart-panel" ref={heatmapPanel.ref}>
-          <HeatmapView
-            bars={heatmapBars}
-            containerWidth={heatmapPanel.width}
-            containerHeight={heatmapPanel.height}
-            hoveredBar={hoveredBar}
-            setHoveredBar={setHoveredBar}
-          />
+        <div className="usage-chart-right-stack">
+          <div className="usage-chart-panel" ref={heatmapPanel.ref}>
+            <HeatmapView
+              bars={heatmapBars}
+              containerWidth={heatmapPanel.width}
+              containerHeight={heatmapPanel.height}
+              hoveredBar={hoveredBar}
+              setHoveredBar={setHoveredBar}
+            />
+          </div>
+          {stats && (
+            <dl className="usage-chart-stats">
+              <div className="usage-chart-stat">
+                <dt>Peak Day</dt>
+                <dd>
+                  {formatDateLabel(stats.peakDay.date)}
+                  <span className="usage-chart-stat-sub">{formatTokenCount(stats.peakDay.totalTokens)}</span>
+                </dd>
+              </div>
+              <div className="usage-chart-stat">
+                <dt>Avg / Session</dt>
+                <dd>{formatTokenCount(stats.avgPerSession)}</dd>
+              </div>
+              <div className="usage-chart-stat">
+                <dt>Top Model</dt>
+                <dd>{stats.topModel}</dd>
+              </div>
+              <div className="usage-chart-stat">
+                <dt>Top Project</dt>
+                <dd>{stats.topProject}</dd>
+              </div>
+              <div className="usage-chart-stat">
+                <dt>Best Streak</dt>
+                <dd>{stats.maxStreak}d</dd>
+              </div>
+            </dl>
+          )}
         </div>
 
         {hoveredBar && hoveredBar.totalTokens > 0 && (
