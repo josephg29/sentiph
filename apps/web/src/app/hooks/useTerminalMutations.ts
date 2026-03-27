@@ -152,17 +152,13 @@ export const useTerminalMutations = ({
           return;
         }
 
-        const createdEntry = nextColumns.find(
-          (entry) => entry.terminalId === createdTerminalId,
-        );
+        const createdEntry = nextColumns.find((entry) => entry.terminalId === createdTerminalId);
         const createdTerminalName =
           createdEntry?.tentacleName ??
           (typeof createdSnapshot.tentacleName === "string"
             ? createdSnapshot.tentacleName
             : createdTerminalId);
-        setMinimizedTerminalIds((current) =>
-          current.filter((id) => id !== createdTerminalId),
-        );
+        setMinimizedTerminalIds((current) => current.filter((id) => id !== createdTerminalId));
         beginTerminalNameEdit(createdTerminalId, createdTerminalName);
       } catch {
         setLoadError("Unable to create a new terminal.");

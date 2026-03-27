@@ -2,11 +2,11 @@ import type { ComponentProps, RefObject } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
 import type { TerminalView } from "../app/types";
+import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
-import { GitHubPrimaryView } from "./GitHubPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
@@ -18,7 +18,7 @@ type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
   onDeckSidebarContent?: (content: import("react").ReactNode) => void;
   isMonitorVisible: boolean;
-  githubPrimaryViewProps: ComponentProps<typeof GitHubPrimaryView>;
+  activityPrimaryViewProps: ComponentProps<typeof ActivityPrimaryView>;
   monitorPrimaryViewProps: ComponentProps<typeof MonitorPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
   conversationsPrimaryViewProps: ComponentProps<typeof ConversationsPrimaryView>;
@@ -64,7 +64,7 @@ export const PrimaryViewRouter = ({
   activePrimaryNav,
   onDeckSidebarContent,
   isMonitorVisible,
-  githubPrimaryViewProps,
+  activityPrimaryViewProps,
   monitorPrimaryViewProps,
   settingsPrimaryViewProps,
   conversationsPrimaryViewProps,
@@ -76,7 +76,7 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 3) {
-    return <GitHubPrimaryView {...githubPrimaryViewProps} />;
+    return <ActivityPrimaryView {...activityPrimaryViewProps} />;
   }
 
   if (activePrimaryNav === 4) {

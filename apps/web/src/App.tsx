@@ -17,6 +17,7 @@ import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalNameInputFocus } from "./app/hooks/useTerminalNameInputFocus";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
+import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/normalizers";
 import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
@@ -92,10 +93,7 @@ export const App = () => {
   useEffect(() => {
     const visibleTerminalIds = new Set(visibleTerminals.map((terminal) => terminal.terminalId));
     setSelectedTerminalId((currentSelectedTerminalId) => {
-      if (
-        currentSelectedTerminalId !== null &&
-        visibleTerminalIds.has(currentSelectedTerminalId)
-      ) {
+      if (currentSelectedTerminalId !== null && visibleTerminalIds.has(currentSelectedTerminalId)) {
         return currentSelectedTerminalId;
       }
 
@@ -243,6 +241,11 @@ export const App = () => {
     enabled: isUiStateHydrated && activePrimaryNav === 5,
   });
 
+  const { heatmapData, heatmapScope, isLoadingHeatmap, changeHeatmapScope, refreshHeatmap } =
+    useUsageHeatmapPolling({
+      enabled: isUiStateHydrated && activePrimaryNav === 3,
+    });
+
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
 
   const {
@@ -350,15 +353,13 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 3 ? "" : " workspace-shell--full"}`}
         >
-          {isAgentsSidebarVisible && (
+          {isAgentsSidebarVisible && activePrimaryNav !== 3 && (
             <ActiveAgentsSidebar
               claudeUsageSnapshot={claudeUsageSnapshot}
               claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
-              terminals={terminals.filter(
-                (t) => !t.tentacleName?.includes("sandbox"),
-              )}
+              terminals={terminals.filter((t) => !t.tentacleName?.includes("sandbox"))}
               codexUsageSnapshot={codexUsageSnapshot}
               codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
               isLoading={isLoading}
@@ -418,22 +419,31 @@ export const App = () => {
             activePrimaryNav={activePrimaryNav}
             onDeckSidebarContent={setDeckSidebarContent}
             isMonitorVisible={isMonitorVisible}
-            githubPrimaryViewProps={{
-              githubCommitCount30d,
-              githubOpenIssuesLabel,
-              githubOpenPrsLabel,
-              githubRecentCommits,
-              githubOverviewGraphPolylinePoints,
-              githubOverviewGraphSeries,
-              githubOverviewHoverLabel,
-              githubRepoLabel,
-              githubStarCountLabel,
-              githubStatusPill,
-              hoveredGitHubOverviewPointIndex,
-              isRefreshingGitHubSummary,
-              onHoveredGitHubOverviewPointIndexChange: setHoveredGitHubOverviewPointIndex,
-              onRefresh: () => {
-                void refreshGitHubRepoSummary();
+            activityPrimaryViewProps={{
+              usageHeatmapProps: {
+                days: heatmapData?.days ?? [],
+                scope: heatmapScope,
+                isLoading: isLoadingHeatmap,
+                onScopeChange: changeHeatmapScope,
+                onRefresh: refreshHeatmap,
+              },
+              githubPrimaryViewProps: {
+                githubCommitCount30d,
+                githubOpenIssuesLabel,
+                githubOpenPrsLabel,
+                githubRecentCommits,
+                githubOverviewGraphPolylinePoints,
+                githubOverviewGraphSeries,
+                githubOverviewHoverLabel,
+                githubRepoLabel,
+                githubStarCountLabel,
+                githubStatusPill,
+                hoveredGitHubOverviewPointIndex,
+                isRefreshingGitHubSummary,
+                onHoveredGitHubOverviewPointIndexChange: setHoveredGitHubOverviewPointIndex,
+                onRefresh: () => {
+                  void refreshGitHubRepoSummary();
+                },
               },
             }}
             monitorPrimaryViewProps={{

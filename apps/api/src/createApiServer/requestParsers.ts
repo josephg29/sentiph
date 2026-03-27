@@ -445,9 +445,7 @@ export const parseUiStatePatch = (
       };
     }
 
-    const minimizedTerminalIds = minimizedKey.filter(
-      (id): id is string => typeof id === "string",
-    );
+    const minimizedTerminalIds = minimizedKey.filter((id): id is string => typeof id === "string");
     if (minimizedTerminalIds.length !== minimizedKey.length) {
       return {
         patch: null,
@@ -460,11 +458,7 @@ export const parseUiStatePatch = (
   // Accept both old (tentacleWidths) and new (terminalWidths) field names
   const widthsKey = record.terminalWidths ?? record.tentacleWidths;
   if (widthsKey !== undefined) {
-    if (
-      widthsKey === null ||
-      typeof widthsKey !== "object" ||
-      Array.isArray(widthsKey)
-    ) {
+    if (widthsKey === null || typeof widthsKey !== "object" || Array.isArray(widthsKey)) {
       return {
         patch: null,
         error: "terminalWidths must be an object map of numbers.",

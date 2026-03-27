@@ -1,3 +1,4 @@
+import type { UsageHeatmapResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
@@ -10,6 +11,7 @@ export type CreateApiServerOptions = {
   readClaudeUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary?: () => Promise<GitHubRepoSummarySnapshot>;
+  scanUsageHeatmap?: (scope: "all" | "project") => Promise<UsageHeatmapResponse>;
   monitorService?: MonitorService;
   invalidateClaudeUsageCache?: () => void;
   allowRemoteAccess?: boolean;

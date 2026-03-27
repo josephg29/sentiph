@@ -30,11 +30,7 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
     >
       {/* Focused shine — white glow behind everything */}
       {isSelected && (
-        <circle
-          className="canvas-node-focus-glow"
-          r={node.radius + 12}
-          fill="#ffffff"
-        />
+        <circle className="canvas-node-focus-glow" r={node.radius + 12} fill="#ffffff" />
       )}
 
       {/* Subtle glow halo */}

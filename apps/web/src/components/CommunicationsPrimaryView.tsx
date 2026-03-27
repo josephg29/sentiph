@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { buildChannelMessagesUrl, buildTerminalSnapshotsUrl, buildTerminalsUrl } from "../runtime/runtimeEndpoints";
+import {
+  buildChannelMessagesUrl,
+  buildTerminalSnapshotsUrl,
+  buildTerminalsUrl,
+} from "../runtime/runtimeEndpoints";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { Terminal } from "./Terminal";
 
@@ -179,7 +183,11 @@ export const CommunicationsPrimaryView = () => {
   const formatTimestamp = (ts: string) => {
     try {
       const d = new Date(ts);
-      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      return d.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
     } catch {
       return ts;
     }
@@ -268,9 +276,7 @@ export const CommunicationsPrimaryView = () => {
           </div>
           <div className="communications-view__log">
             {messages.length === 0 && (
-              <div className="communications-view__empty">
-                No channel messages yet.
-              </div>
+              <div className="communications-view__empty">No channel messages yet.</div>
             )}
             {messages.map((m) => (
               <div

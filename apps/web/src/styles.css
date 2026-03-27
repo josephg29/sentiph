@@ -10,6 +10,7 @@
 /* Console theme tokens and console-specific overrides */
 @import "./styles/console-theme-tokens.css";
 @import "./styles/console-chrome-status-nav.css";
+@import "./styles/console-canvas-activity.css";
 @import "./styles/console-canvas-github.css";
 @import "./styles/console-canvas-monitor.css";
 @import "./styles/console-canvas-conversations.css";

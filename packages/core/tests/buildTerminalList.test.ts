@@ -34,11 +34,7 @@ describe("buildTerminalList", () => {
     const result = await buildTerminalList(reader);
 
     expect(result).toHaveLength(3);
-    expect(result.map((t) => t.terminalId)).toEqual([
-      "terminal-a",
-      "terminal-b",
-      "terminal-c",
-    ]);
+    expect(result.map((t) => t.terminalId)).toEqual(["terminal-a", "terminal-b", "terminal-c"]);
   });
 
   it("preserves terminal fields including tentacle metadata", async () => {

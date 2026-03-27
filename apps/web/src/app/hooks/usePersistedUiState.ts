@@ -71,8 +71,9 @@ export const usePersistedUiState = ({
   const [isClaudeUsageVisible, setIsClaudeUsageVisible] = useState(true);
   const [isClaudeUsageSectionExpanded, setIsClaudeUsageSectionExpanded] = useState(true);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
-  const [terminalCompletionSound, setTerminalCompletionSound] =
-    useState<TerminalCompletionSoundId>(DEFAULT_TERMINAL_COMPLETION_SOUND);
+  const [terminalCompletionSound, setTerminalCompletionSound] = useState<TerminalCompletionSoundId>(
+    DEFAULT_TERMINAL_COMPLETION_SOUND,
+  );
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
   const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>([]);
   const [terminalWidths, setTerminalWidths] = useState<Record<string, number>>({});

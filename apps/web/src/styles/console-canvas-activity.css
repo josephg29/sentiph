@@ -1,0 +1,203 @@
+.console-shell .activity-view {
+  min-height: 0;
+  background: #0b0d10;
+  border: 1px solid #2b2f36;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: auto;
+}
+
+/* ── Heatmap ────────────────────────────────────────────── */
+
+.usage-heatmap {
+  background: #090d12;
+  border-bottom: 1px solid #2b2f36;
+  padding: 0.58rem;
+  display: grid;
+  gap: 0.48rem;
+}
+
+.usage-heatmap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid #1f2733;
+}
+
+.usage-heatmap-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.72rem;
+  flex-wrap: wrap;
+}
+
+.usage-heatmap-header h3 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.usage-heatmap-summary {
+  color: #8494ab;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.usage-heatmap-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.usage-heatmap-scope-toggle {
+  display: inline-flex;
+  border: 1px solid #2b2f36;
+}
+
+.usage-heatmap-scope-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 0.14rem 0.42rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  color: #8494ab;
+  background: #0c1118;
+  transition: background 100ms linear, color 100ms linear;
+}
+
+.usage-heatmap-scope-btn:hover {
+  color: #dce6f7;
+  background: #151b26;
+}
+
+.usage-heatmap-scope-btn.is-active {
+  color: #0b0d10;
+  background: var(--accent-primary);
+  font-weight: 600;
+}
+
+.usage-heatmap-refresh {
+  --action-button-font-size: 0.66rem;
+  --action-button-padding-y: 0.16rem;
+  --action-button-padding-x: 0.34rem;
+}
+
+/* ── SVG grid ─────────────────────────────────────────── */
+
+.usage-heatmap-grid-container {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 0.36rem;
+}
+
+.usage-heatmap-svg {
+  display: block;
+  width: 100%;
+  min-width: 840px;
+  height: auto;
+}
+
+.usage-heatmap-month-label {
+  fill: #8494ab;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.usage-heatmap-day-label {
+  fill: #8494ab;
+  font-size: 9px;
+  text-anchor: end;
+  letter-spacing: 0.04em;
+}
+
+.usage-heatmap-cell {
+  stroke: #1a1f28;
+  stroke-width: 1;
+  cursor: crosshair;
+  transition: stroke 100ms linear;
+}
+
+.usage-heatmap-cell:hover {
+  stroke: var(--accent-primary);
+  stroke-width: 2;
+}
+
+/* ── Tooltip ──────────────────────────────────────────── */
+
+.usage-heatmap-tooltip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 58%, #6b5210);
+  background: color-mix(in srgb, #0d1219 92%, #2a1f08 8%);
+  padding: 0.42rem 0.52rem;
+  z-index: 4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.usage-heatmap-tooltip-date {
+  margin: 0;
+  color: var(--accent-primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.26rem;
+}
+
+.usage-heatmap-tooltip-stats {
+  margin: 0;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.usage-heatmap-tooltip-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.72rem;
+}
+
+.usage-heatmap-tooltip-stats dt {
+  margin: 0;
+  color: #8494ab;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.usage-heatmap-tooltip-stats dd {
+  margin: 0;
+  color: #e9edf4;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ── Legend ────────────────────────────────────────────── */
+
+.usage-heatmap-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  justify-content: flex-end;
+  padding-top: 0.16rem;
+}
+
+.usage-heatmap-legend > span:first-child,
+.usage-heatmap-legend > span:last-child {
+  color: #8494ab;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.usage-heatmap-legend-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid #1a1f28;
+}

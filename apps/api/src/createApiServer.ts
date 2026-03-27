@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 
+import { scanClaudeUsageHeatmap } from "./claudeSessionScanner";
 import {
   invalidateUsageCache as invalidateUsageCacheDefault,
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
@@ -19,6 +20,7 @@ export const createApiServer = ({
   readClaudeUsageSnapshot = readClaudeUsageSnapshotDefault,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
+  scanUsageHeatmap,
   monitorService,
   invalidateClaudeUsageCache = invalidateUsageCacheDefault,
   allowRemoteAccess = false,
@@ -44,12 +46,17 @@ export const createApiServer = ({
     createMonitorService({
       workspaceCwd: resolvedWorkspaceCwd,
     });
+  const scanUsageHeatmapWithDefault =
+    scanUsageHeatmap ??
+    ((scope: "all" | "project") => scanClaudeUsageHeatmap(scope, resolvedWorkspaceCwd));
+
   const requestHandler = createApiRequestHandler({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
+    scanUsageHeatmap: scanUsageHeatmapWithDefault,
     monitorService: monitorServiceWithDefault,
     invalidateClaudeUsageCache,
     allowRemoteAccess,

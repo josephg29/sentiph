@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
+import type { UsageHeatmapResponse } from "../claudeSessionScanner";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import {
   createDeckTentacle,
@@ -44,6 +45,7 @@ type CreateApiRequestHandlerOptions = {
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
+  scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageHeatmapResponse>;
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
   allowRemoteAccess: boolean;
@@ -55,6 +57,7 @@ type RouteHandlerDependencies = {
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
+  scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageHeatmapResponse>;
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
 };
@@ -171,6 +174,25 @@ const handleClaudeUsageRoute: ApiRouteHandler = async (
   }
 
   const payload = await readClaudeUsageSnapshot();
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+const handleUsageHeatmapRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { scanUsageHeatmap },
+) => {
+  if (requestUrl.pathname !== "/api/analytics/usage-heatmap") {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const scope = requestUrl.searchParams.get("scope") === "project" ? "project" : "all";
+  const payload = await scanUsageHeatmap(scope);
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };
@@ -1114,6 +1136,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["terminal-snapshots", [handleTerminalSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],
+  ["analytics", [handleUsageHeatmapRoute]],
   ["github", [handleGithubSummaryRoute]],
   ["ui-state", [handleUiStateRoute]],
   ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
@@ -1148,6 +1171,7 @@ export const createApiRequestHandler = ({
   readClaudeUsageSnapshot,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
+  scanUsageHeatmap,
   monitorService,
   invalidateClaudeUsageCache,
   allowRemoteAccess,
@@ -1158,6 +1182,7 @@ export const createApiRequestHandler = ({
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary,
+    scanUsageHeatmap,
     monitorService,
     invalidateClaudeUsageCache,
   };

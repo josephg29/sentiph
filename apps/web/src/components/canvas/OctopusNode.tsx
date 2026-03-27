@@ -43,7 +43,6 @@ function deriveOctopusVisuals(tentacleId: string): OctopusVisuals {
   };
 }
 
-
 type OctopusNodeProps = {
   node: GraphNode;
   connectedNodes: GraphNode[];
@@ -114,13 +113,7 @@ export const OctopusNode = ({
       style={{ cursor: "grab" }}
     >
       {/* Invisible hit area for pointer events */}
-      <rect
-        x={-GLYPH_W / 2}
-        y={-GLYPH_H / 2}
-        width={GLYPH_W}
-        height={GLYPH_H}
-        fill="transparent"
-      />
+      <rect x={-GLYPH_W / 2} y={-GLYPH_H / 2} width={GLYPH_W} height={GLYPH_H} fill="transparent" />
 
       {/* Edges — light tint of parent color */}
       {connectedNodes.map((target) => (

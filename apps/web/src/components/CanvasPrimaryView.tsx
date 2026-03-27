@@ -31,7 +31,11 @@ type CanvasPrimaryViewProps = {
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
-  onDeleteActiveSession?: (terminalId: string, terminalName: string, workspaceMode?: string) => void;
+  onDeleteActiveSession?: (
+    terminalId: string,
+    terminalName: string,
+    workspaceMode?: string,
+  ) => void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -113,7 +117,13 @@ export const CanvasPrimaryView = ({
     }
 
     hasHydratedTerminals.current = true;
-  }, [isUiStateHydrated, canvasOpenTerminalIds, persistedTerminalsPanelWidth, simulatedNodes.length, nodesById]);
+  }, [
+    isUiStateHydrated,
+    canvasOpenTerminalIds,
+    persistedTerminalsPanelWidth,
+    simulatedNodes.length,
+    nodesById,
+  ]);
 
   // Persist open terminal IDs when they change
   useEffect(() => {

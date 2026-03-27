@@ -111,6 +111,18 @@ export const buildMonitorRefreshUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) =>
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/refresh");
 };
 
+export const buildUsageHeatmapUrl = (
+  scope: "all" | "project" = "all",
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/analytics/usage-heatmap?scope=${scope}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildConversationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/conversations";

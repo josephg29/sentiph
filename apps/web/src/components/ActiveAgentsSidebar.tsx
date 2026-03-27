@@ -266,7 +266,10 @@ export const ActiveAgentsSidebar = ({
                               </div>
                               <ul>
                                 <li className="active-agents-agent-row">
-                                  <span className="active-agents-agent-label" title={terminal.label}>
+                                  <span
+                                    className="active-agents-agent-label"
+                                    title={terminal.label}
+                                  >
                                     {terminal.label}
                                   </span>
                                   <AgentStateBadge

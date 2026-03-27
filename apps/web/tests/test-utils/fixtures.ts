@@ -37,7 +37,8 @@ export const buildTerminalSnapshot = (
     state: overrides.state ?? "live",
     tentacleId,
     tentacleName: overrides.tentacleName ?? tentacleId,
-    createdAt: overrides.createdAt ?? `2026-02-24T10:${String(counter * 5).padStart(2, "0")}:00.000Z`,
+    createdAt:
+      overrides.createdAt ?? `2026-02-24T10:${String(counter * 5).padStart(2, "0")}:00.000Z`,
     ...(overrides.workspaceMode !== undefined ? { workspaceMode: overrides.workspaceMode } : {}),
   };
 };

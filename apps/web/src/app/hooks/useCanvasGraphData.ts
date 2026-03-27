@@ -117,9 +117,7 @@ export const useCanvasGraphData = ({
     void fetchInactiveSessions();
   }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
 
-  const activeTerminalIds = new Set(
-    columns.map((terminal) => terminal.terminalId),
-  );
+  const activeTerminalIds = new Set(columns.map((terminal) => terminal.terminalId));
 
   // Build a map of deck tentacles for color/label lookup
   const deckMap = new Map<string, DeckTentacleMinimal>();

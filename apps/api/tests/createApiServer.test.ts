@@ -1349,7 +1349,11 @@ describe("createApiServer", () => {
 
     const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
     const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
-      terminals: Array<{ terminalId: string; tentacleId: string; workspaceMode: "shared" | "worktree" }>;
+      terminals: Array<{
+        terminalId: string;
+        tentacleId: string;
+        workspaceMode: "shared" | "worktree";
+      }>;
     };
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
@@ -1402,7 +1406,11 @@ describe("createApiServer", () => {
 
     const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
     const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
-      terminals: Array<{ terminalId: string; tentacleId: string; workspaceMode: "shared" | "worktree" }>;
+      terminals: Array<{
+        terminalId: string;
+        tentacleId: string;
+        workspaceMode: "shared" | "worktree";
+      }>;
     };
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([

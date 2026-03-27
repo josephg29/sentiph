@@ -71,9 +71,7 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
   // Accept both old (minimizedTentacleIds) and new (minimizedTerminalIds) field names
   const minimizedIds = value.minimizedTerminalIds ?? value.minimizedTentacleIds;
   if (Array.isArray(minimizedIds)) {
-    const ids = minimizedIds.filter(
-      (id): id is string => typeof id === "string",
-    );
+    const ids = minimizedIds.filter((id): id is string => typeof id === "string");
     nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
@@ -244,9 +242,7 @@ export const parseRegistryDocument = (
   const version = record.version;
 
   if (version !== 1 && version !== 2 && version !== TERMINAL_REGISTRY_VERSION) {
-    throw new Error(
-      `Unsupported terminal registry version in ${registryPath}: ${String(version)}`,
-    );
+    throw new Error(`Unsupported terminal registry version in ${registryPath}: ${String(version)}`);
   }
 
   const terminals =

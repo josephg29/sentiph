@@ -90,10 +90,7 @@ export const useForceSimulation = ({
 
   // Stable topology keys — effect only fires when graph structure actually changes
   const nodeIdKey = useMemo(() => nodes.map((n) => n.id).join("\0"), [nodes]);
-  const edgeKey = useMemo(
-    () => edges.map((e) => `${e.source}\0${e.target}`).join("\0"),
-    [edges],
-  );
+  const edgeKey = useMemo(() => edges.map((e) => `${e.source}\0${e.target}`).join("\0"), [edges]);
 
   useEffect(() => {
     const currentNodes = nodesRef.current;
@@ -155,16 +152,12 @@ export const useForceSimulation = ({
             })
             .strength((link: SimLink) => {
               const target = link.target as SimNode;
-              return target._gn.type === "inactive-session"
-                ? p.linkStrength * 1.5
-                : p.linkStrength;
+              return target._gn.type === "inactive-session" ? p.linkStrength * 1.5 : p.linkStrength;
             }),
         )
         .force(
           "charge",
-          forceManyBody<SimNode>()
-            .strength(p.repelStrength)
-            .distanceMax(p.repelDistanceMax),
+          forceManyBody<SimNode>().strength(p.repelStrength).distanceMax(p.repelDistanceMax),
         )
         .force("x", forceX<SimNode>(centerX).strength(p.positionStrength))
         .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
@@ -177,9 +170,7 @@ export const useForceSimulation = ({
           for (const sn of sim.nodes()) {
             if (sn.fx !== undefined) continue;
             const s =
-              sn._gn.type === "tentacle"
-                ? JITTER_STRENGTH_TENTACLE
-                : JITTER_STRENGTH_SESSION;
+              sn._gn.type === "tentacle" ? JITTER_STRENGTH_TENTACLE : JITTER_STRENGTH_SESSION;
             sn.vx = (sn.vx ?? 0) + (Math.random() - 0.5) * s;
             sn.vy = (sn.vy ?? 0) + (Math.random() - 0.5) * s;
           }

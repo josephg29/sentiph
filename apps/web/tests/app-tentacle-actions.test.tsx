@@ -95,9 +95,9 @@ describe("App terminal create/rename/delete actions", () => {
     expect(within(sidebar).getByLabelText("Terminal terminal-1")).toBeInTheDocument();
     expect(within(sidebar).getByLabelText("Terminal terminal-2")).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        MockWebSocket.instances.some((socket) => socket.url.includes("/terminal-2/ws")),
-      ).toBe(true);
+      expect(MockWebSocket.instances.some((socket) => socket.url.includes("/terminal-2/ws"))).toBe(
+        true,
+      );
     });
   });
 
@@ -225,16 +225,12 @@ describe("App terminal create/rename/delete actions", () => {
     render(<App />);
     const terminalColumn = await screen.findByLabelText("terminal-a");
     fireEvent.click(screen.getByRole("button", { name: "Rename terminal terminal-a" }));
-    const nameEditor = await within(terminalColumn).findByLabelText(
-      "Terminal name for terminal-a",
-    );
+    const nameEditor = await within(terminalColumn).findByLabelText("Terminal name for terminal-a");
     fireEvent.change(nameEditor, { target: { value: "research" } });
     fireEvent.keyDown(nameEditor, { key: "Enter" });
 
     await waitFor(() => {
-      expect(
-        within(terminalColumn).getByRole("button", { name: "research" }),
-      ).toBeInTheDocument();
+      expect(within(terminalColumn).getByRole("button", { name: "research" })).toBeInTheDocument();
     });
   });
 
@@ -302,9 +298,7 @@ describe("App terminal create/rename/delete actions", () => {
     const deletePanel = within(sidebar).getByLabelText("Delete confirmation for terminal-b");
     expect(deletePanel).toBeInTheDocument();
     expect(within(deletePanel).getByText("This action cannot be undone.")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("dialog", { name: "Delete confirmation for terminal-b" }),
-    ).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Delete confirmation for terminal-b" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete terminal-b" }));
 
     await waitFor(() => {
@@ -607,9 +601,7 @@ describe("App terminal create/rename/delete actions", () => {
 
     await screen.findByLabelText("terminal-blocked");
     const sidebar = screen.getByLabelText("Active Agents sidebar");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open git actions for terminal-blocked" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Open git actions for terminal-blocked" }));
 
     const gitPanel = await within(sidebar).findByLabelText("Git actions for tentacle-blocked");
     fireEvent.click(within(gitPanel).getByRole("button", { name: "Open commit options" }));

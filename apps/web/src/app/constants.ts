@@ -10,7 +10,7 @@ export const DEFAULT_SIDEBAR_WIDTH = MIN_SIDEBAR_WIDTH;
 export const PRIMARY_NAV_ITEMS = [
   { index: 1, label: "Agents" },
   { index: 2, label: "Deck" },
-  { index: 3, label: "GitHub" },
+  { index: 3, label: "Activity" },
   { index: 4, label: "Monitor" },
   { index: 5, label: "Conversations" },
   { index: 6, label: "Settings" },

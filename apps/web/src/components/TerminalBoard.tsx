@@ -232,7 +232,9 @@ export const TerminalBoard = ({
             >
               <div
                 className={`terminal-column-header${
-                  editingTerminalId === terminal.terminalId ? " terminal-column-header--editing" : ""
+                  editingTerminalId === terminal.terminalId
+                    ? " terminal-column-header--editing"
+                    : ""
                 }`}
               >
                 <div className="terminal-column-heading">
@@ -365,10 +367,7 @@ export const TerminalBoard = ({
                 aria-label={`Resize between ${terminal.terminalId} and ${rightNeighbor.terminalId}`}
                 aria-orientation="vertical"
                 className="terminal-divider"
-                onKeyDown={onTerminalDividerKeyDown(
-                  terminal.terminalId,
-                  rightNeighbor.terminalId,
-                )}
+                onKeyDown={onTerminalDividerKeyDown(terminal.terminalId, rightNeighbor.terminalId)}
                 onPointerDown={onTerminalDividerPointerDown(
                   terminal.terminalId,
                   rightNeighbor.terminalId,
