@@ -210,6 +210,25 @@
   cursor: crosshair;
 }
 
+.github-overview-graph-grid {
+  stroke: #1a1f28;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.github-overview-graph-y-label {
+  fill: #6b7a90;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.github-overview-graph-x-label {
+  fill: #6b7a90;
+  font-size: 9px;
+  text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+
 .github-overview-graph-surface polyline {
   fill: none;
   stroke: color-mix(in srgb, var(--accent-primary) 86%, #f4d27f 14%);

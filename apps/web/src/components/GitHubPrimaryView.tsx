@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GITHUB_OVERVIEW_GRAPH_HEIGHT, GITHUB_OVERVIEW_GRAPH_WIDTH } from "../app/constants";
 import { formatGitHubCommitHoverLabel } from "../app/githubMetrics";
@@ -24,6 +24,42 @@ type GitHubPrimaryViewProps = {
 
 const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 8;
 const GITHUB_RECENT_COMMITS_LIMIT = 50;
+
+const formatSparkDate = (date: string): string => {
+  if (date.startsWith("n/a")) return "";
+  const d = new Date(`${date}T00:00:00`);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const buildCommitYTicks = (
+  series: GitHubCommitSparkPoint[],
+): { count: number; y: number }[] => {
+  if (series.length === 0) return [];
+  const counts = series.map((p) => p.count);
+  const maxCount = Math.max(...counts);
+  const minCount = Math.min(...counts);
+  const range = Math.max(1, maxCount - minCount);
+  const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
+  const tickCount = 4;
+  const ticks: { count: number; y: number }[] = [];
+  for (let i = 0; i <= tickCount; i++) {
+    const count = Math.round(minCount + range * (i / tickCount));
+    const y = H - ((count - minCount) / range) * H;
+    ticks.push({ count, y });
+  }
+  return ticks;
+};
+
+const buildAreaPolygonPoints = (
+  series: GitHubCommitSparkPoint[],
+): string => {
+  if (series.length === 0) return "";
+  const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
+  const first = series[0]!;
+  const last = series[series.length - 1]!;
+  const linePoints = series.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  return `${first.x.toFixed(1)},${H} ${linePoints} ${last.x.toFixed(1)},${H}`;
+};
 
 const formatRecentCommitTimestamp = (value: string) => {
   const parsed = Date.parse(value);
@@ -91,6 +127,19 @@ export const GitHubPrimaryView = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [pinnedCommitHash, dismissCommitTooltip]);
+  const yTicks = useMemo(
+    () => buildCommitYTicks(githubOverviewGraphSeries),
+    [githubOverviewGraphSeries],
+  );
+  const areaPolygonPoints = useMemo(
+    () => buildAreaPolygonPoints(githubOverviewGraphSeries),
+    [githubOverviewGraphSeries],
+  );
+  const xLabelStep = Math.max(
+    1,
+    Math.ceil(githubOverviewGraphSeries.length / 6),
+  );
+
   const hoveredGitHubOverviewPoint =
     hoveredGitHubOverviewPointIndex !== null
       ? (githubOverviewGraphSeries[hoveredGitHubOverviewPointIndex] ?? null)
@@ -171,9 +220,61 @@ export const GitHubPrimaryView = ({
                   viewBox={`${-GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET} ${-GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET} ${
                     GITHUB_OVERVIEW_GRAPH_WIDTH + GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET * 2
                   } ${GITHUB_OVERVIEW_GRAPH_HEIGHT + GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET * 2}`}
+                  preserveAspectRatio="none"
                   role="presentation"
                 >
+                  <defs>
+                    <linearGradient id="commitAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.16" />
+                      <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.01" />
+                    </linearGradient>
+                  </defs>
+
+                  {yTicks.map((tick) => (
+                    <g key={tick.count}>
+                      <line
+                        x1={0}
+                        y1={tick.y}
+                        x2={GITHUB_OVERVIEW_GRAPH_WIDTH}
+                        y2={tick.y}
+                        className="github-overview-graph-grid"
+                      />
+                      <text
+                        x={4}
+                        y={tick.y - 4}
+                        className="github-overview-graph-y-label"
+                      >
+                        {tick.count}
+                      </text>
+                    </g>
+                  ))}
+
+                  {areaPolygonPoints && (
+                    <polygon
+                      points={areaPolygonPoints}
+                      fill="url(#commitAreaGrad)"
+                    />
+                  )}
+
                   <polyline points={githubOverviewGraphPolylinePoints} />
+
+                  {githubOverviewGraphSeries
+                    .filter((_, i) => i % xLabelStep === 0)
+                    .map((point) => {
+                      const label = formatSparkDate(point.date);
+                      if (!label) return null;
+                      return (
+                        <text
+                          key={`xl-${point.date}`}
+                          x={point.x}
+                          y={GITHUB_OVERVIEW_GRAPH_HEIGHT + GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET}
+                          className="github-overview-graph-x-label"
+                        >
+                          {label}
+                        </text>
+                      );
+                    })}
+
                   {githubOverviewGraphSeries.map((point, index) => (
                     <circle
                       aria-label={formatGitHubCommitHoverLabel(point)}
