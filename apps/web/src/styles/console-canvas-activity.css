@@ -157,6 +157,10 @@
   stroke-dasharray: 2 3;
 }
 
+.usage-chart-trend-line {
+  pointer-events: none;
+}
+
 .usage-chart-y-label {
   fill: #8494ab;
   font-size: 9px;

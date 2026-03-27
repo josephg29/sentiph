@@ -126,6 +126,46 @@ const ChartTooltip = ({
   );
 };
 
+/* ── Trend curve ───────────────────────────────────── */
+
+const buildTrendPath = (
+  bars: BarData[],
+  maxTokens: number,
+  chartHeight: number,
+  yAxisWidth: number,
+  topPad: number,
+  barSlotWidth: number,
+): string => {
+  if (bars.length < 2 || maxTokens === 0) return "";
+
+  const LIFT = 8;
+  const points = bars.map((bar, i) => ({
+    x: yAxisWidth + i * barSlotWidth + barSlotWidth / 2,
+    y: Math.max(topPad, topPad + chartHeight - (bar.totalTokens / maxTokens) * chartHeight - LIFT),
+  }));
+
+  if (points.length === 2) {
+    return `M${points[0]!.x},${points[0]!.y}L${points[1]!.x},${points[1]!.y}`;
+  }
+
+  let d = `M${points[0]!.x},${points[0]!.y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]!;
+    const p1 = points[i]!;
+    const p2 = points[i + 1]!;
+    const p3 = points[Math.min(points.length - 1, i + 2)]!;
+
+    const cp1x = p1.x + (p2.x - p0.x) / 10;
+    const cp1y = Math.max(topPad, p1.y + (p2.y - p0.y) / 10);
+    const cp2x = p2.x - (p3.x - p1.x) / 10;
+    const cp2y = Math.max(topPad, p2.y - (p3.y - p1.y) / 10);
+
+    d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+
+  return d;
+};
+
 /* ── Bar chart view ─────────────────────────────────── */
 
 const Y_AXIS_WIDTH = 52;
@@ -158,6 +198,11 @@ const BarChartView = ({
 
   const yTicks = useMemo(() => buildYTicks(maxTokens), [maxTokens]);
   const xLabelStep = Math.max(1, Math.ceil(barCount / Math.floor(chartAreaWidth / 60)));
+
+  const trendPath = useMemo(
+    () => buildTrendPath(bars, maxTokens, chartHeight, Y_AXIS_WIDTH, TOP_PAD, barSlotWidth),
+    [bars, maxTokens, chartHeight, barSlotWidth],
+  );
 
   return (
     <svg
@@ -237,6 +282,18 @@ const BarChartView = ({
           </text>
         );
       })}
+
+      {trendPath && (
+        <path
+          d={trendPath}
+          className="usage-chart-trend-line"
+          fill="none"
+          stroke="rgba(215, 166, 34, 0.55)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </svg>
   );
 };
