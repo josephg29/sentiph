@@ -33,10 +33,10 @@ const MONTH_LABELS = [
 
 const INTENSITY_COLORS = [
   "#161b22", // empty
-  "#0e4429", // low
-  "#006d32", // medium-low
-  "#26a641", // medium
-  "#39d353", // high
+  "#3d2008", // low
+  "#6b3a0e", // medium-low
+  "#b5611a", // medium
+  "#d7a622", // high (accent-primary)
 ];
 
 const formatTokenCount = (tokens: number): string => {

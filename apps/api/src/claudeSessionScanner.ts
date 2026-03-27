@@ -128,7 +128,7 @@ const scanProjectDirectory = async (
   await Promise.all(jsonlFiles.map((file) => scanJsonlFile(join(projectDir, file), buckets)));
 };
 
-const projectSlugFromCwd = (cwd: string): string => cwd.replace(/\//g, "-").replace(/^-/, "");
+const projectSlugFromCwd = (cwd: string): string => cwd.replace(/\//g, "-");
 
 let cachedResult: { response: UsageHeatmapResponse; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 120_000;
