@@ -165,9 +165,11 @@ export const CanvasPrimaryView = ({
           }
           return next;
         });
+      } else if (node.type === "inactive-session" && node.sessionId) {
+        onNavigateToConversation?.(node.sessionId);
       }
     },
-    [nodesById],
+    [nodesById, onNavigateToConversation],
   );
 
   const handleCloseTerminal = useCallback((nodeId: string) => {
