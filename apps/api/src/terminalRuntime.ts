@@ -232,25 +232,28 @@ export const createTerminalRuntime = ({
 
   const createTerminal = ({
     terminalId: requestedTerminalId,
+    tentacleId: requestedTentacleId,
     tentacleName,
     workspaceMode = "shared",
     agentProvider,
     initialPrompt,
+    baseRef,
   }: {
     terminalId?: string;
+    tentacleId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
     initialPrompt?: string;
+    baseRef?: string;
   }): TerminalSnapshot => {
     const terminalId =
       requestedTerminalId && !terminals.has(requestedTerminalId)
         ? requestedTerminalId
         : allocateTerminalId();
 
-    // For now, tentacleId = terminalId (1:1 mapping).
-    // Future: allow specifying an existing tentacleId to share context.
-    const tentacleId = terminalId;
+    // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
+    const tentacleId = requestedTentacleId ?? terminalId;
 
     const terminal: PersistedTerminal = {
       terminalId,
@@ -264,7 +267,7 @@ export const createTerminalRuntime = ({
 
     const shouldCreateWorktree = workspaceMode === "worktree";
     if (shouldCreateWorktree) {
-      worktreeManager.createTentacleWorktree(tentacleId);
+      worktreeManager.createTentacleWorktree(tentacleId, baseRef);
     }
 
     // Install hooks in the terminal's working directory.

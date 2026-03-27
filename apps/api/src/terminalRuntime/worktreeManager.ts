@@ -61,7 +61,7 @@ export const createWorktreeManager = ({
     }
   };
 
-  const createTentacleWorktree = (tentacleId: string) => {
+  const createTentacleWorktree = (tentacleId: string, baseRef = "HEAD") => {
     assertWorktreeCreationSupported();
     const worktreePath = getTentacleWorktreePath(tentacleId);
     if (existsSync(worktreePath)) {
@@ -73,7 +73,7 @@ export const createWorktreeManager = ({
         cwd: workspaceCwd,
         path: worktreePath,
         branchName: `${TENTACLE_WORKTREE_BRANCH_PREFIX}${tentacleId}`,
-        baseRef: "HEAD",
+        baseRef,
       });
     } catch (error) {
       throw new Error(`Unable to create worktree for ${tentacleId}: ${toErrorMessage(error)}`);

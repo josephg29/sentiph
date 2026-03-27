@@ -30,6 +30,7 @@ type CanvasPrimaryViewProps = {
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
+  onSpawnSwarm?: (tentacleId: string) => Promise<void>;
   onNavigateToConversation?: (sessionId: string) => void;
   onDeleteActiveSession?: (
     terminalId: string,
@@ -50,6 +51,7 @@ export const CanvasPrimaryView = ({
   onCanvasOpenTerminalIdsChange,
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
+  onSpawnSwarm,
   onNavigateToConversation,
   onDeleteActiveSession,
 }: CanvasPrimaryViewProps) => {
@@ -349,6 +351,14 @@ export const CanvasPrimaryView = ({
     [onCreateAgent],
   );
 
+  const handleSpawnSwarm = useCallback(
+    (tentacleId: string) => {
+      setContextMenu(null);
+      void onSpawnSwarm?.(tentacleId);
+    },
+    [onSpawnSwarm],
+  );
+
   // Auto-open terminal for newly created agent once it appears in the graph
   useEffect(() => {
     if (!pendingOpenAgentId) return;
@@ -458,13 +468,22 @@ export const CanvasPrimaryView = ({
             style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
           >
             {contextMenu.kind === "tentacle" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item"
-                onClick={() => handleCreateAgent(contextMenu.tentacleId)}
-              >
-                Create new agent
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleCreateAgent(contextMenu.tentacleId)}
+                >
+                  Create new agent
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleSpawnSwarm(contextMenu.tentacleId)}
+                >
+                  Spawn Swarm
+                </button>
+              </>
             )}
             {contextMenu.kind === "active-session" && (
               <button

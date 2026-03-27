@@ -133,7 +133,7 @@ const parseAgentMd = (content: string): { displayName: string; description: stri
 
 // ─── Todo parsing ───────────────────────────────────────────────────────────
 
-const parseTodoProgress = (
+export const parseTodoProgress = (
   content: string,
 ): { total: number; done: number; items: { text: string; done: boolean }[] } => {
   const lines = content.split("\n");

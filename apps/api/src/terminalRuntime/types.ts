@@ -221,9 +221,12 @@ export type TerminalRuntime = {
   mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
   createTerminal(options: {
     terminalId?: string;
+    tentacleId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
+    initialPrompt?: string;
+    baseRef?: string;
   }): TerminalSnapshot;
   renameTerminal(terminalId: string, tentacleName: string): TerminalSnapshot | null;
   deleteTerminal(terminalId: string): boolean;

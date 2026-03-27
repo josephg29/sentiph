@@ -11,9 +11,9 @@ import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
+import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalBoardInteractions } from "./app/hooks/useTerminalBoardInteractions";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
-import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalNameInputFocus } from "./app/hooks/useTerminalNameInputFocus";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
@@ -21,13 +21,13 @@ import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/normalizers";
 import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
-import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
+import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
-import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
+import { SidebarConversationsList } from "./components/SidebarConversationsList";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import { buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
@@ -242,7 +242,7 @@ export const App = () => {
   });
 
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
-    enabled: isUiStateHydrated && activePrimaryNav === 3,
+    enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
   });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
@@ -335,13 +335,9 @@ export const App = () => {
     <div className="page console-shell">
       {isRuntimeStatusStripVisible && (
         <RuntimeStatusStrip
-          githubCommitCount30d={githubCommitCount30d}
-          githubOpenIssuesLabel={githubOpenIssuesLabel}
-          githubOpenPrsLabel={githubOpenPrsLabel}
-          githubRepoLabel={githubRepoLabel}
-          githubStarCountLabel={githubStarCountLabel}
-          githubStatusPill={githubStatusPill}
           sparklinePoints={sparklinePoints}
+          usageData={heatmapData}
+          claudeUsage={claudeUsageSnapshot}
         />
       )}
 
@@ -458,15 +454,11 @@ export const App = () => {
               },
             }}
             settingsPrimaryViewProps={{
-              isBottomTelemetryVisible,
               isClaudeUsageVisible,
               isCodexUsageVisible,
-              isMonitorVisible,
               isRuntimeStatusStripVisible,
-              onBottomTelemetryVisibilityChange: setIsBottomTelemetryVisible,
               onClaudeUsageVisibilityChange: setIsClaudeUsageVisible,
               onCodexUsageVisibilityChange: setIsCodexUsageVisible,
-              onMonitorVisibilityChange: setIsMonitorVisible,
               onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
               onPreviewTerminalCompletionSound: playCompletionSoundPreview,
               onTerminalCompletionSoundChange: setTerminalCompletionSound,
@@ -482,6 +474,15 @@ export const App = () => {
               onCreateAgent: async (tentacleId) => {
                 void createTerminal("shared", undefined, tentacleId);
                 return undefined;
+              },
+              onSpawnSwarm: async (tentacleId) => {
+                await fetch(`/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({}),
+                });
+                const nextColumns = await readColumns();
+                setTerminals(nextColumns);
               },
               onNavigateToConversation: (sessionId) => {
                 selectSession(sessionId);

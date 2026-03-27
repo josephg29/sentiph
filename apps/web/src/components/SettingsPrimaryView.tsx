@@ -7,15 +7,11 @@ import { ActionButton } from "./ui/ActionButton";
 type SettingsPrimaryViewProps = {
   terminalCompletionSound: TerminalCompletionSoundId;
   isRuntimeStatusStripVisible: boolean;
-  isMonitorVisible: boolean;
-  isBottomTelemetryVisible: boolean;
   isCodexUsageVisible: boolean;
   isClaudeUsageVisible: boolean;
   onTerminalCompletionSoundChange: (soundId: TerminalCompletionSoundId) => void;
   onPreviewTerminalCompletionSound: (soundId: TerminalCompletionSoundId) => void;
   onRuntimeStatusStripVisibilityChange: (visible: boolean) => void;
-  onMonitorVisibilityChange: (visible: boolean) => void;
-  onBottomTelemetryVisibilityChange: (visible: boolean) => void;
   onCodexUsageVisibilityChange: (visible: boolean) => void;
   onClaudeUsageVisibilityChange: (visible: boolean) => void;
 };
@@ -23,15 +19,11 @@ type SettingsPrimaryViewProps = {
 export const SettingsPrimaryView = ({
   terminalCompletionSound,
   isRuntimeStatusStripVisible,
-  isMonitorVisible,
-  isBottomTelemetryVisible,
   isCodexUsageVisible,
   isClaudeUsageVisible,
   onTerminalCompletionSoundChange,
   onPreviewTerminalCompletionSound,
   onRuntimeStatusStripVisibilityChange,
-  onMonitorVisibilityChange,
-  onBottomTelemetryVisibilityChange,
   onCodexUsageVisibilityChange,
   onClaudeUsageVisibilityChange,
 }: SettingsPrimaryViewProps) => (
@@ -108,55 +100,6 @@ export const SettingsPrimaryView = ({
           </span>
           <span className="settings-toggle-state">
             {isRuntimeStatusStripVisible ? "Enabled" : "Disabled"}
-          </span>
-        </button>
-        <button
-          aria-checked={isMonitorVisible}
-          aria-label="Show Monitor workspace view"
-          className="settings-toggle-option"
-          data-active={isMonitorVisible ? "true" : "false"}
-          onClick={() => {
-            onMonitorVisibilityChange(!isMonitorVisible);
-          }}
-          role="switch"
-          type="button"
-        >
-          <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Monitor workspace view</span>
-            <span className="settings-toggle-description">Monitor tab and runtime syncing</span>
-          </span>
-          <span className="settings-toggle-switch" aria-hidden="true">
-            <span className="settings-toggle-thumb" />
-          </span>
-          <span className="settings-toggle-state">{isMonitorVisible ? "Enabled" : "Disabled"}</span>
-        </button>
-        <button
-          aria-checked={isBottomTelemetryVisible}
-          aria-label="Show bottom telemetry tape"
-          className="settings-toggle-option"
-          data-active={isBottomTelemetryVisible ? "true" : "false"}
-          disabled={!isMonitorVisible}
-          onClick={() => {
-            onBottomTelemetryVisibilityChange(!isBottomTelemetryVisible);
-          }}
-          role="switch"
-          type="button"
-        >
-          <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Bottom telemetry tape</span>
-            <span className="settings-toggle-description">
-              Scrolling tape under the workspace canvas
-            </span>
-          </span>
-          <span className="settings-toggle-switch" aria-hidden="true">
-            <span className="settings-toggle-thumb" />
-          </span>
-          <span className="settings-toggle-state">
-            {!isMonitorVisible
-              ? "Disabled (Monitor off)"
-              : isBottomTelemetryVisible
-                ? "Enabled"
-                : "Disabled"}
           </span>
         </button>
       </div>

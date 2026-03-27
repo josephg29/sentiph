@@ -1,11 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { UsageChartResponse } from "../claudeSessionScanner";
+import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import {
   createDeckTentacle,
   deleteDeckTentacle,
+  parseTodoProgress,
   readDeckTentacles,
   readDeckVaultFile,
 } from "../deck/readDeckTentacles";
@@ -1017,6 +1018,189 @@ const handleDeckVaultFileRoute: ApiRouteHandler = async (
 };
 
 // ---------------------------------------------------------------------------
+// Deck — Swarm
+// ---------------------------------------------------------------------------
+
+const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/swarm$/;
+
+const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime, workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TENTACLE_SWARM_PATTERN);
+  if (!match) return false;
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+
+  // Read and parse the tentacle's todo.md.
+  const todoContent = readDeckVaultFile(workspaceCwd, tentacleId, "todo.md");
+  if (todoContent === null) {
+    writeJson(response, 404, { error: "Tentacle or todo.md not found." }, corsOrigin);
+    return true;
+  }
+
+  const todoResult = parseTodoProgress(todoContent);
+  const incompleteItems = todoResult.items
+    .map((item, index) => ({ ...item, index }))
+    .filter((item) => !item.done);
+
+  if (incompleteItems.length === 0) {
+    writeJson(response, 400, { error: "No incomplete todo items found." }, corsOrigin);
+    return true;
+  }
+
+  // Parse optional request body for item filtering and agent provider.
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) return true;
+  const body = (bodyReadResult.payload ?? {}) as Record<string, unknown>;
+
+  const agentProviderResult = parseTerminalAgentProvider(body);
+  if (agentProviderResult.error) {
+    writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+    return true;
+  }
+
+  // Filter to specific item indices if requested.
+  let targetItems = incompleteItems;
+  if (Array.isArray(body.todoItemIndices)) {
+    const requestedIndices = new Set(
+      (body.todoItemIndices as unknown[]).filter((v): v is number => typeof v === "number"),
+    );
+    targetItems = incompleteItems.filter((item) => requestedIndices.has(item.index));
+    if (targetItems.length === 0) {
+      writeJson(
+        response,
+        400,
+        { error: "None of the requested todo item indices are incomplete." },
+        corsOrigin,
+      );
+      return true;
+    }
+  }
+
+  // Check for existing swarm terminals to prevent duplicates.
+  const existingTerminals = runtime.listTerminalSnapshots();
+  const existingSwarmIds = existingTerminals
+    .filter((t) => t.terminalId.startsWith(`${tentacleId}-swarm-`))
+    .map((t) => t.terminalId);
+  if (existingSwarmIds.length > 0) {
+    writeJson(
+      response,
+      409,
+      { error: "A swarm is already active for this tentacle.", existingSwarmIds },
+      corsOrigin,
+    );
+    return true;
+  }
+
+  // Determine base ref: use tentacle's worktree branch if it exists, otherwise HEAD.
+  const tentacleTerminal = existingTerminals.find(
+    (t) => t.tentacleId === tentacleId && t.workspaceMode === "worktree",
+  );
+  const baseRef = tentacleTerminal ? `octogent/${tentacleId}` : "HEAD";
+
+  // Resolve the tentacle display name for prompts.
+  const deckTentacles = readDeckTentacles(workspaceCwd);
+  const deckEntry = deckTentacles.find((t) => t.tentacleId === tentacleId);
+  const tentacleName = deckEntry?.displayName ?? tentacleId;
+
+  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
+  const needsParent = targetItems.length > 1;
+  const parentTerminalId = needsParent ? `${tentacleId}-swarm-parent` : null;
+
+  // Create worker terminals.
+  const workers: { terminalId: string; todoIndex: number; todoText: string }[] = [];
+
+  try {
+    for (const item of targetItems) {
+      const workerTerminalId = `${tentacleId}-swarm-${item.index}`;
+
+      // Build parent communication section conditionally.
+      const parentSection = parentTerminalId
+        ? [
+            "## Communication",
+            "",
+            `Your parent coordinator is at terminal \`${parentTerminalId}\`.`,
+            "When you complete your task, report back:",
+            "```bash",
+            `node bin/octogent channel send ${parentTerminalId} "DONE: ${item.text}" --from ${workerTerminalId}`,
+            "```",
+            "If you are blocked, ask for help:",
+            "```bash",
+            `node bin/octogent channel send ${parentTerminalId} "BLOCKED: <describe what you need>" --from ${workerTerminalId}`,
+            "```",
+          ].join("\n")
+        : "";
+
+      const workerPrompt = await resolvePrompt(workspaceCwd, "swarm-worker", {
+        tentacleName,
+        tentacleId,
+        todoItemText: item.text,
+        terminalId: workerTerminalId,
+        apiPort,
+        parentTerminalId: parentTerminalId ?? "",
+        parentSection,
+      });
+
+      runtime.createTerminal({
+        terminalId: workerTerminalId,
+        tentacleId,
+        tentacleName,
+        workspaceMode: "worktree",
+        ...(agentProviderResult.agentProvider
+          ? { agentProvider: agentProviderResult.agentProvider }
+          : {}),
+        ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
+        baseRef,
+      });
+
+      workers.push({ terminalId: workerTerminalId, todoIndex: item.index, todoText: item.text });
+    }
+
+    // Create parent coordinator if multiple workers.
+    if (needsParent && parentTerminalId) {
+      const workerListing = workers
+        .map((w) => `- \`${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
+        .join("\n");
+
+      const parentPrompt = await resolvePrompt(workspaceCwd, "swarm-parent", {
+        tentacleName,
+        tentacleId,
+        workerCount: String(workers.length),
+        workerListing,
+        terminalId: parentTerminalId,
+        apiPort,
+      });
+
+      runtime.createTerminal({
+        terminalId: parentTerminalId,
+        tentacleId,
+        tentacleName: `${tentacleName} (coordinator)`,
+        workspaceMode: "shared",
+        ...(agentProviderResult.agentProvider
+          ? { agentProvider: agentProviderResult.agentProvider }
+          : {}),
+        ...(parentPrompt ? { initialPrompt: parentPrompt } : {}),
+      });
+    }
+  } catch (error) {
+    if (error instanceof RuntimeInputError) {
+      writeJson(response, 400, { error: error.message }, corsOrigin);
+      return true;
+    }
+    throw error;
+  }
+
+  writeJson(response, 201, { tentacleId, parentTerminalId, workers }, corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
 // Prompts
 // ---------------------------------------------------------------------------
 
@@ -1132,7 +1316,15 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["channels", [handleChannelMessagesRoute]],
   ["hooks", [handleHookRoute]],
   ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
-  ["deck", [handleDeckTentaclesRoute, handleDeckTentacleItemRoute, handleDeckVaultFileRoute]],
+  [
+    "deck",
+    [
+      handleDeckTentaclesRoute,
+      handleDeckTentacleItemRoute,
+      handleDeckTentacleSwarmRoute,
+      handleDeckVaultFileRoute,
+    ],
+  ],
   ["terminal-snapshots", [handleTerminalSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],
