@@ -18,6 +18,8 @@ type ContextMenuState =
       nodeId: string;
       tentacleId: string;
       sessionId: string;
+      label: string;
+      workspaceMode?: string;
     };
 
 type CanvasPrimaryViewProps = {
@@ -29,7 +31,7 @@ type CanvasPrimaryViewProps = {
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
-  onDeleteActiveSession?: (tentacleId: string, sessionId: string) => void;
+  onDeleteActiveSession?: (terminalId: string, terminalName: string, workspaceMode?: string) => void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -313,6 +315,8 @@ export const CanvasPrimaryView = ({
           nodeId: node.id,
           tentacleId: node.tentacleId,
           sessionId: node.sessionId,
+          label: node.label,
+          ...(node.workspaceMode ? { workspaceMode: node.workspaceMode } : {}),
         });
       }
     };
@@ -457,7 +461,11 @@ export const CanvasPrimaryView = ({
                 type="button"
                 className="canvas-context-menu-item canvas-context-menu-item--danger"
                 onClick={() => {
-                  onDeleteActiveSession?.(contextMenu.tentacleId, contextMenu.sessionId);
+                  onDeleteActiveSession?.(
+                    contextMenu.sessionId,
+                    contextMenu.label,
+                    contextMenu.workspaceMode,
+                  );
                   setContextMenu(null);
                 }}
               >

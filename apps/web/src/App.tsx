@@ -480,8 +480,11 @@ export const App = () => {
                 selectSession(sessionId);
                 setActivePrimaryNav(5);
               },
-              onDeleteActiveSession: (tentacleId, sessionId) => {
-                void deleteSession(sessionId);
+              onDeleteActiveSession: (terminalId, terminalName, workspaceMode) => {
+                requestDeleteTerminal(terminalId, terminalName, {
+                  workspaceMode: workspaceMode === "worktree" ? "worktree" : "shared",
+                  intent: "delete-terminal",
+                });
               },
             }}
             conversationsPrimaryViewProps={{
