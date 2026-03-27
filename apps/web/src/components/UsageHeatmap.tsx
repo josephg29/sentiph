@@ -85,8 +85,23 @@ const buildYTicks = (maxTokens: number): { value: number; label: string }[] => {
 
 /* ── Tooltip (shared) ───────────────────────────────── */
 
-const ChartTooltip = ({ bar }: { bar: BarData }) => (
-  <div className="usage-heatmap-tooltip" aria-live="polite">
+const ChartTooltip = ({
+  bar,
+  x,
+  y,
+  containerWidth,
+}: { bar: BarData; x: number; y: number; containerWidth: number }) => {
+  const isRightHalf = x > containerWidth / 2;
+  return (
+    <div
+      className="usage-heatmap-tooltip"
+      aria-live="polite"
+      style={
+        isRightHalf
+          ? { right: `${containerWidth - x + 12}px`, top: `${y + 12}px` }
+          : { left: `${x + 12}px`, top: `${y + 12}px` }
+      }
+    >
     <p className="usage-heatmap-tooltip-date">{formatDateLabel(bar.date)}</p>
     <dl className="usage-heatmap-tooltip-stats">
       <div>
@@ -108,7 +123,8 @@ const ChartTooltip = ({ bar }: { bar: BarData }) => (
       </div>
     </dl>
   </div>
-);
+  );
+};
 
 /* ── Bar chart view ─────────────────────────────────── */
 
@@ -427,6 +443,8 @@ const usePanelSize = () => {
 export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionProps) => {
   const [segmentMode, setSegmentMode] = useState<BarSegmentMode>("project");
   const [hoveredBar, setHoveredBar] = useState<BarData | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const splitRef = useRef<HTMLDivElement>(null);
   const barPanel = usePanelSize();
   const heatmapPanel = usePanelSize();
 
@@ -482,7 +500,16 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
         </div>
       </header>
 
-      <div className="usage-chart-split">
+      <div
+        className="usage-chart-split"
+        ref={splitRef}
+        onMouseMove={(e) => {
+          const rect = splitRef.current?.getBoundingClientRect();
+          if (rect) {
+            setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }
+        }}
+      >
         <div className="usage-chart-bar-segment-toggle">
           <button
             type="button"
@@ -519,7 +546,14 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           />
         </div>
 
-        {hoveredBar && hoveredBar.totalTokens > 0 && <ChartTooltip bar={hoveredBar} />}
+        {hoveredBar && hoveredBar.totalTokens > 0 && (
+          <ChartTooltip
+            bar={hoveredBar}
+            x={mousePos.x}
+            y={mousePos.y}
+            containerWidth={splitRef.current?.clientWidth ?? 800}
+          />
+        )}
       </div>
 
       {segmentKeys.length > 1 && (
