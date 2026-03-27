@@ -422,11 +422,10 @@ const HeatmapView = ({
 
   return (
     <svg
-      className="usage-chart-svg"
+      className="usage-chart-svg usage-chart-svg--heatmap"
       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-      preserveAspectRatio="none"
-      width="100%"
-      height="100%"
+      width={svgWidth}
+      height={svgHeight}
       role="img"
       aria-label="Token usage heatmap"
     >
@@ -607,15 +606,30 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
             Model
           </button>
         </div>
-        <div className="usage-chart-panel" ref={barPanel.ref}>
-          <BarChartView
-            bars={bars}
-            maxTokens={maxTokens}
-            containerWidth={barPanel.width}
-            containerHeight={barPanel.height}
-            hoveredBar={hoveredBar}
-            setHoveredBar={setHoveredBar}
-          />
+        <div className="usage-chart-left-stack">
+          <div className="usage-chart-panel" ref={barPanel.ref}>
+            <BarChartView
+              bars={bars}
+              maxTokens={maxTokens}
+              containerWidth={barPanel.width}
+              containerHeight={barPanel.height}
+              hoveredBar={hoveredBar}
+              setHoveredBar={setHoveredBar}
+            />
+          </div>
+          {segmentKeys.length > 1 && (
+            <div className="usage-chart-legend">
+              {segmentKeys.map((key) => (
+                <span key={key} className="usage-chart-legend-item">
+                  <span
+                    className="usage-chart-legend-dot"
+                    style={{ backgroundColor: colorMap.get(key) }}
+                  />
+                  {key}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="usage-chart-right-stack">
           <div className="usage-chart-panel" ref={heatmapPanel.ref}>
@@ -665,20 +679,6 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           />
         )}
       </div>
-
-      {segmentKeys.length > 1 && (
-        <div className="usage-chart-legend">
-          {segmentKeys.map((key) => (
-            <span key={key} className="usage-chart-legend-item">
-              <span
-                className="usage-chart-legend-dot"
-                style={{ backgroundColor: colorMap.get(key) }}
-              />
-              {key}
-            </span>
-          ))}
-        </div>
-      )}
     </section>
   );
 };
