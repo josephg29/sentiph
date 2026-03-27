@@ -135,17 +135,12 @@ export const useCanvasGraphData = ({
   // Build a map of active terminals by tentacleId
   const activeTerminalMap = new Map(columns.map((terminal) => [terminal.tentacleId, terminal]));
 
-  // Build tentacle list: all deck tentacles + any terminal-only tentacles
+  // Build tentacle list: only deck tentacles (sandbox and other non-deck
+  // terminals are excluded from the graph).
   const allTentacleIds: string[] = [];
   for (const dt of deckTentacles) {
     allTentacleIds.push(dt.tentacleId);
     seenTentacleIds.add(dt.tentacleId);
-  }
-  for (const terminal of columns) {
-    if (!seenTentacleIds.has(terminal.tentacleId)) {
-      allTentacleIds.push(terminal.tentacleId);
-      seenTentacleIds.add(terminal.tentacleId);
-    }
   }
 
   const totalTentacles = allTentacleIds.length;

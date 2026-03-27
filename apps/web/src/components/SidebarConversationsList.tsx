@@ -49,6 +49,10 @@ export const SidebarConversationsList = ({
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearchRef = useRef(onSearch);
+  const onClearSearchRef = useRef(onClearSearch);
+  onSearchRef.current = onSearch;
+  onClearSearchRef.current = onClearSearch;
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),
@@ -63,13 +67,13 @@ export const SidebarConversationsList = ({
 
     const trimmed = inputValue.trim();
     if (trimmed.length === 0) {
-      onClearSearch();
+      onClearSearchRef.current();
       return;
     }
 
     if (trimmed.length >= 2) {
       debounceRef.current = setTimeout(() => {
-        onSearch(trimmed);
+        onSearchRef.current(trimmed);
       }, 280);
     }
 
@@ -78,7 +82,7 @@ export const SidebarConversationsList = ({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [inputValue, onSearch, onClearSearch]);
+  }, [inputValue]);
 
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {

@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
 import { jsonResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
@@ -8,10 +8,6 @@ describe("App shell and navigation", () => {
   afterEach(() => {
     cleanup();
     resetAppTestHarness();
-  });
-
-  afterAll(() => {
-    console.log("[DEBUG] afterAll reached — all tests completed");
   });
 
   it("renders empty view when API returns no active agents", async () => {
