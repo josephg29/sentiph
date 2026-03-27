@@ -800,8 +800,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
       });
       if (!response.ok) return;
       const data = await response.json();
-      const tentacleId = data.tentacleId as string;
-      const agentId = `${tentacleId}-agent-1`;
+      const agentId = (data.terminalId ?? data.tentacleId) as string;
       setFocus({ type: "terminal", agentId, terminalLabel: "Tentacle Planner" });
     } catch {
       // silently ignore

@@ -69,14 +69,14 @@ export const StateSandboxPrimaryView = () => {
         throw new Error(`Failed to create tentacle (${response.status})`);
       }
 
-      const snapshot = (await response.json()) as { tentacleId?: string };
-      if (!snapshot.tentacleId) {
-        throw new Error("Missing tentacleId in response");
+      const snapshot = (await response.json()) as { tentacleId?: string; terminalId?: string };
+      if (!snapshot.tentacleId || !snapshot.terminalId) {
+        throw new Error("Missing tentacleId or terminalId in response");
       }
 
       setAgent({
         tentacleId: snapshot.tentacleId,
-        terminalId: `${snapshot.tentacleId}-agent-1`,
+        terminalId: snapshot.terminalId,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create agent");

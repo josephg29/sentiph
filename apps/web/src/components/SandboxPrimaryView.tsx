@@ -33,14 +33,18 @@ const createSandboxTentacleRequest = async (): Promise<SandboxAgent> => {
     throw new Error(`Failed to create sandbox tentacle (${response.status})`);
   }
 
-  const snapshot = (await response.json()) as { tentacleId?: string; initialPrompt?: string };
-  if (!snapshot.tentacleId) {
-    throw new Error("Missing tentacleId in response");
+  const snapshot = (await response.json()) as {
+    tentacleId?: string;
+    terminalId?: string;
+    initialPrompt?: string;
+  };
+  if (!snapshot.tentacleId || !snapshot.terminalId) {
+    throw new Error("Missing tentacleId or terminalId in response");
   }
 
   const agent: SandboxAgent = {
     tentacleId: snapshot.tentacleId,
-    terminalId: `${snapshot.tentacleId}-agent-1`,
+    terminalId: snapshot.terminalId,
   };
   if (snapshot.initialPrompt) {
     agent.initialPrompt = snapshot.initialPrompt;
