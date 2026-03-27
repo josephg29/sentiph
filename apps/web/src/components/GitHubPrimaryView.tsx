@@ -228,6 +228,11 @@ export const GitHubPrimaryView = ({
                       <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.16" />
                       <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.01" />
                     </linearGradient>
+                    <linearGradient id="commitLineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fce8a8" />
+                      <stop offset="60%" stopColor="#e8820a" />
+                      <stop offset="100%" stopColor="#ff6a00" />
+                    </linearGradient>
                   </defs>
 
                   {yTicks.map((tick) => (
@@ -256,7 +261,7 @@ export const GitHubPrimaryView = ({
                     />
                   )}
 
-                  <polyline points={githubOverviewGraphPolylinePoints} />
+                  <polyline points={githubOverviewGraphPolylinePoints} stroke="url(#commitLineGrad)" />
 
                   {githubOverviewGraphSeries
                     .filter((_, i) => i % xLabelStep === 0)

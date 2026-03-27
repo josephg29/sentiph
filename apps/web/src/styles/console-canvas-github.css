@@ -231,7 +231,6 @@
 
 .github-overview-graph-surface polyline {
   fill: none;
-  stroke: color-mix(in srgb, var(--accent-primary) 86%, #f4d27f 14%);
   stroke-width: 3;
 }
 

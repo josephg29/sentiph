@@ -12,18 +12,18 @@ type UsageChartSectionProps = {
 type BarSegmentMode = "project" | "model";
 
 const SEGMENT_COLORS = [
-  "#d7a622",
-  "#e07b39",
+  "#d4c432",
+  "#3a8fd4",
+  "#d43a3a",
+  "#e8a820",
+  "#2a6cb8",
+  "#c4443a",
+  "#f0d040",
   "#4ea8de",
-  "#a78bfa",
-  "#34d399",
-  "#f472b6",
-  "#fbbf24",
-  "#60a5fa",
-  "#c084fc",
-  "#2dd4bf",
-  "#fb923c",
-  "#a3e635",
+  "#e05a4a",
+  "#b8a018",
+  "#5088c8",
+  "#e07060",
 ];
 
 const formatTokenCount = (tokens: number): string => {
