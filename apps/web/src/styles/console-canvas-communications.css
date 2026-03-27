@@ -1,0 +1,118 @@
+.console-shell .communications-view {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.communications-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.56rem;
+  padding: 0.36rem 0.56rem;
+  border-bottom: 1px solid #2b2f36;
+  background: #0d1017;
+}
+
+.communications-view__header h2 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #c8cdd4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.communications-view__count {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+}
+
+.communications-view__error {
+  padding: 0.5rem 0.56rem;
+  color: #ff4d4d;
+  font-size: 0.78rem;
+  background: #1a0808;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.communications-view__log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.36rem 0;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.communications-view__empty {
+  padding: 1.2rem 0.56rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.communications-view__empty code {
+  display: block;
+  margin-top: 0.5rem;
+  color: #c8cdd4;
+  background: #1a1d24;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.74rem;
+}
+
+.communications-view__message {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.24rem 0.56rem;
+  border-bottom: 1px solid #1a1d24;
+  line-height: 1.4;
+}
+
+.communications-view__message:hover {
+  background: #141820;
+}
+
+.communications-view__time {
+  color: #4b5563;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+.communications-view__from {
+  color: #00ffaa;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.communications-view__arrow {
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.communications-view__to {
+  color: #00c8ff;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.communications-view__status {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+}
+
+.communications-view__message--delivered .communications-view__status {
+  color: #4b5563;
+}
+
+.communications-view__message--pending .communications-view__status {
+  color: #ffee00;
+}
+
+.communications-view__content {
+  color: #c8cdd4;
+  word-break: break-word;
+}

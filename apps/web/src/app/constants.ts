@@ -17,6 +17,7 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 7, label: "Sandbox" },
   { index: 8, label: "State Sandbox" },
   { index: 9, label: "Board" },
+  { index: 10, label: "Comms" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;

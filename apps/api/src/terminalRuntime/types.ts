@@ -185,6 +185,15 @@ export type GitClient = {
 
 export class RuntimeInputError extends Error {}
 
+export type ChannelMessage = {
+  messageId: string;
+  fromTerminalId: string;
+  toTerminalId: string;
+  content: string;
+  timestamp: string;
+  delivered: boolean;
+};
+
 export type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;
   gitClient?: GitClient;
@@ -227,5 +236,11 @@ export type TerminalRuntime = {
   connectDirect(terminalId: string, listener: DirectSessionListener): (() => void) | null;
   writeInput(terminalId: string, data: string): boolean;
   resizeTerminal(terminalId: string, cols: number, rows: number): boolean;
+  sendChannelMessage(
+    toTerminalId: string,
+    fromTerminalId: string,
+    content: string,
+  ): ChannelMessage | null;
+  listChannelMessages(terminalId: string): ChannelMessage[];
   close(): void;
 };

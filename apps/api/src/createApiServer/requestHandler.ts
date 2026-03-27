@@ -13,17 +13,17 @@ import { MonitorInputError, type MonitorService } from "../monitor";
 import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
 import {
   RuntimeInputError,
-  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
+  type TerminalAgentProvider,
 } from "../terminalRuntime";
 import {
   RequestBodyTooLargeError,
   parseMonitorConfigPatch,
-  parseTerminalAgentProvider,
   parseTentacleCommitMessage,
-  parseTerminalName,
   parseTentaclePullRequestCreateInput,
   parseTentacleSyncBaseRef,
+  parseTerminalAgentProvider,
+  parseTerminalName,
   parseTerminalWorkspaceMode,
   parseUiStatePatch,
   readJsonBody,
@@ -1055,7 +1055,59 @@ const handlePromptItemRoute: ApiRouteHandler = async (
   return true;
 };
 
+// ─── Channel routes ───────────────────────────────────────────────────────
+
+const CHANNEL_MESSAGES_PATH_PATTERN = /^\/api\/channels\/([^/]+)\/messages$/;
+
+const handleChannelMessagesRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(CHANNEL_MESSAGES_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  const terminalId = decodeURIComponent(match[1] ?? "");
+
+  if (request.method === "GET") {
+    const messages = runtime.listChannelMessages(terminalId);
+    writeJson(response, 200, { terminalId, messages }, corsOrigin);
+    return true;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const body = bodyReadResult.payload as Record<string, unknown> | null;
+  const fromTerminalId =
+    body && typeof body.fromTerminalId === "string" ? body.fromTerminalId.trim() : "";
+  const content = body && typeof body.content === "string" ? body.content.trim() : "";
+
+  if (content.length === 0) {
+    writeJson(response, 400, { error: "Message content cannot be empty." }, corsOrigin);
+    return true;
+  }
+
+  const message = runtime.sendChannelMessage(terminalId, fromTerminalId, content);
+  if (!message) {
+    writeJson(response, 404, { error: "Target terminal not found." }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 201, message, corsOrigin);
+  return true;
+};
+
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
+  ["channels", [handleChannelMessagesRoute]],
   ["hooks", [handleHookRoute]],
   ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
   ["deck", [handleDeckTentaclesRoute, handleDeckTentacleItemRoute, handleDeckVaultFileRoute]],
@@ -1074,20 +1126,8 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleConversationItemRoute,
     ],
   ],
-  [
-    "terminals",
-    [
-      handleTerminalsCollectionRoute,
-      handleTerminalItemRoute,
-    ],
-  ],
-  [
-    "tentacles",
-    [
-      handleTentacleGitRoute,
-      handleTentacleGitPullRequestRoute,
-    ],
-  ],
+  ["terminals", [handleTerminalsCollectionRoute, handleTerminalItemRoute]],
+  ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
 ]);
 
 const extractRoutePrefix = (pathname: string): string | null => {

@@ -11,6 +11,7 @@ import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { StateSandboxPrimaryView } from "./StateSandboxPrimaryView";
+import { CommunicationsPrimaryView } from "./CommunicationsPrimaryView";
 import { TerminalBoard } from "./TerminalBoard";
 
 type PrimaryViewRouterProps = {
@@ -110,6 +111,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 9) {
     return <TerminalBoard {...terminalBoardProps} />;
+  }
+
+  if (activePrimaryNav === 10) {
+    return <CommunicationsPrimaryView />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

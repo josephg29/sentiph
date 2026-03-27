@@ -4,6 +4,9 @@
 // Usage:
 //   octogent tentacle create <name> [--description "..."]
 //   octogent tentacle list
+//   octogent terminal create [--name "..."] [--initial-prompt "..."] [--workspace-mode shared|worktree]
+//   octogent channel send <terminalId> <message>
+//   octogent channel list <terminalId>
 
 const API_PORT = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
 const API_BASE = `http://localhost:${API_PORT}`;
@@ -46,6 +49,21 @@ async function main() {
     }
   }
 
+  if (resource === "terminal" || resource === "terminals") {
+    if (command === "create") {
+      return terminalCreate();
+    }
+  }
+
+  if (resource === "channel") {
+    if (command === "send") {
+      return channelSend();
+    }
+    if (command === "list" || command === "ls") {
+      return channelList();
+    }
+  }
+
   printUsage();
   process.exit(1);
 }
@@ -53,7 +71,12 @@ async function main() {
 function printUsage() {
   console.log(`Usage:
   octogent tentacle create <name> [--description "..."]
-  octogent tentacle list`);
+  octogent tentacle list
+
+  octogent terminal create [--name "..."] [--initial-prompt "..."] [--workspace-mode shared|worktree]
+
+  octogent channel send <terminalId> <message>
+  octogent channel list <terminalId>`);
 }
 
 function parseFlag(flag) {
@@ -120,6 +143,136 @@ async function tentacleList() {
     for (const t of tentacles) {
       const desc = t.description ? ` — ${t.description}` : "";
       console.log(`  ${t.tentacleId}${desc}`);
+    }
+  } catch (err) {
+    console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);
+    process.exit(1);
+  }
+}
+
+async function terminalCreate() {
+  const name = parseFlag("--name") ?? parseFlag("-n");
+  const initialPrompt = parseFlag("--initial-prompt") ?? parseFlag("-p");
+  const workspaceMode = parseFlag("--workspace-mode") ?? parseFlag("-w") ?? "shared";
+
+  const body = {};
+  if (name) body.tentacleName = name;
+  if (initialPrompt) body.initialPrompt = initialPrompt;
+  if (workspaceMode) body.workspaceMode = workspaceMode;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/terminals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(`Error: ${data.error ?? "Failed to create terminal"}`);
+      process.exit(1);
+    }
+
+    console.log(`Created terminal "${data.terminalId}"`);
+    if (data.tentacleName) {
+      console.log(`  name: ${data.tentacleName}`);
+    }
+    if (data.workspaceMode) {
+      console.log(`  workspace: ${data.workspaceMode}`);
+    }
+  } catch (err) {
+    console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);
+    process.exit(1);
+  }
+}
+
+async function channelSend() {
+  const terminalId = args[2];
+  if (!terminalId || terminalId.startsWith("-")) {
+    console.error("Error: target terminalId is required.");
+    console.error('  octogent channel send <terminalId> <message>');
+    process.exit(1);
+  }
+
+  // Collect everything after the terminalId as the message.
+  const messageParts = args.slice(3).filter((a) => !a.startsWith("--from"));
+  const fromTerminalId = parseFlag("--from") ?? process.env.OCTOGENT_SESSION_ID ?? "";
+
+  // If --from was used, its value was consumed by parseFlag but remains in messageParts.
+  // Remove the value immediately following --from.
+  const fromIdx = args.indexOf("--from");
+  let message;
+  if (fromIdx !== -1) {
+    const cleaned = args.slice(3).filter((_, i) => {
+      const absIdx = i + 3;
+      return absIdx !== fromIdx && absIdx !== fromIdx + 1;
+    });
+    message = cleaned.join(" ").trim();
+  } else {
+    message = messageParts.join(" ").trim();
+  }
+
+  if (message.length === 0) {
+    console.error("Error: message content is required.");
+    console.error('  octogent channel send <terminalId> "your message here"');
+    process.exit(1);
+  }
+
+  const body = { fromTerminalId, content: message };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/channels/${encodeURIComponent(terminalId)}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(`Error: ${data.error ?? "Failed to send message"}`);
+      process.exit(1);
+    }
+
+    console.log(`Message sent (${data.messageId}) to ${terminalId}`);
+  } catch (err) {
+    console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);
+    process.exit(1);
+  }
+}
+
+async function channelList() {
+  const terminalId = args[2];
+  if (!terminalId || terminalId.startsWith("-")) {
+    console.error("Error: terminalId is required.");
+    console.error("  octogent channel list <terminalId>");
+    process.exit(1);
+  }
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/channels/${encodeURIComponent(terminalId)}/messages`,
+      { headers: { Accept: "application/json" } },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(`Error: ${data.error ?? "Failed to list messages"}`);
+      process.exit(1);
+    }
+
+    const messages = data.messages ?? [];
+    if (messages.length === 0) {
+      console.log(`No messages for ${terminalId}.`);
+      return;
+    }
+
+    for (const m of messages) {
+      const status = m.delivered ? "delivered" : "pending";
+      const from = m.fromTerminalId || "(unknown)";
+      console.log(`  [${m.messageId}] from=${from} status=${status}: ${m.content}`);
     }
   } catch (err) {
     console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);

@@ -6,13 +6,13 @@ import type { Duplex } from "node:stream";
 import type { TerminalSnapshot } from "@octogent/core";
 import { WebSocketServer } from "ws";
 
+import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
   DEFAULT_AGENT_PROVIDER,
   TERMINAL_ID_PREFIX,
   TERMINAL_REGISTRY_RELATIVE_PATH,
   TERMINAL_TRANSCRIPT_RELATIVE_PATH,
 } from "./terminalRuntime/constants";
-import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
   conversationExportMarkdown,
   deleteAllConversations,
@@ -32,19 +32,21 @@ import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import type { DirectSessionListener } from "./terminalRuntime/types";
 import {
+  type ChannelMessage,
   type CreateTerminalRuntimeOptions,
   type PersistedTerminal,
   type PersistedUiState,
   RuntimeInputError,
   type TentacleGitStatusSnapshot,
   type TentaclePullRequestSnapshot,
-  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
+  type TerminalAgentProvider,
   type TerminalSession,
 } from "./terminalRuntime/types";
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
+  ChannelMessage,
   DirectSessionListener,
   GitClient,
   PersistedUiState,
@@ -60,6 +62,8 @@ export const createTerminalRuntime = ({
   gitClient = createDefaultGitClient(),
 }: CreateTerminalRuntimeOptions) => {
   const sessions = new Map<string, TerminalSession>();
+  const channelQueues = new Map<string, ChannelMessage[]>();
+  let channelMessageCounter = 0;
   const websocketServer = new WebSocketServer({ noServer: true });
   const registryPath = join(workspaceCwd, TERMINAL_REGISTRY_RELATIVE_PATH);
   const registryState = loadTerminalRegistry(registryPath);
@@ -742,6 +746,77 @@ export const createTerminalRuntime = ({
       return true;
     },
 
+    sendChannelMessage(
+      toTerminalId: string,
+      fromTerminalId: string,
+      content: string,
+    ): ChannelMessage | null {
+      if (!terminals.has(toTerminalId)) {
+        return null;
+      }
+
+      channelMessageCounter += 1;
+      const message: ChannelMessage = {
+        messageId: `msg-${channelMessageCounter}`,
+        fromTerminalId,
+        toTerminalId,
+        content,
+        timestamp: new Date().toISOString(),
+        delivered: false,
+      };
+
+      const queue = channelQueues.get(toTerminalId) ?? [];
+      queue.push(message);
+      channelQueues.set(toTerminalId, queue);
+
+      console.log(
+        `[Channel] Queued message ${message.messageId} from=${fromTerminalId} to=${toTerminalId}`,
+      );
+
+      // If the target session is idle, deliver immediately.
+      const targetSession = sessions.get(toTerminalId);
+      if (targetSession && targetSession.agentState === "idle") {
+        this.deliverChannelMessages(toTerminalId);
+      }
+
+      return message;
+    },
+
+    listChannelMessages(terminalId: string): ChannelMessage[] {
+      return channelQueues.get(terminalId) ?? [];
+    },
+
+    deliverChannelMessages(terminalId: string): void {
+      const queue = channelQueues.get(terminalId);
+      if (!queue || queue.length === 0) {
+        return;
+      }
+
+      const session = sessions.get(terminalId);
+      if (!session) {
+        return;
+      }
+
+      const undelivered = queue.filter((m) => !m.delivered);
+      if (undelivered.length === 0) {
+        return;
+      }
+
+      // Compose all pending messages into a single prompt injection.
+      const lines = undelivered.map(
+        (m) => `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
+      );
+      const prompt = `${lines.join("\n")}\n`;
+
+      console.log(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
+
+      for (const m of undelivered) {
+        m.delivered = true;
+      }
+
+      sessionRuntime.writeInput(terminalId, prompt);
+    },
+
     handleHook(hookName: string, payload: unknown, octogentSessionId?: string): { ok: boolean } {
       console.log(
         `[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`,
@@ -779,6 +854,9 @@ export const createTerminalRuntime = ({
           session.agentState = "waiting_for_user";
           session.stateTracker.forceState("waiting_for_user");
           broadcastMessage(session, { type: "state", state: "waiting_for_user" });
+
+          // Deliver any queued channel messages now that the agent is idle.
+          this.deliverChannelMessages(octogentSessionId);
         }
 
         return { ok: true };
@@ -879,6 +957,11 @@ export const createTerminalRuntime = ({
       } else if (turns && turns.length > 0) {
         storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, turns);
         console.log(`[Hook] Stored ${turns.length} turns for session ${matchedSessionId}.`);
+      }
+
+      // Deliver any queued channel messages now that the agent is idle.
+      if (matchedSessionId) {
+        this.deliverChannelMessages(matchedSessionId);
       }
 
       return { ok: true };

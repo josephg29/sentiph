@@ -263,6 +263,19 @@ export const buildDeckVaultFileUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildChannelMessagesUrl = (
+  terminalId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const encodedTerminalId = encodeURIComponent(terminalId);
+  const path = `/api/channels/${encodedTerminalId}/messages`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
