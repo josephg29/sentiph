@@ -338,6 +338,7 @@ export const App = () => {
           sparklinePoints={sparklinePoints}
           usageData={heatmapData}
           claudeUsage={claudeUsageSnapshot}
+          onRefreshClaudeUsage={refreshClaudeUsage}
         />
       )}
 

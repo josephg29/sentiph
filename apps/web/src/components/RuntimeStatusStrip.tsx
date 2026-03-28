@@ -9,6 +9,7 @@ type RuntimeStatusStripProps = {
   sparklinePoints: string;
   usageData: UsageChartData | null;
   claudeUsage: ClaudeUsageSnapshot | null;
+  onRefreshClaudeUsage?: () => void;
 };
 
 const MINI_USAGE_WIDTH = 160;
@@ -64,6 +65,7 @@ export const RuntimeStatusStrip = ({
   sparklinePoints,
   usageData,
   claudeUsage,
+  onRefreshClaudeUsage,
 }: RuntimeStatusStripProps) => {
   const usageBars = useMemo(
     () => (usageData ? buildUsageBars(usageData) : []),
@@ -121,6 +123,17 @@ export const RuntimeStatusStrip = ({
         </div>
       </div>
       <div className="console-status-claude-usage" aria-label="Claude usage limits">
+        {onRefreshClaudeUsage && (
+          <button
+            type="button"
+            className="console-status-claude-usage-refresh"
+            onClick={onRefreshClaudeUsage}
+            aria-label="Refresh Claude usage"
+            title="Refresh Claude usage"
+          >
+            ↻
+          </button>
+        )}
         <span className="console-status-claude-usage-title">
           CLAUDE<br />USAGE
         </span>

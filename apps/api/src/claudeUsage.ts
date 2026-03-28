@@ -617,9 +617,35 @@ export const readClaudeUsageSnapshot = async (
     return { ...cachedSnapshot.snapshot, fetchedAt: now.toISOString() };
   }
 
-  const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
+  // Try OAuth API first (fast — single HTTP call)
+  const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
+  const fetchImpl = dependencies.fetchImpl ?? fetch;
+  const oauthSnapshot = await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
 
-  // Try CLI PTY first (primary source — works on Max plans)
+  if (oauthSnapshot.status === "ok") {
+    cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
+    return oauthSnapshot;
+  }
+
+  // If OAuth reached the API but got a non-ok response (rate-limited, server error),
+  // don't waste 20s on CLI PTY — return the OAuth result directly.
+  // Only fall back to CLI PTY when OAuth credentials are missing/unreadable.
+  const oauthReachedApi = oauthSnapshot.source === "none" &&
+    oauthSnapshot.message != null &&
+    !oauthSnapshot.message.includes("not found") &&
+    !oauthSnapshot.message.includes("missing") &&
+    !oauthSnapshot.message.includes("Re-run");
+
+  if (oauthReachedApi) {
+    console.log(`[claude-usage] OAuth API responded with error: ${oauthSnapshot.message}`);
+    cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
+    return oauthSnapshot;
+  }
+
+  console.log(`[claude-usage] OAuth credentials unavailable: ${oauthSnapshot.message}, falling back to CLI PTY`);
+
+  // Fall back to CLI PTY (slow — spawns a full claude session)
+  const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
   try {
     const cliOutput = await spawnCliUsage();
     if (cliOutput) {
@@ -646,22 +672,10 @@ export const readClaudeUsageSnapshot = async (
     );
   }
 
-  // Fall back to OAuth API
-  const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
-  const fetchImpl = dependencies.fetchImpl ?? fetch;
-  const oauthSnapshot = await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
-
-  if (oauthSnapshot.status === "ok") {
-    cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
-  } else {
-    console.log(`[claude-usage] OAuth failed: ${oauthSnapshot.message}`);
-    if (cachedSnapshot) {
-      // Return last known good data instead of showing error
-      return { ...cachedSnapshot.snapshot, fetchedAt: now.toISOString() };
-    }
-    // No cached data — cache the failure too so we don't hammer OAuth
-    cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
+  // Both sources failed — return cached or error
+  if (cachedSnapshot) {
+    return { ...cachedSnapshot.snapshot, fetchedAt: now.toISOString() };
   }
-
+  cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
   return oauthSnapshot;
 };

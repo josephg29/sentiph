@@ -221,6 +221,24 @@
   max-width: 400px;
 }
 
+.console-status-claude-usage-refresh {
+  background: none;
+  border: 1px solid #3a3f4b;
+  color: #6f7782;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.18rem 0.32rem;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.console-status-claude-usage-refresh:hover {
+  color: #e8e8e8;
+  border-color: #6f7782;
+}
+
 .console-status-claude-usage-title {
   color: #6f7782;
   font-size: 0.72rem;

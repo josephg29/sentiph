@@ -13,6 +13,7 @@ import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { StateSandboxPrimaryView } from "./StateSandboxPrimaryView";
 import { CommunicationsPrimaryView } from "./CommunicationsPrimaryView";
 import { TerminalBoard } from "./TerminalBoard";
+import { UsageSandboxPrimaryView } from "./UsageSandboxPrimaryView";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -115,6 +116,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 10) {
     return <CommunicationsPrimaryView />;
+  }
+
+  if (activePrimaryNav === 11) {
+    return <UsageSandboxPrimaryView />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

@@ -1,4 +1,4 @@
-export const CODEX_USAGE_SCAN_INTERVAL_MS = 60_000;
+export const CODEX_USAGE_SCAN_INTERVAL_MS = 600_000;
 export const GITHUB_SUMMARY_SCAN_INTERVAL_MS = 60_000;
 export const MONITOR_SCAN_INTERVAL_MS = 60_000;
 export const BACKEND_LIVENESS_SCAN_INTERVAL_MS = 120_000;
@@ -18,6 +18,7 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 8, label: "State Sandbox" },
   { index: 9, label: "Board" },
   { index: 10, label: "Comms" },
+  { index: 11, label: "Usage Sandbox" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;
