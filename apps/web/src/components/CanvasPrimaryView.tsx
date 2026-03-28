@@ -501,6 +501,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleCreateAgent(contextMenu.tentacleId)}
                 >
+                  <span className="canvas-context-menu-icon">&gt;_</span>
                   Create new agent
                 </button>
                 <button
@@ -508,6 +509,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleSpawnSwarm(contextMenu.tentacleId)}
                 >
+                  <span className="canvas-context-menu-icon">&#x2263;</span>
                   Spawn Swarm
                 </button>
               </>
@@ -519,6 +521,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-todos")}
                 >
+                  <span className="canvas-context-menu-icon">&#x2611;</span>
                   Reorganize To-Do's
                 </button>
                 <button
@@ -526,6 +529,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-tentacles")}
                 >
+                  <span className="canvas-context-menu-icon">&#x2B21;</span>
                   Reorganize Tentacles
                 </button>
                 <button
@@ -533,6 +537,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-clean-contexts")}
                 >
+                  <span className="canvas-context-menu-icon">&#x29BB;</span>
                   Clean Tentacle Contexts
                 </button>
               </>
@@ -550,6 +555,7 @@ export const CanvasPrimaryView = ({
                   setContextMenu(null);
                 }}
               >
+                <span className="canvas-context-menu-icon">&#x2715;</span>
                 Delete
               </button>
             )}
