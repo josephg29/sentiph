@@ -2,7 +2,7 @@ import type { AgentState, TentacleWorkspaceMode } from "@octogent/core";
 
 export type GraphNode = {
   id: string;
-  type: "tentacle" | "active-session" | "inactive-session";
+  type: "tentacle" | "octoboss" | "active-session" | "inactive-session";
   x: number;
   y: number;
   vx: number;

@@ -92,7 +92,17 @@ export const OctopusNode = ({
   onPointerDown,
   onClick,
 }: OctopusNodeProps) => {
-  const visuals = useMemo(() => deriveOctopusVisuals(node.tentacleId), [node.tentacleId]);
+  const isOctoboss = node.type === "octoboss";
+  const visuals = useMemo(
+    () =>
+      isOctoboss
+        ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
+        : deriveOctopusVisuals(node.tentacleId),
+    [node.tentacleId, isOctoboss],
+  );
+  const glyphScale = isOctoboss ? 5.4 : GLYPH_SCALE;
+  const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
+  const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
   const color = node.color;
   const edgeColor = "#00d4ff";
 
@@ -113,7 +123,7 @@ export const OctopusNode = ({
       style={{ cursor: "grab" }}
     >
       {/* Invisible hit area for pointer events */}
-      <rect x={-GLYPH_W / 2} y={-GLYPH_H / 2} width={GLYPH_W} height={GLYPH_H} fill="transparent" />
+      <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
 
       {/* Edges — light tint of parent color */}
       {connectedNodes.map((target) => (
@@ -130,15 +140,15 @@ export const OctopusNode = ({
 
       {/* Selection ring */}
       {isSelected && (
-        <circle r={GLYPH_H / 2 + 4} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.5} />
+        <circle r={glyphH / 2 + 4} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.5} />
       )}
 
       {/* Octopus glyph via foreignObject */}
       <foreignObject
-        x={-GLYPH_W / 2}
-        y={-GLYPH_H / 2}
-        width={GLYPH_W}
-        height={GLYPH_H}
+        x={-glyphW / 2}
+        y={-glyphH / 2}
+        width={glyphW}
+        height={glyphH}
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
         <div
@@ -152,21 +162,21 @@ export const OctopusNode = ({
           }}
         >
           <OctopusGlyph
-            color={color}
+            {...(isOctoboss ? {} : { color })}
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
-            scale={GLYPH_SCALE}
+            scale={glyphScale}
           />
         </div>
       </foreignObject>
 
       {/* Label — always visible */}
       <text
-        y={GLYPH_H / 2 - 12}
+        y={glyphH / 2 - 12}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
-        fill="#faa32c"
+        fill={isOctoboss ? "var(--accent-primary, #d4a017)" : "#faa32c"}
       >
         {node.label.length > 18 ? `${node.label.slice(0, 16)}..` : node.label}
       </text>

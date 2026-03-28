@@ -512,6 +512,7 @@ const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   try {
     const createTerminalInput: {
       terminalId?: string;
+      tentacleId?: string;
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TerminalAgentProvider;
@@ -532,6 +533,13 @@ const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.terminalId.trim().length > 0
     ) {
       createTerminalInput.terminalId = bodyPayload.terminalId.trim();
+    }
+    if (
+      bodyPayload &&
+      typeof bodyPayload.tentacleId === "string" &&
+      bodyPayload.tentacleId.trim().length > 0
+    ) {
+      createTerminalInput.tentacleId = bodyPayload.tentacleId.trim();
     }
 
     // Support prompt resolution via template name + variables, or a raw string.

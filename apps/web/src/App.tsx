@@ -19,6 +19,7 @@ import { useTerminalNameInputFocus } from "./app/hooks/useTerminalNameInputFocus
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/normalizers";
+import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
 import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
@@ -484,6 +485,24 @@ export const App = () => {
                 });
                 const nextColumns = await readColumns();
                 setTerminals(nextColumns);
+              },
+              onOctobossAction: async (action) => {
+                const response = await fetch("/api/terminals", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    workspaceMode: "shared",
+                    tentacleId: OCTOBOSS_ID,
+                    promptTemplate: action,
+                  }),
+                });
+                if (!response.ok) return undefined;
+                const snapshot = (await response.json()) as { terminalId?: string };
+                const nextColumns = await readColumns();
+                setTerminals(nextColumns);
+                return typeof snapshot.terminalId === "string"
+                  ? snapshot.terminalId
+                  : undefined;
               },
               onNavigateToConversation: (sessionId) => {
                 selectSession(sessionId);

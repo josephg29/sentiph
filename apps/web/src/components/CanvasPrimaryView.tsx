@@ -11,6 +11,7 @@ import { SessionNode } from "./canvas/SessionNode";
 
 type ContextMenuState =
   | { kind: "tentacle"; x: number; y: number; tentacleId: string }
+  | { kind: "octoboss"; x: number; y: number }
   | {
       kind: "active-session";
       x: number;
@@ -31,6 +32,7 @@ type CanvasPrimaryViewProps = {
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onSpawnSwarm?: (tentacleId: string) => Promise<void>;
+  onOctobossAction?: (action: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
   onDeleteActiveSession?: (
     terminalId: string,
@@ -52,6 +54,7 @@ export const CanvasPrimaryView = ({
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
   onSpawnSwarm,
+  onOctobossAction,
   onNavigateToConversation,
   onDeleteActiveSession,
 }: CanvasPrimaryViewProps) => {
@@ -298,6 +301,13 @@ export const CanvasPrimaryView = ({
       const node = nodesByIdRef.current.get(nodeId);
       if (!node) return;
 
+      if (node.type === "octoboss") {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({ kind: "octoboss", x: e.clientX, y: e.clientY });
+        return;
+      }
+
       if (node.type === "tentacle") {
         e.preventDefault();
         e.stopPropagation();
@@ -359,6 +369,19 @@ export const CanvasPrimaryView = ({
     [onSpawnSwarm],
   );
 
+  const handleOctobossAction = useCallback(
+    (action: string) => {
+      setContextMenu(null);
+      const result = onOctobossAction?.(action);
+      if (result && typeof result.then === "function") {
+        void result.then((agentId) => {
+          if (agentId) setPendingOpenAgentId(agentId);
+        });
+      }
+    },
+    [onOctobossAction],
+  );
+
   // Auto-open terminal for newly created agent once it appears in the graph
   useEffect(() => {
     if (!pendingOpenAgentId) return;
@@ -374,8 +397,12 @@ export const CanvasPrimaryView = ({
   }, [pendingOpenAgentId, nodesById]);
 
   // Separate tentacle and session nodes for render order
-  const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle");
-  const sessionNodes = simulatedNodes.filter((n) => n.type !== "tentacle");
+  const tentacleNodes = simulatedNodes.filter(
+    (n) => n.type === "tentacle" || n.type === "octoboss",
+  );
+  const sessionNodes = simulatedNodes.filter(
+    (n) => n.type !== "tentacle" && n.type !== "octoboss",
+  );
 
   const hasTerminals = openTerminals.size > 0;
 
@@ -482,6 +509,31 @@ export const CanvasPrimaryView = ({
                   onClick={() => handleSpawnSwarm(contextMenu.tentacleId)}
                 >
                   Spawn Swarm
+                </button>
+              </>
+            )}
+            {contextMenu.kind === "octoboss" && (
+              <>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleOctobossAction("octoboss-reorganize-todos")}
+                >
+                  Reorganize To-Do's
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleOctobossAction("octoboss-reorganize-tentacles")}
+                >
+                  Reorganize Tentacles
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleOctobossAction("octoboss-clean-contexts")}
+                >
+                  Clean Tentacle Contexts
                 </button>
               </>
             )}
