@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphNode } from "../app/canvas/types";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
+import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { TerminalView } from "../app/types";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
+import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 
@@ -39,6 +41,10 @@ type CanvasPrimaryViewProps = {
     terminalName: string,
     workspaceMode?: string,
   ) => void;
+  pendingDeleteTerminal?: PendingDeleteTerminal | null;
+  isDeletingTerminalId?: string | null;
+  onCancelDelete?: () => void;
+  onConfirmDelete?: () => void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -57,6 +63,10 @@ export const CanvasPrimaryView = ({
   onOctobossAction,
   onNavigateToConversation,
   onDeleteActiveSession,
+  pendingDeleteTerminal,
+  isDeletingTerminalId,
+  onCancelDelete,
+  onConfirmDelete,
 }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
@@ -561,6 +571,17 @@ export const CanvasPrimaryView = ({
             )}
           </div>
         </>
+      )}
+
+      {pendingDeleteTerminal && onCancelDelete && onConfirmDelete && (
+        <div className="canvas-delete-dialog">
+          <DeleteTentacleDialog
+            pendingDeleteTerminal={pendingDeleteTerminal}
+            isDeletingTerminalId={isDeletingTerminalId ?? null}
+            onCancel={onCancelDelete}
+            onConfirmDelete={onConfirmDelete}
+          />
+        </div>
       )}
     </section>
   );

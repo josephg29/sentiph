@@ -514,6 +514,12 @@ export const App = () => {
                   intent: "delete-terminal",
                 });
               },
+              pendingDeleteTerminal,
+              isDeletingTerminalId,
+              onCancelDelete: clearPendingDeleteTerminal,
+              onConfirmDelete: () => {
+                void confirmDeleteTerminal();
+              },
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,

@@ -494,3 +494,14 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* ── Delete confirmation dialog (bottom-left corner) ── */
+
+.canvas-delete-dialog {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 60;
+  width: 340px;
+  max-width: calc(100% - 32px);
+}
