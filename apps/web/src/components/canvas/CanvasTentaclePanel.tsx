@@ -79,22 +79,6 @@ const formatTime = (isoString: string | null): string => {
   return `${diffDay}d ago`;
 };
 
-const TentacleGlyph = ({ tentacle }: { tentacle: DeckTentacleSummary }) => {
-  const visuals = useMemo(() => deriveVisuals(tentacle), [tentacle]);
-  return (
-    <div className="canvas-tentacle-panel-glyph">
-      <OctopusGlyph
-        color={visuals.color}
-        animation={visuals.animation}
-        expression={visuals.expression}
-        accessory={visuals.accessory}
-        {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-        scale={5}
-      />
-    </div>
-  );
-};
-
 export const CanvasTentaclePanel = ({
   node,
   isFocused,
@@ -106,6 +90,11 @@ export const CanvasTentaclePanel = ({
 }: CanvasTentaclePanelProps) => {
   const [tentacle, setTentacle] = useState<DeckTentacleSummary | null>(null);
   const [sessions, setSessions] = useState<ConversationSessionSummary[]>([]);
+
+  const visuals = useMemo(
+    () => (tentacle ? deriveVisuals(tentacle) : null),
+    [tentacle],
+  );
 
   const fetchTentacle = useCallback(async () => {
     try {
@@ -155,71 +144,81 @@ export const CanvasTentaclePanel = ({
       : 0;
 
   return (
-    <section
-      className={`canvas-tentacle-panel${isFocused ? " canvas-tentacle-panel--focused" : ""}`}
+    <div
+      className={`detail-panel${isFocused ? " detail-panel--focused" : ""}`}
       onPointerDown={() => onFocus?.()}
     >
-      <div className="canvas-tentacle-panel-header">
-        <div className="canvas-tentacle-panel-heading">
-          <h2>
-            <span
-              className="canvas-tentacle-panel-color"
-              style={{ backgroundColor: node.color }}
-            />
-            <span className="canvas-tentacle-panel-name">
-              {tentacle?.displayName ?? node.label}
-            </span>
-          </h2>
-          {tentacle && (
-            <span
-              className={`canvas-tentacle-panel-status canvas-tentacle-panel-status--${tentacle.status}`}
-            >
-              {STATUS_LABELS[tentacle.status] ?? tentacle.status}
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          className="canvas-tentacle-panel-close"
-          onClick={onClose}
-          aria-label="Close panel"
-        >
+      {/* Header */}
+      <div className="detail-panel-header">
+        <span className="detail-title">Tentacle Details</span>
+        {tentacle && (
+          <span
+            className="detail-type-badge"
+            style={{ background: node.color }}
+          >
+            {STATUS_LABELS[tentacle.status] ?? tentacle.status}
+          </span>
+        )}
+        <button className="detail-close" type="button" onClick={onClose}>
           &times;
         </button>
       </div>
 
-      <div className="canvas-tentacle-panel-body">
-        {/* Octopus glyph */}
-        {tentacle && <TentacleGlyph tentacle={tentacle} />}
-
-        {/* Description */}
-        {tentacle?.description && (
-          <div className="canvas-tentacle-panel-section">
-            <p className="canvas-tentacle-panel-description">{tentacle.description}</p>
+      {/* Content */}
+      <div className="detail-content">
+        {/* Identity: glyph + info side by side */}
+        <div className="detail-identity">
+          {visuals && (
+            <div className="detail-glyph">
+              <OctopusGlyph
+                color={visuals.color}
+                animation={visuals.animation}
+                expression={visuals.expression}
+                accessory={visuals.accessory}
+                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
+                scale={4}
+              />
+            </div>
+          )}
+          <div className="detail-identity-info">
+            <div className="detail-row">
+              <span className="detail-label">Name</span>
+              <span className="detail-value">{tentacle?.displayName ?? node.label}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">ID</span>
+              <span className="detail-value detail-value--mono">{node.tentacleId}</span>
+            </div>
+            {tentacle?.description && (
+              <div className="detail-row">
+                <span className="detail-label">Description</span>
+                <span className="detail-value">{tentacle.description}</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Progress */}
+        {/* Progress section */}
         {tentacle && tentacle.todoTotal > 0 && (
-          <div className="canvas-tentacle-panel-section">
-            <h3 className="canvas-tentacle-panel-section-title">Progress</h3>
-            <div className="canvas-tentacle-panel-progress">
-              <div className="canvas-tentacle-panel-progress-bar">
+          <div className="detail-section">
+            <div className="detail-section-title">Progress</div>
+            <div className="detail-progress">
+              <div className="detail-progress-bar">
                 <div
-                  className="canvas-tentacle-panel-progress-fill"
+                  className="detail-progress-fill"
                   style={{ width: `${progressPct}%`, backgroundColor: node.color }}
                 />
               </div>
-              <span className="canvas-tentacle-panel-progress-label">
+              <span className="detail-progress-label">
                 {tentacle.todoDone}/{tentacle.todoTotal}
               </span>
             </div>
             {tentacle.todoItems.length > 0 && (
-              <ul className="canvas-tentacle-panel-todos">
+              <ul className="detail-todos">
                 {tentacle.todoItems.map((item) => (
                   <li
                     key={item.text}
-                    className={`canvas-tentacle-panel-todo${item.done ? " canvas-tentacle-panel-todo--done" : ""}`}
+                    className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
                     <input type="checkbox" checked={item.done} readOnly />
                     <span>{item.text}</span>
@@ -230,60 +229,67 @@ export const CanvasTentaclePanel = ({
           </div>
         )}
 
-        {/* Sessions */}
-        <div className="canvas-tentacle-panel-section">
-          <h3 className="canvas-tentacle-panel-section-title">
-            Sessions ({sessions.length})
-          </h3>
-          {sessions.length === 0 ? (
-            <p className="canvas-tentacle-panel-empty">No sessions yet</p>
-          ) : (
-            <ul className="canvas-tentacle-panel-sessions">
-              {sessions.map((s) => (
-                <li key={s.sessionId} className="canvas-tentacle-panel-session">
-                  <button
-                    type="button"
-                    className="canvas-tentacle-panel-session-btn"
-                    onClick={() => onNavigateToConversation?.(s.sessionId)}
-                  >
-                    <span className="canvas-tentacle-panel-session-preview">
-                      {s.firstUserTurnPreview
-                        ? s.firstUserTurnPreview.slice(0, 60)
-                        : s.sessionId.slice(0, 16)}
-                    </span>
-                    <span className="canvas-tentacle-panel-session-meta">
-                      {s.turnCount} turns · {formatTime(s.lastEventAt)}
-                    </span>
-                  </button>
-                </li>
+        {/* Vault files */}
+        {tentacle && tentacle.vaultFiles.length > 0 && (
+          <div className="detail-section">
+            <div className="detail-section-title">Vault Files</div>
+            <div className="detail-labels-list">
+              {tentacle.vaultFiles.map((file) => (
+                <span key={file} className="detail-label-tag">{file}</span>
               ))}
-            </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Sessions section */}
+        <div className="detail-section">
+          <div className="detail-section-title">Sessions ({sessions.length})</div>
+          {sessions.length === 0 ? (
+            <div className="detail-empty">No sessions yet</div>
+          ) : (
+            <div className="detail-sessions">
+              {sessions.map((s) => (
+                <button
+                  key={s.sessionId}
+                  type="button"
+                  className="detail-session-item"
+                  onClick={() => onNavigateToConversation?.(s.sessionId)}
+                >
+                  <span className="detail-session-preview">
+                    {s.firstUserTurnPreview
+                      ? s.firstUserTurnPreview.slice(0, 60)
+                      : s.sessionId.slice(0, 16)}
+                  </span>
+                  <span className="detail-session-meta">
+                    {s.turnCount} turns · {formatTime(s.lastEventAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="canvas-tentacle-panel-section">
-          <h3 className="canvas-tentacle-panel-section-title">Actions</h3>
-          <div className="canvas-tentacle-panel-actions">
+        {/* Actions section */}
+        <div className="detail-section">
+          <div className="detail-section-title">Actions</div>
+          <div className="detail-actions">
             <button
               type="button"
-              className="canvas-tentacle-panel-action"
+              className="detail-action-btn"
               onClick={() => onCreateAgent?.(node.tentacleId)}
             >
-              <span className="canvas-tentacle-panel-action-icon">&gt;_</span>
-              Create Agent
+              &gt;_ Create Agent
             </button>
             <button
               type="button"
-              className="canvas-tentacle-panel-action"
+              className="detail-action-btn"
               onClick={() => onSpawnSwarm?.(node.tentacleId)}
             >
-              <span className="canvas-tentacle-panel-action-icon">&#x2263;</span>
-              Spawn Swarm
+              &#x2263; Spawn Swarm
             </button>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
