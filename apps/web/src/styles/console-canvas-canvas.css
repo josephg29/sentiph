@@ -6,7 +6,9 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  background: #0a0e14;
+  background-color: #0a0e14;
+  background-image: radial-gradient(#1a2030 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
 }
 
 .canvas-svg {
