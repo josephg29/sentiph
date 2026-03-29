@@ -71,12 +71,14 @@ type OctopusNodeProps = {
   onClick: (nodeId: string) => void;
 };
 
-const buildArmPath = (
+const buildEdgePath = (
   cx: number,
   cy: number,
   tx: number,
   ty: number,
   targetRadius: number,
+  edgeIndex: number,
+  edgeCount: number,
 ): string => {
   const dx = tx - cx;
   const dy = ty - cy;
@@ -85,20 +87,25 @@ const buildArmPath = (
 
   // Shorten the endpoint so the edge stops at the target node's border
   const shortenBy = targetRadius + 2;
-  const ratio = Math.max(0, (dist - shortenBy) / dist);
-  const etx = cx + dx * ratio;
-  const ety = cy + dy * ratio;
+  const endRatio = Math.max(0, (dist - shortenBy) / dist);
+  const etx = cx + dx * endRatio;
+  const ety = cy + dy * endRatio;
 
-  const nx = -dy / dist;
-  const ny = dx / dist;
-  const curvature = dist * 0.2;
+  // Curvature — perpendicular offset for quadratic Bézier control point
+  // Single edges get a default curve; multi-edges fan out
+  const curvature = edgeCount <= 1
+    ? 0.3
+    : ((edgeIndex / (edgeCount - 1)) - 0.5) * 2;
+  const offsetRatio = 0.25 + edgeCount * 0.05;
+  const baseOffset = Math.max(35, dist * offsetRatio);
 
-  const cp1x = cx + dx * 0.33 + nx * curvature;
-  const cp1y = cy + dy * 0.33 + ny * curvature;
-  const cp2x = cx + dx * 0.66 - nx * curvature * 0.5;
-  const cp2y = cy + dy * 0.66 - ny * curvature * 0.5;
+  // Perpendicular to source→target direction (unit normal: -dy/dist, dx/dist)
+  const offsetX = (-dy / dist) * curvature * baseOffset;
+  const offsetY = (dx / dist) * curvature * baseOffset;
+  const cpx = (cx + etx) / 2 + offsetX;
+  const cpy = (cy + ety) / 2 + offsetY;
 
-  return `M ${cx} ${cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${etx} ${ety}`;
+  return `M ${cx} ${cy} Q ${cpx} ${cpy} ${etx} ${ety}`;
 };
 
 const GLYPH_SCALE = 4;
@@ -125,7 +132,7 @@ export const OctopusNode = ({
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
   const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
   const color = node.color;
-  const edgeColor = "#00d4ff";
+  const edgeColor = "#C0C0C0";
 
   return (
     <g
@@ -147,15 +154,15 @@ export const OctopusNode = ({
       <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
 
       {/* Edges — light tint of parent color */}
-      {connectedNodes.map((target) => (
+      {connectedNodes.map((target, i) => (
         <path
           key={target.id}
           className="canvas-edge"
-          d={buildArmPath(0, 0, target.x - node.x, target.y - node.y, target.radius)}
+          d={buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, i, connectedNodes.length)}
           fill="none"
           stroke={edgeColor}
-          strokeWidth={1}
-          strokeOpacity={0.35}
+          strokeWidth={1.5}
+          strokeOpacity={1}
         />
       ))}
 

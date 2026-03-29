@@ -25,30 +25,23 @@ export type ForceParams = {
 };
 
 export const DEFAULT_FORCE_PARAMS: ForceParams = {
-  repelStrength: -200,
+  repelStrength: -400,
   repelDistanceMax: 600,
   linkDistance: 100,
   linkStrength: 0.25,
   positionStrength: 0.04,
-  collisionPadding: 6,
+  collisionPadding: 50,
   velocityDecay: 0.4,
   alphaDecay: 0.0228,
 };
 
 const ALPHA_MIN = 0.001;
-const ALPHA_TARGET = 0.008; // Small positive value keeps simulation warm for idle jitter
-
-// Idle jitter — random nudges when the simulation has settled
-const JITTER_STRENGTH_SESSION = 0.25;
-const JITTER_STRENGTH_TENTACLE = 0.05;
-const JITTER_ALPHA_THRESHOLD = 1.0;
+const ALPHA_TARGET = 0;
 const REHEAT_ALPHA = 0.8;
 
-// Fixed world bounds — nodes are clamped inside this box
+// Reference dimensions for initial viewport fit (no longer used for clamping)
 export const WORLD_W = 1400;
 export const WORLD_H = 800;
-const HALF_W = WORLD_W / 2;
-const HALF_H = WORLD_H / 2;
 
 type SimNode = SimulationNodeDatum & { _gn: GraphNode };
 type SimLink = SimulationLinkDatum<SimNode>;
@@ -163,18 +156,8 @@ export const useForceSimulation = ({
         .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
         .force(
           "collide",
-          forceCollide<SimNode>((d) => d._gn.radius + p.collisionPadding),
-        )
-        .force("jitter", (alpha: number) => {
-          if (alpha > JITTER_ALPHA_THRESHOLD) return;
-          for (const sn of sim.nodes()) {
-            if (sn.fx !== undefined) continue;
-            const s =
-              sn._gn.type === "tentacle" ? JITTER_STRENGTH_TENTACLE : JITTER_STRENGTH_SESSION;
-            sn.vx = (sn.vx ?? 0) + (Math.random() - 0.5) * s;
-            sn.vy = (sn.vy ?? 0) + (Math.random() - 0.5) * s;
-          }
-        });
+          forceCollide<SimNode>(p.collisionPadding),
+        );
     };
 
     if (simRef.current) {
@@ -191,12 +174,6 @@ export const useForceSimulation = ({
       applyForces(sim);
 
       sim.on("tick", () => {
-        // Clamp nodes inside the fixed world bounds
-        for (const sn of sim.nodes()) {
-          const r = sn._gn.radius;
-          if (sn.x !== undefined) sn.x = Math.max(-HALF_W + r, Math.min(HALF_W - r, sn.x));
-          if (sn.y !== undefined) sn.y = Math.max(-HALF_H + r, Math.min(HALF_H - r, sn.y));
-        }
         const updated: GraphNode[] = sim.nodes().map((sn) => ({
           ...sn._gn,
           x: sn.x ?? sn._gn.x,
@@ -248,7 +225,7 @@ export const useForceSimulation = ({
 
     const collideForce = sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
     if (collideForce) {
-      collideForce.radius((d: SimNode) => d._gn.radius + params.collisionPadding);
+      collideForce.radius(params.collisionPadding);
     }
 
     sim.alpha(REHEAT_ALPHA).restart();

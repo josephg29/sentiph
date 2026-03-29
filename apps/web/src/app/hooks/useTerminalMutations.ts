@@ -30,7 +30,7 @@ type UseTerminalMutationsResult = {
   createTerminal: (
     workspaceMode: TerminalWorkspaceMode,
     agentProvider?: TerminalAgentProvider,
-    terminalId?: string,
+    tentacleId?: string,
   ) => Promise<void>;
   requestDeleteTerminal: (
     terminalId: string,
@@ -117,7 +117,7 @@ export const useTerminalMutations = ({
     async (
       workspaceMode: TerminalWorkspaceMode,
       agentProvider?: TerminalAgentProvider,
-      terminalId?: string,
+      tentacleId?: string,
     ) => {
       try {
         setIsCreatingTerminal(true);
@@ -131,7 +131,7 @@ export const useTerminalMutations = ({
           body: JSON.stringify({
             workspaceMode,
             agentProvider: agentProvider ?? "claude-code",
-            ...(terminalId ? { terminalId } : {}),
+            ...(tentacleId ? { tentacleId } : {}),
           }),
         });
 
