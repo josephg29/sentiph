@@ -139,8 +139,16 @@ export const useCanvasGraphData = ({
   const prevNodes = prevNodesRef.current;
   const seenTentacleIds = new Set<string>();
 
-  // Build a map of active terminals by tentacleId
-  const activeTerminalMap = new Map(columns.map((terminal) => [terminal.tentacleId, terminal]));
+  // Build a map of active terminals by tentacleId (multiple terminals can share a tentacle)
+  const activeTerminalsByTentacle = new Map<string, TerminalView>();
+  for (const terminal of columns) {
+    const group = activeTerminalsByTentacle.get(terminal.tentacleId);
+    if (group) {
+      group.push(terminal);
+    } else {
+      activeTerminalsByTentacle.set(terminal.tentacleId, [terminal]);
+    }
+  }
 
   // Build tentacle list: only deck tentacles (sandbox and other non-deck
   // terminals are excluded from the graph).
@@ -157,9 +165,10 @@ export const useCanvasGraphData = ({
     const tentacleNodeId = buildTentacleNodeId(tentacleId);
     const prev = prevNodes.get(tentacleNodeId);
     const deck = deckMap.get(tentacleId);
-    const activeTerminal = activeTerminalMap.get(tentacleId);
+    const activeTerminals = activeTerminalsByTentacle.get(tentacleId);
+    const firstActiveTerminal = activeTerminals?.[0];
     const color = tentacleColor(tentacleId, deck?.color);
-    const label = deck?.displayName ?? activeTerminal?.tentacleName ?? tentacleId;
+    const label = deck?.displayName ?? firstActiveTerminal?.tentacleName ?? tentacleId;
 
     const angle = (2 * Math.PI * i) / Math.max(totalTentacles, 1);
     const spread = 300;
@@ -176,33 +185,35 @@ export const useCanvasGraphData = ({
       tentacleId,
       label,
       color,
-      ...(activeTerminal ? { workspaceMode: activeTerminal.workspaceMode } : {}),
+      ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
     };
     nodes.push(node);
 
-    // Active terminal session node
-    if (activeTerminal) {
-      const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
-      const prevSession = prevNodes.get(sessionNodeId);
-      const jitter = () => (Math.random() - 0.5) * 60;
+    // Active terminal session nodes — one per terminal in this tentacle
+    if (activeTerminals) {
+      for (const activeTerminal of activeTerminals) {
+        const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
+        const prevSession = prevNodes.get(sessionNodeId);
+        const jitter = () => (Math.random() - 0.5) * 60;
 
-      const sessionNode: GraphNode = {
-        id: sessionNodeId,
-        type: "active-session",
-        x: prevSession?.x ?? node.x + jitter(),
-        y: prevSession?.y ?? node.y + jitter(),
-        vx: prevSession?.vx ?? 0,
-        vy: prevSession?.vy ?? 0,
-        pinned: prevSession?.pinned ?? false,
-        radius: ACTIVE_SESSION_RADIUS,
-        tentacleId,
-        label: activeTerminal.tentacleName || activeTerminal.terminalId,
-        color,
-        sessionId: activeTerminal.terminalId,
-        agentState: activeTerminal.state,
-      };
-      nodes.push(sessionNode);
-      edges.push({ source: tentacleNodeId, target: sessionNodeId });
+        const sessionNode: GraphNode = {
+          id: sessionNodeId,
+          type: "active-session",
+          x: prevSession?.x ?? node.x + jitter(),
+          y: prevSession?.y ?? node.y + jitter(),
+          vx: prevSession?.vx ?? 0,
+          vy: prevSession?.vy ?? 0,
+          pinned: prevSession?.pinned ?? false,
+          radius: ACTIVE_SESSION_RADIUS,
+          tentacleId,
+          label: activeTerminal.tentacleName || activeTerminal.terminalId,
+          color,
+          sessionId: activeTerminal.terminalId,
+          agentState: activeTerminal.state,
+        };
+        nodes.push(sessionNode);
+        edges.push({ source: tentacleNodeId, target: sessionNodeId });
+      }
     }
   }
 
