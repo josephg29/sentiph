@@ -15,6 +15,7 @@ import {
   handleDeckTentacleItemRoute,
   handleDeckTentacleSwarmRoute,
   handleDeckTentaclesRoute,
+  handleDeckTodoToggleRoute,
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
@@ -77,6 +78,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleDeckTentaclesRoute,
       handleDeckTentacleItemRoute,
       handleDeckTentacleSwarmRoute,
+      handleDeckTodoToggleRoute,
       handleDeckVaultFileRoute,
     ],
   ],

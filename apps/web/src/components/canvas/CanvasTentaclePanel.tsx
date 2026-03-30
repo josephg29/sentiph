@@ -4,7 +4,11 @@ import type { DeckTentacleSummary } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
 import { normalizeConversationSessionSummary } from "../../app/normalizers";
 import type { ConversationSessionSummary } from "../../app/types";
-import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
+import {
+  buildConversationsUrl,
+  buildDeckTentaclesUrl,
+  buildDeckTodoToggleUrl,
+} from "../../runtime/runtimeEndpoints";
 import {
   type OctopusAccessory,
   type OctopusAnimation,
@@ -146,6 +150,23 @@ export const CanvasTentaclePanel = ({
     }
   }, [node.tentacleId]);
 
+  const handleTodoToggle = useCallback(
+    async (itemIndex: number, done: boolean) => {
+      try {
+        const response = await fetch(buildDeckTodoToggleUrl(node.tentacleId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemIndex, done }),
+        });
+        if (!response.ok) return;
+        await fetchTentacle();
+      } catch {
+        // silent
+      }
+    },
+    [node.tentacleId, fetchTentacle],
+  );
+
   useEffect(() => {
     void fetchTentacle();
     void fetchSessions();
@@ -222,12 +243,16 @@ export const CanvasTentaclePanel = ({
             </div>
             {tentacle.todoItems.length > 0 && (
               <ul className="detail-todos">
-                {tentacle.todoItems.map((item) => (
+                {tentacle.todoItems.map((item, i) => (
                   <li
                     key={item.text}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
-                    <input type="checkbox" checked={item.done} readOnly />
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={() => handleTodoToggle(i, !item.done)}
+                    />
                     <span>{item.text}</span>
                   </li>
                 ))}

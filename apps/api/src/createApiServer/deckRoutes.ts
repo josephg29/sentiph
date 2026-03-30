@@ -4,6 +4,7 @@ import {
   parseTodoProgress,
   readDeckTentacles,
   readDeckVaultFile,
+  toggleTodoItem,
 } from "../deck/readDeckTentacles";
 import { resolvePrompt } from "../prompts";
 import { RuntimeInputError } from "../terminalRuntime";
@@ -111,6 +112,43 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   }
 
   writeText(response, 200, content, "text/markdown; charset=utf-8", corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Todo toggle
+// ---------------------------------------------------------------------------
+
+const DECK_TODO_TOGGLE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/toggle$/;
+
+export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TODO_TOGGLE_PATTERN);
+  if (!match) return false;
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const { itemIndex, done } = body.payload as { itemIndex: unknown; done: unknown };
+  if (typeof itemIndex !== "number" || typeof done !== "boolean") {
+    writeJson(response, 400, { error: "itemIndex (number) and done (boolean) are required" }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const result = toggleTodoItem(workspaceCwd, tentacleId, itemIndex, done);
+  if (!result) {
+    writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, result, corsOrigin);
   return true;
 };
 

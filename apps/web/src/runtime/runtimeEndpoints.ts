@@ -275,6 +275,15 @@ export const buildDeckVaultFileUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildDeckTodoToggleUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/toggle`;
+  if (!runtimeBaseUrl) return path;
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildChannelMessagesUrl = (
   terminalId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

@@ -6,6 +6,7 @@ import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckTentacleUrl,
   buildDeckTentaclesUrl,
+  buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
@@ -107,7 +108,15 @@ const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
-const TodoList = ({ items }: { items: { text: string; done: boolean }[] }) => {
+const TodoList = ({
+  items,
+  tentacleId,
+  onToggle,
+}: {
+  items: { text: string; done: boolean }[];
+  tentacleId: string;
+  onToggle?: ((tentacleId: string, itemIndex: number, done: boolean) => void) | undefined;
+}) => {
   let lastDoneIndex = -1;
   for (let idx = items.length - 1; idx >= 0; idx--) {
     if (items[idx]?.done) {
@@ -129,7 +138,12 @@ const TodoList = ({ items }: { items: { text: string; done: boolean }[] }) => {
           ref={i === lastDoneIndex ? scrollRef : undefined}
           className={`deck-pod-todo-item${item.done ? " deck-pod-todo-item--done" : ""}`}
         >
-          <input type="checkbox" checked={item.done} readOnly className="deck-pod-todo-checkbox" />
+          <input
+            type="checkbox"
+            checked={item.done}
+            className="deck-pod-todo-checkbox"
+            onChange={() => onToggle?.(tentacleId, i, !item.done)}
+          />
           <span className="deck-pod-todo-text">{item.text}</span>
         </li>
       ))}
@@ -147,6 +161,7 @@ type TentaclePodProps = {
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
+  onTodoToggle?: (tentacleId: string, itemIndex: number, done: boolean) => void;
 };
 
 const TentaclePod = ({
@@ -159,6 +174,7 @@ const TentaclePod = ({
   onClose,
   onDelete,
   isDeleting,
+  onTodoToggle,
 }: TentaclePodProps) => {
   const progressPct =
     tentacle.todoTotal > 0 ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100) : 0;
@@ -262,7 +278,13 @@ const TentaclePod = ({
             </div>
           )}
 
-          {tentacle.todoItems.length > 0 && <TodoList items={tentacle.todoItems} />}
+          {tentacle.todoItems.length > 0 && (
+            <TodoList
+              items={tentacle.todoItems}
+              tentacleId={tentacle.tentacleId}
+              onToggle={onTodoToggle}
+            />
+          )}
 
           {tentacle.vaultFiles.length > 0 && (
             <div className="deck-pod-vault">
@@ -843,6 +865,23 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
     [fetchTentacles],
   );
 
+  const handleTodoToggle = useCallback(
+    async (tentacleId: string, itemIndex: number, done: boolean) => {
+      try {
+        const response = await fetch(buildDeckTodoToggleUrl(tentacleId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemIndex, done }),
+        });
+        if (!response.ok) return;
+        await fetchTentacles();
+      } catch {
+        // silently ignore
+      }
+    },
+    [fetchTentacles],
+  );
+
   const focusedTentacle =
     focus?.type === "vault" || focus?.type === "vault-browser"
       ? tentacles.find((t) => t.tentacleId === focus.tentacleId)
@@ -964,6 +1003,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
                 onClose={handleClose}
                 onDelete={() => handleDeleteTentacle(t.tentacleId)}
                 isDeleting={deletingTentacleId === t.tentacleId}
+                onTodoToggle={handleTodoToggle}
               />
             </div>
           );

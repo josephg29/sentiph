@@ -267,6 +267,57 @@ export const readDeckVaultFile = (
   }
 };
 
+/**
+ * Toggle a todo checkbox in a tentacle's todo.md by item index.
+ */
+export const toggleTodoItem = (
+  workspaceCwd: string,
+  tentacleId: string,
+  itemIndex: number,
+  done: boolean,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+
+  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
+  if (!existsSync(filePath)) return null;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+
+  const lines = content.split("\n");
+  let todoIndex = 0;
+  let toggled = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = (lines[i] as string).trim();
+    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
+      if (todoIndex === itemIndex) {
+        lines[i] = done
+          ? (lines[i] as string).replace(/- \[ \]/, "- [x]")
+          : (lines[i] as string).replace(/- \[[xX]\]/, "- [ ]");
+        toggled = true;
+        break;
+      }
+      todoIndex++;
+    }
+  }
+
+  if (!toggled) return null;
+
+  const updated = lines.join("\n");
+  try {
+    writeFileSync(filePath, updated, "utf-8");
+  } catch {
+    return null;
+  }
+
+  return parseTodoProgress(updated);
+};
+
 // ─── Create a new tentacle ──────────────────────────────────────────────────
 
 export type CreateDeckTentacleInput = {
