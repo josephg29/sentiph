@@ -128,6 +128,7 @@ export const OctopusNode = ({
   onPointerDown,
   onClick,
 }: OctopusNodeProps) => {
+  const showFocus = isSelected;
   const isOctoboss = node.type === "octoboss";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
   const visuals = useMemo(
@@ -145,7 +146,7 @@ export const OctopusNode = ({
 
   return (
     <g
-      className={`canvas-node canvas-node--tentacle${isSelected ? " canvas-node--selected" : ""}`}
+      className={`canvas-node canvas-node--tentacle${showFocus ? " canvas-node--selected" : ""}`}
       data-node-id={node.id}
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={(e) => {
@@ -175,9 +176,9 @@ export const OctopusNode = ({
         />
       ))}
 
-      {/* Selection ring */}
-      {isSelected && (
-        <circle r={glyphH / 2 + 4} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.5} />
+      {/* Focused glow — same style as session nodes */}
+      {showFocus && (
+        <circle className="canvas-node-focus-glow" r={node.radius - 4} fill="#ffffff" />
       )}
 
       {/* Octopus glyph via foreignObject */}

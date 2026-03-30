@@ -176,15 +176,12 @@ export const CanvasTentaclePanel = ({
                 expression={visuals.expression}
                 accessory={visuals.accessory}
                 {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-                scale={4}
+                scale={6}
               />
             </div>
           )}
           <div className="detail-identity-info">
-            <div className="detail-row">
-              <span className="detail-label">Name</span>
-              <span className="detail-value">{tentacle?.displayName ?? node.label}</span>
-            </div>
+            <div className="detail-name">{tentacle?.displayName ?? node.label}</div>
             <div className="detail-row">
               <span className="detail-label">ID</span>
               <span className="detail-value detail-value--mono">{node.tentacleId}</span>
