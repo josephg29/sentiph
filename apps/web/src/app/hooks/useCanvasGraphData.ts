@@ -60,7 +60,7 @@ const buildTentacleNodeId = (tentacleId: string) => `t:${tentacleId}`;
 const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
-type DeckTentacleMinimal = Pick<DeckTentacleSummary, "tentacleId" | "displayName" | "color">;
+type DeckTentacleMinimal = Pick<DeckTentacleSummary, "tentacleId" | "displayName" | "color" | "octopus">;
 
 export const useCanvasGraphData = ({
   columns,
@@ -90,6 +90,7 @@ export const useCanvasGraphData = ({
           tentacleId: t.tentacleId,
           displayName: t.displayName ?? t.tentacleId,
           color: t.color ?? null,
+          octopus: (t as Record<string, unknown>).octopus as DeckTentacleSummary["octopus"] ?? { animation: null, expression: null, accessory: null, hairColor: null },
         }));
       setDeckTentacles(items);
     } catch {
@@ -186,6 +187,7 @@ export const useCanvasGraphData = ({
       label,
       color,
       ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
+      ...(deck?.octopus ? { octopus: deck.octopus } : {}),
     };
     nodes.push(node);
 

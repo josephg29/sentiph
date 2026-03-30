@@ -1,4 +1,4 @@
-import type { AgentState, TentacleWorkspaceMode } from "@octogent/core";
+import type { AgentState, DeckOctopusAppearance, TentacleWorkspaceMode } from "@octogent/core";
 
 export type GraphNode = {
   id: string;
@@ -16,6 +16,7 @@ export type GraphNode = {
   agentState?: AgentState;
   workspaceMode?: TentacleWorkspaceMode;
   firstPromptPreview?: string;
+  octopus?: DeckOctopusAppearance;
 };
 
 export type GraphEdge = {

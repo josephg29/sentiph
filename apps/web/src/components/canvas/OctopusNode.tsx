@@ -52,14 +52,23 @@ type OctopusVisuals = {
   animation: OctopusAnimation;
   expression: OctopusExpression;
   accessory: OctopusAccessory;
+  hairColor?: string | undefined;
 };
 
-function deriveOctopusVisuals(tentacleId: string): OctopusVisuals {
-  const rng = seededRandom(hashString(tentacleId));
+function deriveOctopusVisuals(node: GraphNode): OctopusVisuals {
+  const rng = seededRandom(hashString(node.tentacleId));
+  const stored = node.octopus;
   return {
-    animation: ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation,
-    expression: EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression,
-    accessory: ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory,
+    animation:
+      (stored?.animation as OctopusAnimation | null) ??
+      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
+    expression:
+      (stored?.expression as OctopusExpression | null) ??
+      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
+    accessory:
+      (stored?.accessory as OctopusAccessory | null) ??
+      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
+    hairColor: stored?.hairColor ?? undefined,
   };
 }
 
@@ -125,8 +134,8 @@ export const OctopusNode = ({
     () =>
       isOctoboss
         ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
-        : deriveOctopusVisuals(node.tentacleId),
-    [node.tentacleId, isOctoboss],
+        : deriveOctopusVisuals(node),
+    [node.tentacleId, node.octopus, isOctoboss],
   );
   const glyphScale = isOctoboss ? 6 : GLYPH_SCALE;
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
@@ -194,6 +203,7 @@ export const OctopusNode = ({
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
+            {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
             scale={glyphScale}
           />
         </div>
