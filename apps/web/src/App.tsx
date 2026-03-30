@@ -334,6 +334,14 @@ export const App = () => {
     });
   }, []);
 
+  const handleTerminalRenamed = useCallback((terminalId: string, tentacleName: string) => {
+    setTerminals((current) =>
+      current.map((t) =>
+        t.terminalId === terminalId ? { ...t, tentacleName, label: tentacleName } : t,
+      ),
+    );
+  }, []);
+
   return (
     <div className="page console-shell">
       {isRuntimeStatusStripVisible && (
@@ -481,6 +489,19 @@ export const App = () => {
                 void createTerminal("shared", undefined, tentacleId);
                 return undefined;
               },
+              onCreateTerminal: () => {
+                void createTerminal("shared", undefined, OCTOBOSS_ID);
+              },
+              onCreateTentacle: async () => {
+                const response = await fetch("/api/deck/tentacles", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: "", description: "" }),
+                });
+                if (!response.ok) return;
+                const nextColumns = await readColumns();
+                setTerminals(nextColumns);
+              },
               onSpawnSwarm: async (tentacleId) => {
                 await fetch(`/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`, {
                   method: "POST",
@@ -522,6 +543,7 @@ export const App = () => {
               onConfirmDelete: () => {
                 void confirmDeleteTerminal();
               },
+              onTerminalRenamed: handleTerminalRenamed,
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,
@@ -594,6 +616,7 @@ export const App = () => {
               onTerminalNameDraftChange: setTerminalNameDraft,
               onSelectTerminal: setSelectedTerminalId,
               onTerminalStateChange: handleTerminalStateChange,
+              onTerminalRenamed: handleTerminalRenamed,
               selectedTerminalId,
               terminalNameDraft: terminalNameDraft,
               terminalNameInputRef,

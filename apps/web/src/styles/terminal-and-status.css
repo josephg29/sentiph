@@ -11,6 +11,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
   font-family: var(--font-main);
   font-weight: 700;
   font-size: 0.75rem;
@@ -75,6 +77,10 @@
   color: inherit;
   letter-spacing: 0.08em;
   text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .terminal-prompt-banner {
@@ -176,6 +182,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.18rem;
+  flex-shrink: 0;
 }
 
 .terminal-add {

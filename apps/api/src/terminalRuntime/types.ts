@@ -40,10 +40,16 @@ export type TerminalHistoryMessage = {
   data: string;
 };
 
+export type TerminalRenameMessage = {
+  type: "rename";
+  tentacleName: string;
+};
+
 export type TerminalServerMessage =
   | TerminalStateMessage
   | TerminalOutputMessage
-  | TerminalHistoryMessage;
+  | TerminalHistoryMessage
+  | TerminalRenameMessage;
 
 export type DirectSessionListener = (message: TerminalServerMessage) => void;
 
@@ -98,6 +104,7 @@ export type PersistedTerminal = {
   workspaceMode: TentacleWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
   initialPrompt?: string;
+  lastActiveAt?: string;
 };
 
 export type GitClientPullRequestSnapshot = Omit<

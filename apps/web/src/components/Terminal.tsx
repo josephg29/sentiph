@@ -13,6 +13,7 @@ type TerminalProps = {
   initialPrompt?: string;
   onSelectTerminal?: (terminalId: string) => void;
   onAgentRuntimeStateChange?: (state: AgentRuntimeState) => void;
+  onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
 };
 
 type TerminalStateMessage = {
@@ -30,7 +31,16 @@ type TerminalHistoryMessage = {
   data: string;
 };
 
-type TerminalServerMessage = TerminalStateMessage | TerminalOutputMessage | TerminalHistoryMessage;
+type TerminalRenameMessage = {
+  type: "rename";
+  tentacleName: string;
+};
+
+type TerminalServerMessage =
+  | TerminalStateMessage
+  | TerminalOutputMessage
+  | TerminalHistoryMessage
+  | TerminalRenameMessage;
 const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
 const PromptInjectIcon = () => (
@@ -52,13 +62,15 @@ export const Terminal = ({
   initialPrompt,
   onSelectTerminal,
   onAgentRuntimeStateChange,
+  onTerminalRenamed,
 }: TerminalProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
   const [agentState, setAgentRuntimeState] = useState<AgentRuntimeState>("idle");
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
-  const terminalTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
+  const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
+  const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
 
   useEffect(() => {
     onAgentRuntimeStateChange?.(agentState);
@@ -147,6 +159,11 @@ export const Terminal = ({
 
           if (payload.type === "state" && isAgentRuntimeState(payload.state)) {
             setAgentRuntimeState(payload.state);
+            return;
+          }
+
+          if (payload.type === "rename" && typeof payload.tentacleName === "string") {
+            onTerminalRenamed?.(terminalId, payload.tentacleName);
             return;
           }
         } catch {

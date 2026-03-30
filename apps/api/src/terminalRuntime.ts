@@ -9,6 +9,7 @@ import { WebSocketServer } from "ws";
 import { parseClaudeTranscript } from "./terminalRuntime/claudeTranscript";
 import {
   DEFAULT_AGENT_PROVIDER,
+  DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
   TERMINAL_ID_PREFIX,
   TERMINAL_REGISTRY_RELATIVE_PATH,
   TERMINAL_TRANSCRIPT_RELATIVE_PATH,
@@ -234,6 +235,13 @@ export const createTerminalRuntime = ({
     throw new Error("Unable to allocate terminal id.");
   };
 
+  const isTerminalRecentlyActive = (terminal: PersistedTerminal): boolean => {
+    if (!terminal.lastActiveAt) return false;
+    const thresholdMs =
+      uiState.terminalInactivityThresholdMs ?? DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS;
+    return Date.now() - new Date(terminal.lastActiveAt).getTime() < thresholdMs;
+  };
+
   const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => ({
     terminalId: terminal.terminalId,
     label: terminal.terminalId,
@@ -242,6 +250,7 @@ export const createTerminalRuntime = ({
     tentacleName: terminal.tentacleName,
     workspaceMode: terminal.workspaceMode,
     createdAt: terminal.createdAt,
+    hasUserPrompt: isTerminalRecentlyActive(terminal),
   });
 
   const createTerminal = ({
@@ -915,6 +924,9 @@ export const createTerminalRuntime = ({
           return { ok: true };
         }
 
+        // Update last-active timestamp (determines active/inactive on the canvas).
+        terminal.lastActiveAt = new Date().toISOString();
+
         // Auto-name the terminal from the first prompt when it still has its default name.
         if (terminal.tentacleName === terminal.terminalId) {
           const prompt =
@@ -922,11 +934,16 @@ export const createTerminalRuntime = ({
           if (prompt.length > 0) {
             const derived = deriveTerminalNameFromPrompt(prompt);
             terminal.tentacleName = derived;
-            persistRegistry();
             console.log(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
+
+            const session = sessions.get(terminal.terminalId);
+            if (session) {
+              broadcastMessage(session, { type: "rename", tentacleName: derived });
+            }
           }
         }
 
+        persistRegistry();
         return { ok: true };
       }
 

@@ -54,6 +54,7 @@ type UseCanvasGraphDataOptions = {
 type UseCanvasGraphDataResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  refresh: () => void;
 };
 
 const buildTentacleNodeId = (tentacleId: string) => `t:${tentacleId}`;
@@ -134,6 +135,11 @@ export const useCanvasGraphData = ({
     void fetchDeckTentacles();
     void fetchInactiveSessions();
   }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
+
+  const refresh = useCallback(() => {
+    void fetchDeckTentacles();
+    void fetchInactiveSessions();
+  }, [fetchDeckTentacles, fetchInactiveSessions]);
 
   const activeTerminalIds = new Set(columns.map((terminal) => terminal.terminalId));
 
@@ -220,6 +226,7 @@ export const useCanvasGraphData = ({
           color,
           sessionId: activeTerminal.terminalId,
           agentState: activeTerminal.state,
+          hasUserPrompt: activeTerminal.hasUserPrompt ?? false,
         };
         nodes.push(sessionNode);
         edges.push({ source: tentacleNodeId, target: sessionNodeId });
@@ -271,6 +278,7 @@ export const useCanvasGraphData = ({
       color: octobossColor,
       sessionId: terminal.terminalId,
       agentState: terminal.state,
+      hasUserPrompt: terminal.hasUserPrompt ?? false,
     };
     nodes.push(sessionNode);
     edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });
@@ -321,5 +329,5 @@ export const useCanvasGraphData = ({
   }
   prevNodesRef.current = nextMap;
 
-  return { nodes, edges };
+  return { nodes, edges, refresh };
 };

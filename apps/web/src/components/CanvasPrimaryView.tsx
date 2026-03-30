@@ -36,6 +36,8 @@ type CanvasPrimaryViewProps = {
   onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
+  onCreateTerminal?: () => Promise<string | undefined> | void;
+  onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string) => Promise<void>;
   onOctobossAction?: (action: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
@@ -48,6 +50,7 @@ type CanvasPrimaryViewProps = {
   isDeletingTerminalId?: string | null;
   onCancelDelete?: () => void;
   onConfirmDelete?: () => void;
+  onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -64,6 +67,8 @@ export const CanvasPrimaryView = ({
   onCanvasOpenTentacleIdsChange,
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
+  onCreateTerminal,
+  onCreateTentacle,
   onSpawnSwarm,
   onOctobossAction,
   onNavigateToConversation,
@@ -72,6 +77,7 @@ export const CanvasPrimaryView = ({
   isDeletingTerminalId,
   onCancelDelete,
   onConfirmDelete,
+  onTerminalRenamed,
 }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
@@ -80,6 +86,7 @@ export const CanvasPrimaryView = ({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
+  const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
   const hasHydratedTerminals = useRef(false);
   const hasHydratedTentacles = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -88,7 +95,7 @@ export const CanvasPrimaryView = ({
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
 
-  const { nodes, edges } = useCanvasGraphData({ columns, enabled: true });
+  const { nodes, edges, refresh: refreshGraphData } = useCanvasGraphData({ columns, enabled: true });
 
   const {
     transform,
@@ -99,6 +106,7 @@ export const CanvasPrimaryView = ({
     handlePointerMove: handleCanvasPointerMove,
     handlePointerUp: handleCanvasPointerUp,
     screenToGraph,
+    fitAll,
   } = useCanvasTransform();
 
   const { simulatedNodes, pinNode, unpinNode, moveNode, reheat } = useForceSimulation({
@@ -473,7 +481,20 @@ export const CanvasPrimaryView = ({
   const tentacleNodes = simulatedNodes.filter(
     (n) => n.type === "tentacle" || n.type === "octoboss",
   );
-  const sessionNodes = simulatedNodes.filter((n) => n.type !== "tentacle" && n.type !== "octoboss");
+  const sessionNodes = simulatedNodes.filter((n) => {
+    if (n.type === "tentacle" || n.type === "octoboss") return false;
+    if (hideIdleTerminals && n.type === "inactive-session") return false;
+    if (hideIdleTerminals && n.type === "active-session" && n.agentState === "idle") return false;
+    return true;
+  });
+
+  const handleFitView = useCallback(() => {
+    fitAll(simulatedNodes);
+  }, [fitAll, simulatedNodes]);
+
+  const handleRefresh = useCallback(() => {
+    refreshGraphData();
+  }, [refreshGraphData]);
 
   const hasPanels = openTerminals.size > 0 || openTentacles.size > 0;
 
@@ -497,7 +518,13 @@ export const CanvasPrimaryView = ({
               const connected = edges
                 .filter((e) => e.source === node.id)
                 .map((e) => nodesById.get(e.target))
-                .filter((n): n is GraphNode => n !== undefined);
+                .filter((n): n is GraphNode => {
+                  if (!n) return false;
+                  if (hideIdleTerminals && n.type === "inactive-session") return false;
+                  if (hideIdleTerminals && n.type === "active-session" && n.agentState === "idle")
+                    return false;
+                  return true;
+                });
 
               const selectedColor = selectedNodeId ? (nodesById.get(selectedNodeId)?.color ?? null) : null;
 
@@ -527,6 +554,47 @@ export const CanvasPrimaryView = ({
             ))}
           </g>
         </svg>
+
+        {/* Canvas toolbar — top-left action buttons */}
+        <div className="canvas-toolbar" role="toolbar" aria-label="Canvas actions">
+          <button
+            type="button"
+            className="canvas-toolbar-btn"
+            onClick={() => {
+              const result = onCreateTerminal?.();
+              if (result && typeof result.then === "function") {
+                void result.then((agentId) => {
+                  if (agentId) setPendingOpenAgentId(agentId);
+                });
+              }
+            }}
+          >
+            <span className="canvas-toolbar-icon">&gt;_</span>
+            <span className="canvas-toolbar-label">Terminal</span>
+          </button>
+          <button type="button" className="canvas-toolbar-btn" onClick={onCreateTentacle}>
+            <span className="canvas-toolbar-icon">&#x2B21;</span>
+            <span className="canvas-toolbar-label">Tentacle</span>
+          </button>
+          <div className="canvas-toolbar-separator" />
+          <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
+            <span className="canvas-toolbar-icon">&#x2922;</span>
+            <span className="canvas-toolbar-label">Fit</span>
+          </button>
+          <button type="button" className="canvas-toolbar-btn" onClick={handleRefresh}>
+            <span className="canvas-toolbar-icon">&#x21BB;</span>
+            <span className="canvas-toolbar-label">Refresh</span>
+          </button>
+          <div className="canvas-toolbar-separator" />
+          <button
+            type="button"
+            className={`canvas-toolbar-btn${hideIdleTerminals ? " canvas-toolbar-btn--active" : ""}`}
+            onClick={() => setHideIdleTerminals((prev) => !prev)}
+          >
+            <span className="canvas-toolbar-icon">&#x23F8;</span>
+            <span className="canvas-toolbar-label">{hideIdleTerminals ? "Show Idle" : "Hide Idle"}</span>
+          </button>
+        </div>
       </div>
 
       {hasPanels && (
@@ -571,6 +639,7 @@ export const CanvasPrimaryView = ({
                 isFocused={selectedNodeId === nodeId}
                 onClose={() => handleCloseTerminal(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
+                onTerminalRenamed={onTerminalRenamed}
               />
             ))}
           </div>

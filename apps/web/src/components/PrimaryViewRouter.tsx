@@ -52,6 +52,7 @@ type PrimaryViewRouterProps = {
     onTerminalNameDraftChange: (name: string) => void;
     onSelectTerminal: (terminalId: string) => void;
     onTerminalStateChange: (terminalId: string, state: AgentRuntimeState) => void;
+    onTerminalRenamed: (terminalId: string, tentacleName: string) => void;
     selectedTerminalId: string | null;
     terminalNameDraft: string;
     terminalNameInputRef: RefObject<HTMLInputElement | null>;

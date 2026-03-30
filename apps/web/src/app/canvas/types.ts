@@ -14,6 +14,7 @@ export type GraphNode = {
   color: string;
   sessionId?: string;
   agentState?: AgentState;
+  hasUserPrompt?: boolean;
   workspaceMode?: TentacleWorkspaceMode;
   firstPromptPreview?: string;
   octopus?: DeckOctopusAppearance;

@@ -536,6 +536,20 @@ export const parseUiStatePatch = (
     patch.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;
   }
 
+  if (record.terminalInactivityThresholdMs !== undefined) {
+    if (
+      typeof record.terminalInactivityThresholdMs !== "number" ||
+      !Number.isFinite(record.terminalInactivityThresholdMs) ||
+      record.terminalInactivityThresholdMs <= 0
+    ) {
+      return {
+        patch: null,
+        error: "terminalInactivityThresholdMs must be a positive number.",
+      };
+    }
+    patch.terminalInactivityThresholdMs = record.terminalInactivityThresholdMs;
+  }
+
   return { patch, error: null };
 };
 

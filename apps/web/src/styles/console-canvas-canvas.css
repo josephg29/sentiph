@@ -112,6 +112,85 @@
   r: attr(r + 2);
 }
 
+/* ─── Canvas toolbar (top-left action buttons) ───────────────────────────── */
+
+.canvas-toolbar {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid #2b2f36;
+  border-radius: 8px;
+  background: #0d1017ee;
+  backdrop-filter: blur(6px);
+}
+
+.canvas-toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: #9ca3af;
+  font-family: "PP Neue Machina Plain", sans-serif;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.canvas-toolbar-btn:hover {
+  background: #2b3040;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.canvas-toolbar-btn:active {
+  background: #3b4252;
+}
+
+.canvas-toolbar-btn--active {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.canvas-toolbar-btn--active:hover {
+  background: color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  color: var(--accent-primary);
+}
+
+.canvas-toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.canvas-toolbar-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.canvas-toolbar-separator {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: #2b2f36;
+}
+
 /* ─── Force tuner panel (top-left) ─────────────────────────────────────────── */
 
 .canvas-tuner-toggle {
@@ -314,7 +393,7 @@
 .canvas-terminal-column-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.45rem;
   padding: 0.3rem 0.45rem;
   background: linear-gradient(
     180deg,
@@ -327,6 +406,7 @@
 }
 
 .canvas-terminal-column-heading {
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
 }
@@ -336,6 +416,9 @@
   align-items: center;
   gap: 6px;
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   font-family: var(--font-main);
   font-size: 0.75rem;
   font-weight: 700;

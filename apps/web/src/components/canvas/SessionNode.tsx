@@ -34,7 +34,7 @@ type SessionNodeProps = {
 };
 
 export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: SessionNodeProps) => {
-  const isActive = node.type === "active-session";
+  const isActive = node.type === "active-session" && node.hasUserPrompt !== false;
   const isLive = isActive && node.agentState === "live";
   const color = isActive ? node.color : "#9ca3af";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);

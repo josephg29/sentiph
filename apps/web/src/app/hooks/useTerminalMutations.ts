@@ -160,8 +160,10 @@ export const useTerminalMutations = ({
             : createdTerminalId);
         setMinimizedTerminalIds((current) => current.filter((id) => id !== createdTerminalId));
         beginTerminalNameEdit(createdTerminalId, createdTerminalName);
+        return createdTerminalId;
       } catch {
         setLoadError("Unable to create a new terminal.");
+        return undefined;
       } finally {
         setIsCreatingTerminal(false);
       }

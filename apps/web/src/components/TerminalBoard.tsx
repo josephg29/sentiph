@@ -49,6 +49,7 @@ type TerminalBoardProps = {
   ) => void;
   onOpenTerminalGitActions: (terminalId: string) => void;
   onTerminalStateChange: (terminalId: string, state: AgentRuntimeState) => void;
+  onTerminalRenamed: (terminalId: string, tentacleName: string) => void;
   onTerminalDividerKeyDown: (
     leftTerminalId: string,
     rightTerminalId: string,
@@ -161,6 +162,7 @@ export const TerminalBoard = ({
   onRequestDeleteTerminal,
   onOpenTerminalGitActions,
   onTerminalStateChange,
+  onTerminalRenamed,
   onTerminalDividerKeyDown,
   onTerminalDividerPointerDown,
 }: TerminalBoardProps) => {
@@ -358,6 +360,7 @@ export const TerminalBoard = ({
                   onAgentRuntimeStateChange={(state) => {
                     onTerminalStateChange(terminal.terminalId, state);
                   }}
+                  onTerminalRenamed={onTerminalRenamed}
                 />
               </div>
             </section>

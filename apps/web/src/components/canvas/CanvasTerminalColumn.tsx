@@ -11,6 +11,7 @@ type CanvasTerminalColumnProps = {
   isFocused?: boolean;
   onClose: () => void;
   onFocus?: () => void;
+  onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
 };
 
 export const CanvasTerminalColumn = ({
@@ -19,11 +20,13 @@ export const CanvasTerminalColumn = ({
   isFocused,
   onClose,
   onFocus,
+  onTerminalRenamed,
 }: CanvasTerminalColumnProps) => {
   const [agentState, setAgentState] = useState<AgentRuntimeState>("idle");
 
-  const terminal = terminals.find((t) => t.tentacleId === node.tentacleId);
-  const tentacleName = terminal?.tentacleName ?? node.tentacleId;
+  const terminal = terminals.find((t) => t.terminalId === node.sessionId);
+  const rawName = terminal?.tentacleName ?? node.tentacleId;
+  const tentacleName = rawName.length > 24 ? `${rawName.slice(0, 24)}...` : rawName;
   const workspaceMode = terminal?.workspaceMode ?? "shared";
 
   const handleFocus = useCallback(() => {
@@ -67,6 +70,7 @@ export const CanvasTerminalColumn = ({
           terminalId={node.sessionId}
           terminalLabel={node.label}
           onAgentRuntimeStateChange={setAgentState}
+          {...(onTerminalRenamed ? { onTerminalRenamed } : {})}
         />
       </div>
     </section>
