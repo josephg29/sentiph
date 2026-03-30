@@ -484,7 +484,12 @@ export const CanvasPrimaryView = ({
   const sessionNodes = simulatedNodes.filter((n) => {
     if (n.type === "tentacle" || n.type === "octoboss") return false;
     if (hideIdleTerminals && n.type === "inactive-session") return false;
-    if (hideIdleTerminals && n.type === "active-session" && n.agentState === "idle") return false;
+    if (
+      hideIdleTerminals &&
+      n.type === "active-session" &&
+      (n.agentState === "idle" || n.hasUserPrompt === false)
+    )
+      return false;
     return true;
   });
 
@@ -521,7 +526,11 @@ export const CanvasPrimaryView = ({
                 .filter((n): n is GraphNode => {
                   if (!n) return false;
                   if (hideIdleTerminals && n.type === "inactive-session") return false;
-                  if (hideIdleTerminals && n.type === "active-session" && n.agentState === "idle")
+                  if (
+                    hideIdleTerminals &&
+                    n.type === "active-session" &&
+                    (n.agentState === "idle" || n.hasUserPrompt === false)
+                  )
                     return false;
                   return true;
                 });

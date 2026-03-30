@@ -486,11 +486,10 @@ export const App = () => {
               onCanvasOpenTentacleIdsChange: setCanvasOpenTentacleIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (tentacleId) => {
-                void createTerminal("shared", undefined, tentacleId);
-                return undefined;
+                return await createTerminal("shared", undefined, tentacleId);
               },
-              onCreateTerminal: () => {
-                void createTerminal("shared", undefined, OCTOBOSS_ID);
+              onCreateTerminal: async () => {
+                return await createTerminal("shared", undefined, OCTOBOSS_ID);
               },
               onCreateTentacle: async () => {
                 const response = await fetch("/api/deck/tentacles", {

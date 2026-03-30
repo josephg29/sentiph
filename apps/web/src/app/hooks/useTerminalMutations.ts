@@ -31,7 +31,7 @@ type UseTerminalMutationsResult = {
     workspaceMode: TerminalWorkspaceMode,
     agentProvider?: TerminalAgentProvider,
     tentacleId?: string,
-  ) => Promise<void>;
+  ) => Promise<string | undefined>;
   requestDeleteTerminal: (
     terminalId: string,
     terminalName: string,
@@ -149,7 +149,7 @@ export const useTerminalMutations = ({
         const createdTerminalId =
           typeof createdSnapshot.terminalId === "string" ? createdSnapshot.terminalId : null;
         if (!createdTerminalId) {
-          return;
+          return undefined;
         }
 
         const createdEntry = nextColumns.find((entry) => entry.terminalId === createdTerminalId);
