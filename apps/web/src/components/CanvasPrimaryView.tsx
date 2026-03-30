@@ -456,12 +456,16 @@ export const CanvasPrimaryView = ({
                 .map((e) => nodesById.get(e.target))
                 .filter((n): n is GraphNode => n !== undefined);
 
+              const selectedColor = selectedNodeId ? (nodesById.get(selectedNodeId)?.color ?? null) : null;
+
               return (
                 <OctopusNode
                   key={node.id}
                   node={node}
                   connectedNodes={connected}
                   isSelected={selectedNodeId === node.id}
+                  selectedNodeId={selectedNodeId}
+                  selectedNodeColor={selectedColor}
                   onPointerDown={handleNodePointerDown}
                   onClick={handleNodeClick}
                 />

@@ -79,6 +79,8 @@ type OctopusNodeProps = {
   node: GraphNode;
   connectedNodes: GraphNode[];
   isSelected: boolean;
+  selectedNodeId: string | null;
+  selectedNodeColor: string | null;
   onPointerDown: (e: React.PointerEvent, nodeId: string) => void;
   onClick: (nodeId: string) => void;
 };
@@ -126,6 +128,8 @@ export const OctopusNode = ({
   node,
   connectedNodes,
   isSelected,
+  selectedNodeId,
+  selectedNodeColor,
   onPointerDown,
   onClick,
 }: OctopusNodeProps) => {
@@ -143,7 +147,6 @@ export const OctopusNode = ({
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
   const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
   const color = node.color;
-  const edgeColor = "#C0C0C0";
 
   return (
     <g
@@ -164,30 +167,33 @@ export const OctopusNode = ({
       {/* Invisible hit area for pointer events */}
       <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
 
-      {/* Edges — light tint of parent color */}
-      {connectedNodes.map((target, i) => (
-        <path
-          key={target.id}
-          className="canvas-edge"
-          d={buildEdgePath(
-            0,
-            0,
-            target.x - node.x,
-            target.y - node.y,
-            target.radius,
-            i,
-            connectedNodes.length,
-          )}
-          fill="none"
-          stroke={edgeColor}
-          strokeWidth={1.5}
-          strokeOpacity={1}
-        />
-      ))}
+      {/* Edges — highlight when either endpoint is selected */}
+      {connectedNodes.map((target, i) => {
+        const active = isSelected || target.id === selectedNodeId;
+        return (
+          <path
+            key={target.id}
+            className="canvas-edge"
+            d={buildEdgePath(
+              0,
+              0,
+              target.x - node.x,
+              target.y - node.y,
+              target.radius,
+              i,
+              connectedNodes.length,
+            )}
+            fill="none"
+            stroke={active ? (selectedNodeColor ?? color) : "#C0C0C0"}
+            strokeWidth={active ? 2 : 1.5}
+            strokeOpacity={1}
+          />
+        );
+      })}
 
       {/* Focused glow — same style as session nodes */}
       {showFocus && (
-        <circle className="canvas-node-focus-glow" r={node.radius - 4} fill="#ffffff" />
+        <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />
       )}
 
       {/* Octopus glyph via foreignObject */}
