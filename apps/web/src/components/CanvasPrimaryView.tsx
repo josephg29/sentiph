@@ -78,6 +78,7 @@ export const CanvasPrimaryView = ({
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
   const hasHydratedTerminals = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const nodeClickedRef = useRef(false);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
@@ -217,6 +218,7 @@ export const CanvasPrimaryView = ({
       next.delete(nodeId);
       return next;
     });
+    setSelectedNodeId((prev) => (prev === nodeId ? null : prev));
   }, []);
 
   const handleCloseTerminal = useCallback((nodeId: string) => {
@@ -225,6 +227,7 @@ export const CanvasPrimaryView = ({
       next.delete(nodeId);
       return next;
     });
+    setSelectedNodeId((prev) => (prev === nodeId ? null : prev));
   }, []);
 
   // Divider drag handlers
@@ -285,6 +288,7 @@ export const CanvasPrimaryView = ({
         reheat();
 
         if (wasClick) {
+          nodeClickedRef.current = true;
           handleNodeClick(dragNodeId);
         }
 
@@ -298,6 +302,10 @@ export const CanvasPrimaryView = ({
   );
 
   const handleSvgClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (nodeClickedRef.current) {
+      nodeClickedRef.current = false;
+      return;
+    }
     if (e.target === e.currentTarget) {
       setSelectedNodeId(null);
     }
