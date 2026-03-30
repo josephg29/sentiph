@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { AgentRuntimeState } from "../../components/AgentStateBadge";
 import {
-  buildTerminalCompletionSoundDataUrl,
   type TerminalCompletionSoundId,
+  buildTerminalCompletionSoundDataUrl,
 } from "../notificationSounds";
 
 const createCompletionAudio = (soundId: TerminalCompletionSoundId): HTMLAudioElement | null => {

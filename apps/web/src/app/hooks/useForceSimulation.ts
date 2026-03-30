@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  type Simulation,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
   forceCollide,
   forceLink,
   forceManyBody,
   forceSimulation,
   forceX,
   forceY,
-  type Simulation,
-  type SimulationLinkDatum,
-  type SimulationNodeDatum,
 } from "d3-force";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphEdge, GraphNode } from "../canvas/types";
 
@@ -154,10 +154,7 @@ export const useForceSimulation = ({
         )
         .force("x", forceX<SimNode>(centerX).strength(p.positionStrength))
         .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
-        .force(
-          "collide",
-          forceCollide<SimNode>(p.collisionPadding),
-        );
+        .force("collide", forceCollide<SimNode>(p.collisionPadding));
     };
 
     if (simRef.current) {

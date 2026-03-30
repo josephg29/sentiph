@@ -77,9 +77,7 @@ export const UsageSandboxPrimaryView = () => {
             Clear
           </ActionButton>
         )}
-        <span className="usage-sandbox-endpoint">
-          GET {buildClaudeUsageUrl()}
-        </span>
+        <span className="usage-sandbox-endpoint">GET {buildClaudeUsageUrl()}</span>
       </div>
 
       {results.length === 0 ? (
@@ -95,16 +93,18 @@ export const UsageSandboxPrimaryView = () => {
                 <span className="usage-sandbox-entry-time">{r.timestamp}</span>
                 <span
                   className="usage-sandbox-entry-status"
-                  data-ok={r.httpStatus !== null && r.httpStatus >= 200 && r.httpStatus < 300 ? "true" : "false"}
+                  data-ok={
+                    r.httpStatus !== null && r.httpStatus >= 200 && r.httpStatus < 300
+                      ? "true"
+                      : "false"
+                  }
                 >
                   {r.httpStatus !== null ? `HTTP ${r.httpStatus}` : "NETWORK ERROR"}
                 </span>
                 <span className="usage-sandbox-entry-duration">{r.durationMs}ms</span>
               </div>
 
-              {r.error && (
-                <div className="usage-sandbox-entry-error">{r.error}</div>
-              )}
+              {r.error && <div className="usage-sandbox-entry-error">{r.error}</div>}
 
               {r.parsed && (
                 <div className="usage-sandbox-entry-fields">

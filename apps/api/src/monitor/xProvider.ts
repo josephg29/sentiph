@@ -3,8 +3,8 @@ import type {
   MonitorCredentialsSaveResult,
   MonitorPost,
   MonitorProviderAdapter,
-  MonitorSearchWindowDays,
   MonitorProviderValidationResult,
+  MonitorSearchWindowDays,
   MonitorUsageSnapshot,
   XMonitorCredentials,
 } from "./types";

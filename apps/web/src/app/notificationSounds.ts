@@ -1,13 +1,14 @@
-export const TERMINAL_COMPLETION_SOUND_IDS = [
-  "soft-chime",
-  "retro-beep",
-  "double-beep",
-  "bell",
-  "pop",
-  "silent",
-] as const;
+import {
+  TERMINAL_COMPLETION_SOUND_IDS,
+  type TerminalCompletionSoundId,
+  isTerminalCompletionSoundId,
+} from "@octogent/core";
 
-export type TerminalCompletionSoundId = (typeof TERMINAL_COMPLETION_SOUND_IDS)[number];
+export {
+  TERMINAL_COMPLETION_SOUND_IDS,
+  type TerminalCompletionSoundId,
+  isTerminalCompletionSoundId,
+};
 
 export const DEFAULT_TERMINAL_COMPLETION_SOUND: TerminalCompletionSoundId = "pop";
 
@@ -47,10 +48,6 @@ export const TERMINAL_COMPLETION_SOUND_OPTIONS: Array<{
     description: "No completion sound.",
   },
 ];
-
-export const isTerminalCompletionSoundId = (value: unknown): value is TerminalCompletionSoundId =>
-  typeof value === "string" &&
-  TERMINAL_COMPLETION_SOUND_IDS.includes(value as TerminalCompletionSoundId);
 
 type WaveformType = "sine" | "square";
 

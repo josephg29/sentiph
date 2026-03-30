@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { formatTimestamp } from "../app/formatTimestamp";
 import type { ConversationSessionDetail, ConversationSessionSummary } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 import { MarkdownContent } from "./ui/MarkdownContent";
@@ -16,25 +17,6 @@ type ConversationsPrimaryViewProps = {
   searchQuery: string;
   onDeleteSession: () => void;
   onExport: (format: "json" | "md") => void;
-};
-
-const formatTimestamp = (value: string | null) => {
-  if (!value) {
-    return "--";
-  }
-
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    return value;
-  }
-
-  return new Date(parsed).toLocaleString("en-US", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 };
 
 export const ConversationsPrimaryView = ({

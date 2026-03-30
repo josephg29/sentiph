@@ -10,7 +10,7 @@ import type {
   TentacleWorkspaceMode,
   TerminalRegistryDocument,
 } from "./types";
-import { isTerminalCompletionSound } from "./types";
+import { isTerminalCompletionSoundId } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -64,7 +64,7 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
 
   // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
   const completionSoundValue = value.terminalCompletionSound ?? value.tentacleCompletionSound;
-  if (isTerminalCompletionSound(completionSoundValue)) {
+  if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 

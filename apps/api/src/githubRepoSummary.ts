@@ -1,6 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import type {
+  GitHubCommitPoint,
+  GitHubRecentCommit,
+  GitHubRepoSummarySnapshot,
+} from "@octogent/core";
+
 const execFileAsync = promisify(execFile);
 const COMMIT_SERIES_DAYS = 30;
 const RECENT_COMMIT_LIMIT = 50;
@@ -21,38 +27,9 @@ type RunCommand = (
   },
 ) => Promise<CommandResult>;
 
-type GitHubCommitPoint = {
-  date: string;
-  count: number;
-};
+export type { GitHubRepoSummarySnapshot };
 
-type GitHubRecentCommit = {
-  hash: string;
-  shortHash: string;
-  subject: string;
-  authorName: string;
-  authorEmail: string;
-  authoredAt: string;
-  body: string;
-  filesChanged: number;
-  insertions: number;
-  deletions: number;
-};
-
-type GitHubSummaryStatus = "ok" | "unavailable" | "error";
-
-export type GitHubRepoSummarySnapshot = {
-  status: GitHubSummaryStatus;
-  fetchedAt: string;
-  source: "gh-cli" | "none";
-  message?: string;
-  repo?: string | null;
-  stargazerCount?: number | null;
-  openIssueCount?: number | null;
-  openPullRequestCount?: number | null;
-  commitsPerDay?: GitHubCommitPoint[];
-  recentCommits?: GitHubRecentCommit[];
-};
+type GitHubSummaryStatus = GitHubRepoSummarySnapshot["status"];
 
 export type GitHubRepoSummaryDependencies = {
   cwd?: string;

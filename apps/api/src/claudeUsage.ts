@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { type ClaudeUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
+
 const CLAUDE_CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
@@ -14,23 +16,12 @@ const CLI_PTY_ENTER_INTERVAL_MS = 800;
 const CLI_PTY_COLS = 160;
 const CLI_PTY_ROWS = 50;
 
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
-
-const asString = (value: unknown): string | null =>
-  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-
-const asNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
+/** Like core's `asString`, but trims whitespace and rejects empty strings. */
+const asTrimmedString = (value: unknown): string | null => {
+  const raw = asString(value);
+  if (raw === null) return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
 };
 
 const toResetIso = (value: unknown): string | null => {
@@ -48,25 +39,11 @@ const toResetIso = (value: unknown): string | null => {
   return new Date(milliseconds).toISOString();
 };
 
-type ClaudeUsageStatus = "ok" | "unavailable" | "error";
+export type { ClaudeUsageSnapshot };
 
-export type ClaudeUsageSource = "cli-pty" | "oauth-api" | "none";
+type ClaudeUsageStatus = ClaudeUsageSnapshot["status"];
 
-export type ClaudeUsageSnapshot = {
-  status: ClaudeUsageStatus;
-  fetchedAt: string;
-  source: ClaudeUsageSource;
-  message?: string;
-  planType?: string | null;
-  primaryUsedPercent?: number | null;
-  primaryResetAt?: string | null;
-  secondaryUsedPercent?: number | null;
-  secondaryResetAt?: string | null;
-  sonnetUsedPercent?: number | null;
-  sonnetResetAt?: string | null;
-  extraUsageCostUsed?: number | null;
-  extraUsageCostLimit?: number | null;
-};
+export type ClaudeUsageSource = ClaudeUsageSnapshot["source"];
 
 type ClaudeOauthCredentials = {
   accessToken: string;
@@ -94,10 +71,12 @@ const unavailableSnapshot = (
 
 const normalizeScopes = (value: unknown): string[] => {
   if (Array.isArray(value)) {
-    return value.map((item) => asString(item)).filter((item): item is string => item !== null);
+    return value
+      .map((item) => asTrimmedString(item))
+      .filter((item): item is string => item !== null);
   }
 
-  const scopeString = asString(value);
+  const scopeString = asTrimmedString(value);
   if (!scopeString) {
     return [];
   }
@@ -119,13 +98,13 @@ const readClaudeOauthCredentials = (credentialsJson: unknown): ClaudeOauthCreden
     return null;
   }
 
-  const accessToken = asString(oauth.accessToken ?? oauth.access_token);
+  const accessToken = asTrimmedString(oauth.accessToken ?? oauth.access_token);
   if (!accessToken) {
     return null;
   }
 
   const scopes = normalizeScopes(oauth.scopes ?? oauth.scope);
-  const rateLimitTier = asString(oauth.rateLimitTier ?? oauth.rate_limit_tier);
+  const rateLimitTier = asTrimmedString(oauth.rateLimitTier ?? oauth.rate_limit_tier);
 
   return {
     accessToken,
@@ -153,13 +132,13 @@ const readErrorMessage = (value: unknown): string | null => {
     return null;
   }
 
-  const directMessage = asString(payload.message);
+  const directMessage = asTrimmedString(payload.message);
   if (directMessage) {
     return directMessage;
   }
 
   const errorPayload = asRecord(payload.error);
-  return asString(errorPayload?.message);
+  return asTrimmedString(errorPayload?.message);
 };
 
 const readUsageErrorMessage = async (response: Response): Promise<string | null> => {
@@ -168,7 +147,7 @@ const readUsageErrorMessage = async (response: Response): Promise<string | null>
     if (contentType.includes("application/json")) {
       return readErrorMessage((await response.json()) as unknown);
     }
-    return asString(await response.text());
+    return asTrimmedString(await response.text());
   } catch {
     return null;
   }
@@ -222,7 +201,8 @@ const mapUsageSnapshot = (
     fetchedAt: now.toISOString(),
     source: "oauth-api",
     planType:
-      asString(usagePayload.plan_type ?? usagePayload.planType) ?? inferPlanType(rateLimitTier),
+      asTrimmedString(usagePayload.plan_type ?? usagePayload.planType) ??
+      inferPlanType(rateLimitTier),
     primaryUsedPercent: readWindowPercent(primaryWindow),
     primaryResetAt: readWindowResetAt(primaryWindow),
     secondaryUsedPercent: readWindowPercent(weeklyWindow),
@@ -384,7 +364,7 @@ const scrubbedEnv = (): Record<string, string> => {
 // ---------------------------------------------------------------------------
 
 let cachedSnapshot: { snapshot: ClaudeUsageSnapshot; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 300_000;
 
 // Patterns that indicate the CLI welcome screen has fully rendered.
 // After ANSI stripping, cursor-movement codes collapse spaces, so we
@@ -563,7 +543,7 @@ const readOauthUsageSnapshot = async (
     if (!usageResponse.ok) {
       const usageErrorMessage = await readUsageErrorMessage(usageResponse);
       if (usageResponse.status === 429) {
-        const retryAfterSeconds = asString(usageResponse.headers.get("retry-after"));
+        const retryAfterSeconds = asTrimmedString(usageResponse.headers.get("retry-after"));
         const retrySuffix =
           retryAfterSeconds && retryAfterSeconds.length > 0
             ? ` Retry after ${retryAfterSeconds}s.`
@@ -630,7 +610,8 @@ export const readClaudeUsageSnapshot = async (
   // If OAuth reached the API but got a non-ok response (rate-limited, server error),
   // don't waste 20s on CLI PTY — return the OAuth result directly.
   // Only fall back to CLI PTY when OAuth credentials are missing/unreadable.
-  const oauthReachedApi = oauthSnapshot.source === "none" &&
+  const oauthReachedApi =
+    oauthSnapshot.source === "none" &&
     oauthSnapshot.message != null &&
     !oauthSnapshot.message.includes("not found") &&
     !oauthSnapshot.message.includes("missing") &&
@@ -642,7 +623,9 @@ export const readClaudeUsageSnapshot = async (
     return oauthSnapshot;
   }
 
-  console.log(`[claude-usage] OAuth credentials unavailable: ${oauthSnapshot.message}, falling back to CLI PTY`);
+  console.log(
+    `[claude-usage] OAuth credentials unavailable: ${oauthSnapshot.message}, falling back to CLI PTY`,
+  );
 
   // Fall back to CLI PTY (slow — spawns a full claude session)
   const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;

@@ -1,36 +1,18 @@
+import type {
+  MonitorCredentialSummary,
+  MonitorFeedSnapshot,
+  MonitorPost,
+  MonitorUsageSnapshot,
+} from "@octogent/core";
+
+export type {
+  MonitorCredentialSummary,
+  MonitorFeedSnapshot,
+  MonitorPost,
+  MonitorUsageSnapshot,
+} from "@octogent/core";
+
 export type MonitorProviderId = "x";
-
-export type MonitorPost = {
-  source: MonitorProviderId;
-  id: string;
-  text: string;
-  author: string;
-  createdAt: string;
-  likeCount: number;
-  permalink: string;
-  matchedQueryTerm: string | null;
-};
-
-export type MonitorUsageSnapshot = {
-  status: "ok" | "unavailable" | "error";
-  source: "x-api" | "none";
-  fetchedAt: string;
-  message?: string | null;
-  cap?: number | null;
-  used?: number | null;
-  remaining?: number | null;
-  resetAt?: string | null;
-};
-
-export type MonitorCredentialSummary = {
-  isConfigured: boolean;
-  bearerTokenHint: string | null;
-  apiKeyHint: string | null;
-  hasApiSecret: boolean;
-  hasAccessToken: boolean;
-  hasAccessTokenSecret: boolean;
-  updatedAt: string | null;
-};
 
 export type XMonitorCredentials = {
   bearerToken: string;
@@ -80,18 +62,6 @@ export type SanitizedMonitorConfig = {
       credentials: MonitorCredentialSummary;
     };
   };
-};
-
-export type MonitorFeedSnapshot = {
-  providerId: MonitorProviderId;
-  queryTerms: string[];
-  refreshPolicy: MonitorRefreshPolicy;
-  lastFetchedAt: string | null;
-  staleAfter: string | null;
-  isStale: boolean;
-  lastError: string | null;
-  posts: MonitorPost[];
-  usage: MonitorUsageSnapshot | null;
 };
 
 export type MonitorConfigPatchInput = {

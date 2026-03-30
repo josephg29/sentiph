@@ -1,0 +1,198 @@
+import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
+import { parseUiStatePatch } from "./requestParsers";
+import type { ApiRouteHandler } from "./routeHelpers";
+import {
+  readJsonBodyOrWriteError,
+  writeJson,
+  writeMethodNotAllowed,
+  writeNoContent,
+} from "./routeHelpers";
+
+export const handleUiStateRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  if (requestUrl.pathname !== "/api/ui-state") {
+    return false;
+  }
+
+  if (request.method === "GET") {
+    const payload = runtime.readUiState();
+    writeJson(response, 200, payload, corsOrigin);
+    return true;
+  }
+
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const uiStatePatch = parseUiStatePatch(bodyReadResult.payload);
+  if (uiStatePatch.error || !uiStatePatch.patch) {
+    writeJson(
+      response,
+      400,
+      { error: uiStatePatch.error ?? "Invalid UI state patch." },
+      corsOrigin,
+    );
+    return true;
+  }
+
+  const payload = runtime.patchUiState(uiStatePatch.patch);
+  writeJson(response, 200, payload, corsOrigin);
+  return true;
+};
+
+export const HOOK_PATH_PATTERN =
+  /^\/api\/hooks\/(session-start|user-prompt-submit|pre-tool-use|notification|stop)$/;
+
+export const handleHookRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime, invalidateClaudeUsageCache, readClaudeUsageSnapshot },
+) => {
+  const match = requestUrl.pathname.match(HOOK_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) {
+    return true;
+  }
+
+  const hookName = match[1] ?? "";
+  // HTTP hooks pass the session ID via header; command hooks via query param.
+  const octogentSessionId =
+    (typeof request.headers["x-octogent-session"] === "string"
+      ? request.headers["x-octogent-session"]
+      : undefined) ??
+    requestUrl.searchParams.get("octogent_session") ??
+    undefined;
+  const result = runtime.handleHook(hookName, body.payload, octogentSessionId);
+
+  if (hookName === "session-start" || hookName === "stop") {
+    invalidateClaudeUsageCache();
+    void readClaudeUsageSnapshot();
+  }
+
+  writeJson(response, 200, result, corsOrigin);
+  return true;
+};
+
+export const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
+
+export const handlePromptsCollectionRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  if (requestUrl.pathname !== "/api/prompts") {
+    return false;
+  }
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+  const names = await listPromptTemplates(workspaceCwd);
+  writeJson(response, 200, { prompts: names }, corsOrigin);
+  return true;
+};
+
+export const handlePromptItemRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(PROMPT_ITEM_PATH_PATTERN);
+  if (!match) return false;
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const name = decodeURIComponent(match[1] as string);
+
+  // Resolve variables from query params (e.g. ?tentacleId=sandbox).
+  const variables: Record<string, string> = {};
+  for (const [key, value] of requestUrl.searchParams.entries()) {
+    variables[key] = value;
+  }
+
+  const hasVariables = Object.keys(variables).length > 0;
+  if (hasVariables) {
+    const resolved = await resolvePrompt(workspaceCwd, name, variables);
+    if (resolved === undefined) {
+      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+      return true;
+    }
+    writeJson(response, 200, { name, prompt: resolved }, corsOrigin);
+  } else {
+    const template = await readPromptTemplate(workspaceCwd, name);
+    if (template === undefined) {
+      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+      return true;
+    }
+    writeJson(response, 200, { name, template }, corsOrigin);
+  }
+
+  return true;
+};
+
+// ─── Channel routes ───────────────────────────────────────────────────────
+
+export const CHANNEL_MESSAGES_PATH_PATTERN = /^\/api\/channels\/([^/]+)\/messages$/;
+
+export const handleChannelMessagesRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(CHANNEL_MESSAGES_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  const terminalId = decodeURIComponent(match[1] ?? "");
+
+  if (request.method === "GET") {
+    const messages = runtime.listChannelMessages(terminalId);
+    writeJson(response, 200, { terminalId, messages }, corsOrigin);
+    return true;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const body = bodyReadResult.payload as Record<string, unknown> | null;
+  const fromTerminalId =
+    body && typeof body.fromTerminalId === "string" ? body.fromTerminalId.trim() : "";
+  const content = body && typeof body.content === "string" ? body.content.trim() : "";
+
+  if (content.length === 0) {
+    writeJson(response, 400, { error: "Message content cannot be empty." }, corsOrigin);
+    return true;
+  }
+
+  const message = runtime.sendChannelMessage(terminalId, fromTerminalId, content);
+  if (!message) {
+    writeJson(response, 404, { error: "Target terminal not found." }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 201, message, corsOrigin);
+  return true;
+};

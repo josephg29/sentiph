@@ -25,7 +25,10 @@ const splitLabel = (label: string): [string] | [string, string] => {
     if (line2.length > LINE_MAX) line2 = `${line2.slice(0, LINE_MAX - 1)}…`;
     return [line1.length > LINE_MAX ? `${line1.slice(0, LINE_MAX - 1)}…` : line1, line2];
   }
-  return [`${label.slice(0, LINE_MAX - 1)}…`, label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : "")];
+  return [
+    `${label.slice(0, LINE_MAX - 1)}…`,
+    label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
+  ];
 };
 
 const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
@@ -102,9 +105,7 @@ const buildEdgePath = (
 
   // Curvature — perpendicular offset for quadratic Bézier control point
   // Single edges get a default curve; multi-edges fan out
-  const curvature = edgeCount <= 1
-    ? 0.3
-    : ((edgeIndex / (edgeCount - 1)) - 0.5) * 2;
+  const curvature = edgeCount <= 1 ? 0.3 : (edgeIndex / (edgeCount - 1) - 0.5) * 2;
   const offsetRatio = 0.25 + edgeCount * 0.05;
   const baseOffset = Math.max(35, dist * offsetRatio);
 
@@ -168,7 +169,15 @@ export const OctopusNode = ({
         <path
           key={target.id}
           className="canvas-edge"
-          d={buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, i, connectedNodes.length)}
+          d={buildEdgePath(
+            0,
+            0,
+            target.x - node.x,
+            target.y - node.y,
+            target.radius,
+            i,
+            connectedNodes.length,
+          )}
           fill="none"
           stroke={edgeColor}
           strokeWidth={1.5}
@@ -217,8 +226,14 @@ export const OctopusNode = ({
         className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
         fill={isOctoboss ? "var(--accent-primary, #d4a017)" : "#faa32c"}
       >
-        <tspan x="0" dy="0">{lines[0]}</tspan>
-        {lines[1] && <tspan x="0" dy="1.2em">{lines[1]}</tspan>}
+        <tspan x="0" dy="0">
+          {lines[0]}
+        </tspan>
+        {lines[1] && (
+          <tspan x="0" dy="1.2em">
+            {lines[1]}
+          </tspan>
+        )}
       </text>
     </g>
   );

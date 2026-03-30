@@ -20,7 +20,10 @@ const splitLabel = (label: string): [string] | [string, string] => {
     if (line2.length > LINE_MAX) line2 = `${line2.slice(0, LINE_MAX - 1)}…`;
     return [line1.length > LINE_MAX ? `${line1.slice(0, LINE_MAX - 1)}…` : line1, line2];
   }
-  return [label.slice(0, LINE_MAX - 1) + "…", label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : "")];
+  return [
+    label.slice(0, LINE_MAX - 1) + "…",
+    label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
+  ];
 };
 
 type SessionNodeProps = {
@@ -80,8 +83,14 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         className="canvas-node-label canvas-node-label--session canvas-node-label--always"
         fill="var(--accent-primary)"
       >
-        <tspan x="0" dy="0">{lines[0]}</tspan>
-        {lines[1] && <tspan x="0" dy="1.2em">{lines[1]}</tspan>}
+        <tspan x="0" dy="0">
+          {lines[0]}
+        </tspan>
+        {lines[1] && (
+          <tspan x="0" dy="1.2em">
+            {lines[1]}
+          </tspan>
+        )}
       </text>
     </g>
   );

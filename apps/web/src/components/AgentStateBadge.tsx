@@ -1,20 +1,12 @@
+import { type AgentRuntimeState, isAgentRuntimeState } from "@octogent/core";
 import { StatusBadge, type StatusBadgeTone } from "./ui/StatusBadge";
+
+export type { AgentRuntimeState } from "@octogent/core";
+export { isAgentRuntimeState } from "@octogent/core";
 
 type AgentStateBadgeProps = {
   state: AgentRuntimeState;
 };
-
-export type AgentRuntimeState =
-  | "idle"
-  | "processing"
-  | "waiting_for_permission"
-  | "waiting_for_user";
-
-export const isAgentRuntimeState = (value: unknown): value is AgentRuntimeState =>
-  value === "idle" ||
-  value === "processing" ||
-  value === "waiting_for_permission" ||
-  value === "waiting_for_user";
 
 const stateLabel = (state: AgentRuntimeState): string => {
   switch (state) {

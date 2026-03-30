@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
 import { GITHUB_SPARKLINE_HEIGHT, GITHUB_SPARKLINE_WIDTH } from "../app/constants";
-import type { ClaudeUsageSnapshot } from "../app/types";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
+import type { ClaudeUsageSnapshot } from "../app/types";
 import { OctopusGlyph } from "./EmptyOctopus";
 
 type RuntimeStatusStripProps = {
@@ -67,10 +67,7 @@ export const RuntimeStatusStrip = ({
   claudeUsage,
   onRefreshClaudeUsage,
 }: RuntimeStatusStripProps) => {
-  const usageBars = useMemo(
-    () => (usageData ? buildUsageBars(usageData) : []),
-    [usageData],
-  );
+  const usageBars = useMemo(() => (usageData ? buildUsageBars(usageData) : []), [usageData]);
 
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
@@ -99,10 +96,7 @@ export const RuntimeStatusStrip = ({
           {usageBars.length > 0 ? (
             <>
               <div className="console-status-usage-mini-chart">
-                <svg
-                  viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`}
-                  role="presentation"
-                >
+                <svg viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`} role="presentation">
                   {usageBars.map((bar, i) => (
                     <rect
                       key={i}
@@ -115,7 +109,9 @@ export const RuntimeStatusStrip = ({
                   ))}
                 </svg>
               </div>
-              <span className="console-status-sparkline-label">CLAUDE TOKENS/DAY · LAST 30 DAYS</span>
+              <span className="console-status-sparkline-label">
+                CLAUDE TOKENS/DAY · LAST 30 DAYS
+              </span>
             </>
           ) : (
             <span className="console-status-sparkline-label">CLAUDE USAGE —</span>
@@ -135,7 +131,9 @@ export const RuntimeStatusStrip = ({
           </button>
         )}
         <span className="console-status-claude-usage-title">
-          CLAUDE<br />USAGE
+          CLAUDE
+          <br />
+          USAGE
         </span>
         <div className="console-status-claude-usage-bars">
           {claudeUsage?.status === "ok" ? (

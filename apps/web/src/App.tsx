@@ -2,6 +2,7 @@ import { buildTerminalList } from "@octogent/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
+import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
@@ -19,7 +20,6 @@ import { useTerminalNameInputFocus } from "./app/hooks/useTerminalNameInputFocus
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/normalizers";
-import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
 import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
@@ -500,9 +500,7 @@ export const App = () => {
                 const snapshot = (await response.json()) as { terminalId?: string };
                 const nextColumns = await readColumns();
                 setTerminals(nextColumns);
-                return typeof snapshot.terminalId === "string"
-                  ? snapshot.terminalId
-                  : undefined;
+                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
               },
               onNavigateToConversation: (sessionId) => {
                 selectSession(sessionId);

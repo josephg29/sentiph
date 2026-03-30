@@ -51,11 +51,7 @@ type BarData = {
 const buildColorMap = (keys: string[]) =>
   new Map(keys.map((k, i) => [k, SEGMENT_COLORS[i % SEGMENT_COLORS.length]!]));
 
-const buildBars = (
-  days: UsageDayEntry[],
-  keys: string[],
-  mode: BarSegmentMode,
-): BarData[] => {
+const buildBars = (days: UsageDayEntry[], keys: string[], mode: BarSegmentMode): BarData[] => {
   const colorMap = buildColorMap(keys);
   return days.map((day) => {
     const slices = mode === "model" ? day.models : day.projects;
@@ -102,27 +98,27 @@ const ChartTooltip = ({
           : { left: `${x + 12}px`, top: `${y + 12}px` }
       }
     >
-    <p className="usage-heatmap-tooltip-date">{formatDateLabel(bar.date)}</p>
-    <dl className="usage-heatmap-tooltip-stats">
-      <div>
-        <dt>Total</dt>
-        <dd>{formatTokenCount(bar.totalTokens)}</dd>
-      </div>
-      {bar.segments.map((seg) => (
-        <div key={seg.label}>
-          <dt>
-            <span className="usage-chart-legend-dot" style={{ backgroundColor: seg.color }} />
-            {seg.label}
-          </dt>
-          <dd>{formatTokenCount(seg.tokens)}</dd>
+      <p className="usage-heatmap-tooltip-date">{formatDateLabel(bar.date)}</p>
+      <dl className="usage-heatmap-tooltip-stats">
+        <div>
+          <dt>Total</dt>
+          <dd>{formatTokenCount(bar.totalTokens)}</dd>
         </div>
-      ))}
-      <div>
-        <dt>Sessions</dt>
-        <dd>{bar.sessions}</dd>
-      </div>
-    </dl>
-  </div>
+        {bar.segments.map((seg) => (
+          <div key={seg.label}>
+            <dt>
+              <span className="usage-chart-legend-dot" style={{ backgroundColor: seg.color }} />
+              {seg.label}
+            </dt>
+            <dd>{formatTokenCount(seg.tokens)}</dd>
+          </div>
+        ))}
+        <div>
+          <dt>Sessions</dt>
+          <dd>{bar.sessions}</dd>
+        </div>
+      </dl>
+    </div>
   );
 };
 
@@ -305,17 +301,21 @@ const CELL_RADIUS = 2;
 const WEEKS_TO_SHOW = 26;
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 const MONTH_LABELS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
-const INTENSITY_COLORS = [
-  "transparent",
-  "#3d2008",
-  "#6b3a0e",
-  "#b5611a",
-  "#d7a622",
-];
+const INTENSITY_COLORS = ["transparent", "#3d2008", "#6b3a0e", "#b5611a", "#d7a622"];
 
 type HeatmapCell = {
   date: string;
@@ -529,15 +529,15 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
     () => buildBars(days, segmentKeys, segmentMode),
     [days, segmentKeys, segmentMode],
   );
-  const heatmapBars = useMemo(
-    () => buildBars(days, projects, "project"),
-    [days, projects],
-  );
+  const heatmapBars = useMemo(() => buildBars(days, projects, "project"), [days, projects]);
   const colorMap = useMemo(() => buildColorMap(segmentKeys), [segmentKeys]);
 
   const stats = useMemo(() => {
     if (days.length === 0) return null;
-    const peakDay = days.reduce((best, d) => (d.totalTokens > best.totalTokens ? d : best), days[0]!);
+    const peakDay = days.reduce(
+      (best, d) => (d.totalTokens > best.totalTokens ? d : best),
+      days[0]!,
+    );
     const avgPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
     const topModel = models[0] ?? "—";
     const topProject = projects[0] ?? "—";
@@ -647,7 +647,9 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
                 <dt>Peak Day</dt>
                 <dd>
                   {formatDateLabel(stats.peakDay.date)}
-                  <span className="usage-chart-stat-sub">{formatTokenCount(stats.peakDay.totalTokens)}</span>
+                  <span className="usage-chart-stat-sub">
+                    {formatTokenCount(stats.peakDay.totalTokens)}
+                  </span>
                 </dd>
               </div>
               <div className="usage-chart-stat">

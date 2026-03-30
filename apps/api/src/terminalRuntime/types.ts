@@ -1,15 +1,29 @@
 import type { WriteStream } from "node:fs";
 
-import type { TerminalSnapshot } from "@octogent/core";
+import type {
+  ChannelMessage,
+  ConversationSearchResult,
+  ConversationSessionDetail,
+  ConversationSessionSummary,
+  PersistedUiState,
+  TentacleGitStatusSnapshot,
+  TentaclePullRequestSnapshot,
+  TentaclePullRequestStatus,
+  TentacleWorkspaceMode,
+  TerminalAgentProvider,
+  TerminalCompletionSoundId,
+  TerminalSnapshot,
+} from "@octogent/core";
+import {
+  TERMINAL_AGENT_PROVIDERS,
+  TERMINAL_COMPLETION_SOUND_IDS,
+  isTerminalAgentProvider,
+  isTerminalCompletionSoundId,
+} from "@octogent/core";
 import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
 import type { AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
-import type {
-  ConversationSearchResult,
-  ConversationSessionDetail,
-  ConversationSessionSummary,
-} from "./conversations";
 
 export type TerminalStateMessage = {
   type: "state";
@@ -58,29 +72,23 @@ export type TerminalSession = {
   hasSeenProcessing?: boolean;
 };
 
-export type TentacleWorkspaceMode = "shared" | "worktree";
-
-export type TerminalAgentProvider = "codex" | "claude-code";
-
-export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["codex", "claude-code"];
-
-export const isTerminalAgentProvider = (value: unknown): value is TerminalAgentProvider =>
-  typeof value === "string" && TERMINAL_AGENT_PROVIDERS.includes(value as TerminalAgentProvider);
-
-export const TERMINAL_COMPLETION_SOUND_IDS = [
-  "soft-chime",
-  "retro-beep",
-  "double-beep",
-  "bell",
-  "pop",
-  "silent",
-] as const;
-
-export type TerminalCompletionSound = (typeof TERMINAL_COMPLETION_SOUND_IDS)[number];
-
-export const isTerminalCompletionSound = (value: unknown): value is TerminalCompletionSound =>
-  typeof value === "string" &&
-  TERMINAL_COMPLETION_SOUND_IDS.includes(value as TerminalCompletionSound);
+export {
+  type ChannelMessage,
+  type ConversationSearchResult,
+  type ConversationSessionDetail,
+  type ConversationSessionSummary,
+  type PersistedUiState,
+  type TentacleGitStatusSnapshot,
+  type TentaclePullRequestSnapshot,
+  type TentaclePullRequestStatus,
+  type TentacleWorkspaceMode,
+  type TerminalAgentProvider,
+  type TerminalCompletionSoundId,
+  TERMINAL_AGENT_PROVIDERS,
+  TERMINAL_COMPLETION_SOUND_IDS,
+  isTerminalAgentProvider,
+  isTerminalCompletionSoundId,
+};
 
 export type PersistedTerminal = {
   terminalId: string;
@@ -92,61 +100,11 @@ export type PersistedTerminal = {
   initialPrompt?: string;
 };
 
-export type TentacleGitStatusSnapshot = {
-  tentacleId: string;
-  workspaceMode: TentacleWorkspaceMode;
-  branchName: string;
-  upstreamBranchName: string | null;
-  isDirty: boolean;
-  aheadCount: number;
-  behindCount: number;
-  insertedLineCount: number;
-  deletedLineCount: number;
-  hasConflicts: boolean;
-  changedFiles: string[];
-  defaultBaseBranchName: string | null;
-};
-
-export type TentaclePullRequestStatus = "none" | "open" | "merged" | "closed";
-
-export type TentaclePullRequestSnapshot = {
-  tentacleId: string;
-  workspaceMode: TentacleWorkspaceMode;
-  status: TentaclePullRequestStatus;
-  number: number | null;
-  url: string | null;
-  title: string | null;
-  baseRef: string | null;
-  headRef: string | null;
-  isDraft: boolean | null;
-  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN" | null;
-  mergeStateStatus: string | null;
-};
-
 export type GitClientPullRequestSnapshot = Omit<
   TentaclePullRequestSnapshot,
   "tentacleId" | "workspaceMode" | "status"
 > & {
   state: "OPEN" | "MERGED" | "CLOSED";
-};
-
-export type PersistedUiState = {
-  activePrimaryNav?: number;
-  isAgentsSidebarVisible?: boolean;
-  sidebarWidth?: number;
-  isActiveAgentsSectionExpanded?: boolean;
-  isRuntimeStatusStripVisible?: boolean;
-  isMonitorVisible?: boolean;
-  isBottomTelemetryVisible?: boolean;
-  isCodexUsageVisible?: boolean;
-  isClaudeUsageVisible?: boolean;
-  isClaudeUsageSectionExpanded?: boolean;
-  isCodexUsageSectionExpanded?: boolean;
-  terminalCompletionSound?: TerminalCompletionSound;
-  minimizedTerminalIds?: string[];
-  terminalWidths?: Record<string, number>;
-  canvasOpenTerminalIds?: string[];
-  canvasTerminalsPanelWidth?: number;
 };
 
 export type TerminalRegistryDocument = {
@@ -184,15 +142,6 @@ export type GitClient = {
 };
 
 export class RuntimeInputError extends Error {}
-
-export type ChannelMessage = {
-  messageId: string;
-  fromTerminalId: string;
-  toTerminalId: string;
-  content: string;
-  timestamp: string;
-  delivered: boolean;
-};
 
 export type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;

@@ -5,13 +5,13 @@ import type { TerminalView } from "../app/types";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
+import { CommunicationsPrimaryView } from "./CommunicationsPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
 import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 import { StateSandboxPrimaryView } from "./StateSandboxPrimaryView";
-import { CommunicationsPrimaryView } from "./CommunicationsPrimaryView";
 import { TerminalBoard } from "./TerminalBoard";
 import { UsageSandboxPrimaryView } from "./UsageSandboxPrimaryView";
 

@@ -31,9 +31,7 @@ const formatSparkDate = (date: string): string => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const buildCommitYTicks = (
-  series: GitHubCommitSparkPoint[],
-): { count: number; y: number }[] => {
+const buildCommitYTicks = (series: GitHubCommitSparkPoint[]): { count: number; y: number }[] => {
   if (series.length === 0) return [];
   const counts = series.map((p) => p.count);
   const maxCount = Math.max(...counts);
@@ -50,9 +48,7 @@ const buildCommitYTicks = (
   return ticks;
 };
 
-const buildAreaPolygonPoints = (
-  series: GitHubCommitSparkPoint[],
-): string => {
+const buildAreaPolygonPoints = (series: GitHubCommitSparkPoint[]): string => {
   if (series.length === 0) return "";
   const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
   const first = series[0]!;
@@ -110,22 +106,21 @@ export const GitHubPrimaryView = ({
   }, []);
 
   useEffect(() => {
-    if (!pinnedCommitHash) {
-      return;
-    }
+    if (pinnedCommitHash === null) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (recentSectionRef.current?.contains(target) || tooltipRef.current?.contains(target)) {
+      if (
+        recentSectionRef.current?.contains(target) ||
+        tooltipRef.current?.contains(target)
+      ) {
         return;
       }
       dismissCommitTooltip();
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [pinnedCommitHash, dismissCommitTooltip]);
   const yTicks = useMemo(
     () => buildCommitYTicks(githubOverviewGraphSeries),
@@ -135,10 +130,7 @@ export const GitHubPrimaryView = ({
     () => buildAreaPolygonPoints(githubOverviewGraphSeries),
     [githubOverviewGraphSeries],
   );
-  const xLabelStep = Math.max(
-    1,
-    Math.ceil(githubOverviewGraphSeries.length / 6),
-  );
+  const xLabelStep = Math.max(1, Math.ceil(githubOverviewGraphSeries.length / 6));
 
   const hoveredGitHubOverviewPoint =
     hoveredGitHubOverviewPointIndex !== null
@@ -244,24 +236,20 @@ export const GitHubPrimaryView = ({
                         y2={tick.y}
                         className="github-overview-graph-grid"
                       />
-                      <text
-                        x={4}
-                        y={tick.y - 4}
-                        className="github-overview-graph-y-label"
-                      >
+                      <text x={4} y={tick.y - 4} className="github-overview-graph-y-label">
                         {tick.count}
                       </text>
                     </g>
                   ))}
 
                   {areaPolygonPoints && (
-                    <polygon
-                      points={areaPolygonPoints}
-                      fill="url(#commitAreaGrad)"
-                    />
+                    <polygon points={areaPolygonPoints} fill="url(#commitAreaGrad)" />
                   )}
 
-                  <polyline points={githubOverviewGraphPolylinePoints} stroke="url(#commitLineGrad)" />
+                  <polyline
+                    points={githubOverviewGraphPolylinePoints}
+                    stroke="url(#commitLineGrad)"
+                  />
 
                   {githubOverviewGraphSeries
                     .filter((_, i) => i % xLabelStep === 0)

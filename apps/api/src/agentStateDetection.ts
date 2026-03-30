@@ -1,14 +1,6 @@
-export type AgentRuntimeState =
-  | "idle"
-  | "processing"
-  | "waiting_for_permission"
-  | "waiting_for_user";
+import { type AgentRuntimeState, isAgentRuntimeState } from "@octogent/core";
 
-export const isAgentRuntimeState = (value: unknown): value is AgentRuntimeState =>
-  value === "idle" ||
-  value === "processing" ||
-  value === "waiting_for_permission" ||
-  value === "waiting_for_user";
+export { type AgentRuntimeState, isAgentRuntimeState };
 
 const PROCESSING_PATTERN = /esc to interrupt/i;
 

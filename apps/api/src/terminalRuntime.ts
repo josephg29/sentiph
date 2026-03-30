@@ -51,10 +51,10 @@ export type {
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
-  TerminalCompletionSound,
+  TerminalCompletionSoundId,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
-export { isTerminalAgentProvider, isTerminalCompletionSound } from "./terminalRuntime/types";
+export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 const MAX_AUTO_NAME_LENGTH = 50;
@@ -920,9 +920,7 @@ export const createTerminalRuntime = ({
             const derived = deriveTerminalNameFromPrompt(prompt);
             terminal.tentacleName = derived;
             persistRegistry();
-            console.log(
-              `[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`,
-            );
+            console.log(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
           }
         }
 

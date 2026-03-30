@@ -3,10 +3,10 @@ import type { IncomingMessage } from "node:http";
 import type { MonitorConfigPatchInput } from "../monitor";
 import {
   type PersistedUiState,
-  type TerminalAgentProvider,
   type TentacleWorkspaceMode,
+  type TerminalAgentProvider,
   isTerminalAgentProvider,
-  isTerminalCompletionSound,
+  isTerminalCompletionSoundId,
 } from "../terminalRuntime";
 
 export const MAX_JSON_BODY_BYTES = 1024 * 1024;
@@ -426,7 +426,7 @@ export const parseUiStatePatch = (
   // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
   const completionSoundKey = record.terminalCompletionSound ?? record.tentacleCompletionSound;
   if (completionSoundKey !== undefined) {
-    if (!isTerminalCompletionSound(completionSoundKey)) {
+    if (!isTerminalCompletionSoundId(completionSoundKey)) {
       return {
         patch: null,
         error: "terminalCompletionSound must be one of the supported sound identifiers.",

@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphNode } from "../app/canvas/types";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
-import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
+import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import type { TerminalView } from "../app/types";
-import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
-import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
+import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
+import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 
@@ -430,9 +430,7 @@ export const CanvasPrimaryView = ({
   const tentacleNodes = simulatedNodes.filter(
     (n) => n.type === "tentacle" || n.type === "octoboss",
   );
-  const sessionNodes = simulatedNodes.filter(
-    (n) => n.type !== "tentacle" && n.type !== "octoboss",
-  );
+  const sessionNodes = simulatedNodes.filter((n) => n.type !== "tentacle" && n.type !== "octoboss");
 
   const hasPanels = openTerminals.size > 0 || openTentacles.size > 0;
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { isMonitorCacheStale, rankAndLimitPostsByLikes } from "../src/monitor/service";
-import { buildXRecentSearchQuery } from "../src/monitor/xProvider";
 import type { MonitorPost } from "../src/monitor/types";
+import { buildXRecentSearchQuery } from "../src/monitor/xProvider";
 
 describe("monitor core logic", () => {
   it("builds X recent-search query with OR terms, lang filter, and no-retweet filter", () => {

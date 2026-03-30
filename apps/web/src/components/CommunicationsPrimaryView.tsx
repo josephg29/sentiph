@@ -1,26 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { AgentRuntimeState, ChannelMessage, TerminalSnapshot } from "@octogent/core";
+
 import {
   buildChannelMessagesUrl,
   buildTerminalSnapshotsUrl,
   buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
-import type { AgentRuntimeState } from "./AgentStateBadge";
 import { Terminal } from "./Terminal";
-
-type ChannelMessage = {
-  messageId: string;
-  fromTerminalId: string;
-  toTerminalId: string;
-  content: string;
-  timestamp: string;
-  delivered: boolean;
-};
-
-type TerminalSnapshot = {
-  terminalId: string;
-  tentacleName: string;
-};
 
 type CommsAgent = {
   tentacleId: string;
@@ -180,7 +167,7 @@ export const CommunicationsPrimaryView = () => {
     return t?.tentacleName ?? id;
   };
 
-  const formatTimestamp = (ts: string) => {
+  const formatTime = (ts: string) => {
     try {
       const d = new Date(ts);
       return d.toLocaleTimeString(undefined, {
@@ -283,7 +270,7 @@ export const CommunicationsPrimaryView = () => {
                 key={m.messageId}
                 className={`communications-view__message ${m.delivered ? "communications-view__message--delivered" : "communications-view__message--pending"}`}
               >
-                <span className="communications-view__time">{formatTimestamp(m.timestamp)}</span>
+                <span className="communications-view__time">{formatTime(m.timestamp)}</span>
                 <span className="communications-view__from">
                   {terminalLabel(m.fromTerminalId) || "external"}
                 </span>

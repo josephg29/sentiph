@@ -1,3 +1,5 @@
+import { asNumber, asRecord, asString } from "@octogent/core";
+
 import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, PRIMARY_NAV_MAX } from "./constants";
 import { isTerminalCompletionSoundId } from "./notificationSounds";
 import type {
@@ -16,24 +18,6 @@ import type {
   MonitorPost,
   MonitorUsageSnapshot,
 } from "./types";
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
-
-const asNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-};
-
-const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
 export const clampSidebarWidth = (width: number) =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));

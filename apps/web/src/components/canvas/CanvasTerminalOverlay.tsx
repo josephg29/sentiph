@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
+import { normalizeConversationSessionDetail } from "../../app/normalizers";
 import type { ConversationSessionDetail, ConversationTurn, TerminalView } from "../../app/types";
 import { buildConversationSessionUrl } from "../../runtime/runtimeEndpoints";
-import { normalizeConversationSessionDetail } from "../../app/normalizers";
-import { Terminal } from "../Terminal";
 import { type AgentRuntimeState, AgentStateBadge } from "../AgentStateBadge";
+import { Terminal } from "../Terminal";
 import { MarkdownContent } from "../ui/MarkdownContent";
 
 type CanvasTerminalOverlayProps = {

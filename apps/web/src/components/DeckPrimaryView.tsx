@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
+import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckTentacleUrl,
@@ -759,23 +760,8 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   }, [focus]);
 
   // Agent menu click-outside/escape
-  useEffect(() => {
-    if (!agentMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (agentMenuRef.current && !agentMenuRef.current.contains(e.target as Node)) {
-        setAgentMenuOpen(false);
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAgentMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [agentMenuOpen]);
+  const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
+  useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
   const handleVaultFileClick = useCallback((tentacleId: string, fileName: string) => {
     setFocus({ type: "vault", tentacleId, fileName });

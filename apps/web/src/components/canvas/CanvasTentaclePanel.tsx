@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
+import { normalizeConversationSessionSummary } from "../../app/normalizers";
 import type { ConversationSessionSummary } from "../../app/types";
 import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
-import { normalizeConversationSessionSummary } from "../../app/normalizers";
 import {
   type OctopusAccessory,
   type OctopusAnimation,
@@ -13,8 +13,16 @@ import {
 } from "../EmptyOctopus";
 
 const OCTOPUS_COLORS = [
-  "#ff6b2b", "#ff2d6b", "#00ffaa", "#bf5fff", "#00c8ff",
-  "#ffee00", "#39ff14", "#ff4df0", "#00fff7", "#ff9500",
+  "#ff6b2b",
+  "#ff2d6b",
+  "#00ffaa",
+  "#bf5fff",
+  "#00c8ff",
+  "#ffee00",
+  "#39ff14",
+  "#ff4df0",
+  "#00fff7",
+  "#ff9500",
 ];
 const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
 const EXPRESSIONS: OctopusExpression[] = ["normal", "happy", "angry", "surprised"];
@@ -40,10 +48,18 @@ function deriveVisuals(tentacle: DeckTentacleSummary) {
   const rng = seededRng(hashStr(tentacle.tentacleId));
   const stored = tentacle.octopus;
   return {
-    color: tentacle.color ?? (OCTOPUS_COLORS[hashStr(tentacle.tentacleId) % OCTOPUS_COLORS.length] as string),
-    animation: (stored?.animation as OctopusAnimation | null) ?? (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
-    expression: (stored?.expression as OctopusExpression | null) ?? (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
-    accessory: (stored?.accessory as OctopusAccessory | null) ?? (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
+    color:
+      tentacle.color ??
+      (OCTOPUS_COLORS[hashStr(tentacle.tentacleId) % OCTOPUS_COLORS.length] as string),
+    animation:
+      (stored?.animation as OctopusAnimation | null) ??
+      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
+    expression:
+      (stored?.expression as OctopusExpression | null) ??
+      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
+    accessory:
+      (stored?.accessory as OctopusAccessory | null) ??
+      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
     hairColor: stored?.hairColor ?? undefined,
   };
 }
@@ -91,10 +107,7 @@ export const CanvasTentaclePanel = ({
   const [tentacle, setTentacle] = useState<DeckTentacleSummary | null>(null);
   const [sessions, setSessions] = useState<ConversationSessionSummary[]>([]);
 
-  const visuals = useMemo(
-    () => (tentacle ? deriveVisuals(tentacle) : null),
-    [tentacle],
-  );
+  const visuals = useMemo(() => (tentacle ? deriveVisuals(tentacle) : null), [tentacle]);
 
   const fetchTentacle = useCallback(async () => {
     try {
@@ -152,10 +165,7 @@ export const CanvasTentaclePanel = ({
       <div className="detail-panel-header">
         <span className="detail-title">Tentacle Details</span>
         {tentacle && (
-          <span
-            className="detail-type-badge"
-            style={{ background: node.color }}
-          >
+          <span className="detail-type-badge" style={{ background: node.color }}>
             {STATUS_LABELS[tentacle.status] ?? tentacle.status}
           </span>
         )}
@@ -232,7 +242,9 @@ export const CanvasTentaclePanel = ({
             <div className="detail-section-title">Vault Files</div>
             <div className="detail-labels-list">
               {tentacle.vaultFiles.map((file) => (
-                <span key={file} className="detail-label-tag">{file}</span>
+                <span key={file} className="detail-label-tag">
+                  {file}
+                </span>
               ))}
             </div>
           </div>

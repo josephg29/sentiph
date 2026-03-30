@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { formatTimestamp } from "../app/formatTimestamp";
 import type { MonitorConfigSnapshot, MonitorFeedSnapshot } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
@@ -47,25 +48,6 @@ const MONITOR_SEARCH_WINDOW_OPTIONS: Array<{ value: 7 | 3 | 1; label: string }> 
 const normalizeTerms = (terms: string[]): string[] => {
   const split = terms.map((term) => term.trim()).filter((term) => term.length > 0);
   return [...new Set(split)];
-};
-
-const formatTimestamp = (value: string | null) => {
-  if (!value) {
-    return "--";
-  }
-
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    return value;
-  }
-
-  return new Date(parsed).toLocaleString("en-US", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 };
 
 export const MonitorPrimaryView = ({

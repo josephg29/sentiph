@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-
 import { buildUsageHeatmapUrl } from "../../runtime/runtimeEndpoints";
+import { usePollingData } from "./usePollingData";
 
 export type UsageSlice = {
   key: string;
@@ -23,63 +22,22 @@ export type UsageChartData = {
 
 const POLL_INTERVAL_MS = 120_000;
 
+const normalize = (raw: unknown): UsageChartData | null => raw as UsageChartData | null;
+
+const fallback = (): UsageChartData => ({ days: [], projects: [], models: [] });
+
 export const useUsageHeatmapPolling = (options: { enabled: boolean }) => {
-  const [heatmapData, setHeatmapData] = useState<UsageChartData | null>(null);
-  const [isLoadingHeatmap, setIsLoadingHeatmap] = useState(false);
-  const isInFlightRef = useRef(false);
-  const isDisposedRef = useRef(false);
-
-  const fetchHeatmap = useCallback(async () => {
-    if (isDisposedRef.current || isInFlightRef.current) return;
-    isInFlightRef.current = true;
-    setIsLoadingHeatmap(true);
-
-    try {
-      const response = await fetch(buildUsageHeatmapUrl("all"), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Usage chart request failed (${response.status})`);
-      }
-
-      const parsed = (await response.json()) as UsageChartData;
-      if (!isDisposedRef.current) {
-        setHeatmapData(parsed);
-      }
-    } catch {
-      // silently ignore — data will remain null/stale
-    } finally {
-      isInFlightRef.current = false;
-      if (!isDisposedRef.current) {
-        setIsLoadingHeatmap(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!options.enabled) return;
-    isDisposedRef.current = false;
-
-    void fetchHeatmap();
-    const timerId = window.setInterval(() => {
-      void fetchHeatmap();
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      isDisposedRef.current = true;
-      window.clearInterval(timerId);
-    };
-  }, [options.enabled, fetchHeatmap]);
-
-  const refresh = useCallback(() => {
-    void fetchHeatmap();
-  }, [fetchHeatmap]);
+  const { data, isLoading, refresh } = usePollingData<UsageChartData>({
+    fetchUrl: buildUsageHeatmapUrl("all"),
+    intervalMs: POLL_INTERVAL_MS,
+    normalize,
+    fallback,
+    enabled: options.enabled,
+  });
 
   return {
-    heatmapData,
-    isLoadingHeatmap,
+    heatmapData: data,
+    isLoadingHeatmap: isLoading,
     refreshHeatmap: refresh,
   };
 };

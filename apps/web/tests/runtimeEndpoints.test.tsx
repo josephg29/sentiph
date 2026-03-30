@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildTerminalSnapshotsUrl,
   buildClaudeUsageUrl,
   buildCodexUsageUrl,
   buildConversationExportUrl,
@@ -18,8 +17,9 @@ import {
   buildTentacleGitStatusUrl,
   buildTentacleGitSyncUrl,
   buildTentacleRenameUrl,
-  buildTerminalsUrl,
+  buildTerminalSnapshotsUrl,
   buildTerminalSocketUrl,
+  buildTerminalsUrl,
   buildUiStateUrl,
 } from "../src/runtime/runtimeEndpoints";
 

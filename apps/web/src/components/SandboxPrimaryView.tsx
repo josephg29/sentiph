@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   buildTentacleRenameUrl,
-  buildTerminalsUrl,
   buildTerminalSocketUrl,
+  buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
 import { Terminal } from "./Terminal";
 import { ActionButton } from "./ui/ActionButton";

@@ -4,11 +4,11 @@ import type { Dispatch, SetStateAction } from "react";
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
 import { DEFAULT_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
   type TerminalCompletionSoundId,
 } from "../notificationSounds";
-import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
 import type { FrontendUiStateSnapshot, TerminalView } from "../types";
 
 type UsePersistedUiStateOptions = {

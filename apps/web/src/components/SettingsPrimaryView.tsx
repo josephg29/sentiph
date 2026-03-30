@@ -3,6 +3,7 @@ import {
   type TerminalCompletionSoundId,
 } from "../app/notificationSounds";
 import { ActionButton } from "./ui/ActionButton";
+import { SettingsToggle } from "./ui/SettingsToggle";
 
 type SettingsPrimaryViewProps = {
   terminalCompletionSound: TerminalCompletionSoundId;
@@ -80,28 +81,13 @@ export const SettingsPrimaryView = ({
       </header>
 
       <div className="settings-toggle-grid" role="group" aria-label="Workspace surface visibility">
-        <button
-          aria-checked={isRuntimeStatusStripVisible}
-          aria-label="Show runtime status strip"
-          className="settings-toggle-option"
-          data-active={isRuntimeStatusStripVisible ? "true" : "false"}
-          onClick={() => {
-            onRuntimeStatusStripVisibilityChange(!isRuntimeStatusStripVisible);
-          }}
-          role="switch"
-          type="button"
-        >
-          <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Runtime status strip</span>
-            <span className="settings-toggle-description">Top console status strip metrics</span>
-          </span>
-          <span className="settings-toggle-switch" aria-hidden="true">
-            <span className="settings-toggle-thumb" />
-          </span>
-          <span className="settings-toggle-state">
-            {isRuntimeStatusStripVisible ? "Enabled" : "Disabled"}
-          </span>
-        </button>
+        <SettingsToggle
+          label="Runtime status strip"
+          description="Top console status strip metrics"
+          ariaLabel="Show runtime status strip"
+          checked={isRuntimeStatusStripVisible}
+          onChange={onRuntimeStatusStripVisibilityChange}
+        />
       </div>
     </section>
     <section className="settings-panel" aria-label="Usage telemetry visibility settings">
@@ -111,50 +97,20 @@ export const SettingsPrimaryView = ({
       </header>
 
       <div className="settings-toggle-grid" role="group" aria-label="Usage telemetry visibility">
-        <button
-          aria-checked={isCodexUsageVisible}
-          aria-label="Show Codex token usage in sidebar"
-          className="settings-toggle-option"
-          data-active={isCodexUsageVisible ? "true" : "false"}
-          onClick={() => {
-            onCodexUsageVisibilityChange(!isCodexUsageVisible);
-          }}
-          role="switch"
-          type="button"
-        >
-          <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Codex token usage</span>
-            <span className="settings-toggle-description">Active Agents sidebar footer</span>
-          </span>
-          <span className="settings-toggle-switch" aria-hidden="true">
-            <span className="settings-toggle-thumb" />
-          </span>
-          <span className="settings-toggle-state">
-            {isCodexUsageVisible ? "Enabled" : "Disabled"}
-          </span>
-        </button>
-        <button
-          aria-checked={isClaudeUsageVisible}
-          aria-label="Show Claude token usage in sidebar"
-          className="settings-toggle-option"
-          data-active={isClaudeUsageVisible ? "true" : "false"}
-          onClick={() => {
-            onClaudeUsageVisibilityChange(!isClaudeUsageVisible);
-          }}
-          role="switch"
-          type="button"
-        >
-          <span className="settings-toggle-copy">
-            <span className="settings-toggle-label">Claude token usage</span>
-            <span className="settings-toggle-description">Active Agents sidebar footer</span>
-          </span>
-          <span className="settings-toggle-switch" aria-hidden="true">
-            <span className="settings-toggle-thumb" />
-          </span>
-          <span className="settings-toggle-state">
-            {isClaudeUsageVisible ? "Enabled" : "Disabled"}
-          </span>
-        </button>
+        <SettingsToggle
+          label="Codex token usage"
+          description="Active Agents sidebar footer"
+          ariaLabel="Show Codex token usage in sidebar"
+          checked={isCodexUsageVisible}
+          onChange={onCodexUsageVisibilityChange}
+        />
+        <SettingsToggle
+          label="Claude token usage"
+          description="Active Agents sidebar footer"
+          ariaLabel="Show Claude token usage in sidebar"
+          checked={isClaudeUsageVisible}
+          onChange={onClaudeUsageVisibilityChange}
+        />
       </div>
     </section>
   </section>

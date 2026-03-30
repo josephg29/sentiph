@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
-import type { ConversationSessionSummary, TerminalView } from "../types";
-import type { GraphEdge, GraphNode } from "../canvas/types";
 import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
+import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../normalizers";
+import type { ConversationSessionSummary, TerminalView } from "../types";
 
 const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
@@ -60,7 +60,10 @@ const buildTentacleNodeId = (tentacleId: string) => `t:${tentacleId}`;
 const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
-type DeckTentacleMinimal = Pick<DeckTentacleSummary, "tentacleId" | "displayName" | "color" | "octopus">;
+type DeckTentacleMinimal = Pick<
+  DeckTentacleSummary,
+  "tentacleId" | "displayName" | "color" | "octopus"
+>;
 
 export const useCanvasGraphData = ({
   columns,
@@ -90,7 +93,12 @@ export const useCanvasGraphData = ({
           tentacleId: t.tentacleId,
           displayName: t.displayName ?? t.tentacleId,
           color: t.color ?? null,
-          octopus: (t as Record<string, unknown>).octopus as DeckTentacleSummary["octopus"] ?? { animation: null, expression: null, accessory: null, hairColor: null },
+          octopus: ((t as Record<string, unknown>).octopus as DeckTentacleSummary["octopus"]) ?? {
+            animation: null,
+            expression: null,
+            accessory: null,
+            hairColor: null,
+          },
         }));
       setDeckTentacles(items);
     } catch {

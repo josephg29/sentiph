@@ -1,6 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type {
+  ConversationSearchHit,
+  ConversationSearchResult,
+  ConversationSessionDetail,
+  ConversationSessionSummary,
+  ConversationTurn,
+} from "@octogent/core";
+
 import type { AgentRuntimeState } from "../agentStateDetection";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -60,33 +68,7 @@ export type ConversationTranscriptEventPayload =
   | Omit<StateChangeTranscriptEvent, "eventId" | "sessionId" | "tentacleId">
   | Omit<SessionEndTranscriptEvent, "eventId" | "sessionId" | "tentacleId">;
 
-export type ConversationTurn = {
-  turnId: string;
-  role: "user" | "assistant";
-  content: string;
-  startedAt: string;
-  endedAt: string;
-};
-
-export type ConversationSessionSummary = {
-  sessionId: string;
-  tentacleId: string | null;
-  startedAt: string | null;
-  endedAt: string | null;
-  lastEventAt: string | null;
-  eventCount: number;
-  turnCount: number;
-  userTurnCount: number;
-  assistantTurnCount: number;
-  firstUserTurnPreview: string | null;
-  lastUserTurnPreview: string | null;
-  lastAssistantTurnPreview: string | null;
-};
-
-export type ConversationSessionDetail = ConversationSessionSummary & {
-  turns: ConversationTurn[];
-  events: ConversationTranscriptEvent[];
-};
+export type { ConversationTurn, ConversationSessionSummary, ConversationSessionDetail };
 
 export const transcriptFilenameForSession = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.jsonl`;
@@ -443,18 +425,7 @@ const readClaudeTranscriptTurns = (
   }
 };
 
-export type ConversationSearchHit = {
-  sessionId: string;
-  turnId: string;
-  role: "user" | "assistant";
-  snippet: string;
-  turnStartedAt: string;
-};
-
-export type ConversationSearchResult = {
-  query: string;
-  hits: ConversationSearchHit[];
-};
+export type { ConversationSearchHit, ConversationSearchResult };
 
 const buildSearchSnippet = (content: string, query: string, contextChars = 80): string => {
   const lowerContent = content.toLowerCase();

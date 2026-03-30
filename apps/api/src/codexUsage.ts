@@ -2,26 +2,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { type CodexUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
+
 const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000;
 const OAUTH_REFRESH_URL = "https://auth.openai.com/oauth/token";
 const OAUTH_REFRESH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const OAUTH_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
-
-const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
-
-const asNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-};
 
 const toResetIso = (value: unknown): string | null => {
   const seconds = asNumber(value);
@@ -58,21 +44,9 @@ type RefreshTokenResponse = {
   refresh_token?: unknown;
 };
 
-type CodexUsageStatus = "ok" | "unavailable" | "error";
+export type { CodexUsageSnapshot };
 
-export type CodexUsageSnapshot = {
-  status: CodexUsageStatus;
-  fetchedAt: string;
-  source: "oauth-api" | "none";
-  message?: string;
-  planType?: string | null;
-  primaryUsedPercent?: number | null;
-  primaryResetAt?: string | null;
-  secondaryUsedPercent?: number | null;
-  secondaryResetAt?: string | null;
-  creditsBalance?: number | null;
-  creditsUnlimited?: boolean | null;
-};
+type CodexUsageStatus = CodexUsageSnapshot["status"];
 
 export type CodexUsageDependencies = {
   env?: NodeJS.ProcessEnv;

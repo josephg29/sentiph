@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WORLD_W, WORLD_H } from "./useForceSimulation";
+import { WORLD_H, WORLD_W } from "./useForceSimulation";
 
 type CanvasTransform = {
   translateX: number;
@@ -216,10 +216,10 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     const rect = svg.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
     for (const n of nodes) {
       if (n.x < minX) minX = n.x;
       if (n.y < minY) minY = n.y;
