@@ -82,6 +82,8 @@ export const App = () => {
     terminalWidths,
     canvasOpenTerminalIds,
     setCanvasOpenTerminalIds,
+    canvasOpenTentacleIds,
+    setCanvasOpenTentacleIds,
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
@@ -470,8 +472,10 @@ export const App = () => {
               columns: terminals,
               isUiStateHydrated,
               canvasOpenTerminalIds,
+              canvasOpenTentacleIds,
               canvasTerminalsPanelWidth,
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
+              onCanvasOpenTentacleIdsChange: setCanvasOpenTentacleIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (tentacleId) => {
                 void createTerminal("shared", undefined, tentacleId);

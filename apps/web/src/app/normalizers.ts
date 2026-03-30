@@ -254,6 +254,12 @@ export const normalizeFrontendUiStateSnapshot = (
     );
   }
 
+  if (Array.isArray(record.canvasOpenTentacleIds)) {
+    nextState.canvasOpenTentacleIds = record.canvasOpenTentacleIds.filter(
+      (id): id is string => typeof id === "string",
+    );
+  }
+
   if (
     typeof record.canvasTerminalsPanelWidth === "number" &&
     Number.isFinite(record.canvasTerminalsPanelWidth)

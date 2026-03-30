@@ -48,6 +48,8 @@ type UsePersistedUiStateResult = {
   setTerminalWidths: Dispatch<SetStateAction<Record<string, number>>>;
   canvasOpenTerminalIds: string[];
   setCanvasOpenTerminalIds: Dispatch<SetStateAction<string[]>>;
+  canvasOpenTentacleIds: string[];
+  setCanvasOpenTentacleIds: Dispatch<SetStateAction<string[]>>;
   canvasTerminalsPanelWidth: number | null;
   setCanvasTerminalsPanelWidth: Dispatch<SetStateAction<number | null>>;
   readUiState: (signal?: AbortSignal) => Promise<FrontendUiStateSnapshot | null>;
@@ -78,6 +80,7 @@ export const usePersistedUiState = ({
   const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>([]);
   const [terminalWidths, setTerminalWidths] = useState<Record<string, number>>({});
   const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>([]);
+  const [canvasOpenTentacleIds, setCanvasOpenTentacleIds] = useState<string[]>([]);
   const [canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth] = useState<number | null>(null);
 
   const readUiState = useCallback(async (signal?: AbortSignal) => {
@@ -191,6 +194,10 @@ export const usePersistedUiState = ({
         setCanvasOpenTerminalIds(snapshot.canvasOpenTerminalIds);
       }
 
+      if (snapshot.canvasOpenTentacleIds) {
+        setCanvasOpenTentacleIds(snapshot.canvasOpenTentacleIds);
+      }
+
       if (snapshot.canvasTerminalsPanelWidth !== undefined) {
         setCanvasTerminalsPanelWidth(snapshot.canvasTerminalsPanelWidth);
       }
@@ -228,6 +235,7 @@ export const usePersistedUiState = ({
         {},
       ),
       canvasOpenTerminalIds,
+      canvasOpenTentacleIds,
       ...(canvasTerminalsPanelWidth != null ? { canvasTerminalsPanelWidth } : {}),
     };
 
@@ -250,6 +258,7 @@ export const usePersistedUiState = ({
   }, [
     activePrimaryNav,
     canvasOpenTerminalIds,
+    canvasOpenTentacleIds,
     canvasTerminalsPanelWidth,
     columns,
     isActiveAgentsSectionExpanded,
@@ -301,6 +310,8 @@ export const usePersistedUiState = ({
     setTerminalWidths,
     canvasOpenTerminalIds,
     setCanvasOpenTerminalIds,
+    canvasOpenTentacleIds,
+    setCanvasOpenTentacleIds,
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
     readUiState,

@@ -90,6 +90,25 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.terminalWidths = terminalWidths;
   }
 
+  if (Array.isArray(value.canvasOpenTerminalIds)) {
+    nextState.canvasOpenTerminalIds = value.canvasOpenTerminalIds.filter(
+      (id): id is string => typeof id === "string",
+    );
+  }
+
+  if (Array.isArray(value.canvasOpenTentacleIds)) {
+    nextState.canvasOpenTentacleIds = value.canvasOpenTentacleIds.filter(
+      (id): id is string => typeof id === "string",
+    );
+  }
+
+  if (
+    typeof value.canvasTerminalsPanelWidth === "number" &&
+    Number.isFinite(value.canvasTerminalsPanelWidth)
+  ) {
+    nextState.canvasTerminalsPanelWidth = value.canvasTerminalsPanelWidth;
+  }
+
   return nextState;
 };
 

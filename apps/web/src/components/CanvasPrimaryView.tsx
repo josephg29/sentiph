@@ -30,8 +30,10 @@ type CanvasPrimaryViewProps = {
   columns: TerminalView;
   isUiStateHydrated?: boolean;
   canvasOpenTerminalIds?: string[];
+  canvasOpenTentacleIds?: string[];
   canvasTerminalsPanelWidth?: number | null;
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
+  onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onSpawnSwarm?: (tentacleId: string) => Promise<void>;
@@ -56,8 +58,10 @@ export const CanvasPrimaryView = ({
   columns,
   isUiStateHydrated,
   canvasOpenTerminalIds,
+  canvasOpenTentacleIds,
   canvasTerminalsPanelWidth: persistedTerminalsPanelWidth,
   onCanvasOpenTerminalIdsChange,
+  onCanvasOpenTentacleIdsChange,
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
   onSpawnSwarm,
@@ -77,6 +81,7 @@ export const CanvasPrimaryView = ({
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
   const hasHydratedTerminals = useRef(false);
+  const hasHydratedTentacles = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeClickedRef = useRef(false);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -148,6 +153,36 @@ export const CanvasPrimaryView = ({
     if (!hasHydratedTerminals.current) return;
     onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
   }, [openTerminals, onCanvasOpenTerminalIdsChange]);
+
+  // Hydrate open tentacles from persisted IDs.
+  // Gate on tentacle-type nodes being present (deck API fetch is async).
+  const hasTentacleNodes = simulatedNodes.some((n) => n.type === "tentacle");
+  useEffect(() => {
+    if (hasHydratedTentacles.current) return;
+    if (!isUiStateHydrated) return;
+    if (!hasTentacleNodes) return;
+
+    if (canvasOpenTentacleIds && canvasOpenTentacleIds.length > 0) {
+      const restoredMap = new Map<string, GraphNode>();
+      for (const nodeId of canvasOpenTentacleIds) {
+        const node = nodesById.get(nodeId);
+        if (node && (node.type === "tentacle" || node.type === "octoboss")) {
+          restoredMap.set(nodeId, { ...node });
+        }
+      }
+      if (restoredMap.size > 0) {
+        setOpenTentacles(restoredMap);
+      }
+    }
+
+    hasHydratedTentacles.current = true;
+  }, [isUiStateHydrated, canvasOpenTentacleIds, hasTentacleNodes, nodesById]);
+
+  // Persist open tentacle IDs when they change
+  useEffect(() => {
+    if (!hasHydratedTentacles.current) return;
+    onCanvasOpenTentacleIdsChange?.(Array.from(openTentacles.keys()));
+  }, [openTentacles, onCanvasOpenTentacleIdsChange]);
 
   // Persist terminals panel width only when user has explicitly dragged the divider
   useEffect(() => {

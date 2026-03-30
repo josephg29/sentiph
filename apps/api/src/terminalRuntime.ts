@@ -518,6 +518,9 @@ export const createTerminalRuntime = ({
       if (patch.canvasOpenTerminalIds !== undefined) {
         uiState.canvasOpenTerminalIds = [...patch.canvasOpenTerminalIds];
       }
+      if (patch.canvasOpenTentacleIds !== undefined) {
+        uiState.canvasOpenTentacleIds = [...patch.canvasOpenTentacleIds];
+      }
       if (patch.canvasTerminalsPanelWidth !== undefined) {
         uiState.canvasTerminalsPanelWidth = patch.canvasTerminalsPanelWidth;
       }

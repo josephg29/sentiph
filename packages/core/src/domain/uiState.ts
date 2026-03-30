@@ -16,5 +16,6 @@ export type PersistedUiState = {
   minimizedTerminalIds?: string[];
   terminalWidths?: Record<string, number>;
   canvasOpenTerminalIds?: string[];
+  canvasOpenTentacleIds?: string[];
   canvasTerminalsPanelWidth?: number;
 };
