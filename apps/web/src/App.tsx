@@ -342,6 +342,12 @@ export const App = () => {
     );
   }, []);
 
+  const handleTerminalActivity = useCallback((terminalId: string) => {
+    setTerminals((current) =>
+      current.map((t) => (t.terminalId === terminalId ? { ...t, hasUserPrompt: true } : t)),
+    );
+  }, []);
+
   return (
     <div className="page console-shell">
       {isRuntimeStatusStripVisible && (
@@ -543,6 +549,7 @@ export const App = () => {
                 void confirmDeleteTerminal();
               },
               onTerminalRenamed: handleTerminalRenamed,
+              onTerminalActivity: handleTerminalActivity,
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,

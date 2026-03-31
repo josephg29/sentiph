@@ -927,6 +927,12 @@ export const createTerminalRuntime = ({
         // Update last-active timestamp (determines active/inactive on the canvas).
         terminal.lastActiveAt = new Date().toISOString();
 
+        // Notify connected clients so the canvas can mark the terminal as active.
+        const activitySession = sessions.get(terminal.terminalId);
+        if (activitySession) {
+          broadcastMessage(activitySession, { type: "activity" });
+        }
+
         // Auto-name the terminal from the first prompt when it still has its default name.
         if (terminal.tentacleName === terminal.terminalId) {
           const prompt =

@@ -45,11 +45,16 @@ export type TerminalRenameMessage = {
   tentacleName: string;
 };
 
+export type TerminalActivityMessage = {
+  type: "activity";
+};
+
 export type TerminalServerMessage =
   | TerminalStateMessage
   | TerminalOutputMessage
   | TerminalHistoryMessage
-  | TerminalRenameMessage;
+  | TerminalRenameMessage
+  | TerminalActivityMessage;
 
 export type DirectSessionListener = (message: TerminalServerMessage) => void;
 

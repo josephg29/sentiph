@@ -12,6 +12,7 @@ type CanvasTerminalColumnProps = {
   onClose: () => void;
   onFocus?: () => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
+  onTerminalActivity?: ((terminalId: string) => void) | undefined;
 };
 
 export const CanvasTerminalColumn = ({
@@ -21,6 +22,7 @@ export const CanvasTerminalColumn = ({
   onClose,
   onFocus,
   onTerminalRenamed,
+  onTerminalActivity,
 }: CanvasTerminalColumnProps) => {
   const [agentState, setAgentState] = useState<AgentRuntimeState>("idle");
 
@@ -71,6 +73,7 @@ export const CanvasTerminalColumn = ({
           terminalLabel={node.label}
           onAgentRuntimeStateChange={setAgentState}
           {...(onTerminalRenamed ? { onTerminalRenamed } : {})}
+          {...(onTerminalActivity ? { onTerminalActivity } : {})}
         />
       </div>
     </section>

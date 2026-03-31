@@ -14,6 +14,7 @@ type TerminalProps = {
   onSelectTerminal?: (terminalId: string) => void;
   onAgentRuntimeStateChange?: (state: AgentRuntimeState) => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
+  onTerminalActivity?: ((terminalId: string) => void) | undefined;
 };
 
 type TerminalStateMessage = {
@@ -36,11 +37,16 @@ type TerminalRenameMessage = {
   tentacleName: string;
 };
 
+type TerminalActivityMessage = {
+  type: "activity";
+};
+
 type TerminalServerMessage =
   | TerminalStateMessage
   | TerminalOutputMessage
   | TerminalHistoryMessage
-  | TerminalRenameMessage;
+  | TerminalRenameMessage
+  | TerminalActivityMessage;
 const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
 const PromptInjectIcon = () => (
@@ -63,6 +69,7 @@ export const Terminal = ({
   onSelectTerminal,
   onAgentRuntimeStateChange,
   onTerminalRenamed,
+  onTerminalActivity,
 }: TerminalProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -164,6 +171,11 @@ export const Terminal = ({
 
           if (payload.type === "rename" && typeof payload.tentacleName === "string") {
             onTerminalRenamed?.(terminalId, payload.tentacleName);
+            return;
+          }
+
+          if (payload.type === "activity") {
+            onTerminalActivity?.(terminalId);
             return;
           }
         } catch {

@@ -51,6 +51,7 @@ type CanvasPrimaryViewProps = {
   onCancelDelete?: () => void;
   onConfirmDelete?: () => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
+  onTerminalActivity?: ((terminalId: string) => void) | undefined;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -78,6 +79,7 @@ export const CanvasPrimaryView = ({
   onCancelDelete,
   onConfirmDelete,
   onTerminalRenamed,
+  onTerminalActivity,
 }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
@@ -649,6 +651,7 @@ export const CanvasPrimaryView = ({
                 onClose={() => handleCloseTerminal(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onTerminalRenamed={onTerminalRenamed}
+                onTerminalActivity={onTerminalActivity}
               />
             ))}
           </div>
