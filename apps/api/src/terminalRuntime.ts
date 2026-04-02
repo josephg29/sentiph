@@ -927,9 +927,13 @@ export const createTerminalRuntime = ({
         // Update last-active timestamp (determines active/inactive on the canvas).
         terminal.lastActiveAt = new Date().toISOString();
 
-        // Notify connected clients so the canvas can mark the terminal as active.
+        // The user submitted a prompt, so the agent is about to start processing.
+        // Transition state out of waiting/idle to processing immediately.
         const activitySession = sessions.get(terminal.terminalId);
         if (activitySession) {
+          activitySession.agentState = "processing";
+          activitySession.stateTracker.forceState("processing");
+          broadcastMessage(activitySession, { type: "state", state: "processing" });
           broadcastMessage(activitySession, { type: "activity" });
         }
 
