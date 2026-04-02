@@ -180,8 +180,8 @@ export const OctopusNode = ({
               target.x - node.x,
               target.y - node.y,
               target.radius,
-              i,
-              connectedNodes.length,
+              0,
+              1,
             )}
             fill="none"
             stroke={active ? (selectedNodeColor ?? color) : "#C0C0C0"}
