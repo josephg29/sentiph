@@ -85,6 +85,19 @@ export const useForceSimulation = ({
   const nodeIdKey = useMemo(() => nodes.map((n) => n.id).join("\0"), [nodes]);
   const edgeKey = useMemo(() => edges.map((e) => `${e.source}\0${e.target}`).join("\0"), [edges]);
 
+  // Content key — captures mutable node properties that should update the snapshot
+  // even when topology (nodeIdKey/edgeKey) hasn't changed.
+  const contentKey = useMemo(
+    () =>
+      nodes
+        .map(
+          (n) =>
+            `${n.id}\t${n.hasUserPrompt ?? ""}\t${n.agentState ?? ""}\t${n.color}\t${n.label}`,
+        )
+        .join("\0"),
+    [nodes],
+  );
+
   useEffect(() => {
     const currentNodes = nodesRef.current;
     const currentEdges = edgesRef.current;
@@ -184,6 +197,34 @@ export const useForceSimulation = ({
       simRef.current = sim;
     }
   }, [nodeIdKey, edgeKey, centerX, centerY]);
+
+  // Sync non-topology node property changes (e.g., hasUserPrompt, agentState,
+  // color, label) into the simulation's internal nodes and produce a fresh
+  // snapshot without reheating the simulation.
+  useEffect(() => {
+    const map = simNodeMapRef.current;
+    const currentNodes = nodesRef.current;
+    let changed = false;
+
+    for (const gn of currentNodes) {
+      const sn = map.get(gn.id);
+      if (sn && sn._gn !== gn) {
+        sn._gn = gn;
+        changed = true;
+      }
+    }
+
+    if (changed && simRef.current) {
+      const updated: GraphNode[] = simRef.current.nodes().map((sn) => ({
+        ...sn._gn,
+        x: sn.x ?? sn._gn.x,
+        y: sn.y ?? sn._gn.y,
+        vx: sn.vx ?? 0,
+        vy: sn.vy ?? 0,
+      }));
+      setSnapshot(updated);
+    }
+  }, [contentKey]);
 
   // Apply param changes without rebuilding the simulation
   useEffect(() => {

@@ -550,6 +550,9 @@ export const App = () => {
               },
               onTerminalRenamed: handleTerminalRenamed,
               onTerminalActivity: handleTerminalActivity,
+              onRefreshColumns: () => {
+                void readColumns().then(setTerminals);
+              },
             }}
             conversationsPrimaryViewProps={{
               errorMessage: conversationsErrorMessage,

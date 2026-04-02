@@ -9,6 +9,7 @@ import type { TerminalView } from "../app/types";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
+import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 
@@ -52,6 +53,7 @@ type CanvasPrimaryViewProps = {
   onConfirmDelete?: () => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
+  onRefreshColumns?: () => void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -80,8 +82,10 @@ export const CanvasPrimaryView = ({
   onConfirmDelete,
   onTerminalRenamed,
   onTerminalActivity,
+  onRefreshColumns,
 }: CanvasPrimaryViewProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
   const [openTentacles, setOpenTentacles] = useState<Map<string, GraphNode>>(new Map());
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
@@ -605,6 +609,15 @@ export const CanvasPrimaryView = ({
             <span className="canvas-toolbar-icon">&#x23F8;</span>
             <span className="canvas-toolbar-label">{hideIdleTerminals ? "Show Idle" : "Hide Idle"}</span>
           </button>
+          <div className="canvas-toolbar-separator" />
+          <button
+            type="button"
+            className="canvas-toolbar-btn canvas-toolbar-btn--danger"
+            onClick={() => setIsDeleteAllDialogOpen(true)}
+          >
+            <span className="canvas-toolbar-icon">&#x2715;</span>
+            <span className="canvas-toolbar-label">Delete All</span>
+          </button>
         </div>
       </div>
 
@@ -742,6 +755,22 @@ export const CanvasPrimaryView = ({
             isDeletingTerminalId={isDeletingTerminalId ?? null}
             onCancel={onCancelDelete}
             onConfirmDelete={onConfirmDelete}
+          />
+        </div>
+      )}
+
+      {isDeleteAllDialogOpen && (
+        <div className="canvas-delete-dialog">
+          <DeleteAllTerminalsDialog
+            columns={columns}
+            nodes={nodes}
+            onCancel={() => setIsDeleteAllDialogOpen(false)}
+            onDeleted={() => {
+              setIsDeleteAllDialogOpen(false);
+              setOpenTerminals(new Map());
+              onRefreshColumns?.();
+              refreshGraphData();
+            }}
           />
         </div>
       )}

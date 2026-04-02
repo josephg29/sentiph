@@ -936,3 +936,78 @@
   width: 340px;
   max-width: calc(100% - 32px);
 }
+
+/* ── Danger toolbar button (subtle until hovered) ── */
+
+.canvas-toolbar-btn--danger:hover {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border-color: #6b3030;
+  color: #e5a0a0;
+}
+
+/* ── Delete-all mode toggle ── */
+
+.delete-all-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.delete-all-mode-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #d1d5db;
+  letter-spacing: 0.03em;
+}
+
+.delete-all-toggle-switch {
+  position: relative;
+  width: 2.35rem;
+  height: 1.22rem;
+  border: 1px solid #405064;
+  border-radius: 999px;
+  background: #0c141f;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.delete-all-toggle-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-all-toggle-thumb {
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #2f3946;
+  background: #9eb0c8;
+  transform: translateX(0);
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.delete-all-toggle-switch[aria-checked="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 50%, #405064);
+  background: color-mix(in srgb, var(--accent-primary) 15%, #101926 85%);
+}
+
+.delete-all-toggle-switch[aria-checked="true"] .delete-all-toggle-thumb {
+  transform: translateX(1.08rem);
+  background: #e5dcc8;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, #3a3526);
+}
+
+.delete-all-details div {
+  grid-template-columns: 80px 1fr;
+}
+
+.delete-all-progress {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  padding-top: 0.25rem;
+}
