@@ -14,6 +14,7 @@ import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
 
 type ContextMenuState =
+  | { kind: "canvas"; x: number; y: number }
   | { kind: "tentacle"; x: number; y: number; tentacleId: string }
   | { kind: "octoboss"; x: number; y: number }
   | {
@@ -384,7 +385,12 @@ export const CanvasPrimaryView = ({
         }
         el = el.parentElement;
       }
-      if (!nodeId) return;
+      if (!nodeId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({ kind: "canvas", x: e.clientX, y: e.clientY });
+        return;
+      }
       const node = nodesByIdRef.current.get(nodeId);
       if (!node) return;
 
@@ -679,6 +685,32 @@ export const CanvasPrimaryView = ({
             className="canvas-context-menu"
             style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
           >
+            {contextMenu.kind === "canvas" && (
+              <>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => {
+                    setContextMenu(null);
+                    onCreateTentacle?.();
+                  }}
+                >
+                  <span className="canvas-context-menu-icon">&#x2B21;</span>
+                  New Tentacle
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => {
+                    setContextMenu(null);
+                    onCreateTerminal?.();
+                  }}
+                >
+                  <span className="canvas-context-menu-icon">&gt;_</span>
+                  New Terminal
+                </button>
+              </>
+            )}
             {contextMenu.kind === "tentacle" && (
               <>
                 <button
