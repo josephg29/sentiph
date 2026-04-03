@@ -5,15 +5,11 @@ import type { TerminalView } from "../app/types";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
-import { CommunicationsPrimaryView } from "./CommunicationsPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
-import { SandboxPrimaryView } from "./SandboxPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
-import { StateSandboxPrimaryView } from "./StateSandboxPrimaryView";
 import { TerminalBoard } from "./TerminalBoard";
-import { UsageSandboxPrimaryView } from "./UsageSandboxPrimaryView";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -100,27 +96,11 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 6) {
-    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
-  }
-
-  if (activePrimaryNav === 7) {
-    return <SandboxPrimaryView />;
-  }
-
-  if (activePrimaryNav === 8) {
-    return <StateSandboxPrimaryView />;
-  }
-
-  if (activePrimaryNav === 9) {
     return <TerminalBoard {...terminalBoardProps} />;
   }
 
-  if (activePrimaryNav === 10) {
-    return <CommunicationsPrimaryView />;
-  }
-
-  if (activePrimaryNav === 11) {
-    return <UsageSandboxPrimaryView />;
+  if (activePrimaryNav === 7) {
+    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
