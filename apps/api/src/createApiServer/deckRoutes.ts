@@ -409,6 +409,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
       runtime.createTerminal({
         terminalId: workerTerminalId,
         tentacleId,
+        worktreeId: workerTerminalId,
         tentacleName,
         workspaceMode: "worktree",
         ...(agentProviderResult.agentProvider
@@ -428,11 +429,16 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         .map((w) => `- \`${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
         .join("\n");
 
+      const workerBranches = workers
+        .map((w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
+        .join("\n");
+
       const parentPrompt = await resolvePrompt(workspaceCwd, "swarm-parent", {
         tentacleName,
         tentacleId,
         workerCount: String(workers.length),
         workerListing,
+        workerBranches,
         terminalId: parentTerminalId,
         apiPort,
       });

@@ -10,7 +10,7 @@ import type {
   TentacleWorkspaceMode,
   TerminalRegistryDocument,
 } from "./types";
-import { isTerminalCompletionSoundId } from "./types";
+import { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -227,13 +227,21 @@ const parseV3Terminals = (
       throw new Error(`Duplicate terminal id in registry (${registryPath}): ${terminalId}`);
     }
 
-    terminals.set(terminalId, {
+    const terminal: PersistedTerminal = {
       terminalId,
       tentacleId,
       tentacleName,
       createdAt,
       workspaceMode,
-    });
+    };
+    if (typeof entry.worktreeId === "string") terminal.worktreeId = entry.worktreeId;
+    if (typeof entry.parentTerminalId === "string")
+      terminal.parentTerminalId = entry.parentTerminalId;
+    if (isTerminalAgentProvider(entry.agentProvider))
+      terminal.agentProvider = entry.agentProvider;
+    if (typeof entry.initialPrompt === "string") terminal.initialPrompt = entry.initialPrompt;
+    if (typeof entry.lastActiveAt === "string") terminal.lastActiveAt = entry.lastActiveAt;
+    terminals.set(terminalId, terminal);
   }
 
   return terminals;

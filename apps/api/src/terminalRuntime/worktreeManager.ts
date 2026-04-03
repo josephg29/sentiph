@@ -16,13 +16,17 @@ type RemoveTentacleWorktreeOptions = {
   bestEffort?: boolean;
 };
 
-/** Find any terminal belonging to the given tentacleId and return it. */
-const findTerminalForTentacle = (
+/** Resolve the effective worktree identifier for a terminal. */
+const getEffectiveWorktreeId = (terminal: PersistedTerminal): string =>
+  terminal.worktreeId ?? terminal.tentacleId;
+
+/** Find any terminal whose effective worktree identifier matches. */
+const findTerminalForWorktree = (
   terminals: Map<string, PersistedTerminal>,
-  tentacleId: string,
+  worktreeIdentifier: string,
 ): PersistedTerminal | undefined => {
   for (const terminal of terminals.values()) {
-    if (terminal.tentacleId === tentacleId) {
+    if (getEffectiveWorktreeId(terminal) === worktreeIdentifier) {
       return terminal;
     }
   }
@@ -39,14 +43,14 @@ export const createWorktreeManager = ({
   const getTentacleBranchName = (tentacleId: string) =>
     `${TENTACLE_WORKTREE_BRANCH_PREFIX}${tentacleId}`;
 
-  const getTentacleWorkspaceCwd = (tentacleId: string) => {
-    const terminal = findTerminalForTentacle(terminals, tentacleId);
+  const getTentacleWorkspaceCwd = (worktreeIdentifier: string) => {
+    const terminal = findTerminalForWorktree(terminals, worktreeIdentifier);
     if (!terminal) {
-      throw new Error(`No terminal found for tentacle: ${tentacleId}`);
+      throw new Error(`No terminal found for worktree: ${worktreeIdentifier}`);
     }
 
     if (terminal.workspaceMode === "worktree") {
-      return getTentacleWorktreePath(tentacleId);
+      return getTentacleWorktreePath(worktreeIdentifier);
     }
 
     return workspaceCwd;

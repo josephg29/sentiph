@@ -36,14 +36,49 @@ Not all worker signals mean the same thing. Match your response to their state:
 - **BLOCKED** — Worker is stuck. Read their message carefully, investigate the issue (check their branch, read relevant code), and send specific, actionable guidance. Don't send vague encouragement like "try again" or "keep going."
 - **Silent** — A worker that hasn't reported in a while may be stuck without knowing how to ask for help, or may still be working. Check their channel. If no messages after two check cycles, send a status request.
 
+## Worker Branches
+
+Each worker commits to its own isolated branch:
+
+{{workerBranches}}
+
 ## Merging Strategy
 
-Only begin merging after ALL {{workerCount}} workers have reported DONE. Before merging each branch:
+Only begin merging after ALL {{workerCount}} workers have reported DONE.
 
-1. Verify the branch exists and has commits beyond the base.
-2. Review the diff — check that changes match the assigned todo item and don't introduce obvious issues.
-3. Merge into the tentacle branch, resolving conflicts as they arise. Merge order matters: start with the branch that has the fewest conflicts with the base.
-4. After all branches are merged, mark completed items as done in `.octogent/tentacles/{{tentacleId}}/todo.md`.
+### Step-by-step merge process
+
+1. **Create an integration branch** from the current HEAD:
+   ```bash
+   git checkout -b octogent_integration_{{tentacleId}}
+   ```
+
+2. **Merge each worker branch** into the integration branch one at a time. Start with the branch most likely to merge cleanly (fewest changes):
+   ```bash
+   git merge <worker-branch-name> --no-edit
+   ```
+   If there are conflicts, resolve them carefully. Read the conflicting files and understand both sides before choosing.
+
+3. **Run tests** on the integration branch after all merges. Do not skip this step.
+
+4. **If tests pass**, merge the integration branch into the base branch:
+   ```bash
+   git checkout main
+   git merge octogent_integration_{{tentacleId}} --no-edit
+   ```
+
+5. **If tests fail**, investigate and fix before merging. Do not merge broken code.
+
+6. **Mark completed items as done** in `.octogent/tentacles/{{tentacleId}}/todo.md`.
+
+7. **Clean up** the integration branch:
+   ```bash
+   git branch -d octogent_integration_{{tentacleId}}
+   ```
+
+### Merge failure recovery
+
+If a worker's branch has conflicts that are too complex to resolve, send a message to that worker asking them to rebase their work. Merge the other workers' branches first.
 
 ## Common Failure Modes
 

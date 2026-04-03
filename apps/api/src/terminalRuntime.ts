@@ -193,7 +193,7 @@ export const createTerminalRuntime = ({
     if (terminal) {
       return {
         sessionId: terminalId,
-        tentacleId: terminal.tentacleId,
+        tentacleId: terminal.worktreeId ?? terminal.tentacleId,
       };
     }
 
@@ -258,6 +258,7 @@ export const createTerminalRuntime = ({
   const createTerminal = ({
     terminalId: requestedTerminalId,
     tentacleId: requestedTentacleId,
+    worktreeId: requestedWorktreeId,
     tentacleName,
     workspaceMode = "shared",
     agentProvider,
@@ -267,6 +268,7 @@ export const createTerminalRuntime = ({
   }: {
     terminalId?: string;
     tentacleId?: string;
+    worktreeId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
@@ -293,10 +295,12 @@ export const createTerminalRuntime = ({
 
     // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
     const tentacleId = requestedTentacleId ?? terminalId;
+    const worktreeId = requestedWorktreeId;
 
     const terminal: PersistedTerminal = {
       terminalId,
       tentacleId,
+      ...(worktreeId ? { worktreeId } : {}),
       tentacleName: tentacleName ?? terminalId,
       createdAt: new Date().toISOString(),
       workspaceMode,
@@ -305,15 +309,16 @@ export const createTerminalRuntime = ({
       ...(parentTerminalId ? { parentTerminalId } : {}),
     };
 
+    const effectiveWorktreeId = worktreeId ?? tentacleId;
     const shouldCreateWorktree = workspaceMode === "worktree";
     if (shouldCreateWorktree) {
-      worktreeManager.createTentacleWorktree(tentacleId, baseRef);
+      worktreeManager.createTentacleWorktree(effectiveWorktreeId, baseRef);
     }
 
     // Install hooks in the terminal's working directory.
     try {
       const hookTargetCwd = shouldCreateWorktree
-        ? worktreeManager.getTentacleWorkspaceCwd(tentacleId)
+        ? worktreeManager.getTentacleWorkspaceCwd(effectiveWorktreeId)
         : workspaceCwd;
       installHooksInDirectory(hookTargetCwd);
     } catch {
@@ -364,7 +369,9 @@ export const createTerminalRuntime = ({
 
     return {
       terminal,
-      workspaceCwd: worktreeManager.getTentacleWorkspaceCwd(tentacleId),
+      workspaceCwd: worktreeManager.getTentacleWorkspaceCwd(
+        terminal.worktreeId ?? terminal.tentacleId,
+      ),
     };
   };
 
@@ -785,7 +792,7 @@ export const createTerminalRuntime = ({
 
       sessionRuntime.closeSession(terminalId);
       if (terminal.workspaceMode === "worktree") {
-        worktreeManager.removeTentacleWorktree(terminal.tentacleId);
+        worktreeManager.removeTentacleWorktree(terminal.worktreeId ?? terminal.tentacleId);
       }
       terminals.delete(terminalId);
       persistRegistry();

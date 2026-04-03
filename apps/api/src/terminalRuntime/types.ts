@@ -104,6 +104,7 @@ export {
 export type PersistedTerminal = {
   terminalId: string;
   tentacleId: string;
+  worktreeId?: string;
   tentacleName: string;
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
@@ -184,11 +185,13 @@ export type TerminalRuntime = {
   createTerminal(options: {
     terminalId?: string;
     tentacleId?: string;
+    worktreeId?: string;
     tentacleName?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
     initialPrompt?: string;
     baseRef?: string;
+    parentTerminalId?: string;
   }): TerminalSnapshot;
   renameTerminal(terminalId: string, tentacleName: string): TerminalSnapshot | null;
   deleteTerminal(terminalId: string): boolean;

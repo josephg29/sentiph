@@ -14,7 +14,7 @@ Before writing any code, read the tentacle context at `.octogent/tentacles/{{ten
 
 ## Working Guidelines
 
-- You are working in an isolated git worktree. Make changes freely without worrying about conflicts with other agents.
+- You are working in an isolated git worktree on branch `octogent/{{terminalId}}`. Make changes freely without worrying about conflicts with other agents.
 - Focus exclusively on the todo item above.
 - Write or update tests for the changes you make. Run tests before declaring done.
 - Commit your changes with a clear commit message describing what you did.
