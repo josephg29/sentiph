@@ -147,6 +147,9 @@ export const CanvasPrimaryView = ({
       }
       if (restoredMap.size > 0) {
         setOpenTerminals(restoredMap);
+      } else {
+        // Nodes not yet in the simulation graph — wait for the next tick
+        return;
       }
     }
 
@@ -703,7 +706,12 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => {
                     setContextMenu(null);
-                    onCreateTerminal?.();
+                    const result = onCreateTerminal?.();
+                    if (result && typeof result.then === "function") {
+                      void result.then((agentId) => {
+                        if (agentId) setPendingOpenAgentId(agentId);
+                      });
+                    }
                   }}
                 >
                   <span className="canvas-context-menu-icon">&gt;_</span>

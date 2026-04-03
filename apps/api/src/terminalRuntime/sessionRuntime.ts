@@ -10,6 +10,7 @@ import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetectio
 import {
   DEFAULT_AGENT_PROVIDER,
   TERMINAL_BOOTSTRAP_COMMANDS,
+  TERMINAL_RESUME_BOOTSTRAP_COMMANDS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
@@ -256,9 +257,23 @@ export const createSessionRuntime = ({
     session.isBootstrapCommandSent = true;
     const terminal = terminals.get(session.terminalId);
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
-    const bootstrapCommand =
-      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
-    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
+
+    // If a transcript already exists for this terminal, resume the previous conversation
+    const transcriptPath = join(
+      transcriptDirectoryPath,
+      transcriptFilenameForSession(sessionId),
+    );
+    const hasExistingSession = existsSync(transcriptPath);
+    const bootstrapCommand = hasExistingSession
+      ? (TERMINAL_RESUME_BOOTSTRAP_COMMANDS[provider] ??
+        TERMINAL_BOOTSTRAP_COMMANDS[provider] ??
+        TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER])
+      : (TERMINAL_BOOTSTRAP_COMMANDS[provider] ??
+        TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER]);
+    appendDebugLog(
+      session,
+      `bootstrap session=${sessionId} command=${bootstrapCommand} resume=${hasExistingSession}`,
+    );
     session.pty.write(`${bootstrapCommand}\r`);
 
     // Schedule initial prompt injection after Claude Code has had time to boot.

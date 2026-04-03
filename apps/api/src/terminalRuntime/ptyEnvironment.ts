@@ -11,6 +11,8 @@ export const createShellEnvironment = (options?: { octogentSessionId?: string })
       env[key] = value;
     }
   }
+  env.TERM = "xterm-256color";
+  env.COLORTERM = "truecolor";
   if (options?.octogentSessionId) {
     env.OCTOGENT_SESSION_ID = options.octogentSessionId;
   }
