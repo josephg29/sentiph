@@ -59,6 +59,7 @@ export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminal
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 const MAX_AUTO_NAME_LENGTH = 50;
+const MAX_CHILDREN_PER_PARENT = 9;
 
 const deriveTerminalNameFromPrompt = (prompt: string): string => {
   const normalized = prompt.replace(/\s+/g, " ").trim();
@@ -251,6 +252,7 @@ export const createTerminalRuntime = ({
     workspaceMode: terminal.workspaceMode,
     createdAt: terminal.createdAt,
     hasUserPrompt: isTerminalRecentlyActive(terminal),
+    ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
   });
 
   const createTerminal = ({
@@ -261,6 +263,7 @@ export const createTerminalRuntime = ({
     agentProvider,
     initialPrompt,
     baseRef,
+    parentTerminalId,
   }: {
     terminalId?: string;
     tentacleId?: string;
@@ -269,7 +272,20 @@ export const createTerminalRuntime = ({
     agentProvider?: TerminalAgentProvider;
     initialPrompt?: string;
     baseRef?: string;
+    parentTerminalId?: string;
   }): TerminalSnapshot => {
+    // Enforce max children per parent.
+    if (parentTerminalId) {
+      const childCount = [...terminals.values()].filter(
+        (t) => t.parentTerminalId === parentTerminalId,
+      ).length;
+      if (childCount >= MAX_CHILDREN_PER_PARENT) {
+        throw new RuntimeInputError(
+          `Parent terminal "${parentTerminalId}" already has ${MAX_CHILDREN_PER_PARENT} children (limit reached).`,
+        );
+      }
+    }
+
     const terminalId =
       requestedTerminalId && !terminals.has(requestedTerminalId)
         ? requestedTerminalId
@@ -286,6 +302,7 @@ export const createTerminalRuntime = ({
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
       ...(initialPrompt ? { initialPrompt } : {}),
+      ...(parentTerminalId ? { parentTerminalId } : {}),
     };
 
     const shouldCreateWorktree = workspaceMode === "worktree";

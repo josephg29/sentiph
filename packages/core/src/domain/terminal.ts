@@ -10,4 +10,5 @@ export type TerminalSnapshot = {
   workspaceMode?: TentacleWorkspaceMode;
   createdAt: string;
   hasUserPrompt?: boolean;
+  parentTerminalId?: string;
 };

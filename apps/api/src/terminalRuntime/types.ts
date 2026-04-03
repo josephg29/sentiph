@@ -110,6 +110,7 @@ export type PersistedTerminal = {
   agentProvider?: TerminalAgentProvider;
   initialPrompt?: string;
   lastActiveAt?: string;
+  parentTerminalId?: string;
 };
 
 export type GitClientPullRequestSnapshot = Omit<

@@ -80,6 +80,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TerminalAgentProvider;
       initialPrompt?: string;
+      parentTerminalId?: string;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
@@ -103,6 +104,13 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.tentacleId.trim().length > 0
     ) {
       createTerminalInput.tentacleId = bodyPayload.tentacleId.trim();
+    }
+    if (
+      bodyPayload &&
+      typeof bodyPayload.parentTerminalId === "string" &&
+      bodyPayload.parentTerminalId.trim().length > 0
+    ) {
+      createTerminalInput.parentTerminalId = bodyPayload.parentTerminalId.trim();
     }
 
     // Support prompt resolution via template name + variables, or a raw string.

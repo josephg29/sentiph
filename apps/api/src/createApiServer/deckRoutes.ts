@@ -406,6 +406,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
           : {}),
         ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
         baseRef,
+        ...(parentTerminalId ? { parentTerminalId } : {}),
       });
 
       workers.push({ terminalId: workerTerminalId, todoIndex: item.index, todoText: item.text });
