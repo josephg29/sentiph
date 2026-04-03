@@ -329,6 +329,7 @@ const SPRITE_H =
   TAIL_NEUTRAL.length;
 
 export type OctopusAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "bounce" | "float";
+// "sleepy" is reserved for idle/inactive tentacles — never assign it randomly on creation.
 export type OctopusExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
 export type OctopusAccessory = "none" | "long" | "mohawk" | "side-sweep" | "curly";
 

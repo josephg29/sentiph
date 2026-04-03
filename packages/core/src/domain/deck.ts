@@ -2,6 +2,7 @@ export type DeckTentacleStatus = "idle" | "active" | "blocked" | "needs-review";
 
 export type DeckOctopusAppearance = {
   animation: string | null;
+  /** Valid: "normal" | "happy" | "angry" | "surprised". "sleepy" is reserved for idle state — never assign on creation. */
   expression: string | null;
   accessory: string | null;
   hairColor: string | null;
