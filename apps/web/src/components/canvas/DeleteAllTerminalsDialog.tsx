@@ -21,16 +21,11 @@ export const DeleteAllTerminalsDialog = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
-  const inactiveTerminals = useMemo(
-    () => columns.filter((t) => !t.hasUserPrompt),
-    [columns],
-  );
+  const inactiveTerminals = useMemo(() => columns.filter((t) => !t.hasUserPrompt), [columns]);
 
   const inactiveSessionIds = useMemo(
     () =>
-      nodes
-        .filter((n) => n.type === "inactive-session" && n.sessionId)
-        .map((n) => n.sessionId!),
+      nodes.filter((n) => n.type === "inactive-session" && n.sessionId).map((n) => n.sessionId!),
     [nodes],
   );
 

@@ -1,0 +1,38 @@
+.console-shell .code-intel-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.56rem;
+  display: grid;
+  align-content: start;
+  gap: 0.56rem;
+}
+
+.code-intel-panel {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #090d12;
+  padding: 0.68rem;
+  display: grid;
+  align-content: start;
+  gap: 0.58rem;
+}
+
+.code-intel-panel-header {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.code-intel-panel-header h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.02em;
+}
+
+.code-intel-panel-header p {
+  margin: 0;
+  color: #6b7a90;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

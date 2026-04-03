@@ -259,10 +259,7 @@ export const createSessionRuntime = ({
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
     // If a transcript already exists for this terminal, resume the previous conversation
-    const transcriptPath = join(
-      transcriptDirectoryPath,
-      transcriptFilenameForSession(sessionId),
-    );
+    const transcriptPath = join(transcriptDirectoryPath, transcriptFilenameForSession(sessionId));
     const hasExistingSession = existsSync(transcriptPath);
     const bootstrapCommand = hasExistingSession
       ? (TERMINAL_RESUME_BOOTSTRAP_COMMANDS[provider] ??

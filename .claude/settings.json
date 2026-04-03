@@ -34,9 +34,7 @@
             "headers": {
               "X-Octogent-Session": "$OCTOGENT_SESSION_ID"
             },
-            "allowedEnvVars": [
-              "OCTOGENT_SESSION_ID"
-            ],
+            "allowedEnvVars": ["OCTOGENT_SESSION_ID"],
             "timeout": 5
           }
         ]
@@ -52,9 +50,23 @@
             "headers": {
               "X-Octogent-Session": "$OCTOGENT_SESSION_ID"
             },
-            "allowedEnvVars": [
-              "OCTOGENT_SESSION_ID"
-            ],
+            "allowedEnvVars": ["OCTOGENT_SESSION_ID"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:8787/api/code-intel/events",
+            "headers": {
+              "X-Octogent-Session": "$OCTOGENT_SESSION_ID"
+            },
+            "allowedEnvVars": ["OCTOGENT_SESSION_ID"],
             "timeout": 5
           }
         ]

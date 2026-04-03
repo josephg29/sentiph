@@ -253,9 +253,7 @@ export const CanvasTentaclePanel = ({
           background: `linear-gradient(180deg, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 90%, #ffd89d 10%) 0%, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 78%, #d9851c 22%) 100%)`,
         }}
       >
-        <span className="detail-title">
-          {tentacle?.displayName ?? node.label}
-        </span>
+        <span className="detail-title">{tentacle?.displayName ?? node.label}</span>
         {tentacle && (
           <span className="detail-type-badge">
             {STATUS_LABELS[tentacle.status] ?? tentacle.status}

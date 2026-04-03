@@ -4,6 +4,7 @@ import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
+import type { CodeIntelStore } from "../codeIntelStore";
 import type { MonitorService } from "../monitor";
 import { RequestBodyTooLargeError, readJsonBody } from "./requestParsers";
 import { withCors } from "./security";
@@ -19,6 +20,7 @@ export type RouteHandlerDependencies = {
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
+  codeIntelStore: CodeIntelStore;
 };
 
 export type RouteHandlerContext = {

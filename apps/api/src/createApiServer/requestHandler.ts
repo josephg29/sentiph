@@ -2,9 +2,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
+import type { CodeIntelStore } from "../codeIntelStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import type { MonitorService } from "../monitor";
+import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
   handleConversationExportRoute,
   handleConversationItemRoute,
@@ -68,6 +70,7 @@ type CreateApiRequestHandlerOptions = {
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
+  codeIntelStore: CodeIntelStore;
   allowRemoteAccess: boolean;
 };
 
@@ -106,6 +109,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ],
   ["terminals", [handleTerminalsCollectionRoute, handleTerminalItemRoute]],
   ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
+  ["code-intel", [handleCodeIntelEventsRoute]],
 ]);
 
 const extractRoutePrefix = (pathname: string): string | null => {
@@ -129,6 +133,7 @@ export const createApiRequestHandler = ({
   scanUsageHeatmap,
   monitorService,
   invalidateClaudeUsageCache,
+  codeIntelStore,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
   const routeDependencies: RouteHandlerDependencies = {
@@ -140,6 +145,7 @@ export const createApiRequestHandler = ({
     scanUsageHeatmap,
     monitorService,
     invalidateClaudeUsageCache,
+    codeIntelStore,
   };
 
   return async (request: IncomingMessage, response: ServerResponse) => {

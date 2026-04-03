@@ -140,7 +140,12 @@ export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
 
   const { itemIndex, done } = body.payload as { itemIndex: unknown; done: unknown };
   if (typeof itemIndex !== "number" || typeof done !== "boolean") {
-    writeJson(response, 400, { error: "itemIndex (number) and done (boolean) are required" }, corsOrigin);
+    writeJson(
+      response,
+      400,
+      { error: "itemIndex (number) and done (boolean) are required" },
+      corsOrigin,
+    );
     return true;
   }
 
@@ -177,7 +182,12 @@ export const handleDeckTodoEditRoute: ApiRouteHandler = async (
 
   const { itemIndex, text } = body.payload as { itemIndex: unknown; text: unknown };
   if (typeof itemIndex !== "number" || typeof text !== "string" || text.trim().length === 0) {
-    writeJson(response, 400, { error: "itemIndex (number) and text (non-empty string) are required" }, corsOrigin);
+    writeJson(
+      response,
+      400,
+      { error: "itemIndex (number) and text (non-empty string) are required" },
+      corsOrigin,
+    );
     return true;
   }
 

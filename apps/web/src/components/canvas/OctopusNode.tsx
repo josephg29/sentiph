@@ -174,15 +174,7 @@ export const OctopusNode = ({
           <path
             key={target.id}
             className="canvas-edge"
-            d={buildEdgePath(
-              0,
-              0,
-              target.x - node.x,
-              target.y - node.y,
-              target.radius,
-              0,
-              1,
-            )}
+            d={buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, 0, 1)}
             fill="none"
             stroke={active ? (selectedNodeColor ?? color) : "#C0C0C0"}
             strokeWidth={active ? 2 : 1.5}
@@ -192,9 +184,7 @@ export const OctopusNode = ({
       })}
 
       {/* Focused glow — same style as session nodes */}
-      {showFocus && (
-        <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />
-      )}
+      {showFocus && <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />}
 
       {/* Octopus glyph via foreignObject */}
       <foreignObject

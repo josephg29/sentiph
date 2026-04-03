@@ -284,19 +284,13 @@ export const buildDeckTodoToggleUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildDeckTodoEditUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
+export const buildDeckTodoEditUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/edit`;
   if (!runtimeBaseUrl) return path;
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildDeckTodoAddUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
+export const buildDeckTodoAddUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo`;
   if (!runtimeBaseUrl) return path;
   return buildAbsoluteUrl(runtimeBaseUrl, path);

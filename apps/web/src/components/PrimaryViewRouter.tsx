@@ -5,6 +5,7 @@ import type { TerminalView } from "../app/types";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import type { AgentRuntimeState } from "./AgentStateBadge";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
+import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
@@ -101,6 +102,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 7) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 8) {
+    return <CodeIntelPrimaryView />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

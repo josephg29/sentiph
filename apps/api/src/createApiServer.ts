@@ -6,6 +6,7 @@ import {
   invalidateUsageCache as invalidateUsageCacheDefault,
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
 } from "./claudeUsage";
+import { createCodeIntelStore } from "./codeIntelStore";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
@@ -50,6 +51,8 @@ export const createApiServer = ({
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanClaudeUsageChart(scope, resolvedWorkspaceCwd));
 
+  const codeIntelStore = createCodeIntelStore(resolvedWorkspaceCwd);
+
   const requestHandler = createApiRequestHandler({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
@@ -59,6 +62,7 @@ export const createApiServer = ({
     scanUsageHeatmap: scanUsageHeatmapWithDefault,
     monitorService: monitorServiceWithDefault,
     invalidateClaudeUsageCache,
+    codeIntelStore,
     allowRemoteAccess,
   });
 

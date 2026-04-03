@@ -110,10 +110,7 @@ export const GitHubPrimaryView = ({
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (
-        recentSectionRef.current?.contains(target) ||
-        tooltipRef.current?.contains(target)
-      ) {
+      if (recentSectionRef.current?.contains(target) || tooltipRef.current?.contains(target)) {
         return;
       }
       dismissCommitTooltip();

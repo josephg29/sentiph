@@ -102,7 +102,11 @@ export const CanvasPrimaryView = ({
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
 
-  const { nodes, edges, refresh: refreshGraphData } = useCanvasGraphData({ columns, enabled: true });
+  const {
+    nodes,
+    edges,
+    refresh: refreshGraphData,
+  } = useCanvasGraphData({ columns, enabled: true });
 
   const {
     transform,
@@ -174,12 +178,7 @@ export const CanvasPrimaryView = ({
     if (persistedTerminalsPanelWidth != null && persistedTerminalsPanelWidth > 0) {
       setTerminalsPanelWidth(persistedTerminalsPanelWidth);
     }
-  }, [
-    isHydratingTerminals,
-    canvasOpenTerminalIds,
-    persistedTerminalsPanelWidth,
-    nodesById,
-  ]);
+  }, [isHydratingTerminals, canvasOpenTerminalIds, persistedTerminalsPanelWidth, nodesById]);
 
   // Persist open terminal IDs when they change
   useEffect(() => {
@@ -565,7 +564,9 @@ export const CanvasPrimaryView = ({
                   return true;
                 });
 
-              const selectedColor = selectedNodeId ? (nodesById.get(selectedNodeId)?.color ?? null) : null;
+              const selectedColor = selectedNodeId
+                ? (nodesById.get(selectedNodeId)?.color ?? null)
+                : null;
 
               return (
                 <OctopusNode
@@ -631,7 +632,9 @@ export const CanvasPrimaryView = ({
             onClick={() => setHideIdleTerminals((prev) => !prev)}
           >
             <span className="canvas-toolbar-icon">&#x23F8;</span>
-            <span className="canvas-toolbar-label">{hideIdleTerminals ? "Show Idle" : "Hide Idle"}</span>
+            <span className="canvas-toolbar-label">
+              {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
+            </span>
           </button>
           <div className="canvas-toolbar-separator" />
           <button
