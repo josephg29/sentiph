@@ -1,6 +1,9 @@
 import {
+  addTodoItem,
   createDeckTentacle,
   deleteDeckTentacle,
+  deleteTodoItem,
+  editTodoItem,
   parseTodoProgress,
   readDeckTentacles,
   readDeckVaultFile,
@@ -143,6 +146,117 @@ export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
 
   const tentacleId = decodeURIComponent(match[1] as string);
   const result = toggleTodoItem(workspaceCwd, tentacleId, itemIndex, done);
+  if (!result) {
+    writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, result, corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Todo edit (rename item text)
+// ---------------------------------------------------------------------------
+
+const DECK_TODO_EDIT_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/edit$/;
+
+export const handleDeckTodoEditRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TODO_EDIT_PATTERN);
+  if (!match) return false;
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const { itemIndex, text } = body.payload as { itemIndex: unknown; text: unknown };
+  if (typeof itemIndex !== "number" || typeof text !== "string" || text.trim().length === 0) {
+    writeJson(response, 400, { error: "itemIndex (number) and text (non-empty string) are required" }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const result = editTodoItem(workspaceCwd, tentacleId, itemIndex, text.trim());
+  if (!result) {
+    writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, result, corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Todo add
+// ---------------------------------------------------------------------------
+
+const DECK_TODO_ADD_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo$/;
+
+export const handleDeckTodoAddRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TODO_ADD_PATTERN);
+  if (!match) return false;
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const { text } = body.payload as { text: unknown };
+  if (typeof text !== "string" || text.trim().length === 0) {
+    writeJson(response, 400, { error: "text (non-empty string) is required" }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const result = addTodoItem(workspaceCwd, tentacleId, text.trim());
+  if (!result) {
+    writeJson(response, 404, { error: "Tentacle todo.md not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 201, result, corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Todo delete
+// ---------------------------------------------------------------------------
+
+const DECK_TODO_DELETE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/delete$/;
+
+export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  const match = requestUrl.pathname.match(DECK_TODO_DELETE_PATTERN);
+  if (!match) return false;
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const { itemIndex } = body.payload as { itemIndex: unknown };
+  if (typeof itemIndex !== "number") {
+    writeJson(response, 400, { error: "itemIndex (number) is required" }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const result = deleteTodoItem(workspaceCwd, tentacleId, itemIndex);
   if (!result) {
     writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
     return true;

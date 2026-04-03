@@ -318,6 +318,137 @@ export const toggleTodoItem = (
   return parseTodoProgress(updated);
 };
 
+/**
+ * Edit the text of a todo item in a tentacle's todo.md by item index.
+ */
+export const editTodoItem = (
+  workspaceCwd: string,
+  tentacleId: string,
+  itemIndex: number,
+  text: string,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+
+  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
+  if (!existsSync(filePath)) return null;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+
+  const lines = content.split("\n");
+  let todoIndex = 0;
+  let edited = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = (lines[i] as string).trim();
+    const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
+    if (match) {
+      if (todoIndex === itemIndex) {
+        const indent = (lines[i] as string).match(/^(\s*)/)?.[1] ?? "";
+        lines[i] = `${indent}${match[1]} ${text}`;
+        edited = true;
+        break;
+      }
+      todoIndex++;
+    }
+  }
+
+  if (!edited) return null;
+
+  const updated = lines.join("\n");
+  try {
+    writeFileSync(filePath, updated, "utf-8");
+  } catch {
+    return null;
+  }
+
+  return parseTodoProgress(updated);
+};
+
+/**
+ * Add a new todo item to a tentacle's todo.md.
+ */
+export const addTodoItem = (
+  workspaceCwd: string,
+  tentacleId: string,
+  text: string,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+
+  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
+  if (!existsSync(filePath)) return null;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+
+  const trimmed = content.endsWith("\n") ? content : content + "\n";
+  const updated = trimmed + `- [ ] ${text}\n`;
+
+  try {
+    writeFileSync(filePath, updated, "utf-8");
+  } catch {
+    return null;
+  }
+
+  return parseTodoProgress(updated);
+};
+
+/**
+ * Delete a todo item from a tentacle's todo.md by item index.
+ */
+export const deleteTodoItem = (
+  workspaceCwd: string,
+  tentacleId: string,
+  itemIndex: number,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+
+  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
+  if (!existsSync(filePath)) return null;
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+
+  const lines = content.split("\n");
+  let todoIndex = 0;
+  let deleted = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = (lines[i] as string).trim();
+    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
+      if (todoIndex === itemIndex) {
+        lines.splice(i, 1);
+        deleted = true;
+        break;
+      }
+      todoIndex++;
+    }
+  }
+
+  if (!deleted) return null;
+
+  const updated = lines.join("\n");
+  try {
+    writeFileSync(filePath, updated, "utf-8");
+  } catch {
+    return null;
+  }
+
+  return parseTodoProgress(updated);
+};
+
 // ─── Create a new tentacle ──────────────────────────────────────────────────
 
 export type CreateDeckTentacleInput = {

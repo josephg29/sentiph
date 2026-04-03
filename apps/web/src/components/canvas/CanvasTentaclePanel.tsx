@@ -7,6 +7,9 @@ import type { ConversationSessionSummary } from "../../app/types";
 import {
   buildConversationsUrl,
   buildDeckTentaclesUrl,
+  buildDeckTodoAddUrl,
+  buildDeckTodoDeleteUrl,
+  buildDeckTodoEditUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
 import {
@@ -150,6 +153,11 @@ export const CanvasTentaclePanel = ({
     }
   }, [node.tentacleId]);
 
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [addingTodo, setAddingTodo] = useState(false);
+  const [addText, setAddText] = useState("");
+
   const handleTodoToggle = useCallback(
     async (itemIndex: number, done: boolean) => {
       try {
@@ -157,6 +165,62 @@ export const CanvasTentaclePanel = ({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex, done }),
+        });
+        if (!response.ok) return;
+        await fetchTentacle();
+      } catch {
+        // silent
+      }
+    },
+    [node.tentacleId, fetchTentacle],
+  );
+
+  const handleTodoEdit = useCallback(
+    async (itemIndex: number, text: string) => {
+      if (text.trim().length === 0) return;
+      try {
+        const response = await fetch(buildDeckTodoEditUrl(node.tentacleId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemIndex, text: text.trim() }),
+        });
+        if (!response.ok) return;
+        setEditingIndex(null);
+        await fetchTentacle();
+      } catch {
+        // silent
+      }
+    },
+    [node.tentacleId, fetchTentacle],
+  );
+
+  const handleTodoAdd = useCallback(
+    async (text: string) => {
+      if (text.trim().length === 0) return;
+      try {
+        const response = await fetch(buildDeckTodoAddUrl(node.tentacleId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text.trim() }),
+        });
+        if (!response.ok) return;
+        setAddingTodo(false);
+        setAddText("");
+        await fetchTentacle();
+      } catch {
+        // silent
+      }
+    },
+    [node.tentacleId, fetchTentacle],
+  );
+
+  const handleTodoDelete = useCallback(
+    async (itemIndex: number) => {
+      try {
+        const response = await fetch(buildDeckTodoDeleteUrl(node.tentacleId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemIndex }),
         });
         if (!response.ok) return;
         await fetchTentacle();
@@ -183,10 +247,17 @@ export const CanvasTentaclePanel = ({
       onPointerDown={() => onFocus?.()}
     >
       {/* Header */}
-      <div className="detail-panel-header">
-        <span className="detail-title">Tentacle Details</span>
+      <div
+        className="detail-panel-header"
+        style={{
+          background: `linear-gradient(180deg, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 90%, #ffd89d 10%) 0%, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 78%, #d9851c 22%) 100%)`,
+        }}
+      >
+        <span className="detail-title">
+          {tentacle?.displayName ?? node.label}
+        </span>
         {tentacle && (
-          <span className="detail-type-badge" style={{ background: node.color }}>
+          <span className="detail-type-badge">
             {STATUS_LABELS[tentacle.status] ?? tentacle.status}
           </span>
         )}
@@ -227,25 +298,27 @@ export const CanvasTentaclePanel = ({
         </div>
 
         {/* Progress section */}
-        {tentacle && tentacle.todoTotal > 0 && (
+        {tentacle && (
           <div className="detail-section">
             <div className="detail-section-title">Progress</div>
-            <div className="detail-progress">
-              <div className="detail-progress-bar">
-                <div
-                  className="detail-progress-fill"
-                  style={{ width: `${progressPct}%`, backgroundColor: node.color }}
-                />
+            {tentacle.todoTotal > 0 && (
+              <div className="detail-progress">
+                <div className="detail-progress-bar">
+                  <div
+                    className="detail-progress-fill"
+                    style={{ width: `${progressPct}%`, backgroundColor: node.color }}
+                  />
+                </div>
+                <span className="detail-progress-label">
+                  {tentacle.todoDone}/{tentacle.todoTotal}
+                </span>
               </div>
-              <span className="detail-progress-label">
-                {tentacle.todoDone}/{tentacle.todoTotal}
-              </span>
-            </div>
+            )}
             {tentacle.todoItems.length > 0 && (
               <ul className="detail-todos">
                 {tentacle.todoItems.map((item, i) => (
                   <li
-                    key={item.text}
+                    key={`${i}-${item.text}`}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
                     <input
@@ -253,10 +326,76 @@ export const CanvasTentaclePanel = ({
                       checked={item.done}
                       onChange={() => handleTodoToggle(i, !item.done)}
                     />
-                    <span>{item.text}</span>
+                    {editingIndex === i ? (
+                      <input
+                        className="detail-todo-edit-input"
+                        type="text"
+                        value={editText}
+                        autoFocus
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleTodoEdit(i, editText);
+                          if (e.key === "Escape") setEditingIndex(null);
+                        }}
+                        onBlur={() => void handleTodoEdit(i, editText)}
+                      />
+                    ) : (
+                      <span
+                        className="detail-todo-text"
+                        onDoubleClick={() => {
+                          setEditingIndex(i);
+                          setEditText(item.text);
+                        }}
+                      >
+                        {item.text}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="detail-todo-delete"
+                      title="Delete item"
+                      onClick={() => void handleTodoDelete(i)}
+                    >
+                      &times;
+                    </button>
                   </li>
                 ))}
               </ul>
+            )}
+            {addingTodo ? (
+              <div className="detail-todo-add-row">
+                <input
+                  className="detail-todo-edit-input"
+                  type="text"
+                  placeholder="New todo item…"
+                  value={addText}
+                  autoFocus
+                  onChange={(e) => setAddText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleTodoAdd(addText);
+                    if (e.key === "Escape") {
+                      setAddingTodo(false);
+                      setAddText("");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (addText.trim().length > 0) {
+                      void handleTodoAdd(addText);
+                    } else {
+                      setAddingTodo(false);
+                      setAddText("");
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="detail-todo-add-btn"
+                onClick={() => setAddingTodo(true)}
+              >
+                + Add item
+              </button>
             )}
           </div>
         )}
