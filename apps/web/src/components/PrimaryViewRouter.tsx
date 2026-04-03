@@ -105,7 +105,7 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 8) {
-    return <CodeIntelPrimaryView />;
+    return <CodeIntelPrimaryView enabled={activePrimaryNav === 8} />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
