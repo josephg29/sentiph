@@ -6,12 +6,10 @@ type CodeIntelArcDiagramProps = {
   data: CouplingData;
 };
 
-const ROW_HEIGHT = 24;
-const LABEL_WIDTH = 280;
-const ARC_AREA_WIDTH = 180;
-const PADDING_TOP = 16;
-const PADDING_BOTTOM = 16;
-const MAX_FILES = 30;
+const LABEL_HEIGHT = 40;
+const PADDING_X = 8;
+const MIN_ARC_AREA = 60;
+const MAX_FILES = 40;
 const MAX_ARCS = 20;
 
 const ARC_COLORS = [
@@ -27,13 +25,16 @@ const ARC_COLORS = [
 
 export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(600);
+  const [size, setSize] = useState({ width: 600, height: 400 });
   const [hoveredPair, setHoveredPair] = useState<string | null>(null);
   const [hoveredFile, setHoveredFile] = useState<string | null>(null);
 
   const measure = useCallback(() => {
     if (containerRef.current) {
-      setContainerWidth(containerRef.current.clientWidth);
+      setSize({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+      });
     }
   }, []);
 
@@ -55,10 +56,10 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return map;
   }, [files]);
 
-  const svgHeight = PADDING_TOP + files.length * ROW_HEIGHT + PADDING_BOTTOM;
-  const labelX = 0;
-  const arcX = LABEL_WIDTH + 8;
-  const availableArcWidth = Math.min(ARC_AREA_WIDTH, containerWidth - LABEL_WIDTH - 16);
+  const usableWidth = size.width - PADDING_X * 2;
+  const colWidth = files.length > 0 ? usableWidth / files.length : 0;
+  const arcAreaHeight = Math.max(size.height - LABEL_HEIGHT, MIN_ARC_AREA);
+  const dotY = arcAreaHeight;
 
   const maxCoSessions = useMemo(() => {
     let max = 0;
@@ -68,105 +69,109 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return max;
   }, [pairs]);
 
-  const fileY = (index: number) => PADDING_TOP + index * ROW_HEIGHT + ROW_HEIGHT / 2;
+  const fileX = (index: number) => PADDING_X + index * colWidth + colWidth / 2;
 
   return (
     <div className="code-intel-arc-diagram" ref={containerRef}>
-      {pairs.length === 0 ? (
-        <div className="code-intel-empty">
-          Not enough sessions to detect coupling. Files must co-occur in at least 2 sessions.
-        </div>
-      ) : (
-        <svg
-          className="code-intel-arc-svg"
-          width={containerWidth}
-          height={svgHeight}
-          viewBox={`0 0 ${containerWidth} ${svgHeight}`}
-          role="img"
-          aria-label="File coupling arc diagram"
-        >
-          {/* File labels */}
-          {files.map((f, i) => {
-            const isHighlighted =
-              hoveredFile === f.file ||
-              (hoveredPair !== null &&
-                pairs.some(
-                  (p) =>
-                    pairKey(p.fileA, p.fileB) === hoveredPair &&
-                    (p.fileA === f.file || p.fileB === f.file),
-                ));
+      <svg
+        className="code-intel-arc-svg"
+        width={size.width}
+        height={size.height}
+        viewBox={`0 0 ${size.width} ${size.height}`}
+        role="img"
+        aria-label="File coupling arc diagram"
+      >
+        {/* Arcs (drawn first so they appear behind dots) */}
+        {pairs.map((pair) => {
+          const idxA = fileIndexMap.get(pair.fileA);
+          const idxB = fileIndexMap.get(pair.fileB);
+          if (idxA === undefined || idxB === undefined) return null;
 
-            return (
-              <g
-                key={f.file}
-                onMouseEnter={() => setHoveredFile(f.file)}
-                onMouseLeave={() => setHoveredFile(null)}
-              >
-                <text
-                  x={labelX + LABEL_WIDTH - 4}
-                  y={fileY(i) + 4}
-                  textAnchor="end"
-                  className={`code-intel-arc-label${isHighlighted ? " code-intel-arc-label--active" : ""}`}
-                >
-                  {truncatePath(f.file, LABEL_WIDTH - 8)}
-                </text>
-                <circle
-                  cx={arcX}
-                  cy={fileY(i)}
-                  r={3}
-                  className={`code-intel-arc-dot${isHighlighted ? " code-intel-arc-dot--active" : ""}`}
-                />
-              </g>
-            );
-          })}
+          const x1 = fileX(idxA);
+          const x2 = fileX(idxB);
+          const span = Math.abs(idxB - idxA);
+          const arcHeight = Math.min(span * 20, arcAreaHeight - 20);
+          const curveY = dotY - arcHeight;
+          const key = pairKey(pair.fileA, pair.fileB);
+          const isHovered =
+            hoveredPair === key || hoveredFile === pair.fileA || hoveredFile === pair.fileB;
 
-          {/* Arcs */}
-          {pairs.map((pair) => {
-            const idxA = fileIndexMap.get(pair.fileA);
-            const idxB = fileIndexMap.get(pair.fileB);
-            if (idxA === undefined || idxB === undefined) return null;
+          const thickness = maxCoSessions > 0 ? 1 + (pair.coSessions / maxCoSessions) * 3.5 : 1.5;
 
-            const y1 = fileY(idxA);
-            const y2 = fileY(idxB);
-            const span = Math.abs(idxB - idxA);
-            const curveX = arcX + Math.min(span * 14, availableArcWidth);
-            const key = pairKey(pair.fileA, pair.fileB);
-            const isHovered =
-              hoveredPair === key || hoveredFile === pair.fileA || hoveredFile === pair.fileB;
+          const colorIndex = Math.min(
+            Math.floor((pair.coSessions / Math.max(maxCoSessions, 1)) * (ARC_COLORS.length - 1)),
+            ARC_COLORS.length - 1,
+          );
 
-            const thickness = maxCoSessions > 0 ? 1 + (pair.coSessions / maxCoSessions) * 3.5 : 1.5;
+          return (
+            <path
+              key={key}
+              d={`M ${x1} ${dotY} C ${x1} ${curveY}, ${x2} ${curveY}, ${x2} ${dotY}`}
+              fill="none"
+              stroke={ARC_COLORS[colorIndex]}
+              strokeWidth={isHovered ? thickness + 1 : thickness}
+              strokeOpacity={isHovered ? 1 : 0.55}
+              className="code-intel-arc-path"
+              onMouseEnter={() => setHoveredPair(key)}
+              onMouseLeave={() => setHoveredPair(null)}
+            />
+          );
+        })}
 
-            const colorIndex = Math.min(
-              Math.floor((pair.coSessions / Math.max(maxCoSessions, 1)) * (ARC_COLORS.length - 1)),
-              ARC_COLORS.length - 1,
-            );
+        {/* File dots and labels */}
+        {files.map((f, i) => {
+          const x = fileX(i);
+          const isHighlighted =
+            hoveredFile === f.file ||
+            (hoveredPair !== null &&
+              pairs.some(
+                (p) =>
+                  pairKey(p.fileA, p.fileB) === hoveredPair &&
+                  (p.fileA === f.file || p.fileB === f.file),
+              ));
 
-            return (
-              <path
-                key={key}
-                d={`M ${arcX} ${y1} C ${curveX} ${y1}, ${curveX} ${y2}, ${arcX} ${y2}`}
-                fill="none"
-                stroke={ARC_COLORS[colorIndex]}
-                strokeWidth={isHovered ? thickness + 1 : thickness}
-                strokeOpacity={isHovered ? 1 : 0.55}
-                className="code-intel-arc-path"
-                onMouseEnter={() => setHoveredPair(key)}
-                onMouseLeave={() => setHoveredPair(null)}
+          const shortName = f.file.split("/").pop() ?? f.file;
+
+          return (
+            <g
+              key={f.file}
+              onMouseEnter={() => setHoveredFile(f.file)}
+              onMouseLeave={() => setHoveredFile(null)}
+              className="code-intel-arc-file-group"
+            >
+              <circle
+                cx={x}
+                cy={dotY}
+                r={4}
+                className={`code-intel-arc-dot${isHighlighted ? " code-intel-arc-dot--active" : ""}`}
               />
-            );
-          })}
-        </svg>
-      )}
+              <text
+                x={x}
+                y={dotY + 16}
+                textAnchor="middle"
+                className={`code-intel-arc-label${isHighlighted ? " code-intel-arc-label--active" : ""}`}
+              >
+                {truncateLabel(shortName, colWidth - 4)}
+              </text>
+              {isHighlighted && (
+                <text x={x} y={dotY + 28} textAnchor="middle" className="code-intel-arc-fullpath">
+                  {f.file}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 };
 
 const pairKey = (a: string, b: string) => (a < b ? `${a}\0${b}` : `${b}\0${a}`);
 
-const truncatePath = (path: string, maxWidth: number): string => {
+const truncateLabel = (label: string, maxWidth: number): string => {
   const charWidth = 6.5;
   const maxChars = Math.floor(maxWidth / charWidth);
-  if (path.length <= maxChars) return path;
-  if (maxChars <= 5) return `\u2026${path.slice(-maxChars + 1)}`;
-  return `\u2026${path.slice(-(maxChars - 1))}`;
+  if (label.length <= maxChars) return label;
+  if (maxChars <= 3) return "";
+  return `${label.slice(0, maxChars - 1)}\u2026`;
 };
