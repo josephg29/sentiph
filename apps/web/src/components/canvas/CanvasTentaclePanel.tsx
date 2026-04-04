@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
@@ -260,7 +261,7 @@ export const CanvasTentaclePanel = ({
           </span>
         )}
         <button className="detail-close" type="button" onClick={onClose}>
-          &times;
+          <X size={14} />
         </button>
       </div>
 
@@ -354,7 +355,7 @@ export const CanvasTentaclePanel = ({
                       title="Delete item"
                       onClick={() => void handleTodoDelete(i)}
                     >
-                      &times;
+                      <X size={12} />
                     </button>
                   </li>
                 ))}

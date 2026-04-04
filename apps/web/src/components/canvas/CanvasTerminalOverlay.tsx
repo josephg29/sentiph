@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
@@ -185,7 +186,7 @@ export const CanvasTerminalOverlay = ({
               onClick={onClose}
               aria-label="Close overlay"
             >
-              &times;
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -219,7 +220,7 @@ export const CanvasTerminalOverlay = ({
           onClick={onClose}
           aria-label="Close overlay"
         >
-          &times;
+          <X size={14} />
         </button>
       </div>
       <div className="canvas-terminal-overlay-body">

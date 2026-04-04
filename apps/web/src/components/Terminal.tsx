@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { X } from "lucide-react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
@@ -423,7 +424,7 @@ export const Terminal = ({
                 setIsPromptBannerDismissed(true);
               }}
             >
-              &times;
+              <X size={14} />
             </button>
           </div>
         )}

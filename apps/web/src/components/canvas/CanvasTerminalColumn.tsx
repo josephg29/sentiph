@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
@@ -63,7 +64,7 @@ export const CanvasTerminalColumn = ({
             onClick={onClose}
             aria-label="Close terminal"
           >
-            &times;
+            <X size={14} />
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import { useClickOutside } from "../app/hooks/useClickOutside";
@@ -123,7 +124,7 @@ const SplitTentacleButton = ({
               {PROVIDER_LABELS[provider]}
               {provider === defaultProvider && (
                 <span aria-label="(default)" className="split-button-menu-check">
-                  ✓
+                  <Check size={12} />
                 </span>
               )}
             </button>

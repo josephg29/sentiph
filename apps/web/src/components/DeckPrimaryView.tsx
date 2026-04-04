@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
@@ -393,7 +394,7 @@ const ActionCards = ({
                   >
                     {opt.label}
                     {opt.value === selectedAgent && (
-                      <span className="deck-empty-agent-menu-check">&#x2713;</span>
+                      <span className="deck-empty-agent-menu-check"><Check size={12} /></span>
                     )}
                   </button>
                 ))}

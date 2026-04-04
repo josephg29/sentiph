@@ -1,5 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  Check as CheckIcon,
+  ChevronDown,
+  Hexagon,
+  Layers,
+  ListTodo,
+  Maximize,
+  Pause,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Terminal as TerminalIcon,
+  Trash2,
+  X,
+} from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
@@ -609,20 +624,20 @@ export const CanvasPrimaryView = ({
               }
             }}
           >
-            <span className="canvas-toolbar-icon">&gt;_</span>
+            <span className="canvas-toolbar-icon"><TerminalIcon size={14} /></span>
             <span className="canvas-toolbar-label">Terminal</span>
           </button>
           <button type="button" className="canvas-toolbar-btn" onClick={onCreateTentacle}>
-            <span className="canvas-toolbar-icon">&#x2B21;</span>
+            <span className="canvas-toolbar-icon"><Hexagon size={14} /></span>
             <span className="canvas-toolbar-label">Tentacle</span>
           </button>
           <div className="canvas-toolbar-separator" />
           <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
-            <span className="canvas-toolbar-icon">&#x2922;</span>
+            <span className="canvas-toolbar-icon"><Maximize size={14} /></span>
             <span className="canvas-toolbar-label">Fit</span>
           </button>
           <button type="button" className="canvas-toolbar-btn" onClick={handleRefresh}>
-            <span className="canvas-toolbar-icon">&#x21BB;</span>
+            <span className="canvas-toolbar-icon"><RefreshCw size={14} /></span>
             <span className="canvas-toolbar-label">Refresh</span>
           </button>
           <div className="canvas-toolbar-separator" />
@@ -631,7 +646,7 @@ export const CanvasPrimaryView = ({
             className={`canvas-toolbar-btn${hideIdleTerminals ? " canvas-toolbar-btn--active" : ""}`}
             onClick={() => setHideIdleTerminals((prev) => !prev)}
           >
-            <span className="canvas-toolbar-icon">&#x23F8;</span>
+            <span className="canvas-toolbar-icon">{hideIdleTerminals ? <Play size={14} /> : <Pause size={14} />}</span>
             <span className="canvas-toolbar-label">
               {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
             </span>
@@ -642,7 +657,7 @@ export const CanvasPrimaryView = ({
             className="canvas-toolbar-btn canvas-toolbar-btn--danger"
             onClick={() => setIsDeleteAllDialogOpen(true)}
           >
-            <span className="canvas-toolbar-icon">&#x2715;</span>
+            <span className="canvas-toolbar-icon"><Trash2 size={14} /></span>
             <span className="canvas-toolbar-label">Delete All</span>
           </button>
         </div>
@@ -726,7 +741,7 @@ export const CanvasPrimaryView = ({
                     onCreateTentacle?.();
                   }}
                 >
-                  <span className="canvas-context-menu-icon">&#x2B21;</span>
+                  <span className="canvas-context-menu-icon"><Hexagon size={14} /></span>
                   New Tentacle
                 </button>
                 <button
@@ -742,7 +757,7 @@ export const CanvasPrimaryView = ({
                     }
                   }}
                 >
-                  <span className="canvas-context-menu-icon">&gt;_</span>
+                  <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
                   New Terminal
                 </button>
               </>
@@ -754,7 +769,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleCreateAgent(contextMenu.tentacleId)}
                 >
-                  <span className="canvas-context-menu-icon">&gt;_</span>
+                  <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
                   Create new agent
                 </button>
                 <button
@@ -762,7 +777,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleSpawnSwarm(contextMenu.tentacleId)}
                 >
-                  <span className="canvas-context-menu-icon">&#x2263;</span>
+                  <span className="canvas-context-menu-icon"><Layers size={14} /></span>
                   Spawn Swarm
                 </button>
               </>
@@ -774,7 +789,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-todos")}
                 >
-                  <span className="canvas-context-menu-icon">&#x2611;</span>
+                  <span className="canvas-context-menu-icon"><ListTodo size={14} /></span>
                   Reorganize To-Do's
                 </button>
                 <button
@@ -782,7 +797,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-tentacles")}
                 >
-                  <span className="canvas-context-menu-icon">&#x2B21;</span>
+                  <span className="canvas-context-menu-icon"><Hexagon size={14} /></span>
                   Reorganize Tentacles
                 </button>
                 <button
@@ -790,7 +805,7 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-clean-contexts")}
                 >
-                  <span className="canvas-context-menu-icon">&#x29BB;</span>
+                  <span className="canvas-context-menu-icon"><Sparkles size={14} /></span>
                   Clean Tentacle Contexts
                 </button>
               </>
@@ -808,7 +823,7 @@ export const CanvasPrimaryView = ({
                   setContextMenu(null);
                 }}
               >
-                <span className="canvas-context-menu-icon">&#x2715;</span>
+                <span className="canvas-context-menu-icon"><Trash2 size={14} /></span>
                 Delete
               </button>
             )}

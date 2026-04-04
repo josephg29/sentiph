@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { TentacleGitStatusSnapshot, TentaclePullRequestSnapshot } from "../app/types";
@@ -203,7 +204,7 @@ export const TentacleGitActionsDialog = ({
               }}
               type="button"
             >
-              ▾
+              <ChevronDown size={14} />
             </button>
           </div>
           {isCommitMenuOpen && (
