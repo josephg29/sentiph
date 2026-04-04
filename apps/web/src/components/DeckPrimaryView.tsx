@@ -1028,7 +1028,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
                   .octogent/tentacles/{focusedTentacle.tentacleId}/
                 </span>
                 {(() => {
-                  const files = [...focusedTentacle.vaultFiles, "agent.md"];
+                  const files = [...focusedTentacle.vaultFiles, "CONTEXT.md"];
                   return files.map((file, i) => {
                     const isLast = i === files.length - 1;
                     const prefix = isLast ? "└── " : "├── ";

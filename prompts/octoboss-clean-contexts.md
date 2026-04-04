@@ -25,6 +25,6 @@ Watch for these in your own behavior:
 
 1. **Over-pruning** — Removing context that looks stale but is actually a load-bearing constraint. "We chose X over Y because of Z" may look like old history, but it prevents future agents from re-litigating the decision.
 2. **Cosmetic churn** — Reformatting, rewording, or reorganizing content that was already clear and concise. If it isn't broken, don't touch it.
-3. **Nuking scope definitions** — The Scope section of `agent.md` is critical for agent focus. Trimming it because it "just lists directories" removes the most important part of the file.
+3. **Nuking scope definitions** — The Scope section of `CONTEXT.md` is critical for agent focus. Trimming it because it "just lists directories" removes the most important part of the file.
 
 Work through each tentacle one at a time.

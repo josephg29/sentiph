@@ -14,7 +14,7 @@ You are working on an isolated worktree branch, not the main branch. The tentacl
 
 `{{tentacleContextPath}}/`
 
-Before writing any code, read `agent.md` and any other `.md` files in that folder for orientation. Use this context to understand the area of the codebase you're working in, but verify claims against actual code — context files may be outdated. After reading context, return to your worktree to do the actual work.
+Before writing any code, read `CONTEXT.md` and any other `.md` files in that folder for orientation. Use this context to understand the area of the codebase you're working in, but verify claims against actual code — context files may be outdated. After reading context, return to your worktree to do the actual work.
 
 ## Working Guidelines
 

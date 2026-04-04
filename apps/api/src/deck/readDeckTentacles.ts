@@ -104,9 +104,9 @@ const parseTentacleState = (raw: unknown): DeckTentacleState => {
   return { color, status, octopus, scope };
 };
 
-// ─── Parse agent.md for title and description ───────────────────────────────
+// ─── Parse CONTEXT.md for title and description ───────────────────────────────
 
-const parseAgentMd = (content: string): { displayName: string; description: string } | null => {
+const parseContextMd = (content: string): { displayName: string; description: string } | null => {
   const lines = content.split("\n");
   let displayName: string | null = null;
   let description = "";
@@ -179,14 +179,14 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
     const entryPath = join(tentaclesRoot, entry);
     if (!statSync(entryPath).isDirectory()) continue;
 
-    // A tentacle folder must have agent.md
-    const agentMdPath = join(entryPath, "agent.md");
-    if (!existsSync(agentMdPath)) continue;
+    // A tentacle folder must have CONTEXT.md
+    const contextMdPath = join(entryPath, "CONTEXT.md");
+    if (!existsSync(contextMdPath)) continue;
 
     let agentInfo: { displayName: string; description: string };
     try {
-      const content = readFileSync(agentMdPath, "utf-8");
-      const parsed = parseAgentMd(content);
+      const content = readFileSync(contextMdPath, "utf-8");
+      const parsed = parseContextMd(content);
       if (!parsed) continue;
       agentInfo = parsed;
     } catch {
@@ -196,11 +196,11 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
     // App metadata from deck state
     const state = parseTentacleState(deckState.tentacles[entry]);
 
-    // List markdown files in the tentacle folder (excluding agent.md itself)
+    // List markdown files in the tentacle folder (excluding CONTEXT.md itself)
     let vaultFiles: string[] = [];
     try {
       vaultFiles = readdirSync(entryPath)
-        .filter((f) => f.endsWith(".md") && f !== "agent.md")
+        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md")
         .sort((a, b) => {
           if (a === "todo.md") return -1;
           if (b === "todo.md") return 1;
@@ -483,8 +483,8 @@ export const createDeckTentacle = (
   mkdirSync(tentacleDir, { recursive: true });
 
   const description = input.description.trim();
-  const agentMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
-  writeFileSync(join(tentacleDir, "agent.md"), agentMd);
+  const contextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
+  writeFileSync(join(tentacleDir, "CONTEXT.md"), contextMd);
   writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
 
   // Persist app metadata in deck state

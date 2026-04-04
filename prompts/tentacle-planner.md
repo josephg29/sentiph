@@ -36,13 +36,13 @@ To check what already exists:
 
 Use lowercase kebab-case for names (e.g., `core-logic`, `frontend-ui`, `infrastructure`).
 
-This creates the tentacle folder at `.octogent/tentacles/<name>/` with an `agent.md` and `todo.md` file.
+This creates the tentacle folder at `.octogent/tentacles/<name>/` with an `CONTEXT.md` and `todo.md` file.
 
 ## Step 4: Enrich each tentacle
 
 For each created tentacle, **read the actual source code** in the directories that fall under that department's scope. Don't work from memory or assumptions — open the files, understand the patterns, conventions, and architectural choices that are actually in use. Then write what you learned into the tentacle's files.
 
-Edit `.octogent/tentacles/<name>/agent.md` with concrete, grounded context:
+Edit `.octogent/tentacles/<name>/CONTEXT.md` with concrete, grounded context:
 
 ```markdown
 # Department Name
@@ -82,13 +82,13 @@ Update `.octogent/tentacles/<name>/todo.md` with an initial backlog of **work it
 Watch for these in your own behavior:
 
 1. **Directory-driven departments** — Creating departments that mirror the folder structure (one per top-level directory) instead of grouping by meaningful work domains. Two directories that serve the same purpose belong in one department.
-2. **Generic context files** — Writing vague `agent.md` content like "follow best practices" instead of grounding it in what you actually read in the code. If you can't cite specific files or patterns, you haven't read enough.
+2. **Generic context files** — Writing vague `CONTEXT.md` content like "follow best practices" instead of grounding it in what you actually read in the code. If you can't cite specific files or patterns, you haven't read enough.
 3. **Overlapping scope** — Creating departments where the same file or module could belong to either one. Every source file should have a clear single owner.
 
 ## Important notes
 
 - Do not create tentacles that overlap significantly in scope.
 - Keep the `description` field concise (under 100 characters).
-- The `agent.md` file is the institutional memory — make it useful for future agents that will work in this department.
+- The `CONTEXT.md` file is the institutional memory — make it useful for future agents that will work in this department.
 
 REMINDER: Present your proposal and wait for operator confirmation before creating tentacles. Ground all context in actual code you read, not assumptions.
