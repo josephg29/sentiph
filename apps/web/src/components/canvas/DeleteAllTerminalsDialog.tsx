@@ -107,7 +107,6 @@ export const DeleteAllTerminalsDialog = ({
           </strong>
           {inactiveOnly ? " (inactive terminals + past sessions)" : " (all)"}.
         </p>
-        <p className="delete-confirm-warning">This action cannot be undone.</p>
         <div className="delete-all-mode-row">
           <span className="delete-all-mode-label">
             {inactiveOnly ? "Inactive only" : "All terminals"}
