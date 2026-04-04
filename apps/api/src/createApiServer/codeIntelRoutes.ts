@@ -26,10 +26,17 @@ export const handleCodeIntelEventsRoute: ApiRouteHandler = async (
       return true;
     }
 
-    const sessionId =
-      (typeof request.headers["x-octogent-session"] === "string"
+    // Prefer Octogent session ID from header, fall back to Claude Code's own session_id from payload
+    const octogentSession =
+      typeof request.headers["x-octogent-session"] === "string" &&
+      request.headers["x-octogent-session"].length > 0
         ? request.headers["x-octogent-session"]
-        : undefined) ?? "unknown";
+        : undefined;
+    const claudeSession =
+      payload && typeof payload.session_id === "string" && payload.session_id.length > 0
+        ? payload.session_id
+        : undefined;
+    const sessionId = octogentSession ?? claudeSession ?? "unknown";
 
     await codeIntelStore.append({
       ts: new Date().toISOString(),

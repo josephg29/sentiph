@@ -101,11 +101,11 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 7) {
-    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
+    return <CodeIntelPrimaryView enabled={activePrimaryNav === 7} />;
   }
 
   if (activePrimaryNav === 8) {
-    return <CodeIntelPrimaryView enabled={activePrimaryNav === 8} />;
+    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

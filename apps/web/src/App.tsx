@@ -366,9 +366,9 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 7 ? "" : " workspace-shell--full"}`}
         >
-          {isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 8 && (
+          {isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 7 && (
             <ActiveAgentsSidebar
               claudeUsageSnapshot={claudeUsageSnapshot}
               claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}

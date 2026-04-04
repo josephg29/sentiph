@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { CouplingData } from "../app/codeIntelAggregation";
+import type { CouplingData, CouplingPair } from "../app/codeIntelAggregation";
+import { heatColor } from "../app/codeIntelAggregation";
 
 type CodeIntelArcDiagramProps = {
   data: CouplingData;
@@ -12,22 +13,14 @@ const MIN_ARC_AREA = 60;
 const MAX_FILES = 40;
 const MAX_ARCS = 20;
 
-const ARC_COLORS = [
-  "#d4a017",
-  "#d45a1a",
-  "#cc2e2e",
-  "#b5611a",
-  "#7fb134",
-  "#4a8c3f",
-  "#2d6a3e",
-  "#8494ab",
-];
+const ACCENT = "#d4a017";
 
 export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 400 });
   const [hoveredPair, setHoveredPair] = useState<string | null>(null);
   const [hoveredFile, setHoveredFile] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const measure = useCallback(() => {
     if (containerRef.current) {
@@ -56,6 +49,22 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return map;
   }, [files]);
 
+  // Build per-file coupling summaries for hover tooltip
+  const fileCouplingMap = useMemo(() => {
+    const map = new Map<string, { partner: string; coSessions: number }[]>();
+    for (const p of pairs) {
+      if (!map.has(p.fileA)) map.set(p.fileA, []);
+      if (!map.has(p.fileB)) map.set(p.fileB, []);
+      map.get(p.fileA)!.push({ partner: p.fileB, coSessions: p.coSessions });
+      map.get(p.fileB)!.push({ partner: p.fileA, coSessions: p.coSessions });
+    }
+    // Sort by co-session count descending
+    for (const entries of map.values()) {
+      entries.sort((a, b) => b.coSessions - a.coSessions);
+    }
+    return map;
+  }, [pairs]);
+
   const usableWidth = size.width - PADDING_X * 2;
   const colWidth = files.length > 0 ? usableWidth / files.length : 0;
   const arcAreaHeight = Math.max(size.height - LABEL_HEIGHT, MIN_ARC_AREA);
@@ -71,8 +80,18 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
 
   const fileX = (index: number) => PADDING_X + index * colWidth + colWidth / 2;
 
+  const hoveredPairData = useMemo(() => {
+    if (!hoveredPair) return null;
+    return pairs.find((p) => pairKey(p.fileA, p.fileB) === hoveredPair) ?? null;
+  }, [hoveredPair, pairs]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }, []);
+
   return (
-    <div className="code-intel-arc-diagram" ref={containerRef}>
+    <div className="code-intel-arc-diagram" ref={containerRef} onMouseMove={handleMouseMove}>
       <svg
         className="code-intel-arc-svg"
         width={size.width}
@@ -81,7 +100,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
         role="img"
         aria-label="File coupling arc diagram"
       >
-        {/* Arcs (drawn first so they appear behind dots) */}
+        {/* Arcs */}
         {pairs.map((pair) => {
           const idxA = fileIndexMap.get(pair.fileA);
           const idxB = fileIndexMap.get(pair.fileB);
@@ -96,25 +115,31 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
           const isHovered =
             hoveredPair === key || hoveredFile === pair.fileA || hoveredFile === pair.fileB;
 
-          const thickness = maxCoSessions > 0 ? 1 + (pair.coSessions / maxCoSessions) * 3.5 : 1.5;
-
-          const colorIndex = Math.min(
-            Math.floor((pair.coSessions / Math.max(maxCoSessions, 1)) * (ARC_COLORS.length - 1)),
-            ARC_COLORS.length - 1,
-          );
+          const d = `M ${x1} ${dotY} C ${x1} ${curveY}, ${x2} ${curveY}, ${x2} ${dotY}`;
 
           return (
-            <path
-              key={key}
-              d={`M ${x1} ${dotY} C ${x1} ${curveY}, ${x2} ${curveY}, ${x2} ${dotY}`}
-              fill="none"
-              stroke={ARC_COLORS[colorIndex]}
-              strokeWidth={isHovered ? thickness + 1 : thickness}
-              strokeOpacity={isHovered ? 1 : 0.55}
-              className="code-intel-arc-path"
-              onMouseEnter={() => setHoveredPair(key)}
-              onMouseLeave={() => setHoveredPair(null)}
-            />
+            <g key={key}>
+              {/* Invisible wide hit area */}
+              <path
+                d={d}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={12}
+                onMouseEnter={() => setHoveredPair(key)}
+                onMouseLeave={() => setHoveredPair(null)}
+                style={{ cursor: "crosshair" }}
+              />
+              {/* Visible thin edge */}
+              <path
+                d={d}
+                fill="none"
+                stroke={heatColor(pair.coSessions, maxCoSessions)}
+                strokeWidth={isHovered ? 1.5 : 0.75}
+                strokeOpacity={isHovered ? 1 : 0.4}
+                className="code-intel-arc-path"
+                pointerEvents="none"
+              />
+            </g>
           );
         })}
 
@@ -143,7 +168,10 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
                 cx={x}
                 cy={dotY}
                 r={4}
-                className={`code-intel-arc-dot${isHighlighted ? " code-intel-arc-dot--active" : ""}`}
+                fill={ACCENT}
+                fillOpacity={isHighlighted ? 1 : 0.7}
+                stroke={isHighlighted ? "#fff" : "none"}
+                strokeWidth={isHighlighted ? 1.5 : 0}
               />
               <text
                 x={x}
@@ -153,20 +181,67 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
               >
                 {truncateLabel(shortName, colWidth - 4)}
               </text>
-              {isHighlighted && (
-                <text x={x} y={dotY + 28} textAnchor="middle" className="code-intel-arc-fullpath">
-                  {f.file}
-                </text>
-              )}
             </g>
           );
         })}
       </svg>
+
+      {/* Edge hover tooltip */}
+      {hoveredPairData && !hoveredFile && (
+        <div
+          className="code-intel-tooltip"
+          style={{
+            left: mousePos.x > size.width / 2 ? mousePos.x - 200 : mousePos.x + 12,
+            top: Math.max(mousePos.y - 40, 4),
+          }}
+        >
+          <div className="code-intel-tooltip-path">
+            {shortFileName(hoveredPairData.fileA)} ↔ {shortFileName(hoveredPairData.fileB)}
+          </div>
+          <div className="code-intel-tooltip-value">
+            {hoveredPairData.coSessions} co-edit{hoveredPairData.coSessions !== 1 ? "s" : ""}
+          </div>
+        </div>
+      )}
+
+      {/* Node hover tooltip — anchored above the dot, grows upward */}
+      {hoveredFile && (
+        <div
+          className="code-intel-tooltip code-intel-tooltip--node"
+          style={{
+            left: Math.min(
+              Math.max(fileX(fileIndexMap.get(hoveredFile) ?? 0) - 110, 4),
+              size.width - 228,
+            ),
+            bottom: size.height - dotY + 12,
+          }}
+        >
+          <div className="code-intel-tooltip-path">{hoveredFile}</div>
+          {fileCouplingMap.has(hoveredFile) ? (
+            <div className="code-intel-tooltip-coupling-list">
+              {fileCouplingMap.get(hoveredFile)!.map((c) => (
+                <div key={c.partner} className="code-intel-tooltip-coupling-row">
+                  <span className="code-intel-tooltip-coupling-partner">
+                    {shortFileName(c.partner)}
+                  </span>
+                  <span className="code-intel-tooltip-coupling-count">
+                    {c.coSessions}×
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="code-intel-tooltip-value">No coupling detected</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 const pairKey = (a: string, b: string) => (a < b ? `${a}\0${b}` : `${b}\0${a}`);
+
+const shortFileName = (path: string): string => path.split("/").pop() ?? path;
 
 const truncateLabel = (label: string, maxWidth: number): string => {
   const charWidth = 6.5;

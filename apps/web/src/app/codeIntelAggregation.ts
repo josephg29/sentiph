@@ -236,28 +236,36 @@ export const buildCouplingData = (events: CodeIntelEvent[], workspaceCwd: string
       totalSessions: totalSessionCount,
       strength: totalSessionCount > 0 ? count / totalSessionCount : 0,
     }))
-    .filter((p) => p.coSessions >= 2)
+    .filter((p) => p.coSessions >= 1)
     .sort((a, b) => b.coSessions - a.coSessions);
 
   return { files, pairs };
 };
 
-/* ── Heat color scale ───────────────────────────────── */
+/* ── Heat color scale (thermal MRI gradient) ────────── */
 
-const HEAT_COLORS = [
-  "#1a472a",
-  "#2d6a3e",
-  "#4a8c3f",
-  "#7fb134",
-  "#b5a118",
-  "#d4881a",
-  "#d45a1a",
-  "#cc2e2e",
+// smolder → accent → fire red
+const MRI_STOPS: [number, number, number][] = [
+  [0x2a, 0x18, 0x04], // dark ember
+  [0x6e, 0x32, 0x06], // deep burn
+  [0xa8, 0x58, 0x08], // warm amber
+  [0xd4, 0xa0, 0x17], // primary accent
+  [0xe0, 0x7a, 0x0a], // orange fire
+  [0xe8, 0x44, 0x08], // hot orange
+  [0xd0, 0x18, 0x06], // deep red
+  [0xf0, 0x22, 0x06], // fire red
 ];
 
 export const heatColor = (value: number, maxValue: number): string => {
-  if (maxValue === 0) return HEAT_COLORS[0]!;
+  if (maxValue === 0) return "rgb(10,10,46)";
   const ratio = Math.min(value / maxValue, 1);
-  const index = Math.min(Math.floor(ratio * (HEAT_COLORS.length - 1)), HEAT_COLORS.length - 1);
-  return HEAT_COLORS[index]!;
+  const segment = ratio * (MRI_STOPS.length - 1);
+  const i = Math.min(Math.floor(segment), MRI_STOPS.length - 2);
+  const t = segment - i;
+  const a = MRI_STOPS[i]!;
+  const b = MRI_STOPS[i + 1]!;
+  const r = Math.round(a[0] + t * (b[0] - a[0]));
+  const g = Math.round(a[1] + t * (b[1] - a[1]));
+  const bl = Math.round(a[2] + t * (b[2] - a[2]));
+  return `rgb(${r},${g},${bl})`;
 };
