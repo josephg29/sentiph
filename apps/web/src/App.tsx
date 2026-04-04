@@ -197,7 +197,7 @@ export const App = () => {
     clearSearch: clearConversationsSearch,
     navigateToSearchHit: navigateToConversationSearchHit,
   } = useConversationsRuntime({
-    enabled: isUiStateHydrated && activePrimaryNav === 5,
+    enabled: isUiStateHydrated && activePrimaryNav === 6,
   });
 
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
@@ -322,43 +322,19 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 7 ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 7 ? "" : " workspace-shell--full"}`}
         >
-          {isAgentsSidebarVisible && activePrimaryNav !== 3 && activePrimaryNav !== 1 && activePrimaryNav !== 7 && (
+          {isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 7 && (
             <ActiveAgentsSidebar
-              claudeUsageSnapshot={claudeUsageSnapshot}
-              claudeUsageStatus={claudeUsageSnapshot?.status ?? "loading"}
-              terminals={terminals}
-              codexUsageSnapshot={codexUsageSnapshot}
-              codexUsageStatus={codexUsageSnapshot?.status ?? "loading"}
-              isLoading={isLoading}
-              loadError={loadError}
               sidebarWidth={sidebarWidth}
               onSidebarWidthChange={(width) => {
                 setSidebarWidth(clampSidebarWidth(width));
               }}
-              isActiveAgentsSectionExpanded={isActiveAgentsSectionExpanded}
-              onActiveAgentsSectionExpandedChange={setIsActiveAgentsSectionExpanded}
-              isClaudeUsageVisible={
-                activePrimaryNav !== 2 && activePrimaryNav !== 5 && isClaudeUsageVisible
-              }
-              isClaudeUsageSectionExpanded={isClaudeUsageSectionExpanded}
-              isCodexUsageVisible={
-                activePrimaryNav !== 2 && activePrimaryNav !== 5 && isCodexUsageVisible
-              }
-              onClaudeUsageSectionExpandedChange={setIsClaudeUsageSectionExpanded}
-              isCodexUsageSectionExpanded={isCodexUsageSectionExpanded}
-              onCodexUsageSectionExpandedChange={setIsCodexUsageSectionExpanded}
-              terminalStates={terminalStates}
-              minimizedTerminalIds={minimizedTerminalIds}
-              onMaximizeTerminal={handleMaximizeTerminal}
-              onRefreshClaudeUsage={refreshClaudeUsage}
-              onRefreshCodexUsage={refreshCodexUsage}
               actionPanel={sidebarActionPanel}
               bodyContent={
                 activePrimaryNav === 2 ? (
                   (deckSidebarContent ?? undefined)
-                ) : activePrimaryNav === 5 ? (
+                ) : activePrimaryNav === 6 ? (
                   <SidebarConversationsList
                     sessions={conversationSessions}
                     selectedSessionId={selectedSessionId}

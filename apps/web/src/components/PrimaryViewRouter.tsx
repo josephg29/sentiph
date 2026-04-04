@@ -39,6 +39,10 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 4) {
+    return <CodeIntelPrimaryView enabled={activePrimaryNav === 4} />;
+  }
+
+  if (activePrimaryNav === 5) {
     if (isMonitorVisible) {
       return <MonitorPrimaryView {...monitorPrimaryViewProps} />;
     }
@@ -52,15 +56,11 @@ export const PrimaryViewRouter = ({
     );
   }
 
-  if (activePrimaryNav === 5) {
+  if (activePrimaryNav === 6) {
     return <ConversationsPrimaryView {...conversationsPrimaryViewProps} />;
   }
 
   if (activePrimaryNav === 7) {
-    return <CodeIntelPrimaryView enabled={activePrimaryNav === 7} />;
-  }
-
-  if (activePrimaryNav === 8) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 
