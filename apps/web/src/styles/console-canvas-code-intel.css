@@ -4,10 +4,8 @@
   min-height: 0;
   border: 1px solid #2b2f36;
   background: #0b0d10;
-  padding: 0.56rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.56rem;
   overflow: hidden;
 }
 
@@ -15,26 +13,48 @@
 
 .code-intel-view-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.4rem 0.56rem;
-  border: 1px solid #2b2f36;
+  align-items: stretch;
+  border-bottom: 1px solid #2b2f36;
   background: #090d12;
+  height: 32px;
 }
 
-.code-intel-stats {
+.code-intel-stat {
+  flex: 1;
   display: flex;
-  gap: 1.2rem;
-  font-size: 0.78rem;
-  color: #6b7a90;
-  letter-spacing: 0.04em;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-right: 1px solid #1a1f28;
+  font-size: 0.68rem;
+  color: #50607a;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
+.code-intel-stat-icon {
+  color: var(--accent-primary, #d4a017);
+  line-height: 1;
+  opacity: 0.6;
+}
+
 .code-intel-stat-value {
-  color: #dce6f7;
-  font-weight: 600;
-  margin-right: 0.2rem;
+  color: var(--accent-primary, #d4a017);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.code-intel-stat-label {
+  color: #50607a;
+}
+
+.code-intel-view-header .action-button {
+  --action-button-bg: var(--accent-primary, #d4a017);
+  --action-button-border: var(--accent-primary, #d4a017);
+  --action-button-color: #0b0d10;
+  padding-inline: 1.6rem;
 }
 
 /* ── Panel layout ───────────────────────────────────── */
@@ -42,25 +62,28 @@
 .code-intel-panels {
   display: grid;
   grid-template-columns: 3fr 1fr;
-  gap: 0.56rem;
   min-height: 0;
   overflow: hidden;
 }
 
 .code-intel-panel {
   min-height: 0;
-  border: 1px solid #2b2f36;
+  border-right: 1px solid #1a1f28;
   background: #090d12;
-  padding: 0.68rem;
+  padding: 0.4rem 0.5rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.58rem;
+  gap: 0.3rem;
   overflow: hidden;
+}
+
+.code-intel-panel:last-child {
+  border-right: none;
 }
 
 .code-intel-panel-header {
   display: grid;
-  gap: 0.22rem;
+  gap: 0.12rem;
 }
 
 .code-intel-panel-header h2 {

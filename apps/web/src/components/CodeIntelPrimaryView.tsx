@@ -1,3 +1,5 @@
+import { FileCode2, GitFork, PenLine, Terminal } from "lucide-react";
+
 import { useCodeIntelRuntime } from "../app/hooks/useCodeIntelRuntime";
 import { CodeIntelArcDiagram } from "./CodeIntelArcDiagram";
 import { CodeIntelTreemap } from "./CodeIntelTreemap";
@@ -53,25 +55,29 @@ export const CodeIntelPrimaryView = ({ enabled }: CodeIntelPrimaryViewProps) => 
   return (
     <section className="code-intel-view" aria-label="Code Intel primary view">
       <header className="code-intel-view-header">
-        <div className="code-intel-stats">
-          <span className="code-intel-stat">
-            <span className="code-intel-stat-value">{events.length}</span> edits
+        <span className="code-intel-stat">
+          <PenLine size={13} className="code-intel-stat-icon code-intel-stat-icon--edits" />
+          <span className="code-intel-stat-value">{events.length}</span>
+          <span className="code-intel-stat-label">edits</span>
+        </span>
+        <span className="code-intel-stat">
+          <FileCode2 size={13} className="code-intel-stat-icon code-intel-stat-icon--files" />
+          <span className="code-intel-stat-value">{couplingData?.files.length ?? 0}</span>
+          <span className="code-intel-stat-label">files</span>
+        </span>
+        <span className="code-intel-stat">
+          <Terminal size={13} className="code-intel-stat-icon code-intel-stat-icon--sessions" />
+          <span className="code-intel-stat-value">
+            {new Set(events.map((e) => e.sessionId)).size}
           </span>
-          <span className="code-intel-stat">
-            <span className="code-intel-stat-value">{couplingData?.files.length ?? 0}</span> files
-          </span>
-          <span className="code-intel-stat">
-            <span className="code-intel-stat-value">
-              {new Set(events.map((e) => e.sessionId)).size}
-            </span>{" "}
-            sessions
-          </span>
-          <span className="code-intel-stat">
-            <span className="code-intel-stat-value">{couplingData?.pairs.length ?? 0}</span>{" "}
-            coupling pairs
-          </span>
-        </div>
-        <ActionButton size="dense" variant="primary" onClick={refresh}>
+          <span className="code-intel-stat-label">sessions</span>
+        </span>
+        <span className="code-intel-stat">
+          <GitFork size={13} className="code-intel-stat-icon code-intel-stat-icon--pairs" />
+          <span className="code-intel-stat-value">{couplingData?.pairs.length ?? 0}</span>
+          <span className="code-intel-stat-label">pairs</span>
+        </span>
+        <ActionButton size="dense" variant="accent" onClick={refresh}>
           Refresh
         </ActionButton>
       </header>
