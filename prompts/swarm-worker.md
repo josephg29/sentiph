@@ -10,7 +10,11 @@ Do NOT work on any other items. Do NOT "improve" adjacent code you happen to rea
 
 ## Context
 
-Before writing any code, read the tentacle context at `.octogent/tentacles/{{tentacleId}}/agent.md` for background on this area of the codebase. Other `.md` files in that folder are additional reference material. Use this context as orientation, but verify claims against actual code — context files may be outdated.
+You are working on an isolated worktree branch, not the main branch. The tentacle context folder with background on your task area lives on the main branch at an absolute path:
+
+`{{tentacleContextPath}}/`
+
+Before writing any code, read `agent.md` and any other `.md` files in that folder for orientation. Use this context to understand the area of the codebase you're working in, but verify claims against actual code — context files may be outdated. After reading context, return to your worktree to do the actual work.
 
 ## Working Guidelines
 

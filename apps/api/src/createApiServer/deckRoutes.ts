@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 import {
   addTodoItem,
   createDeckTentacle,
@@ -399,6 +401,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
       const workerPrompt = await resolvePrompt(workspaceCwd, "swarm-worker", {
         tentacleName,
         tentacleId,
+        tentacleContextPath: join(workspaceCwd, ".octogent/tentacles", tentacleId),
         todoItemText: item.text,
         terminalId: workerTerminalId,
         apiPort,
