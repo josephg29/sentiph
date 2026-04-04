@@ -41,7 +41,7 @@
 
 .code-intel-panels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: 0.56rem;
   min-height: 0;
   overflow: hidden;
@@ -150,7 +150,8 @@
   width: 100%;
   height: 100%;
   min-height: 200px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .code-intel-arc-svg {

@@ -324,41 +324,46 @@ export const App = () => {
         <div
           className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 7 ? "" : " workspace-shell--full"}`}
         >
-          {isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 7 && (
-            <ActiveAgentsSidebar
-              sidebarWidth={sidebarWidth}
-              onSidebarWidthChange={(width) => {
-                setSidebarWidth(clampSidebarWidth(width));
-              }}
-              actionPanel={sidebarActionPanel}
-              bodyContent={
-                activePrimaryNav === 2 ? (
-                  (deckSidebarContent ?? undefined)
-                ) : activePrimaryNav === 6 ? (
-                  <SidebarConversationsList
-                    sessions={conversationSessions}
-                    selectedSessionId={selectedSessionId}
-                    isLoadingSessions={isLoadingConversationSessions}
-                    isSearching={isSearchingConversations}
-                    searchQuery={conversationsSearchQuery}
-                    searchHits={conversationsSearchHits}
-                    onSelectSession={selectSession}
-                    onRefresh={() => {
-                      void refreshSessions();
-                    }}
-                    onClearAll={() => {
-                      setIsPendingClearAllConversations(true);
-                    }}
-                    onSearch={(query) => {
-                      void searchConversations(query);
-                    }}
-                    onClearSearch={clearConversationsSearch}
-                    onNavigateToHit={navigateToConversationSearchHit}
-                  />
-                ) : undefined
-              }
-            />
-          )}
+          {isAgentsSidebarVisible &&
+            activePrimaryNav !== 1 &&
+            activePrimaryNav !== 3 &&
+            activePrimaryNav !== 4 &&
+            activePrimaryNav !== 5 &&
+            activePrimaryNav !== 7 && (
+              <ActiveAgentsSidebar
+                sidebarWidth={sidebarWidth}
+                onSidebarWidthChange={(width) => {
+                  setSidebarWidth(clampSidebarWidth(width));
+                }}
+                actionPanel={sidebarActionPanel}
+                bodyContent={
+                  activePrimaryNav === 2 ? (
+                    (deckSidebarContent ?? undefined)
+                  ) : activePrimaryNav === 6 ? (
+                    <SidebarConversationsList
+                      sessions={conversationSessions}
+                      selectedSessionId={selectedSessionId}
+                      isLoadingSessions={isLoadingConversationSessions}
+                      isSearching={isSearchingConversations}
+                      searchQuery={conversationsSearchQuery}
+                      searchHits={conversationsSearchHits}
+                      onSelectSession={selectSession}
+                      onRefresh={() => {
+                        void refreshSessions();
+                      }}
+                      onClearAll={() => {
+                        setIsPendingClearAllConversations(true);
+                      }}
+                      onSearch={(query) => {
+                        void searchConversations(query);
+                      }}
+                      onClearSearch={clearConversationsSearch}
+                      onNavigateToHit={navigateToConversationSearchHit}
+                    />
+                  ) : undefined
+                }
+              />
+            )}
 
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}

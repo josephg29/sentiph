@@ -42,7 +42,8 @@ export const buildTreemapTree = (events: CodeIntelEvent[], workspaceCwd: string)
       value: count,
       children: [],
     }))
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 50);
 
   const total = children.reduce((acc, c) => acc + c.value, 0);
 

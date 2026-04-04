@@ -80,7 +80,7 @@ export const CodeIntelPrimaryView = ({ enabled }: CodeIntelPrimaryViewProps) => 
         <section className="code-intel-panel code-intel-panel--treemap">
           <header className="code-intel-panel-header">
             <h2>Edit Frequency</h2>
-            <p>File size = number of edits. Color intensity = relative heat.</p>
+            <p>File size = number of edits.</p>
           </header>
           {treemapRoot && <CodeIntelTreemap root={treemapRoot} />}
         </section>

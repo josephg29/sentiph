@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { CouplingData, CouplingPair } from "../app/codeIntelAggregation";
+import type { CouplingData } from "../app/codeIntelAggregation";
 import { heatColor } from "../app/codeIntelAggregation";
 
 type CodeIntelArcDiagramProps = {
   data: CouplingData;
 };
 
-const LABEL_HEIGHT = 40;
-const PADDING_X = 8;
-const MIN_ARC_AREA = 60;
-const MAX_FILES = 40;
-const MAX_ARCS = 20;
+const ROW_HEIGHT = 22;
+const LABEL_WIDTH = 100;
+const PADDING_Y = 8;
+const MAX_ARCS = 40;
 
 const ACCENT = "#d4a017";
 
 export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 600, height: 400 });
+  const [size, setSize] = useState({ width: 300, height: 400 });
   const [hoveredPair, setHoveredPair] = useState<string | null>(null);
   const [hoveredFile, setHoveredFile] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -38,7 +37,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return () => observer.disconnect();
   }, [measure]);
 
-  const files = useMemo(() => data.files.slice(0, MAX_FILES), [data.files]);
+  const files = useMemo(() => data.files, [data.files]);
   const pairs = useMemo(() => data.pairs.slice(0, MAX_ARCS), [data.pairs]);
 
   const fileIndexMap = useMemo(() => {
@@ -49,7 +48,6 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return map;
   }, [files]);
 
-  // Build per-file coupling summaries for hover tooltip
   const fileCouplingMap = useMemo(() => {
     const map = new Map<string, { partner: string; coSessions: number }[]>();
     for (const p of pairs) {
@@ -58,17 +56,17 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
       map.get(p.fileA)!.push({ partner: p.fileB, coSessions: p.coSessions });
       map.get(p.fileB)!.push({ partner: p.fileA, coSessions: p.coSessions });
     }
-    // Sort by co-session count descending
     for (const entries of map.values()) {
       entries.sort((a, b) => b.coSessions - a.coSessions);
     }
     return map;
   }, [pairs]);
 
-  const usableWidth = size.width - PADDING_X * 2;
-  const colWidth = files.length > 0 ? usableWidth / files.length : 0;
-  const arcAreaHeight = Math.max(size.height - LABEL_HEIGHT, MIN_ARC_AREA);
-  const dotY = arcAreaHeight;
+  const dotX = LABEL_WIDTH;
+  const arcAreaWidth = size.width - LABEL_WIDTH - 8;
+  const minSvgHeight = PADDING_Y + files.length * ROW_HEIGHT + PADDING_Y;
+  const svgHeight = Math.max(minSvgHeight, size.height);
+  const dynamicRowHeight = files.length > 0 ? (svgHeight - PADDING_Y * 2) / files.length : ROW_HEIGHT;
 
   const maxCoSessions = useMemo(() => {
     let max = 0;
@@ -78,7 +76,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     return max;
   }, [pairs]);
 
-  const fileX = (index: number) => PADDING_X + index * colWidth + colWidth / 2;
+  const fileY = (index: number) => PADDING_Y + index * dynamicRowHeight + dynamicRowHeight / 2;
 
   const hoveredPairData = useMemo(() => {
     if (!hoveredPair) return null;
@@ -95,31 +93,29 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
       <svg
         className="code-intel-arc-svg"
         width={size.width}
-        height={size.height}
-        viewBox={`0 0 ${size.width} ${size.height}`}
+        height={Math.max(svgHeight, size.height)}
+        viewBox={`0 0 ${size.width} ${Math.max(svgHeight, size.height)}`}
         role="img"
         aria-label="File coupling arc diagram"
       >
-        {/* Arcs */}
+        {/* Arcs — curve to the right */}
         {pairs.map((pair) => {
           const idxA = fileIndexMap.get(pair.fileA);
           const idxB = fileIndexMap.get(pair.fileB);
           if (idxA === undefined || idxB === undefined) return null;
 
-          const x1 = fileX(idxA);
-          const x2 = fileX(idxB);
+          const y1 = fileY(idxA);
+          const y2 = fileY(idxB);
           const span = Math.abs(idxB - idxA);
-          const arcHeight = Math.min(span * 20, arcAreaHeight - 20);
-          const curveY = dotY - arcHeight;
+          const curveX = dotX + Math.min(span * 16, arcAreaWidth);
           const key = pairKey(pair.fileA, pair.fileB);
           const isHovered =
             hoveredPair === key || hoveredFile === pair.fileA || hoveredFile === pair.fileB;
 
-          const d = `M ${x1} ${dotY} C ${x1} ${curveY}, ${x2} ${curveY}, ${x2} ${dotY}`;
+          const d = `M ${dotX} ${y1} C ${curveX} ${y1}, ${curveX} ${y2}, ${dotX} ${y2}`;
 
           return (
             <g key={key}>
-              {/* Invisible wide hit area */}
               <path
                 d={d}
                 fill="none"
@@ -129,7 +125,6 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
                 onMouseLeave={() => setHoveredPair(null)}
                 style={{ cursor: "crosshair" }}
               />
-              {/* Visible thin edge */}
               <path
                 d={d}
                 fill="none"
@@ -143,9 +138,9 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
           );
         })}
 
-        {/* File dots and labels */}
+        {/* File dots and labels — vertical list on the left */}
         {files.map((f, i) => {
-          const x = fileX(i);
+          const y = fileY(i);
           const isHighlighted =
             hoveredFile === f.file ||
             (hoveredPair !== null &&
@@ -165,21 +160,21 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
               className="code-intel-arc-file-group"
             >
               <circle
-                cx={x}
-                cy={dotY}
-                r={4}
+                cx={dotX}
+                cy={y}
+                r={3.5}
                 fill={ACCENT}
                 fillOpacity={isHighlighted ? 1 : 0.7}
                 stroke={isHighlighted ? "#fff" : "none"}
                 strokeWidth={isHighlighted ? 1.5 : 0}
               />
               <text
-                x={x}
-                y={dotY + 16}
-                textAnchor="middle"
+                x={dotX - 8}
+                y={y + 3.5}
+                textAnchor="end"
                 className={`code-intel-arc-label${isHighlighted ? " code-intel-arc-label--active" : ""}`}
               >
-                {truncateLabel(shortName, colWidth - 4)}
+                {truncateLabel(shortName, LABEL_WIDTH - 12)}
               </text>
             </g>
           );
@@ -191,7 +186,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
         <div
           className="code-intel-tooltip"
           style={{
-            left: mousePos.x > size.width / 2 ? mousePos.x - 200 : mousePos.x + 12,
+            left: Math.min(mousePos.x + 12, size.width - 200),
             top: Math.max(mousePos.y - 40, 4),
           }}
         >
@@ -204,16 +199,13 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
         </div>
       )}
 
-      {/* Node hover tooltip — anchored above the dot, grows upward */}
+      {/* Node hover tooltip — to the right of the dot */}
       {hoveredFile && (
         <div
           className="code-intel-tooltip code-intel-tooltip--node"
           style={{
-            left: Math.min(
-              Math.max(fileX(fileIndexMap.get(hoveredFile) ?? 0) - 110, 4),
-              size.width - 228,
-            ),
-            bottom: size.height - dotY + 12,
+            left: dotX + 12,
+            top: Math.max(fileY(fileIndexMap.get(hoveredFile) ?? 0) - 20, 4),
           }}
         >
           <div className="code-intel-tooltip-path">{hoveredFile}</div>
@@ -224,9 +216,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
                   <span className="code-intel-tooltip-coupling-partner">
                     {shortFileName(c.partner)}
                   </span>
-                  <span className="code-intel-tooltip-coupling-count">
-                    {c.coSessions}×
-                  </span>
+                  <span className="code-intel-tooltip-coupling-count">{c.coSessions}×</span>
                 </div>
               ))}
             </div>
