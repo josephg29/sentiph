@@ -439,6 +439,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         workerCount: String(workers.length),
         workerListing,
         workerBranches,
+        baseBranch: baseRef === "HEAD" ? "main" : baseRef,
         terminalId: parentTerminalId,
         apiPort,
       });

@@ -48,8 +48,9 @@ Only begin merging after ALL {{workerCount}} workers have reported DONE.
 
 ### Step-by-step merge process
 
-1. **Create an integration branch** from the current HEAD:
+1. **Create an integration branch** from `{{baseBranch}}`:
    ```bash
+   git checkout {{baseBranch}}
    git checkout -b octogent_integration_{{tentacleId}}
    ```
 
@@ -63,7 +64,7 @@ Only begin merging after ALL {{workerCount}} workers have reported DONE.
 
 4. **If tests pass**, merge the integration branch into the base branch:
    ```bash
-   git checkout main
+   git checkout {{baseBranch}}
    git merge octogent_integration_{{tentacleId}} --no-edit
    ```
 
