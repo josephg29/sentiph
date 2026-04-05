@@ -105,6 +105,18 @@
   --action-button-color: #ff9f9f;
 }
 
+.console-shell .console-status-pill {
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 55%, #4f3c10);
+  background: color-mix(in srgb, var(--accent-primary) 14%, #10151d);
+  color: var(--accent-primary);
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.16rem 0.44rem;
+}
+
 .console-shell .console-status-strip {
   grid-row: 2;
   border-bottom: 1px solid var(--border-subtle);

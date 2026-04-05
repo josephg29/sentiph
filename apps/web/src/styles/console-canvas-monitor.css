@@ -482,7 +482,7 @@
 .monitor-feed-scroll {
   min-height: 0;
   overflow: auto;
-  max-height: min(62vh, 38rem);
+  flex: 1;
 }
 
 .monitor-feed table {
@@ -582,10 +582,6 @@
 
   .monitor-header-actions {
     margin-left: 0;
-  }
-
-  .monitor-feed-scroll {
-    max-height: 20rem;
   }
 }
 
