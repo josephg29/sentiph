@@ -33,8 +33,8 @@ type DeckStateDocument = {
   tentacles: Record<string, DeckTentacleState>;
 };
 
-const readDeckState = (workspaceCwd: string): DeckStateDocument => {
-  const filePath = join(workspaceCwd, DECK_STATE_PATH);
+const readDeckState = (projectStateDir: string): DeckStateDocument => {
+  const filePath = join(projectStateDir, "state", "deck.json");
   try {
     const raw = JSON.parse(readFileSync(filePath, "utf-8"));
     if (
@@ -51,9 +51,9 @@ const readDeckState = (workspaceCwd: string): DeckStateDocument => {
   return { tentacles: {} };
 };
 
-const writeDeckState = (workspaceCwd: string, state: DeckStateDocument): void => {
-  const filePath = join(workspaceCwd, DECK_STATE_PATH);
-  const dir = join(workspaceCwd, ".octogent/state");
+const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void => {
+  const filePath = join(projectStateDir, "state", "deck.json");
+  const dir = join(projectStateDir, "state");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   writeFileSync(filePath, JSON.stringify(state, null, 2) + "\n");
 };
@@ -161,7 +161,10 @@ export const parseTodoProgress = (
 
 // ─── Read all tentacles ─────────────────────────────────────────────────────
 
-export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] => {
+export const readDeckTentacles = (
+  workspaceCwd: string,
+  projectStateDir?: string,
+): DeckTentacleSummary[] => {
   const tentaclesRoot = join(workspaceCwd, TENTACLES_DIR);
   if (!existsSync(tentaclesRoot)) return [];
 
@@ -172,7 +175,7 @@ export const readDeckTentacles = (workspaceCwd: string): DeckTentacleSummary[] =
     return [];
   }
 
-  const deckState = readDeckState(workspaceCwd);
+  const deckState = readDeckState(projectStateDir ?? join(workspaceCwd, ".octogent"));
   const results: DeckTentacleSummary[] = [];
 
   for (const entry of entries) {
@@ -465,7 +468,9 @@ export type CreateDeckTentacleResult =
 export const createDeckTentacle = (
   workspaceCwd: string,
   input: CreateDeckTentacleInput,
+  projectStateDir?: string,
 ): CreateDeckTentacleResult => {
+  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
   const name = input.name.trim();
   if (name.length === 0) {
     return { ok: false, error: "Name is required" };
@@ -488,14 +493,14 @@ export const createDeckTentacle = (
   writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
 
   // Persist app metadata in deck state
-  const deckState = readDeckState(workspaceCwd);
+  const deckState = readDeckState(stateDir);
   deckState.tentacles[name] = {
     color: input.color,
     status: "idle",
     octopus: input.octopus,
     scope: { paths: [], tags: [] },
   };
-  writeDeckState(workspaceCwd, deckState);
+  writeDeckState(stateDir, deckState);
 
   return {
     ok: true,
@@ -520,7 +525,9 @@ export const createDeckTentacle = (
 export const deleteDeckTentacle = (
   workspaceCwd: string,
   tentacleId: string,
+  projectStateDir?: string,
 ): { ok: true } | { ok: false; error: string } => {
+  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
   if (tentacleId.includes("..") || tentacleId.includes("/")) {
     return { ok: false, error: "Invalid tentacle ID" };
   }
@@ -533,9 +540,9 @@ export const deleteDeckTentacle = (
   rmSync(tentacleDir, { recursive: true, force: true });
 
   // Remove from deck state
-  const deckState = readDeckState(workspaceCwd);
+  const deckState = readDeckState(stateDir);
   delete deckState.tentacles[tentacleId];
-  writeDeckState(workspaceCwd, deckState);
+  writeDeckState(stateDir, deckState);
 
   return { ok: true };
 };

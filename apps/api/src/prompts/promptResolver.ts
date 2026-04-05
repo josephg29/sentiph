@@ -1,8 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const PROMPTS_RELATIVE_PATH = "prompts";
-
 /**
  * Interpolate `{{key}}` placeholders in a template string with values from the
  * provided variables map. Unknown placeholders are left as-is.
@@ -11,11 +9,11 @@ export const interpolatePrompt = (template: string, variables: Record<string, st
   template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => variables[key] ?? match);
 
 /**
- * Read a prompt template from `prompts/<name>.md` and return the raw
+ * Read a prompt template from `<promptsDir>/<name>.md` and return the raw
  * template string. Returns `undefined` if the file does not exist.
  */
 export const readPromptTemplate = async (
-  workspaceCwd: string,
+  promptsDir: string,
   name: string,
 ): Promise<string | undefined> => {
   // Guard against path traversal.
@@ -23,7 +21,7 @@ export const readPromptTemplate = async (
     return undefined;
   }
 
-  const filePath = join(workspaceCwd, PROMPTS_RELATIVE_PATH, `${name}.md`);
+  const filePath = join(promptsDir, `${name}.md`);
 
   try {
     const content = await readFile(filePath, "utf-8");
@@ -38,11 +36,11 @@ export const readPromptTemplate = async (
  * Returns `undefined` if the template does not exist.
  */
 export const resolvePrompt = async (
-  workspaceCwd: string,
+  promptsDir: string,
   name: string,
   variables: Record<string, string>,
 ): Promise<string | undefined> => {
-  const template = await readPromptTemplate(workspaceCwd, name);
+  const template = await readPromptTemplate(promptsDir, name);
   if (template === undefined) {
     return undefined;
   }
@@ -52,10 +50,9 @@ export const resolvePrompt = async (
 /**
  * List all available prompt template names (file basenames without `.md`).
  */
-export const listPromptTemplates = async (workspaceCwd: string): Promise<string[]> => {
-  const dirPath = join(workspaceCwd, PROMPTS_RELATIVE_PATH);
+export const listPromptTemplates = async (promptsDir: string): Promise<string[]> => {
   try {
-    const entries = await readdir(dirPath);
+    const entries = await readdir(promptsDir);
     return entries.filter((e) => e.endsWith(".md")).map((e) => e.replace(/\.md$/, ""));
   } catch {
     return [];

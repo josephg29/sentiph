@@ -25,12 +25,12 @@ import {
 
 export const handleDeckTentaclesRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { workspaceCwd },
+  { workspaceCwd, projectStateDir },
 ) => {
   if (requestUrl.pathname !== "/api/deck/tentacles") return false;
 
   if (request.method === "GET") {
-    const tentacles = readDeckTentacles(workspaceCwd);
+    const tentacles = readDeckTentacles(workspaceCwd, projectStateDir);
     writeJson(response, 200, tentacles, corsOrigin);
     return true;
   }
@@ -55,7 +55,7 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
       hairColor: typeof rawOctopus.hairColor === "string" ? rawOctopus.hairColor : null,
     };
 
-    const result = createDeckTentacle(workspaceCwd, { name, description, color, octopus });
+    const result = createDeckTentacle(workspaceCwd, { name, description, color, octopus }, projectStateDir);
     if (!result.ok) {
       writeJson(response, 400, { error: result.error }, corsOrigin);
       return true;
@@ -73,7 +73,7 @@ export const DECK_TENTACLE_ITEM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)$/;
 
 export const handleDeckTentacleItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { workspaceCwd },
+  { workspaceCwd, projectStateDir },
 ) => {
   const match = requestUrl.pathname.match(DECK_TENTACLE_ITEM_PATTERN);
   if (!match) return false;
@@ -84,7 +84,7 @@ export const handleDeckTentacleItemRoute: ApiRouteHandler = async (
   }
 
   const tentacleId = decodeURIComponent(match[1] as string);
-  const result = deleteDeckTentacle(workspaceCwd, tentacleId);
+  const result = deleteDeckTentacle(workspaceCwd, tentacleId, projectStateDir);
   if (!result.ok) {
     writeJson(response, 404, { error: result.error }, corsOrigin);
     return true;
@@ -286,7 +286,7 @@ export const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/sw
 
 export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd },
+  { runtime, workspaceCwd, projectStateDir, promptsDir },
 ) => {
   const match = requestUrl.pathname.match(DECK_TENTACLE_SWARM_PATTERN);
   if (!match) return false;
@@ -366,7 +366,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   const baseRef = tentacleTerminal ? `octogent/${tentacleId}` : "HEAD";
 
   // Resolve the tentacle display name for prompts.
-  const deckTentacles = readDeckTentacles(workspaceCwd);
+  const deckTentacles = readDeckTentacles(workspaceCwd, projectStateDir);
   const deckEntry = deckTentacles.find((t) => t.tentacleId === tentacleId);
   const tentacleName = deckEntry?.displayName ?? tentacleId;
 
@@ -398,7 +398,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
           ].join("\n")
         : "";
 
-      const workerPrompt = await resolvePrompt(workspaceCwd, "swarm-worker", {
+      const workerPrompt = await resolvePrompt(promptsDir, "swarm-worker", {
         tentacleName,
         tentacleId,
         tentacleContextPath: join(workspaceCwd, ".octogent/tentacles", tentacleId),
@@ -436,7 +436,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         .map((w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
         .join("\n");
 
-      const parentPrompt = await resolvePrompt(workspaceCwd, "swarm-parent", {
+      const parentPrompt = await resolvePrompt(promptsDir, "swarm-parent", {
         tentacleName,
         tentacleId,
         workerCount: String(workers.length),

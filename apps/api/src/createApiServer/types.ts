@@ -6,7 +6,10 @@ import type { MonitorService } from "../monitor";
 import type { GitClient } from "../terminalRuntime";
 
 export type CreateApiServerOptions = {
-  workspaceCwd?: string;
+  workspaceCwd?: string | undefined;
+  projectStateDir?: string | undefined;
+  promptsDir?: string | undefined;
+  webDistDir?: string | undefined;
   gitClient?: GitClient;
   readClaudeUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;

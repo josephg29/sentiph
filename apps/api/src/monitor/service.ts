@@ -174,11 +174,11 @@ const toFeedSnapshot = (
 };
 
 export const createMonitorService = ({
-  workspaceCwd,
-  repository = createFileMonitorRepository(workspaceCwd),
+  projectStateDir,
+  repository = createFileMonitorRepository(projectStateDir),
   providers = [createXMonitorProvider()],
 }: {
-  workspaceCwd: string;
+  projectStateDir: string;
   repository?: MonitorRepository;
   providers?: MonitorProviderAdapter[];
 }): MonitorService => {

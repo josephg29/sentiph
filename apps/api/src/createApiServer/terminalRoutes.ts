@@ -38,7 +38,7 @@ export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
 
 export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd },
+  { runtime, workspaceCwd, projectStateDir, promptsDir },
 ) => {
   if (requestUrl.pathname !== "/api/terminals") {
     return false;
@@ -153,7 +153,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
       // Auto-inject existingTerminals summary so planner-style prompts have context.
       if (!templateVars.existingTerminals) {
-        const deckTentacles = readDeckTentacles(workspaceCwd);
+        const deckTentacles = readDeckTentacles(workspaceCwd, projectStateDir);
         if (deckTentacles.length > 0) {
           const listing = deckTentacles
             .map(
@@ -168,7 +168,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
         }
       }
 
-      const resolved = await resolvePrompt(workspaceCwd, templateName, templateVars);
+      const resolved = await resolvePrompt(promptsDir, templateName, templateVars);
       if (resolved !== undefined) {
         createTerminalInput.initialPrompt = resolved;
       }

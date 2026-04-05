@@ -30,81 +30,75 @@ describe("interpolatePrompt", () => {
 });
 
 describe("readPromptTemplate", () => {
-  let workspaceCwd: string;
+  let promptsDir: string;
 
   beforeEach(async () => {
-    workspaceCwd = await mkdtemp(join(tmpdir(), "prompt-test-"));
-    await mkdir(join(workspaceCwd, ".octogent", "prompts"), { recursive: true });
+    promptsDir = await mkdtemp(join(tmpdir(), "prompt-test-"));
   });
 
   afterEach(async () => {
-    await rm(workspaceCwd, { recursive: true, force: true });
+    await rm(promptsDir, { recursive: true, force: true });
   });
 
   it("reads an existing template file", async () => {
-    await writeFile(join(workspaceCwd, ".octogent", "prompts", "greeting.md"), "Hello {{name}}!\n");
-    const result = await readPromptTemplate(workspaceCwd, "greeting");
+    await writeFile(join(promptsDir, "greeting.md"), "Hello {{name}}!\n");
+    const result = await readPromptTemplate(promptsDir, "greeting");
     expect(result).toBe("Hello {{name}}!");
   });
 
   it("returns undefined for missing templates", async () => {
-    const result = await readPromptTemplate(workspaceCwd, "nonexistent");
+    const result = await readPromptTemplate(promptsDir, "nonexistent");
     expect(result).toBeUndefined();
   });
 
   it("rejects path traversal attempts", async () => {
-    const result = await readPromptTemplate(workspaceCwd, "../etc/passwd");
+    const result = await readPromptTemplate(promptsDir, "../etc/passwd");
     expect(result).toBeUndefined();
   });
 });
 
 describe("resolvePrompt", () => {
-  let workspaceCwd: string;
+  let promptsDir: string;
 
   beforeEach(async () => {
-    workspaceCwd = await mkdtemp(join(tmpdir(), "prompt-test-"));
-    await mkdir(join(workspaceCwd, ".octogent", "prompts"), { recursive: true });
+    promptsDir = await mkdtemp(join(tmpdir(), "prompt-test-"));
   });
 
   afterEach(async () => {
-    await rm(workspaceCwd, { recursive: true, force: true });
+    await rm(promptsDir, { recursive: true, force: true });
   });
 
   it("reads and interpolates a template", async () => {
-    await writeFile(
-      join(workspaceCwd, ".octogent", "prompts", "tentacle-init.md"),
-      "You are the {{tentacleId}} agent.",
-    );
-    const result = await resolvePrompt(workspaceCwd, "tentacle-init", {
+    await writeFile(join(promptsDir, "tentacle-init.md"), "You are the {{tentacleId}} agent.");
+    const result = await resolvePrompt(promptsDir, "tentacle-init", {
       tentacleId: "sandbox",
     });
     expect(result).toBe("You are the sandbox agent.");
   });
 
   it("returns undefined for missing templates", async () => {
-    const result = await resolvePrompt(workspaceCwd, "missing", { tentacleId: "x" });
+    const result = await resolvePrompt(promptsDir, "missing", { tentacleId: "x" });
     expect(result).toBeUndefined();
   });
 });
 
 describe("listPromptTemplates", () => {
-  let workspaceCwd: string;
+  let promptsDir: string;
 
   beforeEach(async () => {
-    workspaceCwd = await mkdtemp(join(tmpdir(), "prompt-test-"));
-    await mkdir(join(workspaceCwd, ".octogent", "prompts"), { recursive: true });
+    promptsDir = await mkdtemp(join(tmpdir(), "prompt-test-"));
   });
 
   afterEach(async () => {
-    await rm(workspaceCwd, { recursive: true, force: true });
+    await rm(promptsDir, { recursive: true, force: true });
   });
 
   it("lists template names without .md extension", async () => {
-    await writeFile(join(workspaceCwd, ".octogent", "prompts", "alpha.md"), "a");
-    await writeFile(join(workspaceCwd, ".octogent", "prompts", "beta.md"), "b");
-    await writeFile(join(workspaceCwd, ".octogent", "prompts", "readme.txt"), "ignored");
+    await writeFile(join(promptsDir, "alpha.md"), "a");
+    await writeFile(join(promptsDir, "beta.md"), "b");
+    await writeFile(join(promptsDir, "readme.txt"), "ignored");
 
-    const names = await listPromptTemplates(workspaceCwd);
+    const names = await listPromptTemplates(promptsDir);
     expect(names.sort()).toEqual(["alpha", "beta"]);
   });
 

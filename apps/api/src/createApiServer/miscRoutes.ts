@@ -93,7 +93,7 @@ export const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
 
 export const handlePromptsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { workspaceCwd },
+  { promptsDir },
 ) => {
   if (requestUrl.pathname !== "/api/prompts") {
     return false;
@@ -102,14 +102,14 @@ export const handlePromptsCollectionRoute: ApiRouteHandler = async (
     writeMethodNotAllowed(response, corsOrigin);
     return true;
   }
-  const names = await listPromptTemplates(workspaceCwd);
+  const names = await listPromptTemplates(promptsDir);
   writeJson(response, 200, { prompts: names }, corsOrigin);
   return true;
 };
 
 export const handlePromptItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { workspaceCwd },
+  { promptsDir },
 ) => {
   const match = requestUrl.pathname.match(PROMPT_ITEM_PATH_PATTERN);
   if (!match) return false;
@@ -128,14 +128,14 @@ export const handlePromptItemRoute: ApiRouteHandler = async (
 
   const hasVariables = Object.keys(variables).length > 0;
   if (hasVariables) {
-    const resolved = await resolvePrompt(workspaceCwd, name, variables);
+    const resolved = await resolvePrompt(promptsDir, name, variables);
     if (resolved === undefined) {
       writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
       return true;
     }
     writeJson(response, 200, { name, prompt: resolved }, corsOrigin);
   } else {
-    const template = await readPromptTemplate(workspaceCwd, name);
+    const template = await readPromptTemplate(promptsDir, name);
     if (template === undefined) {
       writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
       return true;

@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { scanClaudeUsageChart } from "./claudeSessionScanner";
 import {
@@ -17,6 +17,9 @@ import { createTerminalRuntime } from "./terminalRuntime";
 
 export const createApiServer = ({
   workspaceCwd,
+  projectStateDir,
+  promptsDir,
+  webDistDir,
   gitClient,
   readClaudeUsageSnapshot = readClaudeUsageSnapshotDefault,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
@@ -26,7 +29,10 @@ export const createApiServer = ({
   invalidateClaudeUsageCache = invalidateUsageCacheDefault,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
-  const resolvedWorkspaceCwd = workspaceCwd ?? resolve(process.cwd(), "../..");
+  const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
+  // State lives in ~/.octogent/projects/<name>/ when provided, else falls back to <project>/.octogent/
+  const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".octogent");
+  const resolvedPromptsDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
   const readGithubRepoSummaryWithDefault =
     readGithubRepoSummary ??
     (() =>
@@ -36,6 +42,7 @@ export const createApiServer = ({
 
   const runtimeOptions: Parameters<typeof createTerminalRuntime>[0] = {
     workspaceCwd: resolvedWorkspaceCwd,
+    projectStateDir: resolvedStateDir,
   };
   if (gitClient) {
     runtimeOptions.gitClient = gitClient;
@@ -45,17 +52,20 @@ export const createApiServer = ({
   const monitorServiceWithDefault =
     monitorService ??
     createMonitorService({
-      workspaceCwd: resolvedWorkspaceCwd,
+      projectStateDir: resolvedStateDir,
     });
   const scanUsageHeatmapWithDefault =
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanClaudeUsageChart(scope, resolvedWorkspaceCwd));
 
-  const codeIntelStore = createCodeIntelStore(resolvedWorkspaceCwd);
+  const codeIntelStore = createCodeIntelStore(resolvedStateDir);
 
   const requestHandler = createApiRequestHandler({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
+    projectStateDir: resolvedStateDir,
+    promptsDir: resolvedPromptsDir,
+    webDistDir,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,

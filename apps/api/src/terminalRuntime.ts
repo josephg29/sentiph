@@ -75,20 +75,21 @@ const deriveTerminalNameFromPrompt = (prompt: string): string => {
 
 export const createTerminalRuntime = ({
   workspaceCwd,
+  projectStateDir,
   gitClient = createDefaultGitClient(),
 }: CreateTerminalRuntimeOptions) => {
+  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
   const sessions = new Map<string, TerminalSession>();
   const channelQueues = new Map<string, ChannelMessage[]>();
   let channelMessageCounter = 0;
   const websocketServer = new WebSocketServer({ noServer: true });
-  const registryPath = join(workspaceCwd, TERMINAL_REGISTRY_RELATIVE_PATH);
+  const registryPath = join(stateDir, "state", "tentacles.json");
   const registryState = loadTerminalRegistry(registryPath);
   const terminals = registryState.terminals;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
-  const ptyLogDir =
-    process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(workspaceCwd, ".octogent", "logs");
-  const transcriptDirectoryPath = join(workspaceCwd, TERMINAL_TRANSCRIPT_RELATIVE_PATH);
+  const ptyLogDir = process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
+  const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
   const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
 
   const installHooksInDirectory = (targetCwd: string) => {

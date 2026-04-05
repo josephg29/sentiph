@@ -14,6 +14,8 @@ export type TerminalRuntime = ReturnType<typeof import("../terminalRuntime").cre
 export type RouteHandlerDependencies = {
   runtime: TerminalRuntime;
   workspaceCwd: string;
+  projectStateDir: string;
+  promptsDir: string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;

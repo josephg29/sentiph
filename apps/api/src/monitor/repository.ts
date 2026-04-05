@@ -263,9 +263,9 @@ const writeJsonDocument = (path: string, value: unknown) => {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
-export const createFileMonitorRepository = (workspaceCwd: string): MonitorRepository => {
-  const configPath = join(workspaceCwd, MONITOR_CONFIG_RELATIVE_PATH);
-  const cachePath = join(workspaceCwd, MONITOR_CACHE_RELATIVE_PATH);
+export const createFileMonitorRepository = (projectStateDir: string): MonitorRepository => {
+  const configPath = join(projectStateDir, "state", "monitor-config.json");
+  const cachePath = join(projectStateDir, "state", "monitor-cache.json");
 
   return {
     readConfig() {

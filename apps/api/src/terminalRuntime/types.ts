@@ -159,6 +159,7 @@ export class RuntimeInputError extends Error {}
 
 export type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;
+  projectStateDir?: string | undefined;
   gitClient?: GitClient;
 };
 

@@ -1,5 +1,8 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;
@@ -74,6 +77,31 @@ const apiOrigin = `http://127.0.0.1:${apiPort}`;
 
 console.log(`[octogent-dev] using api port ${apiPort}`);
 
+const monorepoRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+
+// Resolve project state dir from global registry.
+const resolveProjectStateDir = (workspaceCwd) => {
+  if (process.env.OCTOGENT_PROJECT_STATE_DIR) {
+    return process.env.OCTOGENT_PROJECT_STATE_DIR;
+  }
+  const projectsFile = join(homedir(), ".octogent", "projects.json");
+  if (existsSync(projectsFile)) {
+    try {
+      const registry = JSON.parse(readFileSync(projectsFile, "utf-8"));
+      const project = registry.projects?.find((p) => p.path === workspaceCwd);
+      if (project) {
+        return join(homedir(), ".octogent", "projects", project.name);
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return `${workspaceCwd}/.octogent`;
+};
+
+const workspaceCwd = process.env.OCTOGENT_WORKSPACE_CWD ?? monorepoRoot;
+const projectStateDir = resolveProjectStateDir(workspaceCwd);
+
 const child = spawn(
   pnpmCommand,
   ["-r", "--parallel", "--filter", "@octogent/api", "--filter", "@octogent/web", "dev"],
@@ -83,6 +111,9 @@ const child = spawn(
       ...process.env,
       OCTOGENT_API_PORT: String(apiPort),
       OCTOGENT_API_ORIGIN: apiOrigin,
+      OCTOGENT_WORKSPACE_CWD: workspaceCwd,
+      OCTOGENT_PROJECT_STATE_DIR: projectStateDir,
+      OCTOGENT_PROMPTS_DIR: process.env.OCTOGENT_PROMPTS_DIR ?? `${monorepoRoot}/prompts`,
     },
   },
 );

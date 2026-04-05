@@ -1,8 +1,6 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const CODE_INTEL_RELATIVE_PATH = ".octogent/state/code-intel-events.jsonl";
-
 export type CodeIntelEvent = {
   ts: string;
   sessionId: string;
@@ -15,12 +13,12 @@ export type CodeIntelStore = {
   readAll: () => Promise<CodeIntelEvent[]>;
 };
 
-export const createCodeIntelStore = (workspaceCwd: string): CodeIntelStore => {
-  const filePath = join(workspaceCwd, CODE_INTEL_RELATIVE_PATH);
+export const createCodeIntelStore = (projectStateDir: string): CodeIntelStore => {
+  const filePath = join(projectStateDir, "state", "code-intel-events.jsonl");
 
   return {
     async append(event) {
-      const dir = join(workspaceCwd, ".octogent/state");
+      const dir = join(projectStateDir, "state");
       await mkdir(dir, { recursive: true });
       await appendFile(filePath, `${JSON.stringify(event)}\n`, "utf-8");
     },

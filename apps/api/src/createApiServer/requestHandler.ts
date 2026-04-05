@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { extname, join } from "node:path";
 
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
@@ -61,9 +64,26 @@ import {
   handleUsageHeatmapRoute,
 } from "./usageRoutes";
 
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html",
+  ".js": "application/javascript",
+  ".css": "text/css",
+  ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+};
+
 type CreateApiRequestHandlerOptions = {
   runtime: TerminalRuntime;
   workspaceCwd: string;
+  projectStateDir: string;
+  promptsDir: string;
+  webDistDir?: string | undefined;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
@@ -124,9 +144,33 @@ const logRequest = (method: string, path: string, status: number, startTime: num
   console.log(`[API] ${method} ${path} ${status} ${Date.now() - startTime}ms`);
 };
 
+const serveStaticFile = async (
+  response: ServerResponse,
+  webDistDir: string,
+  pathname: string,
+): Promise<boolean> => {
+  // Prevent path traversal.
+  const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
+  const filePath = join(webDistDir, safePath === "/" ? "index.html" : safePath);
+
+  try {
+    const content = await readFile(filePath);
+    const ext = extname(filePath);
+    const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+    response.writeHead(200, { "Content-Type": contentType });
+    response.end(content);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const createApiRequestHandler = ({
   runtime,
   workspaceCwd,
+  projectStateDir,
+  promptsDir,
+  webDistDir,
   readClaudeUsageSnapshot,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
@@ -136,9 +180,13 @@ export const createApiRequestHandler = ({
   codeIntelStore,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
+  const resolvedWebDistDir = webDistDir && existsSync(webDistDir) ? webDistDir : null;
+
   const routeDependencies: RouteHandlerDependencies = {
     runtime,
     workspaceCwd,
+    projectStateDir,
+    promptsDir,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary,
@@ -197,6 +245,17 @@ export const createApiRequestHandler = ({
             logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
             return;
           }
+        }
+      }
+
+      // Serve static web frontend if available.
+      if (resolvedWebDistDir && request.method === "GET") {
+        const served =
+          (await serveStaticFile(response, resolvedWebDistDir, requestUrl.pathname)) ||
+          (await serveStaticFile(response, resolvedWebDistDir, "/"));
+        if (served) {
+          logRequest(request.method, requestUrl.pathname, 200, startTime);
+          return;
         }
       }
 
