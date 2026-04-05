@@ -811,12 +811,13 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
       const data = await response.json();
       const agentId = (data.terminalId ?? data.tentacleId) as string;
       setFocus({ type: "terminal", agentId, terminalLabel: "Tentacle Planner" });
+      await fetchTentacles();
     } catch {
       // silently ignore
     } finally {
       setIsLaunchingAgent(false);
     }
-  }, [selectedAgent]);
+  }, [selectedAgent, fetchTentacles]);
 
   const handleCreateTentacle = useCallback(
     async (name: string, description: string, color: string, octopus: OctopusAppearancePayload) => {
@@ -891,7 +892,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
 
   // Push sidebar content to the shared sidebar
   const sidebarContent =
-    tentacles.length > 0 ? (
+    tentacles.length > 0 || focus?.type === "terminal" ? (
       <div className="deck-sidebar-content">
         <div className="deck-sidebar-content-top">
           <ActionCards
