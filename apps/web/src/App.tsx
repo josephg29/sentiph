@@ -434,6 +434,9 @@ export const App = () => {
               onCreateTerminal: async () => {
                 return await createTerminal("shared", undefined, OCTOBOSS_ID);
               },
+              onCreateWorktreeTerminal: async () => {
+                return await createTerminal("worktree", undefined, OCTOBOSS_ID);
+              },
               onCreateTentacle: async () => {
                 const response = await fetch("/api/deck/tentacles", {
                   method: "POST",

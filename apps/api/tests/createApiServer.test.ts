@@ -1179,7 +1179,7 @@ describe("createApiServer", () => {
         label: "terminal-2",
         state: "live",
         tentacleId: "terminal-2",
-        tentacleName: "terminal-2",
+        tentacleName: "Octogent Terminal 1",
         workspaceMode: "shared",
       }),
     );

@@ -112,6 +112,28 @@
   r: attr(r + 2);
 }
 
+/* ─── Node type rings (worktree / swarm) ─────────────────────────────────── */
+
+.canvas-node-ring {
+  pointer-events: none;
+}
+
+.canvas-node-ring--worktree {
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  opacity: 0.7;
+}
+
+.canvas-node-ring--swarm {
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.canvas-node-ring--swarm-outer {
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
 /* ─── Waiting indicator on session nodes ──────────────────────────────────── */
 
 .canvas-node-waiting-pill {

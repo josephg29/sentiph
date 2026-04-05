@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check as CheckIcon,
   ChevronDown,
+  GitBranch,
   Hexagon,
   Layers,
   ListTodo,
@@ -55,6 +56,7 @@ type CanvasPrimaryViewProps = {
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
   onCreateTerminal?: () => Promise<string | undefined> | void;
+  onCreateWorktreeTerminal?: () => Promise<string | undefined> | void;
   onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string) => Promise<void>;
   onOctobossAction?: (action: string) => Promise<string | undefined> | void;
@@ -88,6 +90,7 @@ export const CanvasPrimaryView = ({
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
   onCreateTerminal,
+  onCreateWorktreeTerminal,
   onCreateTentacle,
   onSpawnSwarm,
   onOctobossAction,
@@ -637,6 +640,21 @@ export const CanvasPrimaryView = ({
             <span className="canvas-toolbar-icon"><TerminalIcon size={14} /></span>
             <span className="canvas-toolbar-label">Terminal</span>
           </button>
+          <button
+            type="button"
+            className="canvas-toolbar-btn"
+            onClick={() => {
+              const result = onCreateWorktreeTerminal?.();
+              if (result && typeof result.then === "function") {
+                void result.then((agentId) => {
+                  if (agentId) setPendingOpenAgentId(agentId);
+                });
+              }
+            }}
+          >
+            <span className="canvas-toolbar-icon"><GitBranch size={14} /></span>
+            <span className="canvas-toolbar-label">Worktree</span>
+          </button>
           <button type="button" className="canvas-toolbar-btn" onClick={onCreateTentacle}>
             <span className="canvas-toolbar-icon"><Hexagon size={14} /></span>
             <span className="canvas-toolbar-label">Tentacle</span>
@@ -797,6 +815,22 @@ export const CanvasPrimaryView = ({
                   <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
                   New Terminal
                 </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => {
+                    setContextMenu(null);
+                    const result = onCreateWorktreeTerminal?.();
+                    if (result && typeof result.then === "function") {
+                      void result.then((agentId) => {
+                        if (agentId) setPendingOpenAgentId(agentId);
+                      });
+                    }
+                  }}
+                >
+                  <span className="canvas-context-menu-icon"><GitBranch size={14} /></span>
+                  New Worktree Terminal
+                </button>
               </>
             )}
             {contextMenu.kind === "tentacle" && (
@@ -808,6 +842,22 @@ export const CanvasPrimaryView = ({
                 >
                   <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
                   Create new agent
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => {
+                    setContextMenu(null);
+                    const result = onCreateWorktreeTerminal?.();
+                    if (result && typeof result.then === "function") {
+                      void result.then((agentId) => {
+                        if (agentId) setPendingOpenAgentId(agentId);
+                      });
+                    }
+                  }}
+                >
+                  <span className="canvas-context-menu-icon"><GitBranch size={14} /></span>
+                  New Worktree Terminal
                 </button>
                 <button
                   type="button"

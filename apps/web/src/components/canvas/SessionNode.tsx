@@ -50,6 +50,8 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
     node.agentRuntimeState === "waiting_for_permission" ||
     node.agentRuntimeState === "waiting_for_user";
   const color = isActive ? node.color : "#9ca3af";
+  const isWorktree = node.workspaceMode === "worktree" && !node.parentTerminalId;
+  const isSwarmWorker = !!node.parentTerminalId;
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
 
   const pillLabel = useMemo(() => {
@@ -82,6 +84,34 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       }}
       style={{ cursor: "pointer" }}
     >
+      {/* Worktree ring — dashed stroke */}
+      {isWorktree && (
+        <circle
+          className="canvas-node-ring canvas-node-ring--worktree"
+          r={node.radius + 6}
+          fill="none"
+          stroke={color}
+        />
+      )}
+
+      {/* Swarm worker ring — double concentric circles */}
+      {isSwarmWorker && (
+        <>
+          <circle
+            className="canvas-node-ring canvas-node-ring--swarm"
+            r={node.radius + 5}
+            fill="none"
+            stroke={color}
+          />
+          <circle
+            className="canvas-node-ring canvas-node-ring--swarm-outer"
+            r={node.radius + 9}
+            fill="none"
+            stroke={color}
+          />
+        </>
+      )}
+
       {/* Focused shine — accent glow when waiting, white otherwise */}
       {isSelected && (
         <circle

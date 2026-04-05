@@ -237,6 +237,18 @@ export const createTerminalRuntime = ({
     throw new Error("Unable to allocate terminal id.");
   };
 
+  const allocateDefaultTerminalName = (): string => {
+    const usedNumbers = new Set<number>();
+    const pattern = /^Octogent Terminal (\d+)$/;
+    for (const t of terminals.values()) {
+      const match = pattern.exec(t.tentacleName);
+      if (match) usedNumbers.add(Number(match[1]));
+    }
+    let n = 1;
+    while (usedNumbers.has(n)) n++;
+    return `Octogent Terminal ${n}`;
+  };
+
   const isTerminalRecentlyActive = (terminal: PersistedTerminal): boolean => {
     if (!terminal.lastActiveAt) return false;
     const thresholdMs =
@@ -300,13 +312,19 @@ export const createTerminalRuntime = ({
 
     // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
     const tentacleId = requestedTentacleId ?? terminalId;
-    const worktreeId = requestedWorktreeId;
+    const effectiveName = tentacleName ?? allocateDefaultTerminalName();
+
+    // Auto-allocate a unique worktreeId when creating a worktree terminal
+    // so multiple worktree terminals can coexist (each gets its own directory).
+    const worktreeId =
+      requestedWorktreeId ??
+      (workspaceMode === "worktree" ? terminalId : undefined);
 
     const terminal: PersistedTerminal = {
       terminalId,
       tentacleId,
       ...(worktreeId ? { worktreeId } : {}),
-      tentacleName: tentacleName ?? terminalId,
+      tentacleName: effectiveName,
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,

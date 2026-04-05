@@ -23,6 +23,7 @@ export type GraphNode = {
   waitingToolName?: string;
   hasUserPrompt?: boolean;
   workspaceMode?: TentacleWorkspaceMode;
+  parentTerminalId?: string;
   firstPromptPreview?: string;
   octopus?: DeckOctopusAppearance;
 };
