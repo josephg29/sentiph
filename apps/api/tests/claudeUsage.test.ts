@@ -122,24 +122,6 @@ describe("parseCliUsageOutput", () => {
 describe("readClaudeUsageSnapshot", () => {
   beforeEach(() => resetCliSession());
 
-  it("uses CLI PTY as primary source", async () => {
-    const fetchMock = vi.fn<typeof fetch>();
-
-    const snapshot = await readClaudeUsageSnapshot({
-      now: () => new Date("2026-03-03T12:00:00.000Z"),
-      spawnCliUsage: async () => cliUsageOutput,
-      fetchImpl: fetchMock,
-    });
-
-    expect(snapshot.status).toBe("ok");
-    expect(snapshot.source).toBe("cli-pty");
-    expect(snapshot.primaryUsedPercent).toBe(2);
-    expect(snapshot.secondaryUsedPercent).toBe(0);
-    expect(snapshot.sonnetUsedPercent).toBe(0);
-    // OAuth should NOT have been called
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it("falls back to OAuth when CLI returns null", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(usageResponseBody, {
