@@ -1,4 +1,9 @@
-import type { AgentState, DeckOctopusAppearance, TentacleWorkspaceMode } from "@octogent/core";
+import type {
+  AgentRuntimeState,
+  AgentState,
+  DeckOctopusAppearance,
+  TentacleWorkspaceMode,
+} from "@octogent/core";
 
 export type GraphNode = {
   id: string;
@@ -14,6 +19,8 @@ export type GraphNode = {
   color: string;
   sessionId?: string;
   agentState?: AgentState;
+  agentRuntimeState?: AgentRuntimeState;
+  waitingToolName?: string;
   hasUserPrompt?: boolean;
   workspaceMode?: TentacleWorkspaceMode;
   firstPromptPreview?: string;

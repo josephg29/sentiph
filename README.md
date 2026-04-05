@@ -32,7 +32,7 @@ pnpm install
 pnpm start
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173` to launch the operator UI.
 
 In dev mode:
 
@@ -66,7 +66,7 @@ pnpm build
 pnpm format
 ```
 
-GitHub Actions runs the same `lint`, `test`, and `build` checks on pushes to `main` and on pull requests.
+GitHub Actions runs `lint`, `test`, and `build` checks on every push to `main` and on pull requests.
 
 ## Repo layout
 

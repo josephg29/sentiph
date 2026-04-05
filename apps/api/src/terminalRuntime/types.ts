@@ -28,6 +28,7 @@ import type { AgentRuntimeState, AgentStateTracker } from "../agentStateDetectio
 export type TerminalStateMessage = {
   type: "state";
   state: AgentRuntimeState;
+  toolName?: string;
 };
 
 export type TerminalOutputMessage = {
@@ -81,6 +82,7 @@ export type TerminalSession = {
   initialPrompt?: string;
   isInitialPromptSent?: boolean;
   hasSeenProcessing?: boolean;
+  lastToolName?: string;
 };
 
 export {

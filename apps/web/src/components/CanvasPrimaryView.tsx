@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
+import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
@@ -117,11 +118,13 @@ export const CanvasPrimaryView = ({
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
 
+  const agentRuntimeStates = useAgentRuntimeStates(columns);
+
   const {
     nodes,
     edges,
     refresh: refreshGraphData,
-  } = useCanvasGraphData({ columns, enabled: true });
+  } = useCanvasGraphData({ columns, enabled: true, agentRuntimeStates });
 
   const {
     transform,
@@ -545,6 +548,13 @@ export const CanvasPrimaryView = ({
     refreshGraphData();
   }, [refreshGraphData]);
 
+  const waitingNodes = simulatedNodes.filter(
+    (n) =>
+      n.type === "active-session" &&
+      (n.agentRuntimeState === "waiting_for_permission" ||
+        n.agentRuntimeState === "waiting_for_user"),
+  );
+
   const hasPanels = isHydratingTerminals || openTerminals.size > 0 || openTentacles.size > 0;
 
   return (
@@ -661,6 +671,33 @@ export const CanvasPrimaryView = ({
             <span className="canvas-toolbar-label">Delete All</span>
           </button>
         </div>
+
+        {/* Waiting notifications — compact bars below the toolbar */}
+        {waitingNodes.length > 0 && (
+          <div className="canvas-waiting-list">
+            {waitingNodes.map((node) => {
+              const nameRaw = node.label;
+              const name = nameRaw.length > 20 ? `${nameRaw.slice(0, 20)}…` : nameRaw;
+              const prefix =
+                node.agentRuntimeState === "waiting_for_permission"
+                  ? `${node.waitingToolName ?? "Permission"}: `
+                  : "Waiting: ";
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  className="canvas-waiting-bar"
+                  onClick={() => handleNodeClick(node.id)}
+                >
+                  <span className="canvas-waiting-bar-name">
+                    <span className="canvas-waiting-bar-prefix">{prefix}</span>
+                    {name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {hasPanels && (

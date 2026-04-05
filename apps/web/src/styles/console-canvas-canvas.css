@@ -112,6 +112,78 @@
   r: attr(r + 2);
 }
 
+/* ─── Waiting indicator on session nodes ──────────────────────────────────── */
+
+.canvas-node-waiting-pill {
+  fill: #f59e0b;
+  opacity: 0.9;
+  animation: canvas-waiting-pill-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes canvas-waiting-pill-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.canvas-node-waiting-label {
+  font-family: "PP Neue Machina Plain", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  fill: #0a0e14;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── Waiting notification bars (below toolbar) ──────────────────────────── */
+
+.canvas-waiting-list {
+  position: absolute;
+  left: 16px;
+  top: 72px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 240px;
+}
+
+.canvas-waiting-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #f59e0b;
+  color: #0a0e14;
+  font-family: "PP Neue Machina Plain", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+  text-align: left;
+  transition: opacity 0.15s ease;
+}
+
+.canvas-waiting-bar:hover {
+  opacity: 0.85;
+}
+
+.canvas-waiting-bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-waiting-bar-prefix {
+  opacity: 0.7;
+}
+
 /* ─── Canvas toolbar (top-left action buttons) ───────────────────────────── */
 
 .canvas-toolbar {

@@ -5,6 +5,7 @@ import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runt
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../normalizers";
 import type { ConversationSessionSummary, TerminalView } from "../types";
+import type { AgentRuntimeStateInfo } from "./useAgentRuntimeStates";
 
 const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
@@ -49,6 +50,7 @@ const tentacleColor = (tentacleId: string, deckColor: string | null | undefined)
 type UseCanvasGraphDataOptions = {
   columns: TerminalView;
   enabled: boolean;
+  agentRuntimeStates?: Map<string, AgentRuntimeStateInfo>;
 };
 
 type UseCanvasGraphDataResult = {
@@ -69,6 +71,7 @@ type DeckTentacleMinimal = Pick<
 export const useCanvasGraphData = ({
   columns,
   enabled,
+  agentRuntimeStates,
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
   const [deckTentacles, setDeckTentacles] = useState<DeckTentacleMinimal[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
@@ -212,6 +215,7 @@ export const useCanvasGraphData = ({
         const prevSession = prevNodes.get(sessionNodeId);
         const jitter = () => (Math.random() - 0.5) * 60;
 
+        const runtimeInfo = agentRuntimeStates?.get(activeTerminal.terminalId);
         const sessionNode: GraphNode = {
           id: sessionNodeId,
           type: "active-session",
@@ -227,6 +231,8 @@ export const useCanvasGraphData = ({
           sessionId: activeTerminal.terminalId,
           agentState: activeTerminal.state,
           hasUserPrompt: activeTerminal.hasUserPrompt ?? false,
+          ...(runtimeInfo ? { agentRuntimeState: runtimeInfo.state } : {}),
+          ...(runtimeInfo?.toolName ? { waitingToolName: runtimeInfo.toolName } : {}),
         };
         nodes.push(sessionNode);
         edges.push({ source: tentacleNodeId, target: sessionNodeId });
@@ -264,6 +270,7 @@ export const useCanvasGraphData = ({
     const prevSession = prevNodes.get(sessionNodeId);
     const jitter = () => (Math.random() - 0.5) * 60;
 
+    const bossRuntimeInfo = agentRuntimeStates?.get(terminal.terminalId);
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "active-session",
@@ -279,6 +286,8 @@ export const useCanvasGraphData = ({
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,
+      ...(bossRuntimeInfo ? { agentRuntimeState: bossRuntimeInfo.state } : {}),
+      ...(bossRuntimeInfo?.toolName ? { waitingToolName: bossRuntimeInfo.toolName } : {}),
     };
     nodes.push(sessionNode);
     edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });

@@ -3,6 +3,11 @@ import { useMemo } from "react";
 import type { GraphNode } from "../../app/canvas/types";
 
 const LINE_MAX = 24;
+const PILL_HEIGHT = 16;
+const PILL_RX = 8;
+const PILL_CHAR_WIDTH = 5.5;
+const PILL_PADDING = 14;
+const PILL_MAX_CHARS = 14;
 
 const splitLabel = (label: string): [string] | [string, string] => {
   if (label.length <= LINE_MAX) return [label];
@@ -26,6 +31,11 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
+const truncateToolName = (name: string): string => {
+  if (name.length <= PILL_MAX_CHARS) return name;
+  return `${name.slice(0, PILL_MAX_CHARS - 1)}…`;
+};
+
 type SessionNodeProps = {
   node: GraphNode;
   isSelected: boolean;
@@ -36,8 +46,25 @@ type SessionNodeProps = {
 export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: SessionNodeProps) => {
   const isActive = node.type === "active-session" && node.hasUserPrompt !== false;
   const isLive = isActive && node.agentState === "live";
+  const isWaiting =
+    node.agentRuntimeState === "waiting_for_permission" ||
+    node.agentRuntimeState === "waiting_for_user";
   const color = isActive ? node.color : "#9ca3af";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
+
+  const pillLabel = useMemo(() => {
+    if (node.agentRuntimeState === "waiting_for_permission") {
+      return node.waitingToolName ? truncateToolName(node.waitingToolName) : "PERMISSION";
+    }
+    if (node.agentRuntimeState === "waiting_for_user") {
+      return "WAITING";
+    }
+    return "";
+  }, [node.agentRuntimeState, node.waitingToolName]);
+
+  const pillWidth = pillLabel.length * PILL_CHAR_WIDTH + PILL_PADDING;
+  const pillY = node.radius + 4;
+  const labelYOffset = isWaiting ? PILL_HEIGHT + 6 : 0;
 
   return (
     <g
@@ -55,30 +82,55 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       }}
       style={{ cursor: "pointer" }}
     >
-      {/* Focused shine — white glow behind everything */}
+      {/* Focused shine — accent glow when waiting, white otherwise */}
       {isSelected && (
-        <circle className="canvas-node-focus-glow" r={node.radius + 12} fill="#ffffff" />
+        <circle
+          className="canvas-node-focus-glow"
+          r={node.radius + 12}
+          fill={isWaiting ? "#f59e0b" : "#ffffff"}
+        />
       )}
 
-      {/* Subtle glow halo */}
+      {/* Subtle glow halo — accent when waiting */}
       <circle
-        className={`canvas-node-bloom${isLive ? " canvas-node-bloom--pulse" : ""}`}
+        className={`canvas-node-bloom${isLive || isWaiting ? " canvas-node-bloom--pulse" : ""}`}
         r={node.radius + 3}
-        fill={color}
-        opacity={isActive ? 0.25 : 0.1}
+        fill={isWaiting ? "#f59e0b" : color}
+        opacity={isWaiting ? 0.45 : isActive ? 0.25 : 0.1}
       />
 
-      {/* Bright core dot */}
+      {/* Bright core dot — accent when waiting */}
       <circle
         className="canvas-node-core"
         r={node.radius}
-        fill={color}
+        fill={isWaiting ? "#f59e0b" : color}
         opacity={isActive ? 1 : 0.4}
       />
 
+      {/* Waiting indicator pill */}
+      {isWaiting && (
+        <g className="canvas-node-waiting-indicator">
+          <rect
+            className="canvas-node-waiting-pill"
+            x={-pillWidth / 2}
+            y={pillY}
+            width={pillWidth}
+            height={PILL_HEIGHT}
+            rx={PILL_RX}
+          />
+          <text
+            className="canvas-node-waiting-label"
+            y={pillY + PILL_HEIGHT / 2 + 3.5}
+            textAnchor="middle"
+          >
+            {pillLabel}
+          </text>
+        </g>
+      )}
+
       {/* Label — always visible, up to two lines */}
       <text
-        y={node.radius + 16}
+        y={node.radius + 16 + labelYOffset}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--session canvas-node-label--always"
         fill="var(--accent-primary)"

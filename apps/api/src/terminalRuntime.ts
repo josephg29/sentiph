@@ -244,17 +244,21 @@ export const createTerminalRuntime = ({
     return Date.now() - new Date(terminal.lastActiveAt).getTime() < thresholdMs;
   };
 
-  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => ({
-    terminalId: terminal.terminalId,
-    label: terminal.terminalId,
-    state: "live",
-    tentacleId: terminal.tentacleId,
-    tentacleName: terminal.tentacleName,
-    workspaceMode: terminal.workspaceMode,
-    createdAt: terminal.createdAt,
-    hasUserPrompt: isTerminalRecentlyActive(terminal),
-    ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
-  });
+  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => {
+    const session = sessions.get(terminal.terminalId);
+    return {
+      terminalId: terminal.terminalId,
+      label: terminal.terminalId,
+      state: "live",
+      tentacleId: terminal.tentacleId,
+      tentacleName: terminal.tentacleName,
+      workspaceMode: terminal.workspaceMode,
+      createdAt: terminal.createdAt,
+      hasUserPrompt: isTerminalRecentlyActive(terminal),
+      ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
+      ...(session ? { agentRuntimeState: session.agentState } : {}),
+    };
+  };
 
   const createTerminal = ({
     terminalId: requestedTerminalId,
@@ -903,7 +907,11 @@ export const createTerminalRuntime = ({
         if (notificationType === "permission_prompt") {
           session.agentState = "waiting_for_permission";
           session.stateTracker.forceState("waiting_for_permission");
-          broadcastMessage(session, { type: "state", state: "waiting_for_permission" });
+          broadcastMessage(session, {
+            type: "state",
+            state: "waiting_for_permission",
+            ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
+          });
         } else if (notificationType === "idle_prompt") {
           session.agentState = "waiting_for_user";
           session.stateTracker.forceState("waiting_for_user");
@@ -929,6 +937,10 @@ export const createTerminalRuntime = ({
           typeof hookPayloadRecord.tool_name === "string" ? hookPayloadRecord.tool_name : null;
 
         console.log(`[Hook] pre-tool-use: tool=${toolName} session=${octogentSessionId}`);
+
+        if (toolName) {
+          session.lastToolName = toolName;
+        }
 
         if (toolName === "AskUserQuestion") {
           session.agentState = "waiting_for_user";
@@ -957,6 +969,7 @@ export const createTerminalRuntime = ({
         const activitySession = sessions.get(terminal.terminalId);
         if (activitySession) {
           activitySession.agentState = "processing";
+          delete activitySession.lastToolName;
           activitySession.stateTracker.forceState("processing");
           broadcastMessage(activitySession, { type: "state", state: "processing" });
           broadcastMessage(activitySession, { type: "activity" });

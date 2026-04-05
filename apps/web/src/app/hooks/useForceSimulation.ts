@@ -91,7 +91,8 @@ export const useForceSimulation = ({
     () =>
       nodes
         .map(
-          (n) => `${n.id}\t${n.hasUserPrompt ?? ""}\t${n.agentState ?? ""}\t${n.color}\t${n.label}`,
+          (n) =>
+            `${n.id}\t${n.hasUserPrompt ?? ""}\t${n.agentState ?? ""}\t${n.agentRuntimeState ?? ""}\t${n.waitingToolName ?? ""}\t${n.color}\t${n.label}`,
         )
         .join("\0"),
     [nodes],

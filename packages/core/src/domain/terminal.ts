@@ -1,3 +1,5 @@
+import type { AgentRuntimeState } from "./agentRuntime";
+
 export type AgentState = "live" | "idle" | "queued" | "blocked";
 export type TentacleWorkspaceMode = "shared" | "worktree";
 
@@ -11,4 +13,5 @@ export type TerminalSnapshot = {
   createdAt: string;
   hasUserPrompt?: boolean;
   parentTerminalId?: string;
+  agentRuntimeState?: AgentRuntimeState;
 };
