@@ -910,16 +910,18 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
             isLaunchingAgent={isLaunchingAgent}
           />
         </div>
-        <div className="deck-sidebar-content-bottom">
-          <DeckBottomActions
-            onClearAll={async () => {
-              for (const t of tentacles) {
-                await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
-              }
-              await fetchTentacles();
-            }}
-          />
-        </div>
+        {tentacles.length > 0 && (
+          <div className="deck-sidebar-content-bottom">
+            <DeckBottomActions
+              onClearAll={async () => {
+                for (const t of tentacles) {
+                  await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
+                }
+                await fetchTentacles();
+              }}
+            />
+          </div>
+        )}
       </div>
     ) : null;
 
@@ -981,7 +983,7 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
-    <section className="deck-view" data-mode={mode} aria-label="Deck">
+    <section className="deck-view" data-mode={mode} data-has-pods={tentacles.length > 0} aria-label="Deck">
       <div className="deck-pods-container">
         {tentacles.map((t) => {
           const isThis =

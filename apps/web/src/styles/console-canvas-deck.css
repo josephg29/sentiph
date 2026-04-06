@@ -1017,6 +1017,14 @@
   animation: deck-form-slide-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+[data-mode="detail"][data-has-pods="false"] .deck-pods-container {
+  display: none;
+}
+
+[data-mode="detail"][data-has-pods="false"] .deck-detail-main {
+  border-left-color: transparent;
+}
+
 .deck-detail-main-header {
   display: flex;
   align-items: center;
