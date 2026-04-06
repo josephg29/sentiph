@@ -88,7 +88,7 @@ export const PromptsPrimaryView = ({
               <strong>Prompt Engineer</strong>
             </span>
           </header>
-          <Terminal terminalId={newPromptMode.terminalId} terminalLabel="Prompt Engineer" />
+          <Terminal terminalId={newPromptMode.terminalId} terminalLabel="Prompt Engineer" hidePromptPicker />
         </div>
       </section>
     );

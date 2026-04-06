@@ -1,3 +1,4 @@
+import { cpSync, existsSync as fsExistsSync, mkdirSync, readdirSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 
@@ -32,8 +33,24 @@ export const createApiServer = ({
   const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
   // State lives in ~/.octogent/projects/<name>/ when provided, else falls back to <project>/.octogent/
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".octogent");
-  const resolvedPromptsDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
   const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
+  const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
+
+  // First-time bootstrap: copy builtin prompts into the project state dir once.
+  if (!fsExistsSync(resolvedCorePromptsDir)) {
+    const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
+    if (fsExistsSync(sourceDir)) {
+      mkdirSync(resolvedCorePromptsDir, { recursive: true });
+      for (const file of readdirSync(sourceDir)) {
+        if (file.endsWith(".md")) {
+          cpSync(join(sourceDir, file), join(resolvedCorePromptsDir, file));
+        }
+      }
+    }
+  }
+
+  // After bootstrap, always read from the project state dir.
+  const resolvedPromptsDir = resolvedCorePromptsDir;
   const readGithubRepoSummaryWithDefault =
     readGithubRepoSummary ??
     (() =>

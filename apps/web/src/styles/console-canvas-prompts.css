@@ -318,18 +318,29 @@
 }
 
 .terminal-prompt-picker-btn {
-  background: none;
-  border: none;
-  color: #98a9c0;
+  background: color-mix(in srgb, var(--accent-primary) 8%, #11161d);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, #2b2f36);
+  color: color-mix(in srgb, var(--accent-primary) 50%, #b8c2d1);
   cursor: pointer;
-  padding: 0.14rem;
+  padding: 0.18rem 0.42rem;
   display: flex;
   align-items: center;
-  transition: color 0.12s ease;
+  gap: 0.28rem;
+  font-family: var(--font-main);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .terminal-prompt-picker-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 18%, #11161d);
+  border-color: color-mix(in srgb, var(--accent-primary) 50%, #2b2f36);
   color: var(--accent-primary);
+}
+
+.terminal-prompt-picker-label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .prompt-picker-popover {

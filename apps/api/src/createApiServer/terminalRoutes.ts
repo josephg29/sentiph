@@ -38,7 +38,7 @@ export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
 
 export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd, projectStateDir, promptsDir },
+  { runtime, workspaceCwd, projectStateDir, promptsDir, userPromptsDir },
 ) => {
   if (requestUrl.pathname !== "/api/terminals") {
     return false;
@@ -149,6 +149,11 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       // Auto-inject apiPort so prompt templates can reference the local API.
       if (!templateVars.apiPort) {
         templateVars.apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
+      }
+
+      // Auto-inject userPromptsDir so prompt templates know where to save user prompts.
+      if (!templateVars.userPromptsDir) {
+        templateVars.userPromptsDir = userPromptsDir;
       }
 
       // Auto-inject existingTerminals summary so planner-style prompts have context.

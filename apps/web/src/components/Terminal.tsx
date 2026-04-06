@@ -13,6 +13,7 @@ type TerminalProps = {
   terminalLabel?: string;
   isSelected?: boolean;
   initialPrompt?: string;
+  hidePromptPicker?: boolean;
   onSelectTerminal?: (terminalId: string) => void;
   onAgentRuntimeStateChange?: (state: AgentRuntimeState) => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
@@ -68,6 +69,7 @@ export const Terminal = ({
   terminalLabel,
   isSelected,
   initialPrompt,
+  hidePromptPicker,
   onSelectTerminal,
   onAgentRuntimeStateChange,
   onTerminalRenamed,
@@ -441,26 +443,29 @@ export const Terminal = ({
           </div>
         )}
         <div className="terminal-header-actions">
-          <div className="terminal-prompt-picker-anchor">
-            <button
-              type="button"
-              className="terminal-prompt-picker-btn"
-              title="Insert prompt"
-              aria-label="Insert prompt"
-              onClick={() => {
-                setIsPromptPickerOpen((prev) => !prev);
-              }}
-            >
-              <FileText size={14} />
-            </button>
-            <TerminalPromptPicker
-              isOpen={isPromptPickerOpen}
-              onClose={() => {
-                setIsPromptPickerOpen(false);
-              }}
-              onSelectPrompt={handlePromptPickerSelect}
-            />
-          </div>
+          {!hidePromptPicker && (
+            <div className="terminal-prompt-picker-anchor">
+              <button
+                type="button"
+                className="terminal-prompt-picker-btn"
+                title="Insert prompt"
+                aria-label="Insert prompt"
+                onClick={() => {
+                  setIsPromptPickerOpen((prev) => !prev);
+                }}
+              >
+                <FileText size={13} />
+                <span className="terminal-prompt-picker-label">Prompts</span>
+              </button>
+              <TerminalPromptPicker
+                isOpen={isPromptPickerOpen}
+                onClose={() => {
+                  setIsPromptPickerOpen(false);
+                }}
+                onSelectPrompt={handlePromptPickerSelect}
+              />
+            </div>
+          )}
           <AgentStateBadge state={agentState} />
         </div>
       </div>
