@@ -42,7 +42,7 @@ This creates the tentacle folder at `.octogent/tentacles/<name>/` with an `CONTE
 
 For each created tentacle, **read the actual source code** in the directories that fall under that department's scope. Don't work from memory or assumptions — open the files, understand the patterns, conventions, and architectural choices that are actually in use. Then write what you learned into the tentacle's files.
 
-Edit `.octogent/tentacles/<name>/CONTEXT.md` with concrete, grounded context:
+**`CONTEXT.md`** — The department's institutional memory. Scope, key architectural decisions and *why* they were made, coding conventions, and anything a future agent needs to understand before making changes in this area. This is the primary file — most departments only need this.
 
 ```markdown
 # Department Name
@@ -75,7 +75,9 @@ One-sentence summary (under 80 characters, shown as subtitle in the UI).
 - Error responses follow the `{ error: string, code: string }` shape (see `src/errors.ts`)
 ```
 
-Update `.octogent/tentacles/<name>/todo.md` with an initial backlog of **work items** for that department. Each item should be an **epic** — a self-contained unit of work that an agent can pick up and complete in a single session (typically 15–60 minutes of focused work). Don't list micro-tasks like "rename variable" or "add comment"; instead, group related work into meaningful deliverables like "Add integration tests for the auth middleware" or "Migrate database queries to the repository pattern". Base these on what you actually found in the code — missing tests, TODOs in source, inconsistencies, technical debt, or improvement opportunities.
+**`todo.md`** — An initial backlog of work items for this department. Each item should be an epic — a self-contained unit of work that an agent can pick up and complete in a single session (typically 15–60 minutes of focused work). Items must not overlap — if two items touch the same files or concern the same functionality, merge them into one. Don't list micro-tasks like "rename variable" or "add comment"; instead, group related work into meaningful deliverables like "Add integration tests for the auth middleware" or "Migrate database queries to the repository pattern". Base these on what you actually found in the code — missing tests, TODOs in source, inconsistencies, or improvement opportunities.
+
+**Additional files** — Only when `CONTEXT.md` would become unwieldy because a topic is both massive and independent from the rest of the context. For example, a department with dozens of integration contracts across other areas, or a complex testing setup with its own fixtures and helpers that needs extensive documentation. If the content fits comfortably in a section of `CONTEXT.md`, keep it there. Extra files should capture knowledge a future agent can't easily derive from reading the code alone: non-obvious edge cases, reasons behind architectural choices, stability contracts with other departments, or concrete code recipes for common tasks in this area.
 
 ## Common Failure Modes
 
