@@ -31,3 +31,14 @@ export type GitHubCommitSparkPoint = GitHubCommitPoint & {
   x: number;
   y: number;
 };
+
+export type PromptLibraryEntry = {
+  name: string;
+  source: "builtin" | "user";
+};
+
+export type PromptDetail = {
+  name: string;
+  source: "builtin" | "user";
+  content: string;
+};

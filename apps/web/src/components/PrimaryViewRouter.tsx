@@ -7,6 +7,7 @@ import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
+import { PromptsPrimaryView } from "./PromptsPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
 type PrimaryViewRouterProps = {
@@ -17,6 +18,7 @@ type PrimaryViewRouterProps = {
   monitorPrimaryViewProps: ComponentProps<typeof MonitorPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
   conversationsPrimaryViewProps: ComponentProps<typeof ConversationsPrimaryView>;
+  promptsPrimaryViewProps: ComponentProps<typeof PromptsPrimaryView>;
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
 };
 
@@ -28,6 +30,7 @@ export const PrimaryViewRouter = ({
   monitorPrimaryViewProps,
   settingsPrimaryViewProps,
   conversationsPrimaryViewProps,
+  promptsPrimaryViewProps,
   canvasPrimaryViewProps,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
@@ -61,6 +64,10 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 7) {
+    return <PromptsPrimaryView {...promptsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 8) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 

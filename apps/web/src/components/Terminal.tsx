@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { X } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
+import { TerminalPromptPicker } from "./TerminalPromptPicker";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
 
 import "xterm/css/xterm.css";
@@ -77,12 +78,23 @@ export const Terminal = ({
   const [connectionState, setConnectionState] = useState("connecting");
   const [agentState, setAgentRuntimeState] = useState<AgentRuntimeState>("idle");
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
+  const [isPromptPickerOpen, setIsPromptPickerOpen] = useState(false);
   const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
   const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
 
   useEffect(() => {
     onAgentRuntimeStateChange?.(agentState);
   }, [agentState, onAgentRuntimeStateChange]);
+
+  const handlePromptPickerSelect = useCallback(
+    (content: string) => {
+      const ws = socketRef.current;
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: "input", data: content }));
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -429,6 +441,26 @@ export const Terminal = ({
           </div>
         )}
         <div className="terminal-header-actions">
+          <div className="terminal-prompt-picker-anchor">
+            <button
+              type="button"
+              className="terminal-prompt-picker-btn"
+              title="Insert prompt"
+              aria-label="Insert prompt"
+              onClick={() => {
+                setIsPromptPickerOpen((prev) => !prev);
+              }}
+            >
+              <FileText size={14} />
+            </button>
+            <TerminalPromptPicker
+              isOpen={isPromptPickerOpen}
+              onClose={() => {
+                setIsPromptPickerOpen(false);
+              }}
+              onSelectPrompt={handlePromptPickerSelect}
+            />
+          </div>
           <AgentStateBadge state={agentState} />
         </div>
       </div>

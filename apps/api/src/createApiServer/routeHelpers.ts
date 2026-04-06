@@ -16,6 +16,7 @@ export type RouteHandlerDependencies = {
   workspaceCwd: string;
   projectStateDir: string;
   promptsDir: string;
+  userPromptsDir: string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;

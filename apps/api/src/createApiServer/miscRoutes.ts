@@ -1,4 +1,10 @@
-import { listPromptTemplates, readPromptTemplate, resolvePrompt } from "../prompts";
+import {
+  deleteUserPrompt,
+  listAllPrompts,
+  readPromptFromDirs,
+  resolvePrompt,
+  writeUserPrompt,
+} from "../prompts";
 import { parseUiStatePatch } from "./requestParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
@@ -93,56 +99,107 @@ export const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
 
 export const handlePromptsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { promptsDir },
+  { promptsDir, userPromptsDir },
 ) => {
   if (requestUrl.pathname !== "/api/prompts") {
     return false;
   }
-  if (request.method !== "GET") {
-    writeMethodNotAllowed(response, corsOrigin);
+
+  if (request.method === "GET") {
+    const prompts = await listAllPrompts(promptsDir, userPromptsDir);
+    writeJson(response, 200, { prompts }, corsOrigin);
     return true;
   }
-  const names = await listPromptTemplates(promptsDir);
-  writeJson(response, 200, { prompts: names }, corsOrigin);
+
+  if (request.method === "POST") {
+    const bodyResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+    if (!bodyResult.ok) return true;
+
+    const body = bodyResult.payload as Record<string, unknown> | null;
+    const name = body && typeof body.name === "string" ? body.name.trim() : "";
+    const content = body && typeof body.content === "string" ? body.content : "";
+
+    if (name.length === 0) {
+      writeJson(response, 400, { error: "Prompt name is required." }, corsOrigin);
+      return true;
+    }
+
+    const ok = await writeUserPrompt(userPromptsDir, name, content);
+    if (!ok) {
+      writeJson(response, 400, { error: "Invalid prompt name." }, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 201, { name, source: "user" }, corsOrigin);
+    return true;
+  }
+
+  writeMethodNotAllowed(response, corsOrigin);
   return true;
 };
 
 export const handlePromptItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { promptsDir },
+  { promptsDir, userPromptsDir },
 ) => {
   const match = requestUrl.pathname.match(PROMPT_ITEM_PATH_PATTERN);
   if (!match) return false;
-  if (request.method !== "GET") {
-    writeMethodNotAllowed(response, corsOrigin);
-    return true;
-  }
 
   const name = decodeURIComponent(match[1] as string);
 
-  // Resolve variables from query params (e.g. ?tentacleId=sandbox).
-  const variables: Record<string, string> = {};
-  for (const [key, value] of requestUrl.searchParams.entries()) {
-    variables[key] = value;
+  if (request.method === "GET") {
+    // Resolve variables from query params (e.g. ?tentacleId=sandbox).
+    const variables: Record<string, string> = {};
+    for (const [key, value] of requestUrl.searchParams.entries()) {
+      variables[key] = value;
+    }
+
+    const hasVariables = Object.keys(variables).length > 0;
+    if (hasVariables) {
+      const resolved = await resolvePrompt(promptsDir, name, variables);
+      if (resolved === undefined) {
+        writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+        return true;
+      }
+      writeJson(response, 200, { name, prompt: resolved }, corsOrigin);
+    } else {
+      const result = await readPromptFromDirs(promptsDir, userPromptsDir, name);
+      if (result === undefined) {
+        writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+        return true;
+      }
+      writeJson(response, 200, result, corsOrigin);
+    }
+    return true;
   }
 
-  const hasVariables = Object.keys(variables).length > 0;
-  if (hasVariables) {
-    const resolved = await resolvePrompt(promptsDir, name, variables);
-    if (resolved === undefined) {
-      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
+  if (request.method === "PUT") {
+    const bodyResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+    if (!bodyResult.ok) return true;
+
+    const body = bodyResult.payload as Record<string, unknown> | null;
+    const content = body && typeof body.content === "string" ? body.content : "";
+
+    const ok = await writeUserPrompt(userPromptsDir, name, content);
+    if (!ok) {
+      writeJson(response, 400, { error: "Invalid prompt name." }, corsOrigin);
       return true;
     }
-    writeJson(response, 200, { name, prompt: resolved }, corsOrigin);
-  } else {
-    const template = await readPromptTemplate(promptsDir, name);
-    if (template === undefined) {
-      writeJson(response, 404, { error: "Prompt template not found" }, corsOrigin);
-      return true;
-    }
-    writeJson(response, 200, { name, template }, corsOrigin);
+    writeJson(response, 200, { name, source: "user", content }, corsOrigin);
+    return true;
   }
 
+  if (request.method === "DELETE") {
+    const ok = await deleteUserPrompt(userPromptsDir, name);
+    if (!ok) {
+      writeJson(response, 404, { error: "Prompt not found or cannot be deleted." }, corsOrigin);
+      return true;
+    }
+    writeNoContent(response, 204, corsOrigin);
+    return true;
+  }
+
+  writeMethodNotAllowed(response, corsOrigin);
   return true;
 };
 

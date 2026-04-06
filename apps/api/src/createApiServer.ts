@@ -33,6 +33,7 @@ export const createApiServer = ({
   // State lives in ~/.octogent/projects/<name>/ when provided, else falls back to <project>/.octogent/
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".octogent");
   const resolvedPromptsDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
+  const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
   const readGithubRepoSummaryWithDefault =
     readGithubRepoSummary ??
     (() =>
@@ -65,6 +66,7 @@ export const createApiServer = ({
     workspaceCwd: resolvedWorkspaceCwd,
     projectStateDir: resolvedStateDir,
     promptsDir: resolvedPromptsDir,
+    userPromptsDir: resolvedUserPromptsDir,
     webDistDir,
     readClaudeUsageSnapshot,
     readCodexUsageSnapshot,

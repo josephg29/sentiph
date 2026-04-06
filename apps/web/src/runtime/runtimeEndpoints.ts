@@ -318,6 +318,24 @@ export const buildChannelMessagesUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/prompts";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/prompts");
+};
+
+export const buildPromptItemUrl = (name: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  const encodedName = encodeURIComponent(name);
+  const path = `/api/prompts/${encodedName}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildTerminalSocketUrl = (
   tentacleId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),

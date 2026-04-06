@@ -11,6 +11,7 @@ import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
+import { usePromptLibrary } from "./app/hooks/usePromptLibrary";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
@@ -27,6 +28,7 @@ import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { SidebarConversationsList } from "./components/SidebarConversationsList";
+import { SidebarPromptsList } from "./components/SidebarPromptsList";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import { buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
@@ -41,6 +43,7 @@ export const App = () => {
   >(null);
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
+  const [newPromptRequestCount, setNewPromptRequestCount] = useState(0);
 
   const {
     activePrimaryNav,
@@ -200,6 +203,26 @@ export const App = () => {
     enabled: isUiStateHydrated && activePrimaryNav === 6,
   });
 
+  const {
+    prompts: promptLibraryPrompts,
+    selectedPromptName: selectedPromptLibraryName,
+    selectedPromptDetail: selectedPromptLibraryDetail,
+    isLoadingPrompts: isLoadingPromptLibrary,
+    isLoadingDetail: isLoadingPromptLibraryDetail,
+    isEditing: isPromptLibraryEditing,
+    editDraft: promptLibraryEditDraft,
+    errorMessage: promptLibraryErrorMessage,
+    refreshPrompts: refreshPromptLibrary,
+    selectPrompt: selectPromptLibraryItem,
+    deletePrompt: deletePromptLibraryItem,
+    startEditing: startPromptLibraryEditing,
+    cancelEditing: cancelPromptLibraryEditing,
+    setEditDraft: setPromptLibraryEditDraft,
+    submitEdit: submitPromptLibraryEdit,
+  } = usePromptLibrary({
+    enabled: isUiStateHydrated && activePrimaryNav === 7,
+  });
+
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
     enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
   });
@@ -322,14 +345,14 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 7 ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
         >
           {isAgentsSidebarVisible &&
             activePrimaryNav !== 1 &&
             activePrimaryNav !== 3 &&
             activePrimaryNav !== 4 &&
             activePrimaryNav !== 5 &&
-            activePrimaryNav !== 7 && (
+            activePrimaryNav !== 8 && (
               <ActiveAgentsSidebar
                 sidebarWidth={sidebarWidth}
                 onSidebarWidthChange={(width) => {
@@ -359,6 +382,19 @@ export const App = () => {
                       }}
                       onClearSearch={clearConversationsSearch}
                       onNavigateToHit={navigateToConversationSearchHit}
+                    />
+                  ) : activePrimaryNav === 7 ? (
+                    <SidebarPromptsList
+                      prompts={promptLibraryPrompts}
+                      selectedPromptName={selectedPromptLibraryName}
+                      isLoadingPrompts={isLoadingPromptLibrary}
+                      onSelectPrompt={selectPromptLibraryItem}
+                      onRefresh={() => {
+                        void refreshPromptLibrary();
+                      }}
+                      onNewPrompt={() => {
+                        setNewPromptRequestCount((c) => c + 1);
+                      }}
                     />
                   ) : undefined
                 }
@@ -532,6 +568,25 @@ export const App = () => {
               },
               selectedSession,
               sessions: conversationSessions,
+            }}
+            promptsPrimaryViewProps={{
+              selectedPrompt: selectedPromptLibraryDetail,
+              isLoadingDetail: isLoadingPromptLibraryDetail,
+              isEditing: isPromptLibraryEditing,
+              editDraft: promptLibraryEditDraft,
+              errorMessage: promptLibraryErrorMessage,
+              newPromptRequestCount,
+              onStartEditing: startPromptLibraryEditing,
+              onCancelEditing: cancelPromptLibraryEditing,
+              onSetEditDraft: setPromptLibraryEditDraft,
+              onSubmitEdit: submitPromptLibraryEdit,
+              onDelete: () => {
+                if (selectedPromptLibraryName) {
+                  return deletePromptLibraryItem(selectedPromptLibraryName);
+                }
+                return Promise.resolve(false);
+              },
+              onRefresh: refreshPromptLibrary,
             }}
           />
         </div>

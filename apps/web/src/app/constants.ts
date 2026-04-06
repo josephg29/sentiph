@@ -14,7 +14,8 @@ export const PRIMARY_NAV_ITEMS = [
   { index: 4, label: "Code Intel" },
   { index: 5, label: "Monitor" },
   { index: 6, label: "Conversations" },
-  { index: 7, label: "Settings" },
+  { index: 7, label: "Prompts" },
+  { index: 8, label: "Settings" },
 ] as const;
 
 export const GITHUB_COMMIT_SERIES_LENGTH = 30;
