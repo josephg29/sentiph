@@ -44,6 +44,9 @@ export const App = () => {
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
   const [newPromptRequestCount, setNewPromptRequestCount] = useState(0);
+  const [promptEngineerTerminalId, setPromptEngineerTerminalId] = useState<string | null>(null);
+  const [restorePromptTerminalCount, setRestorePromptTerminalCount] = useState(0);
+  const [closePromptTerminalCount, setClosePromptTerminalCount] = useState(0);
 
   const {
     activePrimaryNav,
@@ -395,6 +398,13 @@ export const App = () => {
                       onNewPrompt={() => {
                         setNewPromptRequestCount((c) => c + 1);
                       }}
+                      activeTerminalId={promptEngineerTerminalId}
+                      onRestoreTerminal={() => {
+                        setRestorePromptTerminalCount((c) => c + 1);
+                      }}
+                      onCloseTerminal={() => {
+                        setClosePromptTerminalCount((c) => c + 1);
+                      }}
                     />
                   ) : undefined
                 }
@@ -576,6 +586,9 @@ export const App = () => {
               editDraft: promptLibraryEditDraft,
               errorMessage: promptLibraryErrorMessage,
               newPromptRequestCount,
+              restoreTerminalCount: restorePromptTerminalCount,
+              closeTerminalCount: closePromptTerminalCount,
+              onTerminalIdChange: setPromptEngineerTerminalId,
               onStartEditing: startPromptLibraryEditing,
               onCancelEditing: cancelPromptLibraryEditing,
               onSetEditDraft: setPromptLibraryEditDraft,

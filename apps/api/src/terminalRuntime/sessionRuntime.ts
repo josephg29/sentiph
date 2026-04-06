@@ -246,7 +246,9 @@ export const createSessionRuntime = ({
     return true;
   };
 
-  const INITIAL_PROMPT_DELAY_MS = 2_000;
+  const INITIAL_PROMPT_DELAY_MS = 4_000;
+  const BRACKETED_PASTE_START = "\x1b[200~";
+  const BRACKETED_PASTE_END = "\x1b[201~";
 
   const ensureAgentBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
@@ -270,7 +272,8 @@ export const createSessionRuntime = ({
         }
         session.isInitialPromptSent = true;
         appendDebugLog(session, `initial-prompt session=${sessionId}`);
-        session.pty.write(`${session.initialPrompt ?? ""}\r`);
+        const prompt = session.initialPrompt ?? "";
+        session.pty.write(`${BRACKETED_PASTE_START}${prompt}${BRACKETED_PASTE_END}\r`);
       }, INITIAL_PROMPT_DELAY_MS);
     }
   };

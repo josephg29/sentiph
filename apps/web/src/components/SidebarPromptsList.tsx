@@ -9,6 +9,9 @@ type SidebarPromptsListProps = {
   onSelectPrompt: (name: string) => void;
   onRefresh: () => void;
   onNewPrompt: () => void;
+  activeTerminalId: string | null;
+  onRestoreTerminal: () => void;
+  onCloseTerminal: () => void;
 };
 
 export const SidebarPromptsList = ({
@@ -18,6 +21,9 @@ export const SidebarPromptsList = ({
   onSelectPrompt,
   onRefresh,
   onNewPrompt,
+  activeTerminalId,
+  onRestoreTerminal,
+  onCloseTerminal,
 }: SidebarPromptsListProps) => {
   const userPrompts = useMemo(() => prompts.filter((p) => p.source === "user"), [prompts]);
   const builtinPrompts = useMemo(() => prompts.filter((p) => p.source === "builtin"), [prompts]);
@@ -82,6 +88,27 @@ export const SidebarPromptsList = ({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTerminalId && (
+        <div className="sidebar-prompts-minimized-terminal">
+          <button
+            type="button"
+            className="sidebar-prompts-minimized-terminal-restore"
+            onClick={onRestoreTerminal}
+          >
+            <span className="sidebar-prompts-minimized-terminal-icon">{">_"}</span>
+            <span className="sidebar-prompts-minimized-terminal-label">Prompt Engineer</span>
+          </button>
+          <button
+            type="button"
+            className="sidebar-prompts-minimized-terminal-close"
+            onClick={onCloseTerminal}
+            aria-label="Close terminal"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
