@@ -250,6 +250,25 @@ const parseFlag = (flag: string): string | undefined => {
   return args[idx + 1];
 };
 
+const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
+  const raw = parseFlag(flag);
+  if (!raw) return undefined;
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      console.error(`Error: ${flag} must be a JSON object.`);
+      process.exit(1);
+    }
+
+    const entries = Object.entries(parsed).filter(([, value]) => typeof value === "string");
+    return Object.fromEntries(entries);
+  } catch {
+    console.error(`Error: ${flag} must be valid JSON.`);
+    process.exit(1);
+  }
+};
+
 const apiError = (err: unknown) => {
   console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);
   process.exit(1);
@@ -292,10 +311,23 @@ const terminalCreate = async () => {
   const name = parseFlag("--name") ?? parseFlag("-n");
   const initialPrompt = parseFlag("--initial-prompt") ?? parseFlag("-p");
   const workspaceMode = parseFlag("--workspace-mode") ?? parseFlag("-w") ?? "shared";
-  const body: Record<string, string> = {};
-  if (name) body.tentacleName = name;
+  const terminalId = parseFlag("--terminal-id");
+  const tentacleId = parseFlag("--tentacle-id");
+  const worktreeId = parseFlag("--worktree-id");
+  const parentTerminalId = parseFlag("--parent-terminal-id");
+  const promptTemplate = parseFlag("--prompt-template");
+  const promptVariables = parseJsonFlag("--prompt-variables");
+
+  const body: Record<string, unknown> = {};
+  if (name) body.name = name;
   if (initialPrompt) body.initialPrompt = initialPrompt;
   if (workspaceMode) body.workspaceMode = workspaceMode;
+  if (terminalId) body.terminalId = terminalId;
+  if (tentacleId) body.tentacleId = tentacleId;
+  if (worktreeId) body.worktreeId = worktreeId;
+  if (parentTerminalId) body.parentTerminalId = parentTerminalId;
+  if (promptTemplate) body.promptTemplate = promptTemplate;
+  if (promptVariables) body.promptVariables = promptVariables;
   try {
     const res = await fetch(`${API_BASE}/api/terminals`, {
       method: "POST",
@@ -400,6 +432,15 @@ const main = async () => {
   octogent tentacle create <name>      Create a tentacle (server must be running)
   octogent tentacle list               List tentacles
   octogent terminal create [options]   Create a terminal
+    --name, -n                         Terminal display name
+    --workspace-mode, -w              shared | worktree
+    --initial-prompt, -p              Raw initial prompt text
+    --terminal-id                     Explicit terminal ID
+    --tentacle-id                     Existing tentacle ID to attach to
+    --worktree-id                     Explicit worktree ID
+    --parent-terminal-id              Parent terminal ID for child terminals
+    --prompt-template                 Prompt template name
+    --prompt-variables                JSON object of prompt template variables
   octogent channel send <id> <msg>     Send a channel message
   octogent channel list <id>           List channel messages`);
   process.exit(1);

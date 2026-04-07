@@ -23,6 +23,8 @@ import {
   writeText,
 } from "./routeHelpers";
 
+const shellSingleQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+
 export const handleDeckTentaclesRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { workspaceCwd, projectStateDir },
@@ -373,17 +375,60 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
   const needsParent = targetItems.length > 1;
   const parentTerminalId = needsParent ? `${tentacleId}-swarm-parent` : null;
-
-  // Create worker terminals.
-  const workers: { terminalId: string; todoIndex: number; todoText: string }[] = [];
+  const tentacleContextPath = join(workspaceCwd, ".octogent/tentacles", tentacleId);
+  const workers = targetItems.map((item) => ({
+    terminalId: `${tentacleId}-swarm-${item.index}`,
+    todoIndex: item.index,
+    todoText: item.text,
+  }));
 
   try {
-    for (const item of targetItems) {
-      const workerTerminalId = `${tentacleId}-swarm-${item.index}`;
+    if (!needsParent) {
+      const [item] = targetItems;
+      const [worker] = workers;
+      if (!item || !worker) {
+        writeJson(response, 400, { error: "No incomplete todo items found." }, corsOrigin);
+        return true;
+      }
 
-      // Build parent communication section conditionally.
-      const parentSection = parentTerminalId
-        ? [
+      const workerPrompt = await resolvePrompt(promptsDir, "swarm-worker", {
+        tentacleName,
+        tentacleId,
+        tentacleContextPath,
+        todoItemText: item.text,
+        terminalId: worker.terminalId,
+        apiPort,
+        parentTerminalId: "",
+        parentSection: "",
+      });
+
+      runtime.createTerminal({
+        terminalId: worker.terminalId,
+        tentacleId,
+        worktreeId: worker.terminalId,
+        tentacleName,
+        workspaceMode: "worktree",
+        ...(agentProviderResult.agentProvider
+          ? { agentProvider: agentProviderResult.agentProvider }
+          : {}),
+        ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
+        baseRef,
+      });
+    }
+
+    if (needsParent && parentTerminalId) {
+      const workerListing = workers
+        .map((w) => `- \`${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
+        .join("\n");
+
+      const workerBranches = workers
+        .map((w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
+        .join("\n");
+
+      const workerSpawnCommands = targetItems
+        .map((item) => {
+          const workerTerminalId = `${tentacleId}-swarm-${item.index}`;
+          const parentSection = [
             "## Communication",
             "",
             `Your parent coordinator is at terminal \`${parentTerminalId}\`.`,
@@ -395,45 +440,33 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
             "```bash",
             `node bin/octogent channel send ${parentTerminalId} "BLOCKED: <describe what you need>" --from ${workerTerminalId}`,
             "```",
-          ].join("\n")
-        : "";
+          ].join("\n");
 
-      const workerPrompt = await resolvePrompt(promptsDir, "swarm-worker", {
-        tentacleName,
-        tentacleId,
-        tentacleContextPath: join(workspaceCwd, ".octogent/tentacles", tentacleId),
-        todoItemText: item.text,
-        terminalId: workerTerminalId,
-        apiPort,
-        parentTerminalId: parentTerminalId ?? "",
-        parentSection,
-      });
+          const promptVariables = JSON.stringify({
+            tentacleName,
+            tentacleId,
+            tentacleContextPath,
+            todoItemText: item.text,
+            terminalId: workerTerminalId,
+            apiPort,
+            parentTerminalId,
+            parentSection,
+          });
 
-      runtime.createTerminal({
-        terminalId: workerTerminalId,
-        tentacleId,
-        worktreeId: workerTerminalId,
-        tentacleName,
-        workspaceMode: "worktree",
-        ...(agentProviderResult.agentProvider
-          ? { agentProvider: agentProviderResult.agentProvider }
-          : {}),
-        ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
-        baseRef,
-        ...(parentTerminalId ? { parentTerminalId } : {}),
-      });
+          const command = [
+            "node bin/octogent terminal create",
+            `--terminal-id ${shellSingleQuote(workerTerminalId)}`,
+            `--tentacle-id ${shellSingleQuote(tentacleId)}`,
+            `--worktree-id ${shellSingleQuote(workerTerminalId)}`,
+            `--parent-terminal-id ${shellSingleQuote(parentTerminalId)}`,
+            `--workspace-mode worktree`,
+            `--name ${shellSingleQuote(tentacleName)}`,
+            `--prompt-template swarm-worker`,
+            `--prompt-variables ${shellSingleQuote(promptVariables)}`,
+          ].join(" ");
 
-      workers.push({ terminalId: workerTerminalId, todoIndex: item.index, todoText: item.text });
-    }
-
-    // Create parent coordinator if multiple workers.
-    if (needsParent && parentTerminalId) {
-      const workerListing = workers
-        .map((w) => `- \`${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
-        .join("\n");
-
-      const workerBranches = workers
-        .map((w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
+          return `- \`${workerTerminalId}\`:\n  \`\`\`bash\n  ${command}\n  \`\`\``;
+        })
         .join("\n");
 
       const parentPrompt = await resolvePrompt(promptsDir, "swarm-parent", {
@@ -442,6 +475,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         workerCount: String(workers.length),
         workerListing,
         workerBranches,
+        workerSpawnCommands,
         baseBranch: baseRef === "HEAD" ? "main" : baseRef,
         terminalId: parentTerminalId,
         apiPort,
