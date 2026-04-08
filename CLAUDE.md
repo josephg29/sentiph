@@ -2,7 +2,7 @@
 
 **This is a living project guide.** Record user preferences, development style, and workflows here. After solving tasks, add or refine guidance when it would help future work. Prefer concrete, reusable notes over one-off task details. Keep entries concise, actionable, and specific. Remove stale guidance and avoid duplicating information that already exists in canonical docs.
 
-**This file is for general principles and preferences.** Project-specific context (what's implemented, architecture decisions, roadmap) belongs in `context/`. See [Long-term Project Context](#long-term-project-context) below. 
+**This file is authoritative for development rules, conventions, and preferences.** High-level product principles live in `context/principles.md`. Project-specific context (what's implemented, architecture decisions, roadmap) belongs in `context/`. See [Long-term Project Context](#long-term-project-context) below.
 
 ## Tech Stack & Environment
 
@@ -156,8 +156,10 @@ When implementing complex logic, add concise comments explaining why decisions w
 
 ## Documentation & Context
 
+- **`CLAUDE.md` (this file)** — Authoritative source for development rules, coding conventions, architecture details, and agent behavior preferences. All agents read this first.
 - **`docs/`** — End-user and contributor documentation. Keep in sync with the code; update docs in the same PR as feature changes.
-- **`context/`** — Your (the coding agent's) persistent notepad across sessions: principles, decisions, recipes, and open work. See `context/index.md` for navigation.
+- **`context/`** — Your (the coding agent's) persistent notepad across sessions: decisions, recipes, and open work. See `context/index.md` for navigation.
+  - **`context/principles.md`** — High-level product vision and project-level principles (what we build and why). Does not duplicate the development rules in this file.
 
 ## Commands
 
