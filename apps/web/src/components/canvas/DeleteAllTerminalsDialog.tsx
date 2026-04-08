@@ -107,6 +107,9 @@ export const DeleteAllTerminalsDialog = ({
           </strong>
           {inactiveOnly ? " (inactive terminals + past sessions)" : " (all)"}.
         </p>
+        <p className="delete-confirm-message">
+          Worktree-backed terminals also remove their local worktree directories and branches.
+        </p>
         <div className="delete-all-mode-row">
           <span className="delete-all-mode-label">
             {inactiveOnly ? "Inactive only" : "All terminals"}

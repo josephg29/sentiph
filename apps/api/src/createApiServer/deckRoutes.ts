@@ -13,7 +13,7 @@ import {
 } from "../deck/readDeckTentacles";
 import { resolvePrompt } from "../prompts";
 import { RuntimeInputError } from "../terminalRuntime";
-import { parseTerminalAgentProvider } from "./terminalParsers";
+import { parseTerminalAgentProvider, parseTerminalWorkspaceMode } from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,
@@ -328,6 +328,14 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const workspaceModeResult = parseTerminalWorkspaceMode(body);
+  if (workspaceModeResult.error) {
+    writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
+    return true;
+  }
+  const workerWorkspaceMode =
+    body.workspaceMode === undefined ? "worktree" : workspaceModeResult.workspaceMode;
+
   // Filter to specific item indices if requested.
   let targetItems = incompleteItems;
   if (Array.isArray(body.todoItemIndices)) {
@@ -382,6 +390,96 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
     todoText: item.text,
   }));
 
+  const buildWorkerContextIntro = (): string =>
+    workerWorkspaceMode === "worktree"
+      ? "You are working on an isolated worktree branch, not the main branch."
+      : "You are working in the shared main workspace on the main branch, not in an isolated worktree.";
+
+  const buildWorkerGuidelines = (terminalId: string): string =>
+    workerWorkspaceMode === "worktree"
+      ? `- You are working in an isolated git worktree on branch \`octogent/${terminalId}\`. Make changes freely without worrying about conflicts with other agents.`
+      : "- You are working in the shared main workspace. Other workers may touch the same files, so keep your edits narrow, avoid broad refactors, and coordinate via your parent if you hit overlap.";
+
+  const buildWorkerWorkspaceSection = (): string =>
+    workerWorkspaceMode === "worktree"
+      ? [
+          "Each worker commits to its own isolated branch:",
+          "",
+          ...workers.map(
+            (w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`,
+          ),
+        ].join("\n")
+      : [
+          "Workers are running in the shared main workspace, not in separate worktrees.",
+          "",
+          "There are no per-worker branches for this swarm. Supervise them carefully to avoid overlapping edits in the same files.",
+        ].join("\n");
+
+  const buildCompletionStrategySection = (baseBranch: string): string =>
+    workerWorkspaceMode === "worktree"
+      ? [
+          `Only begin merging after ALL ${workers.length} workers have reported DONE.`,
+          "",
+          "### Step-by-step merge process",
+          "",
+          `1. **Create an integration branch** from \`${baseBranch}\`. First check if a stale integration branch exists from a previous swarm attempt — if so, delete it before proceeding:`,
+          "   ```bash",
+          `   git branch -D octogent_integration_${tentacleId} 2>/dev/null || true`,
+          `   git checkout ${baseBranch}`,
+          `   git checkout -b octogent_integration_${tentacleId}`,
+          "   ```",
+          "",
+          "2. **Merge each worker branch** into the integration branch one at a time. Start with the branch most likely to merge cleanly (fewest changes):",
+          "   ```bash",
+          "   git merge <worker-branch-name> --no-edit",
+          "   ```",
+          "   If there are conflicts, resolve them carefully. Read the conflicting files and understand both sides before choosing.",
+          "",
+          "3. **Run tests** on the integration branch after all merges. Do not skip this step.",
+          "",
+          "4. **If tests pass**, merge the integration branch into the base branch:",
+          "   ```bash",
+          `   git checkout ${baseBranch}`,
+          `   git merge octogent_integration_${tentacleId} --no-edit`,
+          "   ```",
+          "",
+          "5. **If tests fail**, investigate and fix before merging. Do not merge broken code.",
+          "",
+          `6. **Mark completed items as done** in \`.octogent/tentacles/${tentacleId}/todo.md\`.`,
+          "",
+          "7. **Clean up** the integration branch:",
+          "   ```bash",
+          `   git branch -d octogent_integration_${tentacleId}`,
+          "   ```",
+          "",
+          "### Merge failure recovery",
+          "",
+          "If a worker's branch has conflicts that are too complex to resolve, send a message to that worker asking them to rebase their work. Merge the other workers' branches first.",
+        ].join("\n")
+      : [
+          `Only begin final verification after ALL ${workers.length} workers have reported DONE.`,
+          "",
+          "Workers are sharing the main workspace, so there are no per-worker branches to merge.",
+          "",
+          "### Step-by-step completion process",
+          "",
+          `1. **Verify the workspace is on \`${baseBranch}\`** and review the overall diff carefully. Do not assume the combined result is safe just because workers reported DONE.`,
+          "",
+          "2. **Review the changed files** to ensure workers did not overwrite each other or leave partial edits.",
+          "",
+          "3. **Run tests** on the shared workspace after all workers report DONE. Do not skip this step.",
+          "",
+          "4. **If tests fail**, investigate and coordinate fixes. Do not declare the swarm complete while the workspace is broken.",
+          "",
+          `5. **Mark completed items as done** in \`.octogent/tentacles/${tentacleId}/todo.md\`.`,
+          "",
+          "6. **Report completion** only after the shared workspace is reviewed, tests pass, and all items are marked done.",
+          "",
+          "### Shared-workspace failure recovery",
+          "",
+          "If two workers collide in the same files, stop them from making broad new edits, inspect the current diff, and coordinate targeted follow-up changes instead of pretending there is a clean merge boundary.",
+        ].join("\n");
+
   try {
     if (!needsParent) {
       const [item] = targetItems;
@@ -398,6 +496,8 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         todoItemText: item.text,
         terminalId: worker.terminalId,
         apiPort,
+        workspaceContextIntro: buildWorkerContextIntro(),
+        workspaceGuidelines: buildWorkerGuidelines(worker.terminalId),
         parentTerminalId: "",
         parentSection: "",
       });
@@ -405,24 +505,20 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
       runtime.createTerminal({
         terminalId: worker.terminalId,
         tentacleId,
-        worktreeId: worker.terminalId,
+        ...(workerWorkspaceMode === "worktree" ? { worktreeId: worker.terminalId } : {}),
         tentacleName,
-        workspaceMode: "worktree",
+        workspaceMode: workerWorkspaceMode,
         ...(agentProviderResult.agentProvider
           ? { agentProvider: agentProviderResult.agentProvider }
           : {}),
         ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
-        baseRef,
+        ...(workerWorkspaceMode === "worktree" ? { baseRef } : {}),
       });
     }
 
     if (needsParent && parentTerminalId) {
       const workerListing = workers
         .map((w) => `- \`${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
-        .join("\n");
-
-      const workerBranches = workers
-        .map((w) => `- \`octogent/${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`)
         .join("\n");
 
       const workerSpawnCommands = targetItems
@@ -449,34 +545,46 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
             todoItemText: item.text,
             terminalId: workerTerminalId,
             apiPort,
+            workspaceContextIntro: buildWorkerContextIntro(),
+            workspaceGuidelines: buildWorkerGuidelines(workerTerminalId),
             parentTerminalId,
             parentSection,
           });
 
-          const command = [
+          const commandParts = [
             "node bin/octogent terminal create",
             `--terminal-id ${shellSingleQuote(workerTerminalId)}`,
             `--tentacle-id ${shellSingleQuote(tentacleId)}`,
-            `--worktree-id ${shellSingleQuote(workerTerminalId)}`,
             `--parent-terminal-id ${shellSingleQuote(parentTerminalId)}`,
-            `--workspace-mode worktree`,
+            `--workspace-mode ${workerWorkspaceMode}`,
             `--name ${shellSingleQuote(tentacleName)}`,
             `--prompt-template swarm-worker`,
             `--prompt-variables ${shellSingleQuote(promptVariables)}`,
-          ].join(" ");
+          ];
+          if (workerWorkspaceMode === "worktree") {
+            commandParts.splice(3, 0, `--worktree-id ${shellSingleQuote(workerTerminalId)}`);
+          }
+          const command = commandParts.join(" ");
 
           return `- \`${workerTerminalId}\`:\n  \`\`\`bash\n  ${command}\n  \`\`\``;
         })
         .join("\n");
+
+      const parentBaseBranch = workerWorkspaceMode === "worktree"
+        ? baseRef === "HEAD"
+          ? "main"
+          : baseRef
+        : "main";
 
       const parentPrompt = await resolvePrompt(promptsDir, "swarm-parent", {
         tentacleName,
         tentacleId,
         workerCount: String(workers.length),
         workerListing,
-        workerBranches,
+        workerWorkspaceSection: buildWorkerWorkspaceSection(),
         workerSpawnCommands,
-        baseBranch: baseRef === "HEAD" ? "main" : baseRef,
+        completionStrategySection: buildCompletionStrategySection(parentBaseBranch),
+        baseBranch: parentBaseBranch,
         terminalId: parentTerminalId,
         apiPort,
       });

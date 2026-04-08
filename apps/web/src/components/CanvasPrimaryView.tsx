@@ -22,7 +22,7 @@ import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
-import type { TerminalView } from "../app/types";
+import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
@@ -58,7 +58,7 @@ type CanvasPrimaryViewProps = {
   onCreateTerminal?: () => Promise<string | undefined> | void;
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | void;
   onCreateTentacle?: () => void;
-  onSpawnSwarm?: (tentacleId: string) => Promise<void>;
+  onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onOctobossAction?: (action: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
   onDeleteActiveSession?: (
@@ -580,9 +580,9 @@ export const CanvasPrimaryView = ({
   );
 
   const handleSpawnSwarm = useCallback(
-    (tentacleId: string) => {
+    (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => {
       setContextMenu(null);
-      void onSpawnSwarm?.(tentacleId);
+      void onSpawnSwarm?.(tentacleId, workspaceMode);
     },
     [onSpawnSwarm],
   );
@@ -905,8 +905,8 @@ export const CanvasPrimaryView = ({
                 onCreateAgent={(tentacleId) => {
                   handleCreateAgent(tentacleId);
                 }}
-                onSpawnSwarm={(tentacleId) => {
-                  handleSpawnSwarm(tentacleId);
+                onSpawnSwarm={(tentacleId, workspaceMode) => {
+                  handleSpawnSwarm(tentacleId, workspaceMode);
                 }}
                 onNavigateToConversation={onNavigateToConversation}
               />
@@ -1060,10 +1060,18 @@ export const CanvasPrimaryView = ({
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleSpawnSwarm(contextMenu.tentacleId)}
+                  onClick={() => handleSpawnSwarm(contextMenu.tentacleId, "worktree")}
                 >
                   <span className="canvas-context-menu-icon"><Layers size={14} /></span>
-                  Spawn Swarm
+                  Spawn Swarm (Worktrees)
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleSpawnSwarm(contextMenu.tentacleId, "shared")}
+                >
+                  <span className="canvas-context-menu-icon"><Layers size={14} /></span>
+                  Spawn Swarm (Normal)
                 </button>
               </>
             )}

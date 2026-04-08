@@ -10,7 +10,9 @@ Do NOT work on any other items. Do NOT "improve" adjacent code you happen to rea
 
 ## Context
 
-You are working on an isolated worktree branch, not the main branch. The tentacle context folder with background on your task area lives on the main branch at an absolute path:
+{{workspaceContextIntro}}
+
+The tentacle context folder with background on your task area lives on the main branch at an absolute path:
 
 `{{tentacleContextPath}}/`
 
@@ -18,7 +20,7 @@ Before writing any code, read `CONTEXT.md` and any other `.md` files in that fol
 
 ## Working Guidelines
 
-- You are working in an isolated git worktree on branch `octogent/{{terminalId}}`. Make changes freely without worrying about conflicts with other agents.
+{{workspaceGuidelines}}
 - Focus exclusively on the todo item above.
 - Write or update tests for the changes you make. Run tests before declaring done.
 - Commit your changes with a clear commit message describing what you did.

@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { DeckTentacleSummary } from "@octogent/core";
+import type { DeckTentacleSummary, TentacleWorkspaceMode } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
 import { normalizeConversationSessionSummary } from "../../app/conversationNormalizers";
 import type { ConversationSessionSummary } from "../../app/types";
@@ -78,7 +78,7 @@ type CanvasTentaclePanelProps = {
   onClose: () => void;
   onFocus?: () => void;
   onCreateAgent?: ((tentacleId: string) => void) | undefined;
-  onSpawnSwarm?: ((tentacleId: string) => void) | undefined;
+  onSpawnSwarm?: ((tentacleId: string, workspaceMode: TentacleWorkspaceMode) => void) | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
 };
 
@@ -455,9 +455,16 @@ export const CanvasTentaclePanel = ({
             <button
               type="button"
               className="detail-action-btn"
-              onClick={() => onSpawnSwarm?.(node.tentacleId)}
+              onClick={() => onSpawnSwarm?.(node.tentacleId, "worktree")}
             >
-              &#x2263; Spawn Swarm
+              &#x2263; Spawn Swarm (Worktrees)
+            </button>
+            <button
+              type="button"
+              className="detail-action-btn"
+              onClick={() => onSpawnSwarm?.(node.tentacleId, "shared")}
+            >
+              &#x2263; Spawn Swarm (Normal)
             </button>
           </div>
         </div>

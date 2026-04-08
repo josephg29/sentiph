@@ -433,11 +433,11 @@ export const App = () => {
                 if (!response.ok) return;
                 await refreshColumns();
               },
-              onSpawnSwarm: async (tentacleId) => {
+              onSpawnSwarm: async (tentacleId, workspaceMode) => {
                 await fetch(`/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({}),
+                  body: JSON.stringify({ workspaceMode }),
                 });
                 await refreshColumns();
                 scheduleColumnsRefreshBurst();
