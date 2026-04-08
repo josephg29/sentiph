@@ -133,6 +133,20 @@ export const createTerminalRuntime = ({
             ],
           },
         ],
+        PostToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [
+              {
+                type: "http",
+                url: `http://localhost:${apiPort}/api/code-intel/events`,
+                headers: { "X-Octogent-Session": "$OCTOGENT_SESSION_ID" },
+                allowedEnvVars: ["OCTOGENT_SESSION_ID"],
+                timeout: 5,
+              },
+            ],
+          },
+        ],
         Notification: [
           {
             matcher: "*",
