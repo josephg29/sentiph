@@ -1,6 +1,6 @@
 import { buildCodexUsageUrl } from "../../runtime/runtimeEndpoints";
 import { CODEX_USAGE_SCAN_INTERVAL_MS } from "../constants";
-import { normalizeCodexUsageSnapshot } from "../normalizers";
+import { normalizeCodexUsageSnapshot } from "../usageNormalizers";
 import type { CodexUsageSnapshot } from "../types";
 import { usePollingData } from "./usePollingData";
 

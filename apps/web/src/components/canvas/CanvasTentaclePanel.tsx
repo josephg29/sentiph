@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
-import { normalizeConversationSessionSummary } from "../../app/normalizers";
+import { normalizeConversationSessionSummary } from "../../app/conversationNormalizers";
 import type { ConversationSessionSummary } from "../../app/types";
 import {
   buildConversationsUrl,

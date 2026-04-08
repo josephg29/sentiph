@@ -1,6 +1,6 @@
 import { buildGithubSummaryUrl } from "../../runtime/runtimeEndpoints";
 import { GITHUB_SUMMARY_SCAN_INTERVAL_MS } from "../constants";
-import { normalizeGitHubRepoSummarySnapshot } from "../normalizers";
+import { normalizeGitHubRepoSummarySnapshot } from "../githubNormalizers";
 import type { GitHubRepoSummarySnapshot } from "../types";
 import { usePollingData } from "./usePollingData";
 

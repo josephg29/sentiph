@@ -9,7 +9,7 @@ import {
   parseTerminalAgentProvider,
   parseTerminalName,
   parseTerminalWorkspaceMode,
-} from "./requestParsers";
+} from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,

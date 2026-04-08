@@ -15,7 +15,7 @@ import { useTerminalCompletionNotification } from "./app/hooks/useTerminalComple
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
-import { clampSidebarWidth } from "./app/normalizers";
+import { clampSidebarWidth } from "./app/uiStateNormalizers";
 import type { MonitorFeedSnapshot, TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";

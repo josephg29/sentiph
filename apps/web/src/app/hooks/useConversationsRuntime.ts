@@ -9,7 +9,7 @@ import {
 import {
   normalizeConversationSessionDetail,
   normalizeConversationSessionSummary,
-} from "../normalizers";
+} from "../conversationNormalizers";
 import type {
   ConversationSearchHit,
   ConversationSessionDetail,

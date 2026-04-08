@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type { ReactNode } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
-import { clampSidebarWidth } from "../app/normalizers";
+import { clampSidebarWidth } from "../app/uiStateNormalizers";
 
 type ActiveAgentsSidebarProps = {
   sidebarWidth: number;

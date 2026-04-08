@@ -1,5 +1,5 @@
 import { MonitorInputError } from "../monitor";
-import { parseMonitorConfigPatch } from "./requestParsers";
+import { parseMonitorConfigPatch } from "./monitorParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 

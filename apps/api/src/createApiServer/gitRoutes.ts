@@ -3,7 +3,7 @@ import {
   parseTentacleCommitMessage,
   parseTentaclePullRequestCreateInput,
   parseTentacleSyncBaseRef,
-} from "./requestParsers";
+} from "./gitParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 

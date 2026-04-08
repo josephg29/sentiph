@@ -3,20 +3,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { type CodexUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
+import { toResetIso } from "./usageUtils";
 
 const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000;
 const OAUTH_REFRESH_URL = "https://auth.openai.com/oauth/token";
 const OAUTH_REFRESH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const OAUTH_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 
-const toResetIso = (value: unknown): string | null => {
-  const seconds = asNumber(value);
-  if (seconds === null) {
-    return null;
-  }
-
-  return new Date(seconds * 1000).toISOString();
-};
 
 const resolveCodexHome = (env: NodeJS.ProcessEnv): string => {
   const codexHome = env.CODEX_HOME?.trim();

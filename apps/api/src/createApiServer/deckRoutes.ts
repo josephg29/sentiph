@@ -13,7 +13,7 @@ import {
 } from "../deck/readDeckTentacles";
 import { resolvePrompt } from "../prompts";
 import { RuntimeInputError } from "../terminalRuntime";
-import { parseTerminalAgentProvider } from "./requestParsers";
+import { parseTerminalAgentProvider } from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,

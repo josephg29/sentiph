@@ -5,7 +5,7 @@ import {
   resolvePrompt,
   writeUserPrompt,
 } from "../prompts";
-import { parseUiStatePatch } from "./requestParsers";
+import { parseUiStatePatch } from "./uiStateParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,

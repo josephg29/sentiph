@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { type ClaudeUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
+import { toResetIso } from "./usageUtils";
 
 const CLAUDE_CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
@@ -24,20 +25,6 @@ const asTrimmedString = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const toResetIso = (value: unknown): string | null => {
-  if (typeof value === "string") {
-    const parsed = new Date(value);
-    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
-  }
-
-  const numberValue = asNumber(value);
-  if (numberValue === null) {
-    return null;
-  }
-
-  const milliseconds = numberValue >= 1_000_000_000_000 ? numberValue : numberValue * 1000;
-  return new Date(milliseconds).toISOString();
-};
 
 export type { ClaudeUsageSnapshot };
 
