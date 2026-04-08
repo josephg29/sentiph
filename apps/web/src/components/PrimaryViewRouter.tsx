@@ -1,6 +1,7 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
+import type { MonitorFeedSnapshot } from "../app/types";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
@@ -12,14 +13,18 @@ import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
-  onDeckSidebarContent?: (content: import("react").ReactNode) => void;
+  onDeckSidebarContent?: (content: ReactNode) => void;
   isMonitorVisible: boolean;
   activityPrimaryViewProps: ComponentProps<typeof ActivityPrimaryView>;
-  monitorPrimaryViewProps: ComponentProps<typeof MonitorPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
-  conversationsPrimaryViewProps: ComponentProps<typeof ConversationsPrimaryView>;
-  promptsPrimaryViewProps: ComponentProps<typeof PromptsPrimaryView>;
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
+  monitorEnabled: boolean;
+  onMonitorFeed: (feed: MonitorFeedSnapshot | null) => void;
+  conversationsEnabled: boolean;
+  onConversationsSidebarContent: (content: ReactNode) => void;
+  onConversationsActionPanel: (content: ReactNode) => void;
+  promptsEnabled: boolean;
+  onPromptsSidebarContent: (content: ReactNode) => void;
 };
 
 export const PrimaryViewRouter = ({
@@ -27,11 +32,15 @@ export const PrimaryViewRouter = ({
   onDeckSidebarContent,
   isMonitorVisible,
   activityPrimaryViewProps,
-  monitorPrimaryViewProps,
   settingsPrimaryViewProps,
-  conversationsPrimaryViewProps,
-  promptsPrimaryViewProps,
   canvasPrimaryViewProps,
+  monitorEnabled,
+  onMonitorFeed,
+  conversationsEnabled,
+  onConversationsSidebarContent,
+  onConversationsActionPanel,
+  promptsEnabled,
+  onPromptsSidebarContent,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
     return <DeckPrimaryView onSidebarContent={onDeckSidebarContent} />;
@@ -47,7 +56,7 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 5) {
     if (isMonitorVisible) {
-      return <MonitorPrimaryView {...monitorPrimaryViewProps} />;
+      return <MonitorPrimaryView enabled={monitorEnabled} onMonitorFeed={onMonitorFeed} />;
     }
     return (
       <section className="monitor-view" aria-label="Monitor primary view disabled">
@@ -60,11 +69,19 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 6) {
-    return <ConversationsPrimaryView {...conversationsPrimaryViewProps} />;
+    return (
+      <ConversationsPrimaryView
+        enabled={conversationsEnabled}
+        onSidebarContent={onConversationsSidebarContent}
+        onActionPanel={onConversationsActionPanel}
+      />
+    );
   }
 
   if (activePrimaryNav === 7) {
-    return <PromptsPrimaryView {...promptsPrimaryViewProps} />;
+    return (
+      <PromptsPrimaryView enabled={promptsEnabled} onSidebarContent={onPromptsSidebarContent} />
+    );
   }
 
   if (activePrimaryNav === 8) {

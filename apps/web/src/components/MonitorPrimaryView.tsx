@@ -1,29 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { formatTimestamp } from "../app/formatTimestamp";
-import type { MonitorConfigSnapshot, MonitorFeedSnapshot } from "../app/types";
+import { useMonitorRuntime } from "../app/hooks/useMonitorRuntime";
+import type { MonitorFeedSnapshot } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
 type MonitorPrimaryViewProps = {
-  monitorConfig: MonitorConfigSnapshot | null;
-  monitorFeed: MonitorFeedSnapshot | null;
-  monitorError: string | null;
-  isRefreshingMonitorFeed: boolean;
-  isSavingMonitorConfig: boolean;
-  onRefresh: () => void;
-  onSyncFeed: () => void;
-  onPatchConfig: (patch: {
-    providerId: "x";
-    queryTerms?: string[];
-    refreshPolicy?: {
-      maxPosts?: number;
-      searchWindowDays?: 1 | 3 | 7;
-    };
-    credentials?: {
-      bearerToken?: string;
-    };
-    validateCredentials: boolean;
-  }) => Promise<boolean>;
+  enabled: boolean;
+  onMonitorFeed?: (feed: MonitorFeedSnapshot | null) => void;
 };
 
 type MonitorSubtabId = "resources" | "configure";
@@ -50,16 +34,28 @@ const normalizeTerms = (terms: string[]): string[] => {
   return [...new Set(split)];
 };
 
-export const MonitorPrimaryView = ({
-  monitorConfig,
-  monitorFeed,
-  monitorError,
-  isRefreshingMonitorFeed,
-  isSavingMonitorConfig,
-  onRefresh,
-  onSyncFeed,
-  onPatchConfig,
-}: MonitorPrimaryViewProps) => {
+export const MonitorPrimaryView = ({ enabled, onMonitorFeed }: MonitorPrimaryViewProps) => {
+  const {
+    monitorConfig,
+    monitorFeed,
+    monitorError,
+    isRefreshingMonitorFeed,
+    isSavingMonitorConfig,
+    refreshMonitorFeed,
+    patchMonitorConfig,
+  } = useMonitorRuntime({ enabled });
+
+  useEffect(() => {
+    onMonitorFeed?.(monitorFeed);
+  }, [monitorFeed, onMonitorFeed]);
+
+  const onRefresh = () => {
+    void refreshMonitorFeed(true);
+  };
+  const onSyncFeed = () => {
+    void refreshMonitorFeed(false);
+  };
+  const onPatchConfig = patchMonitorConfig;
   const activeProviderId: MonitorProviderId = "x";
   const [activeSubtab, setActiveSubtab] = useState<MonitorSubtabId>("resources");
   const [queryTermsDraft, setQueryTermsDraft] = useState<string[]>([]);

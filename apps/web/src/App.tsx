@@ -6,12 +6,9 @@ import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
-import { useConversationsRuntime } from "./app/hooks/useConversationsRuntime";
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
-import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
-import { usePromptLibrary } from "./app/hooks/usePromptLibrary";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
@@ -19,16 +16,13 @@ import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/normalizers";
-import type { TerminalView } from "./app/types";
+import type { MonitorFeedSnapshot, TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
-import { ClearAllConversationsDialog } from "./components/ClearAllConversationsDialog";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
-import { SidebarConversationsList } from "./components/SidebarConversationsList";
-import { SidebarPromptsList } from "./components/SidebarPromptsList";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import { buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
@@ -42,11 +36,10 @@ export const App = () => {
     number | null
   >(null);
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
-  const [isPendingClearAllConversations, setIsPendingClearAllConversations] = useState(false);
-  const [newPromptRequestCount, setNewPromptRequestCount] = useState(0);
-  const [promptEngineerTerminalId, setPromptEngineerTerminalId] = useState<string | null>(null);
-  const [restorePromptTerminalCount, setRestorePromptTerminalCount] = useState(0);
-  const [closePromptTerminalCount, setClosePromptTerminalCount] = useState(0);
+  const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
+  const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
+  const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
+  const [monitorFeed, setMonitorFeed] = useState<MonitorFeedSnapshot | null>(null);
 
   const {
     activePrimaryNav,
@@ -166,62 +159,6 @@ export const App = () => {
     terminalStates,
     terminalCompletionSound,
   );
-  const {
-    monitorConfig,
-    monitorFeed,
-    monitorError,
-    isRefreshingMonitorFeed,
-    isSavingMonitorConfig,
-    refreshMonitorFeed,
-    patchMonitorConfig,
-  } = useMonitorRuntime({
-    enabled: isUiStateHydrated && isMonitorVisible,
-  });
-  const {
-    sessions: conversationSessions,
-    selectedSessionId,
-    selectedSession,
-    isLoadingSessions: isLoadingConversationSessions,
-    isLoadingSelectedSession,
-    isExporting: isExportingConversation,
-    isClearing: isClearingConversations,
-    isSearching: isSearchingConversations,
-    searchQuery: conversationsSearchQuery,
-    searchHits: conversationsSearchHits,
-    highlightedTurnId: conversationsHighlightedTurnId,
-    errorMessage: conversationsErrorMessage,
-    selectSession,
-    refreshSessions,
-    clearAllSessions,
-    deleteSession,
-    exportSession,
-    searchConversations,
-    clearSearch: clearConversationsSearch,
-    navigateToSearchHit: navigateToConversationSearchHit,
-  } = useConversationsRuntime({
-    enabled: isUiStateHydrated && activePrimaryNav === 6,
-  });
-
-  const {
-    prompts: promptLibraryPrompts,
-    selectedPromptName: selectedPromptLibraryName,
-    selectedPromptDetail: selectedPromptLibraryDetail,
-    isLoadingPrompts: isLoadingPromptLibrary,
-    isLoadingDetail: isLoadingPromptLibraryDetail,
-    isEditing: isPromptLibraryEditing,
-    editDraft: promptLibraryEditDraft,
-    errorMessage: promptLibraryErrorMessage,
-    refreshPrompts: refreshPromptLibrary,
-    selectPrompt: selectPromptLibraryItem,
-    deletePrompt: deletePromptLibraryItem,
-    startEditing: startPromptLibraryEditing,
-    cancelEditing: cancelPromptLibraryEditing,
-    setEditDraft: setPromptLibraryEditDraft,
-    submitEdit: submitPromptLibraryEdit,
-  } = usePromptLibrary({
-    enabled: isUiStateHydrated && activePrimaryNav === 7,
-  });
-
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
     enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
   });
@@ -246,26 +183,15 @@ export const App = () => {
     setHoveredGitHubOverviewPointIndex,
   });
   const hasSidebarActionPanel =
-    isPendingClearAllConversations ||
+    conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
     (openGitTentacleId !== null &&
       terminals.find((terminal) => terminal.tentacleId === openGitTentacleId)?.workspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
-    isPendingClearAllConversations ? (
-      <ClearAllConversationsDialog
-        sessionCount={conversationSessions.length}
-        isClearing={isClearingConversations}
-        onCancel={() => {
-          setIsPendingClearAllConversations(false);
-        }}
-        onConfirm={() => {
-          void clearAllSessions().then(() => {
-            setIsPendingClearAllConversations(false);
-          });
-        }}
-      />
+    conversationsActionPanel ? (
+      <>{conversationsActionPanel}</>
     ) : (
       <SidebarActionPanel
         pendingDeleteTerminal={pendingDeleteTerminal}
@@ -359,50 +285,13 @@ export const App = () => {
                 }}
                 actionPanel={sidebarActionPanel}
                 bodyContent={
-                  activePrimaryNav === 2 ? (
-                    (deckSidebarContent ?? undefined)
-                  ) : activePrimaryNav === 6 ? (
-                    <SidebarConversationsList
-                      sessions={conversationSessions}
-                      selectedSessionId={selectedSessionId}
-                      isLoadingSessions={isLoadingConversationSessions}
-                      isSearching={isSearchingConversations}
-                      searchQuery={conversationsSearchQuery}
-                      searchHits={conversationsSearchHits}
-                      onSelectSession={selectSession}
-                      onRefresh={() => {
-                        void refreshSessions();
-                      }}
-                      onClearAll={() => {
-                        setIsPendingClearAllConversations(true);
-                      }}
-                      onSearch={(query) => {
-                        void searchConversations(query);
-                      }}
-                      onClearSearch={clearConversationsSearch}
-                      onNavigateToHit={navigateToConversationSearchHit}
-                    />
-                  ) : activePrimaryNav === 7 ? (
-                    <SidebarPromptsList
-                      prompts={promptLibraryPrompts}
-                      selectedPromptName={selectedPromptLibraryName}
-                      isLoadingPrompts={isLoadingPromptLibrary}
-                      onSelectPrompt={selectPromptLibraryItem}
-                      onRefresh={() => {
-                        void refreshPromptLibrary();
-                      }}
-                      onNewPrompt={() => {
-                        setNewPromptRequestCount((c) => c + 1);
-                      }}
-                      activeTerminalId={promptEngineerTerminalId}
-                      onRestoreTerminal={() => {
-                        setRestorePromptTerminalCount((c) => c + 1);
-                      }}
-                      onCloseTerminal={() => {
-                        setClosePromptTerminalCount((c) => c + 1);
-                      }}
-                    />
-                  ) : undefined
+                  activePrimaryNav === 2
+                    ? (deckSidebarContent ?? undefined)
+                    : activePrimaryNav === 6
+                      ? (conversationsSidebarContent ?? undefined)
+                      : activePrimaryNav === 7
+                        ? (promptsSidebarContent ?? undefined)
+                        : undefined
                 }
               />
             )}
@@ -436,20 +325,8 @@ export const App = () => {
                 },
               },
             }}
-            monitorPrimaryViewProps={{
-              isRefreshingMonitorFeed,
-              isSavingMonitorConfig,
-              monitorConfig,
-              monitorError,
-              monitorFeed,
-              onPatchConfig: patchMonitorConfig,
-              onRefresh: () => {
-                void refreshMonitorFeed(true);
-              },
-              onSyncFeed: () => {
-                void refreshMonitorFeed(false);
-              },
-            }}
+            monitorEnabled={isUiStateHydrated && isMonitorVisible}
+            onMonitorFeed={setMonitorFeed}
             settingsPrimaryViewProps={{
               isMonitorVisible,
               isRuntimeStatusStripVisible,
@@ -512,9 +389,8 @@ export const App = () => {
                 setTerminals(nextColumns);
                 return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
               },
-              onNavigateToConversation: (sessionId) => {
-                selectSession(sessionId);
-                setActivePrimaryNav(5);
+              onNavigateToConversation: (_sessionId) => {
+                setActivePrimaryNav(6);
               },
               onDeleteActiveSession: (terminalId, terminalName, workspaceMode) => {
                 requestDeleteTerminal(terminalId, terminalName, {
@@ -534,65 +410,11 @@ export const App = () => {
                 void readColumns().then(setTerminals);
               },
             }}
-            conversationsPrimaryViewProps={{
-              errorMessage: conversationsErrorMessage,
-              highlightedTurnId: conversationsHighlightedTurnId,
-              searchQuery: conversationsSearchQuery,
-              isExporting: isExportingConversation,
-              isDeletingSession: false,
-              isLoadingSelectedSession,
-              isLoadingSessions: isLoadingConversationSessions,
-              onDeleteSession: () => {
-                if (selectedSessionId) {
-                  void deleteSession(selectedSessionId);
-                }
-              },
-              onExport: (format) => {
-                if (!selectedSessionId) {
-                  return;
-                }
-
-                void exportSession(selectedSessionId, format).then((result) => {
-                  if (!result) {
-                    return;
-                  }
-
-                  const blob = new Blob([result.content], { type: result.contentType });
-                  const objectUrl = URL.createObjectURL(blob);
-                  const anchor = document.createElement("a");
-                  anchor.href = objectUrl;
-                  anchor.download = result.filename;
-                  document.body.append(anchor);
-                  anchor.click();
-                  anchor.remove();
-                  URL.revokeObjectURL(objectUrl);
-                });
-              },
-              selectedSession,
-              sessions: conversationSessions,
-            }}
-            promptsPrimaryViewProps={{
-              selectedPrompt: selectedPromptLibraryDetail,
-              isLoadingDetail: isLoadingPromptLibraryDetail,
-              isEditing: isPromptLibraryEditing,
-              editDraft: promptLibraryEditDraft,
-              errorMessage: promptLibraryErrorMessage,
-              newPromptRequestCount,
-              restoreTerminalCount: restorePromptTerminalCount,
-              closeTerminalCount: closePromptTerminalCount,
-              onTerminalIdChange: setPromptEngineerTerminalId,
-              onStartEditing: startPromptLibraryEditing,
-              onCancelEditing: cancelPromptLibraryEditing,
-              onSetEditDraft: setPromptLibraryEditDraft,
-              onSubmitEdit: submitPromptLibraryEdit,
-              onDelete: () => {
-                if (selectedPromptLibraryName) {
-                  return deletePromptLibraryItem(selectedPromptLibraryName);
-                }
-                return Promise.resolve(false);
-              },
-              onRefresh: refreshPromptLibrary,
-            }}
+            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}
+            onConversationsSidebarContent={setConversationsSidebarContent}
+            onConversationsActionPanel={setConversationsActionPanel}
+            promptsEnabled={isUiStateHydrated && activePrimaryNav === 7}
+            onPromptsSidebarContent={setPromptsSidebarContent}
           />
         </div>
       </section>

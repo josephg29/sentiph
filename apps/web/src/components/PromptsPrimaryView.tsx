@@ -1,26 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
-import type { PromptDetail } from "../app/types";
+import { usePromptLibrary } from "../app/hooks/usePromptLibrary";
+import { SidebarPromptsList } from "./SidebarPromptsList";
 import { Terminal } from "./Terminal";
 import { ActionButton } from "./ui/ActionButton";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 type PromptsPrimaryViewProps = {
-  selectedPrompt: PromptDetail | null;
-  isLoadingDetail: boolean;
-  isEditing: boolean;
-  editDraft: string;
-  errorMessage: string | null;
-  newPromptRequestCount: number;
-  restoreTerminalCount: number;
-  closeTerminalCount: number;
-  onTerminalIdChange: (id: string | null) => void;
-  onStartEditing: () => void;
-  onCancelEditing: () => void;
-  onSetEditDraft: (draft: string) => void;
-  onSubmitEdit: () => Promise<boolean>;
-  onDelete: () => Promise<boolean>;
-  onRefresh: () => Promise<void>;
+  enabled: boolean;
+  onSidebarContent?: (content: ReactNode) => void;
 };
 
 type NewPromptMode = {
@@ -28,22 +16,69 @@ type NewPromptMode = {
 } | null;
 
 export const PromptsPrimaryView = ({
-  selectedPrompt,
-  isLoadingDetail,
-  isEditing,
-  editDraft,
-  errorMessage,
-  onStartEditing,
-  onCancelEditing,
-  onSetEditDraft,
-  onSubmitEdit,
-  onDelete,
-  newPromptRequestCount,
-  restoreTerminalCount,
-  closeTerminalCount,
-  onTerminalIdChange,
-  onRefresh,
+  enabled,
+  onSidebarContent,
 }: PromptsPrimaryViewProps) => {
+  const {
+    prompts,
+    selectedPromptName,
+    selectedPromptDetail: selectedPrompt,
+    isLoadingPrompts,
+    isLoadingDetail,
+    isEditing,
+    editDraft,
+    errorMessage,
+    refreshPrompts,
+    selectPrompt: selectPromptLibraryItem,
+    deletePrompt: deletePromptLibraryItem,
+    startEditing: onStartEditing,
+    cancelEditing: onCancelEditing,
+    setEditDraft: onSetEditDraft,
+    submitEdit: onSubmitEdit,
+  } = usePromptLibrary({ enabled });
+
+  const [promptEngineerTerminalId, setPromptEngineerTerminalId] = useState<string | null>(null);
+  const [newPromptRequestCount, setNewPromptRequestCount] = useState(0);
+  const [restoreTerminalCount, setRestoreTerminalCount] = useState(0);
+  const [closeTerminalCount, setCloseTerminalCount] = useState(0);
+
+  const onDelete = useCallback(() => {
+    if (selectedPromptName) {
+      return deletePromptLibraryItem(selectedPromptName);
+    }
+    return Promise.resolve(false);
+  }, [selectedPromptName, deletePromptLibraryItem]);
+
+  const onRefresh = refreshPrompts;
+  const onTerminalIdChange = setPromptEngineerTerminalId;
+
+  // Push sidebar content
+  const sidebarContent = (
+    <SidebarPromptsList
+      prompts={prompts}
+      selectedPromptName={selectedPromptName}
+      isLoadingPrompts={isLoadingPrompts}
+      onSelectPrompt={selectPromptLibraryItem}
+      onRefresh={() => {
+        void refreshPrompts();
+      }}
+      onNewPrompt={() => {
+        setNewPromptRequestCount((c) => c + 1);
+      }}
+      activeTerminalId={promptEngineerTerminalId}
+      onRestoreTerminal={() => {
+        setRestoreTerminalCount((c) => c + 1);
+      }}
+      onCloseTerminal={() => {
+        setCloseTerminalCount((c) => c + 1);
+      }}
+    />
+  );
+
+  useEffect(() => {
+    onSidebarContent?.(sidebarContent);
+    return () => onSidebarContent?.(null);
+  });
   const [newPromptMode, setNewPromptMode] = useState<NewPromptMode>(null);
   const [isCreatingTerminal, setIsCreatingTerminal] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);

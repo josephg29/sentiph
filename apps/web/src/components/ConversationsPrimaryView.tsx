@@ -1,35 +1,130 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatTimestamp } from "../app/formatTimestamp";
-import type { ConversationSessionDetail, ConversationSessionSummary } from "../app/types";
+import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
 import { ActionButton } from "./ui/ActionButton";
+import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
+import { SidebarConversationsList } from "./SidebarConversationsList";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 type ConversationsPrimaryViewProps = {
-  sessions: ConversationSessionSummary[];
-  selectedSession: ConversationSessionDetail | null;
-  isLoadingSessions: boolean;
-  isLoadingSelectedSession: boolean;
-  isExporting: boolean;
-  isDeletingSession: boolean;
-  errorMessage: string | null;
-  highlightedTurnId: string | null;
-  searchQuery: string;
-  onDeleteSession: () => void;
-  onExport: (format: "json" | "md") => void;
+  enabled: boolean;
+  onSidebarContent?: (content: ReactNode) => void;
+  onActionPanel?: (content: ReactNode) => void;
 };
 
 export const ConversationsPrimaryView = ({
-  selectedSession,
-  isLoadingSelectedSession,
-  isExporting,
-  isDeletingSession,
-  errorMessage,
-  highlightedTurnId,
-  searchQuery,
-  onDeleteSession,
-  onExport,
+  enabled,
+  onSidebarContent,
+  onActionPanel,
 }: ConversationsPrimaryViewProps) => {
+  const {
+    sessions,
+    selectedSessionId,
+    selectedSession,
+    isLoadingSessions: isLoadingConversationSessions,
+    isLoadingSelectedSession,
+    isExporting,
+    isClearing: isClearingConversations,
+    isSearching: isSearchingConversations,
+    searchQuery,
+    searchHits: conversationsSearchHits,
+    highlightedTurnId,
+    errorMessage,
+    selectSession,
+    refreshSessions,
+    clearAllSessions,
+    deleteSession,
+    exportSession,
+    searchConversations,
+    clearSearch: clearConversationsSearch,
+    navigateToSearchHit: navigateToConversationSearchHit,
+  } = useConversationsRuntime({ enabled });
+
+  const [isPendingClearAll, setIsPendingClearAll] = useState(false);
+
+  const onDeleteSession = useCallback(() => {
+    if (selectedSessionId) {
+      void deleteSession(selectedSessionId);
+    }
+  }, [selectedSessionId, deleteSession]);
+
+  const onExport = useCallback(
+    (format: "json" | "md") => {
+      if (!selectedSessionId) {
+        return;
+      }
+
+      void exportSession(selectedSessionId, format).then((result) => {
+        if (!result) {
+          return;
+        }
+
+        const blob = new Blob([result.content], { type: result.contentType });
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = result.filename;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(objectUrl);
+      });
+    },
+    [selectedSessionId, exportSession],
+  );
+
+  // Push sidebar content
+  const sidebarContent = (
+    <SidebarConversationsList
+      sessions={sessions}
+      selectedSessionId={selectedSessionId}
+      isLoadingSessions={isLoadingConversationSessions}
+      isSearching={isSearchingConversations}
+      searchQuery={searchQuery}
+      searchHits={conversationsSearchHits}
+      onSelectSession={selectSession}
+      onRefresh={() => {
+        void refreshSessions();
+      }}
+      onClearAll={() => {
+        setIsPendingClearAll(true);
+      }}
+      onSearch={(query) => {
+        void searchConversations(query);
+      }}
+      onClearSearch={clearConversationsSearch}
+      onNavigateToHit={navigateToConversationSearchHit}
+    />
+  );
+
+  useEffect(() => {
+    onSidebarContent?.(sidebarContent);
+    return () => onSidebarContent?.(null);
+  });
+
+  // Push action panel for clear-all dialog
+  const actionPanelContent = isPendingClearAll ? (
+    <ClearAllConversationsDialog
+      sessionCount={sessions.length}
+      isClearing={isClearingConversations}
+      onCancel={() => {
+        setIsPendingClearAll(false);
+      }}
+      onConfirm={() => {
+        void clearAllSessions().then(() => {
+          setIsPendingClearAll(false);
+        });
+      }}
+    />
+  ) : null;
+
+  useEffect(() => {
+    onActionPanel?.(actionPanelContent);
+    return () => onActionPanel?.(null);
+  });
+
+  const isDeletingSession = false;
   const highlightedRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
