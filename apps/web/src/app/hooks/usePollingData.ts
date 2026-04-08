@@ -32,9 +32,10 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const parsed = normalizeRef.current(await response.json());
       if (!isDisposedRef.current) setData(parsed ?? fallbackRef.current());
-    } catch {
-      // Keep existing data (or null) on error — don't replace with fallback
-      // so consumers can distinguish "not loaded yet" (null) from "loaded empty".
+    } catch (error) {
+      if (!isDisposedRef.current) {
+        console.warn(`[polling] ${fetchUrl} failed:`, error instanceof Error ? error.message : error);
+      }
     } finally {
       isInFlightRef.current = false;
       if (!isDisposedRef.current) setIsLoading(false);

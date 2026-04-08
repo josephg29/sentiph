@@ -71,12 +71,3 @@ export function deriveOctopusVisuals(tentacle: DeckTentacleSummary): OctopusVisu
   };
 }
 
-export function randomOctopusVisuals(color: string): OctopusVisuals {
-  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
-  return {
-    color,
-    animation: pick(ANIMATIONS),
-    expression: pick(EXPRESSIONS),
-    accessory: pick(ACCESSORIES),
-  };
-}

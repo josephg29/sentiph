@@ -161,7 +161,11 @@ const serveStaticFile = async (
     response.writeHead(200, { "Content-Type": contentType });
     response.end(content);
     return true;
-  } catch {
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (code !== "ENOENT") {
+      console.error(`[API] Static file error: ${filePath}`, error instanceof Error ? error.message : error);
+    }
     return false;
   }
 };
@@ -264,7 +268,11 @@ export const createApiRequestHandler = ({
 
       writeJson(response, 404, { error: "Not found" }, corsOrigin);
       logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
-    } catch {
+    } catch (error) {
+      console.error(
+        `[API] Unhandled error: ${request.method ?? "?"} ${request.url ?? "/"}`,
+        error instanceof Error ? error.stack ?? error.message : error,
+      );
       writeJson(
         response,
         500,
