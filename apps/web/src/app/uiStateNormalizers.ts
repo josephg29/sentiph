@@ -65,19 +65,19 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isClaudeUsageSectionExpanded = record.isClaudeUsageSectionExpanded;
   }
 
-  const completionSoundValue = record.terminalCompletionSound ?? record.tentacleCompletionSound;
+  const completionSoundValue = record.terminalCompletionSound;
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  const minimizedIdsValue = record.minimizedTerminalIds ?? record.minimizedTentacleIds;
+  const minimizedIdsValue = record.minimizedTerminalIds;
   if (Array.isArray(minimizedIdsValue)) {
     nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter(
       (id): id is string => typeof id === "string",
     );
   }
 
-  const rawTerminalWidths = asRecord(record.terminalWidths ?? record.tentacleWidths);
+  const rawTerminalWidths = asRecord(record.terminalWidths);
   if (rawTerminalWidths) {
     nextState.terminalWidths = Object.entries(rawTerminalWidths).reduce<Record<string, number>>(
       (acc, [terminalId, width]) => {

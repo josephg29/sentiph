@@ -62,21 +62,18 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
   }
 
-  // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
-  const completionSoundValue = value.terminalCompletionSound ?? value.tentacleCompletionSound;
+  const completionSoundValue = value.terminalCompletionSound;
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  // Accept both old (minimizedTentacleIds) and new (minimizedTerminalIds) field names
-  const minimizedIds = value.minimizedTerminalIds ?? value.minimizedTentacleIds;
+  const minimizedIds = value.minimizedTerminalIds;
   if (Array.isArray(minimizedIds)) {
     const ids = minimizedIds.filter((id): id is string => typeof id === "string");
     nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
-  // Accept both old (tentacleWidths) and new (terminalWidths) field names
-  const widths = value.terminalWidths ?? value.tentacleWidths;
+  const widths = value.terminalWidths;
   if (isRecord(widths)) {
     const terminalWidths = Object.entries(widths).reduce<Record<string, number>>(
       (acc, [id, width]) => {

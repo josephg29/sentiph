@@ -127,8 +127,7 @@ export const parseUiStatePatch = (
     patch.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
   }
 
-  // Accept both old (tentacleCompletionSound) and new (terminalCompletionSound) field names
-  const completionSoundKey = record.terminalCompletionSound ?? record.tentacleCompletionSound;
+  const completionSoundKey = record.terminalCompletionSound;
   if (completionSoundKey !== undefined) {
     if (!isTerminalCompletionSoundId(completionSoundKey)) {
       return {
@@ -139,8 +138,7 @@ export const parseUiStatePatch = (
     patch.terminalCompletionSound = completionSoundKey;
   }
 
-  // Accept both old (minimizedTentacleIds) and new (minimizedTerminalIds) field names
-  const minimizedKey = record.minimizedTerminalIds ?? record.minimizedTentacleIds;
+  const minimizedKey = record.minimizedTerminalIds;
   if (minimizedKey !== undefined) {
     if (!Array.isArray(minimizedKey)) {
       return {
@@ -159,8 +157,7 @@ export const parseUiStatePatch = (
     patch.minimizedTerminalIds = [...new Set(minimizedTerminalIds)];
   }
 
-  // Accept both old (tentacleWidths) and new (terminalWidths) field names
-  const widthsKey = record.terminalWidths ?? record.tentacleWidths;
+  const widthsKey = record.terminalWidths;
   if (widthsKey !== undefined) {
     if (widthsKey === null || typeof widthsKey !== "object" || Array.isArray(widthsKey)) {
       return {
