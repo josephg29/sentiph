@@ -781,10 +781,49 @@ export const CanvasPrimaryView = ({
       {/* Context menu */}
       {contextMenu && (
         <>
-          <div className="canvas-context-menu-backdrop" onClick={() => setContextMenu(null)} />
+          <div
+            className="canvas-context-menu-backdrop"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Close current menu, then re-derive what's under the cursor on the SVG
+              setContextMenu(null);
+              // Use rAF so the backdrop is removed before we probe elementFromPoint
+              requestAnimationFrame(() => {
+                const under = document.elementFromPoint(e.clientX, e.clientY);
+                if (under) {
+                  under.dispatchEvent(
+                    new MouseEvent("contextmenu", {
+                      bubbles: true,
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                    }),
+                  );
+                }
+              });
+            }}
+          />
           <div
             className="canvas-context-menu"
             style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setContextMenu(null);
+              requestAnimationFrame(() => {
+                const under = document.elementFromPoint(e.clientX, e.clientY);
+                if (under) {
+                  under.dispatchEvent(
+                    new MouseEvent("contextmenu", {
+                      bubbles: true,
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                    }),
+                  );
+                }
+              });
+            }}
           >
             {contextMenu.kind === "canvas" && (
               <>
