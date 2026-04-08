@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import { buildCodexUsageUrl } from "../../runtime/runtimeEndpoints";
 import { CODEX_USAGE_SCAN_INTERVAL_MS } from "../constants";
 import { normalizeCodexUsageSnapshot } from "../usageNormalizers";
@@ -11,10 +13,21 @@ const fallback = (): CodexUsageSnapshot => ({
 });
 
 export const useCodexUsagePolling = () => {
+  const lastOkRef = useRef<CodexUsageSnapshot | null>(null);
+
+  const normalize = (raw: unknown): CodexUsageSnapshot | null => {
+    const snapshot = normalizeCodexUsageSnapshot(raw);
+    if (snapshot?.status === "ok") {
+      lastOkRef.current = snapshot;
+      return snapshot;
+    }
+    return lastOkRef.current ?? snapshot;
+  };
+
   const { data, refresh } = usePollingData<CodexUsageSnapshot>({
     fetchUrl: buildCodexUsageUrl(),
     intervalMs: CODEX_USAGE_SCAN_INTERVAL_MS,
-    normalize: normalizeCodexUsageSnapshot,
+    normalize,
     fallback,
   });
 
