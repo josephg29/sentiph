@@ -68,7 +68,7 @@ export type ConversationTranscriptEventPayload =
   | Omit<StateChangeTranscriptEvent, "eventId" | "sessionId" | "tentacleId">
   | Omit<SessionEndTranscriptEvent, "eventId" | "sessionId" | "tentacleId">;
 
-export type { ConversationTurn, ConversationSessionSummary, ConversationSessionDetail };
+export type { ConversationTurn };
 
 export const transcriptFilenameForSession = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.jsonl`;
@@ -424,8 +424,6 @@ const readClaudeTranscriptTurns = (
     return null;
   }
 };
-
-export type { ConversationSearchHit, ConversationSearchResult };
 
 const buildSearchSnippet = (content: string, query: string, contextChars = 80): string => {
   const lowerContent = content.toLowerCase();

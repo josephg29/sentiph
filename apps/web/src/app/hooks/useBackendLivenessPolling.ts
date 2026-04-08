@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { buildTerminalSnapshotsUrl } from "../../runtime/runtimeEndpoints";
 import { BACKEND_LIVENESS_SCAN_INTERVAL_MS } from "../constants";
 
-export type BackendLivenessStatus = "live" | "offline";
+type BackendLivenessStatus = "live" | "offline";
 
 export const useBackendLivenessPolling = (): BackendLivenessStatus => {
   const [status, setStatus] = useState<BackendLivenessStatus>("offline");

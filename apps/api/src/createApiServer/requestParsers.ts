@@ -9,7 +9,7 @@ import {
   isTerminalCompletionSoundId,
 } from "../terminalRuntime";
 
-export const MAX_JSON_BODY_BYTES = 1024 * 1024;
+const MAX_JSON_BODY_BYTES = 1024 * 1024;
 
 export class RequestBodyTooLargeError extends Error {}
 

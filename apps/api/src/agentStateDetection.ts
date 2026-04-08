@@ -1,6 +1,6 @@
-import { type AgentRuntimeState, isAgentRuntimeState } from "@octogent/core";
+import type { AgentRuntimeState } from "@octogent/core";
 
-export { type AgentRuntimeState, isAgentRuntimeState };
+export type { AgentRuntimeState };
 
 const PROCESSING_PATTERN = /esc to interrupt/i;
 

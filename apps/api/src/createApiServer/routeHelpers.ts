@@ -33,7 +33,7 @@ export type RouteHandlerContext = {
   corsOrigin: string | null;
 };
 
-export type JsonBodyReadResult = { ok: true; payload: unknown } | { ok: false };
+type JsonBodyReadResult = { ok: true; payload: unknown } | { ok: false };
 export type ApiRouteHandler = (
   context: RouteHandlerContext,
   dependencies: RouteHandlerDependencies,

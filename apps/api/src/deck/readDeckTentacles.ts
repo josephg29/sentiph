@@ -454,14 +454,14 @@ export const deleteTodoItem = (
 
 // ─── Create a new tentacle ──────────────────────────────────────────────────
 
-export type CreateDeckTentacleInput = {
+type CreateDeckTentacleInput = {
   name: string;
   description: string;
   color: string;
   octopus: DeckOctopusAppearance;
 };
 
-export type CreateDeckTentacleResult =
+type CreateDeckTentacleResult =
   | { ok: true; tentacle: DeckTentacleSummary }
   | { ok: false; error: string };
 

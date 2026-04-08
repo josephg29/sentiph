@@ -54,7 +54,7 @@ export const handleUiStateRoute: ApiRouteHandler = async (
   return true;
 };
 
-export const HOOK_PATH_PATTERN =
+const HOOK_PATH_PATTERN =
   /^\/api\/hooks\/(session-start|user-prompt-submit|pre-tool-use|notification|stop)$/;
 
 export const handleHookRoute: ApiRouteHandler = async (
@@ -95,7 +95,7 @@ export const handleHookRoute: ApiRouteHandler = async (
   return true;
 };
 
-export const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
+const PROMPT_ITEM_PATH_PATTERN = /^\/api\/prompts\/([^/]+)$/;
 
 export const handlePromptsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
@@ -205,7 +205,7 @@ export const handlePromptItemRoute: ApiRouteHandler = async (
 
 // ─── Channel routes ───────────────────────────────────────────────────────
 
-export const CHANNEL_MESSAGES_PATH_PATTERN = /^\/api\/channels\/([^/]+)\/messages$/;
+const CHANNEL_MESSAGES_PATH_PATTERN = /^\/api\/channels\/([^/]+)\/messages$/;
 
 export const handleChannelMessagesRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

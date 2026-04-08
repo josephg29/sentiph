@@ -7,10 +7,10 @@ import {
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
-export const TENTACLE_GIT_ACTION_PATH_PATTERN =
+const TENTACLE_GIT_ACTION_PATH_PATTERN =
   /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
-export const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
-export const TENTACLE_GIT_PULL_REQUEST_MERGE_PATH_PATTERN =
+const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
+const TENTACLE_GIT_PULL_REQUEST_MERGE_PATH_PATTERN =
   /^\/api\/tentacles\/([^/]+)\/git\/pr\/merge$/;
 
 export const handleTentacleGitRoute: ApiRouteHandler = async (

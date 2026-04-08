@@ -13,7 +13,6 @@ export type {
   TentaclePullRequestSnapshot,
   MonitorUsageSnapshot,
   MonitorPost,
-  MonitorCredentialSummary,
   MonitorConfigSnapshot,
   MonitorFeedSnapshot,
   ConversationTurn,
@@ -21,7 +20,6 @@ export type {
   ConversationSessionSummary,
   ConversationSessionDetail,
   ConversationSearchHit,
-  ConversationSearchResult,
 } from "@octogent/core";
 
 export type { PersistedUiState as FrontendUiStateSnapshot } from "@octogent/core";

@@ -2,21 +2,13 @@ import type { WriteStream } from "node:fs";
 
 import type {
   ChannelMessage,
-  ConversationSearchResult,
-  ConversationSessionDetail,
-  ConversationSessionSummary,
   PersistedUiState,
   TentacleGitStatusSnapshot,
   TentaclePullRequestSnapshot,
-  TentaclePullRequestStatus,
   TentacleWorkspaceMode,
   TerminalAgentProvider,
-  TerminalCompletionSoundId,
-  TerminalSnapshot,
 } from "@octogent/core";
 import {
-  TERMINAL_AGENT_PROVIDERS,
-  TERMINAL_COMPLETION_SOUND_IDS,
   isTerminalAgentProvider,
   isTerminalCompletionSoundId,
 } from "@octogent/core";
@@ -87,18 +79,11 @@ export type TerminalSession = {
 
 export {
   type ChannelMessage,
-  type ConversationSearchResult,
-  type ConversationSessionDetail,
-  type ConversationSessionSummary,
   type PersistedUiState,
   type TentacleGitStatusSnapshot,
   type TentaclePullRequestSnapshot,
-  type TentaclePullRequestStatus,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
-  type TerminalCompletionSoundId,
-  TERMINAL_AGENT_PROVIDERS,
-  TERMINAL_COMPLETION_SOUND_IDS,
   isTerminalAgentProvider,
   isTerminalCompletionSoundId,
 };
@@ -165,53 +150,3 @@ export type CreateTerminalRuntimeOptions = {
   gitClient?: GitClient;
 };
 
-export type TerminalRuntime = {
-  listTerminalSnapshots(): TerminalSnapshot[];
-  listConversationSessions(): ConversationSessionSummary[];
-  readConversationSession(sessionId: string): ConversationSessionDetail | null;
-  exportConversationSession(sessionId: string, format: "json" | "md"): string | null;
-  deleteConversationSession(sessionId: string): void;
-  deleteAllConversationSessions(): void;
-  searchConversations(query: string): ConversationSearchResult;
-  readUiState(): PersistedUiState;
-  patchUiState(patch: PersistedUiState): PersistedUiState;
-  readTentacleGitStatus(tentacleId: string): TentacleGitStatusSnapshot | null;
-  commitTentacleWorktree(tentacleId: string, message: string): TentacleGitStatusSnapshot | null;
-  pushTentacleWorktree(tentacleId: string): TentacleGitStatusSnapshot | null;
-  syncTentacleWorktree(tentacleId: string, baseRef?: string): TentacleGitStatusSnapshot | null;
-  readTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
-  createTentaclePullRequest(
-    tentacleId: string,
-    input: { title: string; body?: string; baseRef?: string },
-  ): TentaclePullRequestSnapshot | null;
-  mergeTentaclePullRequest(tentacleId: string): TentaclePullRequestSnapshot | null;
-  createTerminal(options: {
-    terminalId?: string;
-    tentacleId?: string;
-    worktreeId?: string;
-    tentacleName?: string;
-    workspaceMode?: TentacleWorkspaceMode;
-    agentProvider?: TerminalAgentProvider;
-    initialPrompt?: string;
-    baseRef?: string;
-    parentTerminalId?: string;
-  }): TerminalSnapshot;
-  renameTerminal(terminalId: string, tentacleName: string): TerminalSnapshot | null;
-  deleteTerminal(terminalId: string): boolean;
-  handleHook(hookName: string, payload: unknown, octogentSessionId?: string): { ok: boolean };
-  handleUpgrade(
-    request: import("node:http").IncomingMessage,
-    socket: import("node:stream").Duplex,
-    head: Buffer,
-  ): boolean;
-  connectDirect(terminalId: string, listener: DirectSessionListener): (() => void) | null;
-  writeInput(terminalId: string, data: string): boolean;
-  resizeTerminal(terminalId: string, cols: number, rows: number): boolean;
-  sendChannelMessage(
-    toTerminalId: string,
-    fromTerminalId: string,
-    content: string,
-  ): ChannelMessage | null;
-  listChannelMessages(terminalId: string): ChannelMessage[];
-  close(): void;
-};

@@ -2,8 +2,7 @@ import { useRef } from "react";
 import type { ReactNode } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
-const MIN_SIDEBAR_WIDTH = 240;
-const MAX_SIDEBAR_WIDTH = 520;
+import { clampSidebarWidth } from "../app/normalizers";
 
 type ActiveAgentsSidebarProps = {
   sidebarWidth: number;
@@ -11,9 +10,6 @@ type ActiveAgentsSidebarProps = {
   actionPanel?: ReactNode;
   bodyContent?: ReactNode;
 };
-
-const clampSidebarWidth = (width: number): number =>
-  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
 export const ActiveAgentsSidebar = ({
   sidebarWidth,

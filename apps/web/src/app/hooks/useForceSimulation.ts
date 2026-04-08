@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphEdge, GraphNode } from "../canvas/types";
 
-export type ForceParams = {
+type ForceParams = {
   repelStrength: number;
   repelDistanceMax: number;
   linkDistance: number;

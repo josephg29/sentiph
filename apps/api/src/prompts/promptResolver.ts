@@ -61,7 +61,7 @@ export const listPromptTemplates = async (promptsDir: string): Promise<string[]>
 
 // ─── Multi-directory helpers (builtin + user) ─────────────────────────────
 
-export type PromptEntry = { name: string; source: "builtin" | "user" };
+type PromptEntry = { name: string; source: "builtin" | "user" };
 
 /**
  * List prompts from both built-in and user directories.

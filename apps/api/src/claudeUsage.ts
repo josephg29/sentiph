@@ -43,15 +43,13 @@ export type { ClaudeUsageSnapshot };
 
 type ClaudeUsageStatus = ClaudeUsageSnapshot["status"];
 
-export type ClaudeUsageSource = ClaudeUsageSnapshot["source"];
-
 type ClaudeOauthCredentials = {
   accessToken: string;
   scopes: string[];
   rateLimitTier: string | null;
 };
 
-export type ClaudeUsageDependencies = {
+type ClaudeUsageDependencies = {
   now?: () => Date;
   readCredentialsJson?: () => Promise<unknown>;
   fetchImpl?: typeof fetch;

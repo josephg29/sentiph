@@ -71,7 +71,7 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
   return true;
 };
 
-export const DECK_TENTACLE_ITEM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)$/;
+const DECK_TENTACLE_ITEM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)$/;
 
 export const handleDeckTentacleItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
@@ -96,7 +96,7 @@ export const handleDeckTentacleItemRoute: ApiRouteHandler = async (
   return true;
 };
 
-export const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/files\/([^/]+)$/;
+const DECK_VAULT_FILE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/files\/([^/]+)$/;
 
 export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
@@ -284,7 +284,7 @@ export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
 // Deck — Swarm
 // ---------------------------------------------------------------------------
 
-export const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/swarm$/;
+const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/swarm$/;
 
 export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

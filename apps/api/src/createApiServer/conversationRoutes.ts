@@ -1,9 +1,9 @@
 import type { ApiRouteHandler } from "./routeHelpers";
 import { writeJson, writeMethodNotAllowed, writeNoContent, writeText } from "./routeHelpers";
 
-export const CONVERSATION_SEARCH_PATH = "/api/conversations/search";
-export const CONVERSATION_ITEM_PATH_PATTERN = /^\/api\/conversations\/([^/]+)$/;
-export const CONVERSATION_EXPORT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/export$/;
+const CONVERSATION_SEARCH_PATH = "/api/conversations/search";
+const CONVERSATION_ITEM_PATH_PATTERN = /^\/api\/conversations\/([^/]+)$/;
+const CONVERSATION_EXPORT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/export$/;
 
 export const handleConversationsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

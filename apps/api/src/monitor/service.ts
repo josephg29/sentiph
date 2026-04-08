@@ -14,12 +14,6 @@ import type {
 } from "./types";
 import { createXMonitorProvider } from "./xProvider";
 
-export {
-  DEFAULT_MONITOR_MAX_CACHE_AGE_MS,
-  DEFAULT_MONITOR_MAX_POSTS,
-  DEFAULT_MONITOR_SEARCH_WINDOW_DAYS,
-} from "./defaults";
-
 export class MonitorInputError extends Error {}
 
 const normalizeQueryTerms = (queryTerms: string[]): string[] => {

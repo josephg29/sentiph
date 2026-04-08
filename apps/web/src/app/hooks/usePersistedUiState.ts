@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
-import { DEFAULT_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import { MIN_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
 import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../normalizers";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
@@ -64,7 +64,7 @@ export const usePersistedUiState = ({
 }: UsePersistedUiStateOptions): UsePersistedUiStateResult => {
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = useState(MIN_SIDEBAR_WIDTH);
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
   const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(true);
   const [isMonitorVisible, setIsMonitorVisible] = useState(true);

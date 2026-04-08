@@ -47,12 +47,9 @@ import {
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
-  ChannelMessage,
-  DirectSessionListener,
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
-  TerminalCompletionSoundId,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
 export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";

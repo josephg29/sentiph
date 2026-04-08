@@ -8,4 +8,3 @@ export {
   writeUserPrompt,
   deleteUserPrompt,
 } from "./promptResolver";
-export type { PromptEntry } from "./promptResolver";

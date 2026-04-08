@@ -202,7 +202,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   }
 };
 
-export const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
+const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
 
 export const handleTerminalItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

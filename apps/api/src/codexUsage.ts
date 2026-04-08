@@ -48,7 +48,7 @@ export type { CodexUsageSnapshot };
 
 type CodexUsageStatus = CodexUsageSnapshot["status"];
 
-export type CodexUsageDependencies = {
+type CodexUsageDependencies = {
   env?: NodeJS.ProcessEnv;
   now?: () => Date;
   readFileText?: (path: string) => Promise<string>;

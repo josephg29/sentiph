@@ -1,11 +1,9 @@
 import {
-  TERMINAL_COMPLETION_SOUND_IDS,
   type TerminalCompletionSoundId,
   isTerminalCompletionSoundId,
 } from "@octogent/core";
 
 export {
-  TERMINAL_COMPLETION_SOUND_IDS,
   type TerminalCompletionSoundId,
   isTerminalCompletionSoundId,
 };

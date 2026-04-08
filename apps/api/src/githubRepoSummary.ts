@@ -31,7 +31,7 @@ export type { GitHubRepoSummarySnapshot };
 
 type GitHubSummaryStatus = GitHubRepoSummarySnapshot["status"];
 
-export type GitHubRepoSummaryDependencies = {
+type GitHubRepoSummaryDependencies = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   now?: () => Date;

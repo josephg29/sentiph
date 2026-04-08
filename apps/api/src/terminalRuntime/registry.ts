@@ -246,7 +246,7 @@ const parseV3Terminals = (
   return terminals;
 };
 
-export const parseRegistryDocument = (
+const parseRegistryDocument = (
   raw: string,
   registryPath: string,
 ): {

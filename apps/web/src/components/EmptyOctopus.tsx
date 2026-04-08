@@ -714,6 +714,3 @@ export const OctopusGlyph = ({
   );
 };
 
-export const EmptyOctopus = () => {
-  return <OctopusGlyph className="octopus-svg" testId="empty-octopus" />;
-};
