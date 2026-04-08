@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import { MockWebSocket, jsonResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
+const findTerminalSocket = (terminalId: string) =>
+  MockWebSocket.instances.find((socket) => socket.url.includes(`/api/terminals/${terminalId}/ws`));
+
 describe("App terminal presence and runtime state", () => {
   afterEach(() => {
     cleanup();
@@ -40,7 +43,7 @@ describe("App terminal presence and runtime state", () => {
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
-    expect(MockWebSocket.instances[0]?.url).toContain("/api/terminals/terminal-1/ws");
+    expect(findTerminalSocket("terminal-1")?.url).toContain("/api/terminals/terminal-1/ws");
   });
 
   it("keeps sidebar badge synced with the terminal idle/processing state", async () => {
@@ -72,7 +75,7 @@ describe("App terminal presence and runtime state", () => {
     await waitFor(() => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
-    const socket = MockWebSocket.instances[0];
+    const socket = findTerminalSocket("terminal-1");
     socket?.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {
@@ -111,7 +114,7 @@ describe("App terminal presence and runtime state", () => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
 
-    const socket = MockWebSocket.instances[0];
+    const socket = findTerminalSocket("terminal-1");
     socket?.emit("message", JSON.stringify({ type: "state", state: "idle" }));
     socket?.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
@@ -152,7 +155,7 @@ describe("App terminal presence and runtime state", () => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
 
-    const socket = MockWebSocket.instances[0];
+    const socket = findTerminalSocket("terminal-1");
     expect(socket).toBeDefined();
 
     unmount();

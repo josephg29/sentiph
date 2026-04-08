@@ -22,6 +22,11 @@ const localWebSocketUrl = (location: LocationLike, tentacleId: string) => {
   return `${protocol}//${location.host}/api/terminals/${tentacleId}/ws`;
 };
 
+const localRuntimeWebSocketUrl = (location: LocationLike, pathname: string) => {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${location.host}${pathname}`;
+};
+
 const toWebSocketBase = (runtimeBaseUrl: string): string | null => {
   try {
     const url = new URL(runtimeBaseUrl);
@@ -45,6 +50,22 @@ export const buildTerminalSnapshotsUrl = (runtimeBaseUrl = readRuntimeBaseUrl())
   }
 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/terminal-snapshots");
+};
+
+export const buildTerminalEventsSocketUrl = (
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+  location: LocationLike = window.location,
+) => {
+  if (!runtimeBaseUrl) {
+    return localRuntimeWebSocketUrl(location, "/api/terminal-events/ws");
+  }
+
+  const websocketBase = toWebSocketBase(runtimeBaseUrl);
+  if (!websocketBase) {
+    return localRuntimeWebSocketUrl(location, "/api/terminal-events/ws");
+  }
+
+  return buildAbsoluteUrl(websocketBase, "/api/terminal-events/ws");
 };
 
 export const buildTerminalsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {

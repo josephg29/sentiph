@@ -73,6 +73,7 @@ export type TerminalSession = {
   hasTranscriptEnded?: boolean;
   initialPrompt?: string;
   isInitialPromptSent?: boolean;
+  keepAliveWithoutClients?: boolean;
   hasSeenProcessing?: boolean;
   lastToolName?: string;
 };
@@ -149,4 +150,3 @@ export type CreateTerminalRuntimeOptions = {
   projectStateDir?: string | undefined;
   gitClient?: GitClient;
 };
-

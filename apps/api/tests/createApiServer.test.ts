@@ -1366,6 +1366,37 @@ describe("createApiServer", () => {
     );
   });
 
+  it("marks auto-started prompted terminals as active immediately", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const baseUrl = await startServer({
+      workspaceCwd,
+    });
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "planner", initialPrompt: "Start working." }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const snapshotsResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      headers: { Accept: "application/json" },
+    });
+    expect(snapshotsResponse.status).toBe(200);
+    await expect(snapshotsResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          hasUserPrompt: true,
+        }),
+      ]),
+    );
+  });
+
   it("creates isolated worktree terminals with dedicated cwd", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);

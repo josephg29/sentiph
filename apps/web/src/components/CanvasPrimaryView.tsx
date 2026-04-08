@@ -79,6 +79,37 @@ const CLICK_THRESHOLD = 5;
 const GRAPH_MIN_WIDTH = 300;
 const TERMINAL_MIN_WIDTH = 370;
 
+const buildCanvasEdgePath = (
+  source: GraphNode,
+  target: GraphNode,
+  edgeIndex: number,
+  edgeCount: number,
+): string => {
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return "";
+
+  const shortenSourceBy = source.radius + 2;
+  const shortenTargetBy = target.radius + 2;
+  const startRatio = Math.min(1, shortenSourceBy / dist);
+  const endRatio = Math.max(0, (dist - shortenTargetBy) / dist);
+  const sx = source.x + dx * startRatio;
+  const sy = source.y + dy * startRatio;
+  const tx = source.x + dx * endRatio;
+  const ty = source.y + dy * endRatio;
+
+  const curvature = edgeCount <= 1 ? 0.3 : (edgeIndex / (edgeCount - 1) - 0.5) * 2;
+  const offsetRatio = 0.25 + edgeCount * 0.05;
+  const baseOffset = Math.max(35, dist * offsetRatio);
+  const offsetX = (-dy / dist) * curvature * baseOffset;
+  const offsetY = (dx / dist) * curvature * baseOffset;
+  const cpx = (sx + tx) / 2 + offsetX;
+  const cpy = (sy + ty) / 2 + offsetY;
+
+  return `M ${sx} ${sy} Q ${cpx} ${cpy} ${tx} ${ty}`;
+};
+
 export const CanvasPrimaryView = ({
   columns,
   isUiStateHydrated,
@@ -558,6 +589,27 @@ export const CanvasPrimaryView = ({
         n.agentRuntimeState === "waiting_for_user"),
   );
 
+  const sessionEdges = edges
+    .map((edge) => {
+      const source = nodesById.get(edge.source);
+      const target = nodesById.get(edge.target);
+      if (!source || !target) {
+        return null;
+      }
+      if (source.type !== "active-session" || target.type !== "active-session") {
+        return null;
+      }
+      if (
+        hideIdleTerminals &&
+        ((source.agentState === "idle" || source.hasUserPrompt === false) ||
+          (target.agentState === "idle" || target.hasUserPrompt === false))
+      ) {
+        return null;
+      }
+      return { source, target };
+    })
+    .filter((edge): edge is { source: GraphNode; target: GraphNode } => edge !== null);
+
   const hasPanels = isHydratingTerminals || openTerminals.size > 0 || openTentacles.size > 0;
 
   return (
@@ -575,6 +627,25 @@ export const CanvasPrimaryView = ({
           <g
             transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
           >
+            {sessionEdges.map(({ source, target }, index) => {
+              const active = selectedNodeId === source.id || selectedNodeId === target.id;
+              const selectedColor = selectedNodeId
+                ? (nodesById.get(selectedNodeId)?.color ?? null)
+                : null;
+
+              return (
+                <path
+                  key={`${source.id}->${target.id}`}
+                  className="canvas-edge"
+                  d={buildCanvasEdgePath(source, target, index, sessionEdges.length)}
+                  fill="none"
+                  stroke={active ? (selectedColor ?? source.color) : "#C0C0C0"}
+                  strokeWidth={active ? 2 : 1.5}
+                  strokeOpacity={1}
+                />
+              );
+            })}
+
             {/* Render tentacle nodes (with arms) first */}
             {tentacleNodes.map((node) => {
               const connected = edges

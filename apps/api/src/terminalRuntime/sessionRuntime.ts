@@ -247,8 +247,26 @@ export const createSessionRuntime = ({
   };
 
   const INITIAL_PROMPT_DELAY_MS = 4_000;
+  const INITIAL_PROMPT_SUBMIT_DELAY_MS = 150;
   const BRACKETED_PASTE_START = "\x1b[200~";
   const BRACKETED_PASTE_END = "\x1b[201~";
+
+  const scheduleIdleCloseIfNeeded = (session: TerminalSession, sessionId: string) => {
+    if (session.keepAliveWithoutClients) {
+      return;
+    }
+
+    if (session.clients.size > 0 || session.directListeners.size > 0) {
+      return;
+    }
+
+    appendDebugLog(session, `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`);
+    clearIdleCloseTimer(session);
+    session.idleCloseTimer = setTimeout(() => {
+      appendDebugLog(session, `idle-grace-expired session=${sessionId}`);
+      closeSession(sessionId);
+    }, sessionIdleGraceMs);
+  };
 
   const ensureAgentBootstrapped = (sessionId: string, session: TerminalSession) => {
     if (session.isBootstrapCommandSent) {
@@ -273,7 +291,14 @@ export const createSessionRuntime = ({
         session.isInitialPromptSent = true;
         appendDebugLog(session, `initial-prompt session=${sessionId}`);
         const prompt = session.initialPrompt ?? "";
-        session.pty.write(`${BRACKETED_PASTE_START}${prompt}${BRACKETED_PASTE_END}\r`);
+        session.pty.write(`${BRACKETED_PASTE_START}${prompt}${BRACKETED_PASTE_END}`);
+        setTimeout(() => {
+          if (sessions.get(sessionId) !== session) {
+            return;
+          }
+          appendDebugLog(session, `initial-prompt-submit session=${sessionId}`);
+          session.pty.write("\r");
+        }, INITIAL_PROMPT_SUBMIT_DELAY_MS);
       }, INITIAL_PROMPT_DELAY_MS);
     }
   };
@@ -283,6 +308,8 @@ export const createSessionRuntime = ({
     if (existingSession) {
       return existingSession;
     }
+
+    const terminalRecord = terminals.get(sessionId);
 
     const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
     if (!existsSync(tentacleCwd)) {
@@ -326,6 +353,7 @@ export const createSessionRuntime = ({
       transcriptEventCount: 0,
       pendingInput: "",
       hasTranscriptEnded: false,
+      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt),
     };
     if (debugLog) {
       session.debugLog = debugLog;
@@ -383,7 +411,6 @@ export const createSessionRuntime = ({
     });
 
     // Propagate initial prompt from the terminal definition, if set.
-    const terminalRecord = terminals.get(sessionId);
     if (terminalRecord?.initialPrompt) {
       session.initialPrompt = terminalRecord.initialPrompt;
     }
@@ -474,17 +501,7 @@ export const createSessionRuntime = ({
       websocket.on("close", () => {
         session.clients.delete(websocket);
         appendDebugLog(session, `ws-close session=${sessionId} clients=${session.clients.size}`);
-        if (session.clients.size === 0 && session.directListeners.size === 0) {
-          appendDebugLog(
-            session,
-            `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`,
-          );
-          clearIdleCloseTimer(session);
-          session.idleCloseTimer = setTimeout(() => {
-            appendDebugLog(session, `idle-grace-expired session=${sessionId}`);
-            closeSession(sessionId);
-          }, sessionIdleGraceMs);
-        }
+        scheduleIdleCloseIfNeeded(session, sessionId);
       });
     });
 
@@ -526,13 +543,27 @@ export const createSessionRuntime = ({
 
     return () => {
       session.directListeners.delete(listener);
-      if (session.clients.size === 0 && session.directListeners.size === 0) {
-        clearIdleCloseTimer(session);
-        session.idleCloseTimer = setTimeout(() => {
-          closeSession(sessionId);
-        }, sessionIdleGraceMs);
-      }
+      scheduleIdleCloseIfNeeded(session, sessionId);
     };
+  };
+
+  const startSession = (terminalId: string): boolean => {
+    const resolvedSession = resolveSession(terminalId);
+    if (!resolvedSession) {
+      return false;
+    }
+
+    const { sessionId, tentacleId } = resolvedSession;
+    let session: TerminalSession;
+    try {
+      session = ensureSession(sessionId, tentacleId);
+    } catch {
+      return false;
+    }
+
+    clearIdleCloseTimer(session);
+    ensureAgentBootstrapped(sessionId, session);
+    return true;
   };
 
   const writeInput = (terminalId: string, data: string): boolean => {
@@ -570,6 +601,7 @@ export const createSessionRuntime = ({
     closeSession,
     handleUpgrade,
     connectDirect,
+    startSession,
     writeInput,
     resizeSession,
     close,

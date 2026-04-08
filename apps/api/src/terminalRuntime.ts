@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
 import type { TerminalSnapshot } from "@octogent/core";
+import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
 import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
@@ -59,6 +60,8 @@ export const createTerminalRuntime = ({
   const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
+  const terminalEventsWebsocketServer = new WebSocketServer({ noServer: true });
+  const terminalEventClients = new Set<WebSocket>();
   const registryPath = join(stateDir, "state", "tentacles.json");
   const registryState = loadTerminalRegistry(registryPath);
   const terminals = registryState.terminals;
@@ -189,6 +192,16 @@ export const createTerminalRuntime = ({
     };
   };
 
+  const broadcastTerminalListChanged = () => {
+    const payload = JSON.stringify({ type: "terminal-list-changed" });
+    for (const client of terminalEventClients) {
+      if (client.readyState !== 1) {
+        continue;
+      }
+      client.send(payload);
+    }
+  };
+
   const createTerminal = ({
     terminalId: requestedTerminalId,
     tentacleId: requestedTentacleId,
@@ -246,6 +259,7 @@ export const createTerminalRuntime = ({
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
       ...(initialPrompt ? { initialPrompt } : {}),
+      ...(initialPrompt ? { lastActiveAt: new Date().toISOString() } : {}),
       ...(parentTerminalId ? { parentTerminalId } : {}),
     };
 
@@ -267,6 +281,11 @@ export const createTerminalRuntime = ({
 
     terminals.set(terminalId, terminal);
     persistRegistry();
+    broadcastTerminalListChanged();
+
+    if (initialPrompt) {
+      sessionRuntime.startSession(terminalId);
+    }
 
     return toTerminalSnapshot(terminal);
   };
@@ -402,6 +421,7 @@ export const createTerminalRuntime = ({
 
       terminal.tentacleName = tentacleName;
       persistRegistry();
+      broadcastTerminalListChanged();
       return toTerminalSnapshot(terminal);
     },
 
@@ -417,6 +437,7 @@ export const createTerminalRuntime = ({
       }
       terminals.delete(terminalId);
       persistRegistry();
+      broadcastTerminalListChanged();
       return true;
     },
 
@@ -425,6 +446,23 @@ export const createTerminalRuntime = ({
     handleHook: hookProcessor.handleHook,
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {
+      let requestUrl: URL;
+      try {
+        requestUrl = new URL(request.url ?? "/", "http://localhost");
+      } catch {
+        return false;
+      }
+
+      if (requestUrl.pathname === "/api/terminal-events/ws") {
+        terminalEventsWebsocketServer.handleUpgrade(request, socket, head, (websocket) => {
+          terminalEventClients.add(websocket);
+          websocket.on("close", () => {
+            terminalEventClients.delete(websocket);
+          });
+        });
+        return true;
+      }
+
       return sessionRuntime.handleUpgrade(request, socket, head);
     },
 
@@ -442,6 +480,11 @@ export const createTerminalRuntime = ({
 
     close() {
       sessionRuntime.close();
+      for (const client of terminalEventClients) {
+        client.close();
+      }
+      terminalEventClients.clear();
+      terminalEventsWebsocketServer.close();
       websocketServer.close();
     },
   };

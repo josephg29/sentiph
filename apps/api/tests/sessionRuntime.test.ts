@@ -397,4 +397,58 @@ describe("createSessionRuntime", () => {
       ),
     ).toBe(true);
   });
+
+  it("can start a prompted session headlessly and submits the prompt automatically", () => {
+    vi.useFakeTimers();
+
+    const tentacleId = "tentacle-1";
+    const terminals = new Map<string, PersistedTerminal>([
+      [
+        tentacleId,
+        {
+          terminalId: tentacleId,
+          tentacleId,
+          tentacleName: tentacleId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+          initialPrompt: "Investigate and report back.",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      terminals,
+      sessions,
+      getTentacleWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
+      sessionIdleGraceMs: 1000,
+      scrollbackMaxBytes: 1024,
+    });
+
+    expect(runtime.startSession(tentacleId)).toBe(true);
+    expect(sessions.has(tentacleId)).toBe(true);
+    expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
+
+    vi.advanceTimersByTime(4_000);
+    expect(pty.write).toHaveBeenNthCalledWith(
+      2,
+      "\u001b[200~Investigate and report back.\u001b[201~",
+    );
+
+    vi.advanceTimersByTime(150);
+    expect(pty.write).toHaveBeenNthCalledWith(3, "\r");
+
+    vi.advanceTimersByTime(10_000);
+    expect(sessions.has(tentacleId)).toBe(true);
+
+    runtime.close();
+  });
 });

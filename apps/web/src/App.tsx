@@ -1,5 +1,5 @@
 import { buildTerminalList } from "@octogent/core";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
@@ -25,7 +25,7 @@ import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
-import { buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
+import { buildTerminalEventsSocketUrl, buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
 
 export const App = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
@@ -40,6 +40,8 @@ export const App = () => {
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
   const [monitorFeed, setMonitorFeed] = useState<MonitorFeedSnapshot | null>(null);
+  const columnsRefreshTimerIdsRef = useRef<number[]>([]);
+  const terminalEventsRefreshTimerRef = useRef<number | null>(null);
 
   const {
     activePrimaryNav,
@@ -86,6 +88,26 @@ export const App = () => {
     const reader = new HttpTerminalSnapshotReader(readerOptions);
     return buildTerminalList(reader);
   }, []);
+
+  const refreshColumns = useCallback(async () => {
+    const nextColumns = await readColumns();
+    setTerminals(nextColumns);
+    return nextColumns;
+  }, [readColumns]);
+
+  const scheduleColumnsRefreshBurst = useCallback(() => {
+    for (const timerId of columnsRefreshTimerIdsRef.current) {
+      window.clearTimeout(timerId);
+    }
+    columnsRefreshTimerIdsRef.current = [];
+
+    for (const delayMs of [400, 1_200, 2_500, 5_000]) {
+      const timerId = window.setTimeout(() => {
+        void refreshColumns();
+      }, delayMs);
+      columnsRefreshTimerIdsRef.current.push(timerId);
+    }
+  }, [refreshColumns]);
 
   const {
     clearPendingDeleteTerminal,
@@ -135,6 +157,54 @@ export const App = () => {
     setIsLoading,
     setIsUiStateHydrated,
   });
+
+  useEffect(() => {
+    return () => {
+      for (const timerId of columnsRefreshTimerIdsRef.current) {
+        window.clearTimeout(timerId);
+      }
+      columnsRefreshTimerIdsRef.current = [];
+      if (terminalEventsRefreshTimerRef.current !== null) {
+        window.clearTimeout(terminalEventsRefreshTimerRef.current);
+        terminalEventsRefreshTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = new WebSocket(buildTerminalEventsSocketUrl());
+
+    socket.addEventListener("message", (event) => {
+      if (typeof event.data !== "string") {
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(event.data) as { type?: unknown };
+        if (payload.type !== "terminal-list-changed") {
+          return;
+        }
+      } catch {
+        return;
+      }
+
+      if (terminalEventsRefreshTimerRef.current !== null) {
+        window.clearTimeout(terminalEventsRefreshTimerRef.current);
+      }
+      terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
+        terminalEventsRefreshTimerRef.current = null;
+        void refreshColumns();
+      }, 100);
+    });
+
+    return () => {
+      if (terminalEventsRefreshTimerRef.current !== null) {
+        window.clearTimeout(terminalEventsRefreshTimerRef.current);
+        terminalEventsRefreshTimerRef.current = null;
+      }
+      socket.close();
+    };
+  }, [refreshColumns]);
 
   const { codexUsageSnapshot, refreshCodexUsage } = useCodexUsagePolling();
   const { claudeUsageSnapshot, refreshClaudeUsage } = useClaudeUsagePolling();
@@ -361,8 +431,7 @@ export const App = () => {
                   body: JSON.stringify({ name: "", description: "" }),
                 });
                 if (!response.ok) return;
-                const nextColumns = await readColumns();
-                setTerminals(nextColumns);
+                await refreshColumns();
               },
               onSpawnSwarm: async (tentacleId) => {
                 await fetch(`/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`, {
@@ -370,8 +439,8 @@ export const App = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({}),
                 });
-                const nextColumns = await readColumns();
-                setTerminals(nextColumns);
+                await refreshColumns();
+                scheduleColumnsRefreshBurst();
               },
               onOctobossAction: async (action) => {
                 const response = await fetch("/api/terminals", {
@@ -385,8 +454,7 @@ export const App = () => {
                 });
                 if (!response.ok) return undefined;
                 const snapshot = (await response.json()) as { terminalId?: string };
-                const nextColumns = await readColumns();
-                setTerminals(nextColumns);
+                await refreshColumns();
                 return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
               },
               onNavigateToConversation: (_sessionId) => {
@@ -407,7 +475,7 @@ export const App = () => {
               onTerminalRenamed: handleTerminalRenamed,
               onTerminalActivity: handleTerminalActivity,
               onRefreshColumns: () => {
-                void readColumns().then(setTerminals);
+                void refreshColumns();
               },
             }}
             conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}

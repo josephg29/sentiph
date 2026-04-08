@@ -155,6 +155,7 @@ export const useCanvasGraphData = ({
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
   const prevNodes = prevNodesRef.current;
+  const currentNodesById = new Map<string, GraphNode>();
   const seenTentacleIds = new Set<string>();
 
   // Build a map of active terminals by tentacleId (multiple terminals can share a tentacle)
@@ -207,20 +208,25 @@ export const useCanvasGraphData = ({
       ...(deck?.octopus ? { octopus: deck.octopus } : {}),
     };
     nodes.push(node);
+    currentNodesById.set(tentacleNodeId, node);
 
     // Active terminal session nodes — one per terminal in this tentacle
     if (activeTerminals) {
       for (const activeTerminal of activeTerminals) {
         const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
         const prevSession = prevNodes.get(sessionNodeId);
+        const parentNodeId = activeTerminal.parentTerminalId
+          ? buildActiveSessionNodeId(activeTerminal.parentTerminalId)
+          : tentacleNodeId;
+        const parentNode = currentNodesById.get(parentNodeId) ?? node;
         const jitter = () => (Math.random() - 0.5) * 60;
 
         const runtimeInfo = agentRuntimeStates?.get(activeTerminal.terminalId);
         const sessionNode: GraphNode = {
           id: sessionNodeId,
           type: "active-session",
-          x: prevSession?.x ?? node.x + jitter(),
-          y: prevSession?.y ?? node.y + jitter(),
+          x: prevSession?.x ?? parentNode.x + jitter(),
+          y: prevSession?.y ?? parentNode.y + jitter(),
           vx: prevSession?.vx ?? 0,
           vy: prevSession?.vy ?? 0,
           pinned: prevSession?.pinned ?? false,
@@ -239,7 +245,8 @@ export const useCanvasGraphData = ({
           ...(runtimeInfo?.toolName ? { waitingToolName: runtimeInfo.toolName } : {}),
         };
         nodes.push(sessionNode);
-        edges.push({ source: tentacleNodeId, target: sessionNodeId });
+        currentNodesById.set(sessionNodeId, sessionNode);
+        edges.push({ source: parentNodeId, target: sessionNodeId });
       }
     }
   }
@@ -261,6 +268,7 @@ export const useCanvasGraphData = ({
     color: octobossColor,
   };
   nodes.push(octobossNode);
+  currentNodesById.set(OCTOBOSS_NODE_ID, octobossNode);
 
   // Connect octoboss to every tentacle node
   for (const tentacleId of allTentacleIds) {
@@ -296,6 +304,7 @@ export const useCanvasGraphData = ({
       ...(bossRuntimeInfo?.toolName ? { waitingToolName: bossRuntimeInfo.toolName } : {}),
     };
     nodes.push(sessionNode);
+    currentNodesById.set(sessionNodeId, sessionNode);
     edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });
   }
 
@@ -334,6 +343,7 @@ export const useCanvasGraphData = ({
         : {}),
     };
     nodes.push(sessionNode);
+    currentNodesById.set(sessionNodeId, sessionNode);
     edges.push({ source: tentacleNodeId, target: sessionNodeId });
   }
 

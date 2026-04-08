@@ -17,6 +17,7 @@ import {
   buildTentacleGitStatusUrl,
   buildTentacleGitSyncUrl,
   buildTentacleRenameUrl,
+  buildTerminalEventsSocketUrl,
   buildTerminalSnapshotsUrl,
   buildTerminalSocketUrl,
   buildTerminalsUrl,
@@ -199,5 +200,23 @@ describe("runtimeEndpoints", () => {
         new URL("https://workspace.example.com/dashboard") as unknown as Location,
       ),
     ).toBe("ws://127.0.0.1:8787/api/terminals/tentacle-main/ws");
+  });
+
+  it("builds same-origin terminal events websocket URL by default", () => {
+    expect(
+      buildTerminalEventsSocketUrl(
+        undefined,
+        new URL("https://workspace.example.com/dashboard") as unknown as Location,
+      ),
+    ).toBe("wss://workspace.example.com/api/terminal-events/ws");
+  });
+
+  it("builds terminal events websocket URL from configured runtime base URL", () => {
+    expect(
+      buildTerminalEventsSocketUrl(
+        "http://127.0.0.1:8787",
+        new URL("https://workspace.example.com/dashboard") as unknown as Location,
+      ),
+    ).toBe("ws://127.0.0.1:8787/api/terminal-events/ws");
   });
 });
