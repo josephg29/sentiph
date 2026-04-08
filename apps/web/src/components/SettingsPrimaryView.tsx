@@ -9,28 +9,20 @@ type SettingsPrimaryViewProps = {
   terminalCompletionSound: TerminalCompletionSoundId;
   isRuntimeStatusStripVisible: boolean;
   isMonitorVisible: boolean;
-  isCodexUsageVisible: boolean;
-  isClaudeUsageVisible: boolean;
   onTerminalCompletionSoundChange: (soundId: TerminalCompletionSoundId) => void;
   onPreviewTerminalCompletionSound: (soundId: TerminalCompletionSoundId) => void;
   onRuntimeStatusStripVisibilityChange: (visible: boolean) => void;
   onMonitorVisibilityChange: (visible: boolean) => void;
-  onCodexUsageVisibilityChange: (visible: boolean) => void;
-  onClaudeUsageVisibilityChange: (visible: boolean) => void;
 };
 
 export const SettingsPrimaryView = ({
   terminalCompletionSound,
   isRuntimeStatusStripVisible,
   isMonitorVisible,
-  isCodexUsageVisible,
-  isClaudeUsageVisible,
   onTerminalCompletionSoundChange,
   onPreviewTerminalCompletionSound,
   onRuntimeStatusStripVisibilityChange,
   onMonitorVisibilityChange,
-  onCodexUsageVisibilityChange,
-  onClaudeUsageVisibilityChange,
 }: SettingsPrimaryViewProps) => (
   <section className="settings-view" aria-label="Settings primary view">
     <section className="settings-panel" aria-label="Completion notification settings">
@@ -98,29 +90,6 @@ export const SettingsPrimaryView = ({
           ariaLabel="Show runtime status strip"
           checked={isRuntimeStatusStripVisible}
           onChange={onRuntimeStatusStripVisibilityChange}
-        />
-      </div>
-    </section>
-    <section className="settings-panel" aria-label="Usage telemetry visibility settings">
-      <header className="settings-panel-header">
-        <h2>Usage telemetry visibility</h2>
-        <p>Enable or disable sidebar usage sections for Codex and Claude Code.</p>
-      </header>
-
-      <div className="settings-toggle-grid" role="group" aria-label="Usage telemetry visibility">
-        <SettingsToggle
-          label="Codex token usage"
-          description="Active Agents sidebar footer"
-          ariaLabel="Show Codex token usage in sidebar"
-          checked={isCodexUsageVisible}
-          onChange={onCodexUsageVisibilityChange}
-        />
-        <SettingsToggle
-          label="Claude token usage"
-          description="Active Agents sidebar footer"
-          ariaLabel="Show Claude token usage in sidebar"
-          checked={isClaudeUsageVisible}
-          onChange={onClaudeUsageVisibilityChange}
         />
       </div>
     </section>
