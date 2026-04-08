@@ -2142,6 +2142,45 @@ describe("createApiServer", () => {
     });
   });
 
+  it("refreshes builtin prompts from promptsDir on server start", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "octogent-state-test-"));
+    const promptsDir = mkdtempSync(join(tmpdir(), "octogent-prompts-test-"));
+    temporaryDirectories.push(workspaceCwd, projectStateDir, promptsDir);
+
+    mkdirSync(join(projectStateDir, "prompts", "core"), { recursive: true });
+    writeFileSync(
+      join(projectStateDir, "prompts", "core", "swarm-parent.md"),
+      "stale prompt with {{workerBranches}}\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(promptsDir, "swarm-parent.md"),
+      "fresh prompt with {{workerSpawnCommands}}\n",
+      "utf8",
+    );
+
+    const baseUrl = await startServer({
+      workspaceCwd,
+      projectStateDir,
+      promptsDir,
+    });
+
+    const response = await fetch(`${baseUrl}/api/prompts/swarm-parent`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      name: "swarm-parent",
+      source: "builtin",
+      content: "fresh prompt with {{workerSpawnCommands}}",
+    });
+  });
+
   it("returns 400 when creating worktree tentacle outside a git repository", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);

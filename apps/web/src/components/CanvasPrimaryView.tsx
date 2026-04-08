@@ -72,7 +72,7 @@ type CanvasPrimaryViewProps = {
   onConfirmDelete?: () => void;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
-  onRefreshColumns?: () => void;
+  onRefreshColumns?: () => Promise<void> | void;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -635,8 +635,17 @@ export const CanvasPrimaryView = ({
   }, [fitAll, simulatedNodes]);
 
   const handleRefresh = useCallback(() => {
+    if (onRefreshColumns) {
+      const result = onRefreshColumns();
+      if (result && typeof result.then === "function") {
+        void result.finally(() => {
+          refreshGraphData();
+        });
+        return;
+      }
+    }
     refreshGraphData();
-  }, [refreshGraphData]);
+  }, [onRefreshColumns, refreshGraphData]);
 
   const waitingNodes = simulatedNodes.filter(
     (n) =>

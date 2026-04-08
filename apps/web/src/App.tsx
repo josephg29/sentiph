@@ -1,4 +1,4 @@
-import { buildTerminalList } from "@octogent/core";
+import { buildTerminalList, type TerminalSnapshot } from "@octogent/core";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
@@ -42,6 +42,15 @@ export const App = () => {
   const [monitorFeed, setMonitorFeed] = useState<MonitorFeedSnapshot | null>(null);
   const columnsRefreshTimerIdsRef = useRef<number[]>([]);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
+
+  const sortTerminalSnapshots = useCallback(
+    (snapshots: TerminalView) =>
+      [...snapshots].sort(
+        (left, right) =>
+          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+      ),
+    [],
+  );
 
   const {
     activePrimaryNav,
@@ -180,7 +189,36 @@ export const App = () => {
       }
 
       try {
-        const payload = JSON.parse(event.data) as { type?: unknown };
+        const payload = JSON.parse(event.data) as
+          | { type?: unknown; snapshot?: TerminalSnapshot; terminalId?: string }
+          | undefined;
+        if (!payload || typeof payload.type !== "string") {
+          return;
+        }
+
+        if (payload.type === "terminal-created" || payload.type === "terminal-updated") {
+          if (!payload.snapshot) {
+            return;
+          }
+          setTerminals((current) =>
+            sortTerminalSnapshots([
+              ...current.filter((terminal) => terminal.terminalId !== payload.snapshot!.terminalId),
+              payload.snapshot,
+            ]),
+          );
+          return;
+        }
+
+        if (payload.type === "terminal-deleted") {
+          if (!payload.terminalId) {
+            return;
+          }
+          setTerminals((current) =>
+            current.filter((terminal) => terminal.terminalId !== payload.terminalId),
+          );
+          return;
+        }
+
         if (payload.type !== "terminal-list-changed") {
           return;
         }
@@ -204,7 +242,7 @@ export const App = () => {
       }
       socket.close();
     };
-  }, [refreshColumns]);
+  }, [refreshColumns, sortTerminalSnapshots]);
 
   const { codexUsageSnapshot, refreshCodexUsage } = useCodexUsagePolling();
   const { claudeUsageSnapshot, refreshClaudeUsage } = useClaudeUsagePolling();
@@ -474,8 +512,8 @@ export const App = () => {
               },
               onTerminalRenamed: handleTerminalRenamed,
               onTerminalActivity: handleTerminalActivity,
-              onRefreshColumns: () => {
-                void refreshColumns();
+              onRefreshColumns: async () => {
+                await refreshColumns();
               },
             }}
             conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}

@@ -192,14 +192,18 @@ export const createTerminalRuntime = ({
     };
   };
 
-  const broadcastTerminalListChanged = () => {
-    const payload = JSON.stringify({ type: "terminal-list-changed" });
+  const broadcastTerminalEvent = (event: Record<string, unknown>) => {
+    const payload = JSON.stringify(event);
     for (const client of terminalEventClients) {
       if (client.readyState !== 1) {
         continue;
       }
       client.send(payload);
     }
+  };
+
+  const broadcastTerminalListChanged = () => {
+    broadcastTerminalEvent({ type: "terminal-list-changed" });
   };
 
   const createTerminal = ({
@@ -281,7 +285,10 @@ export const createTerminalRuntime = ({
 
     terminals.set(terminalId, terminal);
     persistRegistry();
-    broadcastTerminalListChanged();
+    broadcastTerminalEvent({
+      type: "terminal-created",
+      snapshot: toTerminalSnapshot(terminal),
+    });
 
     if (initialPrompt) {
       sessionRuntime.startSession(terminalId);
@@ -421,7 +428,10 @@ export const createTerminalRuntime = ({
 
       terminal.tentacleName = tentacleName;
       persistRegistry();
-      broadcastTerminalListChanged();
+      broadcastTerminalEvent({
+        type: "terminal-updated",
+        snapshot: toTerminalSnapshot(terminal),
+      });
       return toTerminalSnapshot(terminal);
     },
 
@@ -437,7 +447,10 @@ export const createTerminalRuntime = ({
       }
       terminals.delete(terminalId);
       persistRegistry();
-      broadcastTerminalListChanged();
+      broadcastTerminalEvent({
+        type: "terminal-deleted",
+        terminalId,
+      });
       return true;
     },
 

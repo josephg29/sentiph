@@ -7,6 +7,9 @@ import { MockWebSocket, jsonResponse, resetAppTestHarness } from "./test-utils/a
 const findTerminalSocket = (terminalId: string) =>
   MockWebSocket.instances.find((socket) => socket.url.includes(`/api/terminals/${terminalId}/ws`));
 
+const findTerminalEventsSocket = () =>
+  MockWebSocket.instances.find((socket) => socket.url.includes("/api/terminal-events/ws"));
+
 describe("App terminal presence and runtime state", () => {
   afterEach(() => {
     cleanup();
@@ -44,6 +47,53 @@ describe("App terminal presence and runtime state", () => {
       expect(MockWebSocket.instances.length).toBeGreaterThan(0);
     });
     expect(findTerminalSocket("terminal-1")?.url).toContain("/api/terminals/terminal-1/ws");
+  });
+
+  it("adds a terminal live when the terminal events socket announces creation", async () => {
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      jsonResponse([
+        {
+          terminalId: "terminal-1",
+          label: "core-planner",
+          state: "live",
+          tentacleId: "tentacle-a",
+          createdAt: "2026-02-24T10:00:00.000Z",
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "[9] Board" }));
+    await screen.findByLabelText("terminal-1");
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+    });
+
+    const eventsSocket = findTerminalEventsSocket();
+    expect(eventsSocket).toBeDefined();
+
+    eventsSocket?.emit(
+      "message",
+      JSON.stringify({
+        type: "terminal-created",
+        snapshot: {
+          terminalId: "terminal-2",
+          label: "docs-worker",
+          state: "live",
+          tentacleId: "tentacle-a",
+          tentacleName: "tentacle-a",
+          parentTerminalId: "terminal-1",
+          workspaceMode: "shared",
+          createdAt: "2026-02-24T10:05:00.000Z",
+          hasUserPrompt: true,
+        },
+      }),
+    );
+
+    expect(await screen.findByLabelText("terminal-2")).toBeInTheDocument();
   });
 
   it("keeps sidebar badge synced with the terminal idle/processing state", async () => {

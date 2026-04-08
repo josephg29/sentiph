@@ -36,15 +36,14 @@ export const createApiServer = ({
   const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
   const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
 
-  // First-time bootstrap: copy builtin prompts into the project state dir once.
-  if (!fsExistsSync(resolvedCorePromptsDir)) {
-    const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
-    if (fsExistsSync(sourceDir)) {
-      mkdirSync(resolvedCorePromptsDir, { recursive: true });
-      for (const file of readdirSync(sourceDir)) {
-        if (file.endsWith(".md")) {
-          cpSync(join(sourceDir, file), join(resolvedCorePromptsDir, file));
-        }
+  // Sync builtin prompts into the project state dir on every start so prompt
+  // changes in the repo take effect without requiring manual cache cleanup.
+  const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
+  if (fsExistsSync(sourceDir)) {
+    mkdirSync(resolvedCorePromptsDir, { recursive: true });
+    for (const file of readdirSync(sourceDir)) {
+      if (file.endsWith(".md")) {
+        cpSync(join(sourceDir, file), join(resolvedCorePromptsDir, file));
       }
     }
   }
