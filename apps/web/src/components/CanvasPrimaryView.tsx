@@ -90,8 +90,8 @@ const buildCanvasEdgePath = (
   const dist = Math.sqrt(dx * dx + dy * dy);
   if (dist < 1) return "";
 
-  const shortenSourceBy = source.radius + 2;
-  const shortenTargetBy = target.radius + 2;
+  const shortenSourceBy = source.radius + 6;
+  const shortenTargetBy = target.radius + 6;
   const startRatio = Math.min(1, shortenSourceBy / dist);
   const endRatio = Math.max(0, (dist - shortenTargetBy) / dist);
   const sx = source.x + dx * startRatio;
@@ -99,9 +99,9 @@ const buildCanvasEdgePath = (
   const tx = source.x + dx * endRatio;
   const ty = source.y + dy * endRatio;
 
-  const curvature = edgeCount <= 1 ? 0.3 : (edgeIndex / (edgeCount - 1) - 0.5) * 2;
-  const offsetRatio = 0.25 + edgeCount * 0.05;
-  const baseOffset = Math.max(35, dist * offsetRatio);
+  const curvature = edgeCount <= 1 ? 0.18 : (edgeIndex / (edgeCount - 1) - 0.5) * 1.2;
+  const offsetRatio = edgeCount <= 1 ? 0.16 : 0.18;
+  const baseOffset = Math.max(16, Math.min(32, dist * offsetRatio));
   const offsetX = (-dy / dist) * curvature * baseOffset;
   const offsetY = (dx / dist) * curvature * baseOffset;
   const cpx = (sx + tx) / 2 + offsetX;
@@ -109,6 +109,62 @@ const buildCanvasEdgePath = (
 
   return `M ${sx} ${sy} Q ${cpx} ${cpy} ${tx} ${ty}`;
 };
+
+const isEdgeActivityVisible = (target: GraphNode): boolean =>
+  target.type === "active-session" &&
+  target.hasUserPrompt !== false &&
+  target.agentRuntimeState !== undefined &&
+  target.agentRuntimeState !== "idle";
+
+const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) =>
+  [0, 1, 2].flatMap((index) => [
+    <circle
+      key={`${keyPrefix}-trail-${index}`}
+      className="canvas-edge-activity-dot canvas-edge-activity-dot--trail"
+      r={4.6}
+      fill={color}
+      opacity={Math.max(0.14, 0.28 - index * 0.04)}
+    >
+      <animateMotion
+        path={path}
+        begin={`${index * 0.62}s`}
+        dur="1.9s"
+        repeatCount="indefinite"
+        rotate="auto"
+      />
+      <animate
+        attributeName="r"
+        values="3.8;5.2;3.8"
+        dur="1.9s"
+        begin={`${index * 0.62}s`}
+        repeatCount="indefinite"
+      />
+    </circle>,
+    <circle
+      key={`${keyPrefix}-dot-${index}`}
+      className="canvas-edge-activity-dot"
+      r={3.2}
+      fill="#fff4cc"
+      stroke={color}
+      strokeWidth={1.2}
+      opacity={Math.max(0.7, 1 - index * 0.08)}
+    >
+      <animateMotion
+        path={path}
+        begin={`${index * 0.62}s`}
+        dur="1.9s"
+        repeatCount="indefinite"
+        rotate="auto"
+      />
+      <animate
+        attributeName="r"
+        values="2.8;3.8;2.8"
+        dur="1.9s"
+        begin={`${index * 0.62}s`}
+        repeatCount="indefinite"
+      />
+    </circle>,
+  ]);
 
 export const CanvasPrimaryView = ({
   columns,
@@ -610,6 +666,27 @@ export const CanvasPrimaryView = ({
     })
     .filter((edge): edge is { source: GraphNode; target: GraphNode } => edge !== null);
 
+  const sessionEdgesBySource = new Map<string, { source: GraphNode; target: GraphNode }[]>();
+  for (const edge of sessionEdges) {
+    const group = sessionEdgesBySource.get(edge.source.id);
+    if (group) {
+      group.push(edge);
+    } else {
+      sessionEdgesBySource.set(edge.source.id, [edge]);
+    }
+  }
+
+  for (const group of sessionEdgesBySource.values()) {
+    group.sort((left, right) => {
+      const leftAngle = Math.atan2(left.target.y - left.source.y, left.target.x - left.source.x);
+      const rightAngle = Math.atan2(
+        right.target.y - right.source.y,
+        right.target.x - right.source.x,
+      );
+      return leftAngle - rightAngle;
+    });
+  }
+
   const hasPanels = isHydratingTerminals || openTerminals.size > 0 || openTentacles.size > 0;
 
   return (
@@ -627,24 +704,35 @@ export const CanvasPrimaryView = ({
           <g
             transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
           >
-            {sessionEdges.map(({ source, target }, index) => {
-              const active = selectedNodeId === source.id || selectedNodeId === target.id;
-              const selectedColor = selectedNodeId
-                ? (nodesById.get(selectedNodeId)?.color ?? null)
-                : null;
+            {Array.from(sessionEdgesBySource.entries()).flatMap(([sourceId, group]) =>
+              group.map(({ source, target }, index) => {
+                const active = selectedNodeId === source.id || selectedNodeId === target.id;
+                const selectedColor = selectedNodeId
+                  ? (nodesById.get(selectedNodeId)?.color ?? null)
+                  : null;
+                const path = buildCanvasEdgePath(source, target, index, group.length);
 
-              return (
-                <path
-                  key={`${source.id}->${target.id}`}
-                  className="canvas-edge"
-                  d={buildCanvasEdgePath(source, target, index, sessionEdges.length)}
-                  fill="none"
-                  stroke={active ? (selectedColor ?? source.color) : "#C0C0C0"}
-                  strokeWidth={active ? 2 : 1.5}
-                  strokeOpacity={1}
-                />
-              );
-            })}
+                return (
+                  <g key={`${sourceId}->${target.id}`}>
+                    <path
+                      className="canvas-edge"
+                      d={path}
+                      fill="none"
+                      stroke={active ? (selectedColor ?? source.color) : "#C0C0C0"}
+                      strokeWidth={active ? 2 : 1.5}
+                      strokeOpacity={1}
+                    />
+                    {isEdgeActivityVisible(target)
+                      ? renderEdgeActivityDots(
+                          path,
+                          active ? (selectedColor ?? source.color) : source.color,
+                          `${sourceId}->${target.id}`,
+                        )
+                      : null}
+                  </g>
+                );
+              }),
+            )}
 
             {/* Render tentacle nodes (with arms) first */}
             {tentacleNodes.map((node) => {

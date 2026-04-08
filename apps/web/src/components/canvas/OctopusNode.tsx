@@ -124,6 +124,62 @@ const GLYPH_SCALE = 4;
 const GLYPH_W = 112;
 const GLYPH_H = 120;
 
+const isEdgeActivityVisible = (target: GraphNode): boolean =>
+  target.type === "active-session" &&
+  target.hasUserPrompt !== false &&
+  target.agentRuntimeState !== undefined &&
+  target.agentRuntimeState !== "idle";
+
+const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) =>
+  [0, 1, 2].flatMap((index) => [
+    <circle
+      key={`${keyPrefix}-trail-${index}`}
+      className="canvas-edge-activity-dot canvas-edge-activity-dot--trail"
+      r={4.6}
+      fill={color}
+      opacity={Math.max(0.14, 0.28 - index * 0.04)}
+    >
+      <animateMotion
+        path={path}
+        begin={`${index * 0.62}s`}
+        dur="1.9s"
+        repeatCount="indefinite"
+        rotate="auto"
+      />
+      <animate
+        attributeName="r"
+        values="3.8;5.2;3.8"
+        dur="1.9s"
+        begin={`${index * 0.62}s`}
+        repeatCount="indefinite"
+      />
+    </circle>,
+    <circle
+      key={`${keyPrefix}-dot-${index}`}
+      className="canvas-edge-activity-dot"
+      r={3.2}
+      fill="#fff4cc"
+      stroke={color}
+      strokeWidth={1.2}
+      opacity={Math.max(0.7, 1 - index * 0.08)}
+    >
+      <animateMotion
+        path={path}
+        begin={`${index * 0.62}s`}
+        dur="1.9s"
+        repeatCount="indefinite"
+        rotate="auto"
+      />
+      <animate
+        attributeName="r"
+        values="2.8;3.8;2.8"
+        dur="1.9s"
+        begin={`${index * 0.62}s`}
+        repeatCount="indefinite"
+      />
+    </circle>,
+  ]);
+
 export const OctopusNode = ({
   node,
   connectedNodes,
@@ -168,18 +224,23 @@ export const OctopusNode = ({
       <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
 
       {/* Edges — highlight when either endpoint is selected */}
-      {connectedNodes.map((target, i) => {
+      {connectedNodes.map((target) => {
         const active = isSelected || target.id === selectedNodeId;
+        const path = buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, 0, 1);
         return (
-          <path
-            key={target.id}
-            className="canvas-edge"
-            d={buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, 0, 1)}
-            fill="none"
-            stroke={active ? (selectedNodeColor ?? color) : "#C0C0C0"}
-            strokeWidth={active ? 2 : 1.5}
-            strokeOpacity={1}
-          />
+          <g key={target.id}>
+            <path
+              className="canvas-edge"
+              d={path}
+              fill="none"
+              stroke={active ? (selectedNodeColor ?? color) : "#C0C0C0"}
+              strokeWidth={active ? 2 : 1.5}
+              strokeOpacity={1}
+            />
+            {isEdgeActivityVisible(target)
+              ? renderEdgeActivityDots(path, active ? (selectedNodeColor ?? color) : color, target.id)
+              : null}
+          </g>
         );
       })}
 
