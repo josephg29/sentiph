@@ -82,6 +82,8 @@ export const Terminal = ({
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
   const [isPromptPickerOpen, setIsPromptPickerOpen] = useState(false);
   const promptPickerBtnRef = useRef<HTMLButtonElement | null>(null);
+  const viewportScrollTopRef = useRef<number | null>(null);
+  const viewportWasNearBottomRef = useRef(true);
   const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
   const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
 
@@ -158,9 +160,34 @@ export const Terminal = ({
           const payload = JSON.parse(event.data) as TerminalServerMessage;
           if (payload.type === "history" && typeof payload.data === "string") {
             if (activeTerminal) {
+              const viewport =
+                containerRef.current?.querySelector<HTMLElement>(".xterm-viewport") ?? null;
+              if (viewport) {
+                viewportScrollTopRef.current = viewport.scrollTop;
+                viewportWasNearBottomRef.current =
+                  viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 8;
+              }
               activeTerminal.clear();
               activeTerminal.write(payload.data);
               activeTerminal.write(SHOW_CURSOR_ESCAPE);
+              if (viewport) {
+                window.requestAnimationFrame(() => {
+                  if (viewportWasNearBottomRef.current) {
+                    viewport.scrollTop = viewport.scrollHeight;
+                    return;
+                  }
+
+                  const previousScrollTop = viewportScrollTopRef.current;
+                  if (previousScrollTop === null) {
+                    return;
+                  }
+
+                  viewport.scrollTop = Math.max(
+                    0,
+                    Math.min(previousScrollTop, viewport.scrollHeight - viewport.clientHeight),
+                  );
+                });
+              }
               return;
             }
 

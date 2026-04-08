@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type Ref, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary, TentacleWorkspaceMode } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
@@ -77,6 +77,7 @@ type CanvasTentaclePanelProps = {
   isFocused?: boolean;
   onClose: () => void;
   onFocus?: () => void;
+  panelRef?: Ref<HTMLDivElement> | undefined;
   onCreateAgent?: ((tentacleId: string) => void) | undefined;
   onSpawnSwarm?: ((tentacleId: string, workspaceMode: TentacleWorkspaceMode) => void) | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
@@ -108,6 +109,7 @@ export const CanvasTentaclePanel = ({
   isFocused,
   onClose,
   onFocus,
+  panelRef,
   onCreateAgent,
   onSpawnSwarm,
   onNavigateToConversation,
@@ -244,7 +246,9 @@ export const CanvasTentaclePanel = ({
 
   return (
     <div
+      ref={panelRef}
       className={`detail-panel${isFocused ? " detail-panel--focused" : ""}`}
+      tabIndex={-1}
       onPointerDown={() => onFocus?.()}
     >
       {/* Header */}

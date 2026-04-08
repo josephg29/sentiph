@@ -63,14 +63,16 @@ describe("Terminal", () => {
     socket.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {
-      const badge = screen.getByText("PROCESSING");
+      const badge = screen.getByText("PROCESSING").closest(".status-badge");
+      expect(badge).not.toBeNull();
       expect(badge).toHaveClass("pill", "processing");
     });
 
     socket.emit("message", JSON.stringify({ type: "state", state: "idle" }));
 
     await waitFor(() => {
-      const badge = screen.getByText("IDLE");
+      const badge = screen.getByText("IDLE").closest(".status-badge");
+      expect(badge).not.toBeNull();
       expect(badge).toHaveClass("pill", "idle");
     });
   });

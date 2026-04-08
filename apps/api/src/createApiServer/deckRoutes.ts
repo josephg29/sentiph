@@ -398,7 +398,26 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   const buildWorkerGuidelines = (terminalId: string): string =>
     workerWorkspaceMode === "worktree"
       ? `- You are working in an isolated git worktree on branch \`octogent/${terminalId}\`. Make changes freely without worrying about conflicts with other agents.`
-      : "- You are working in the shared main workspace. Other workers may touch the same files, so keep your edits narrow, avoid broad refactors, and coordinate via your parent if you hit overlap.";
+      : [
+          "- You are working in the shared main workspace. Other workers may touch the same files, so keep your edits narrow, avoid broad refactors, and coordinate via your parent if you hit overlap.",
+          "- Do NOT create commits in shared mode. Leave your changes uncommitted for the coordinator to review and commit later.",
+          "- Do NOT mark todo items done or rewrite tentacle context files unless your assigned todo item explicitly requires it. The coordinator handles the final tentacle-level sync.",
+        ].join("\n");
+
+  const buildWorkerCommitGuidance = (): string =>
+    workerWorkspaceMode === "worktree"
+      ? "- Commit your changes with a clear commit message describing what you did."
+      : "- Do NOT commit in shared mode. Leave your completed changes uncommitted and report DONE with a short summary of what changed.";
+
+  const buildWorkerDefinitionOfDoneCommitStep = (): string =>
+    workerWorkspaceMode === "worktree"
+      ? "Changes are committed with a descriptive message."
+      : "Changes are left uncommitted in the shared workspace, ready for coordinator review.";
+
+  const buildWorkerReminder = (): string =>
+    workerWorkspaceMode === "worktree"
+      ? "Commit."
+      : "Do not commit in shared mode.";
 
   const buildWorkerWorkspaceSection = (): string =>
     workerWorkspaceMode === "worktree"
@@ -445,7 +464,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
           "",
           "5. **If tests fail**, investigate and fix before merging. Do not merge broken code.",
           "",
-          `6. **Mark completed items as done** in \`.octogent/tentacles/${tentacleId}/todo.md\`.`,
+          `6. **Update tentacle state/docs** before finalizing. Mark completed items as done in \`.octogent/tentacles/${tentacleId}/todo.md\`, and update \`.octogent/tentacles/${tentacleId}/CONTEXT.md\` or other tentacle markdown files if the merged work changed the reality they describe.`,
           "",
           "7. **Clean up** the integration branch:",
           "   ```bash",
@@ -471,9 +490,13 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
           "",
           "4. **If tests fail**, investigate and coordinate fixes. Do not declare the swarm complete while the workspace is broken.",
           "",
-          `5. **Mark completed items as done** in \`.octogent/tentacles/${tentacleId}/todo.md\`.`,
+          `5. **Update tentacle state/docs** before asking for approval. Mark completed items as done in \`.octogent/tentacles/${tentacleId}/todo.md\`, and update \`.octogent/tentacles/${tentacleId}/CONTEXT.md\` or other tentacle markdown files if the completed work changed the reality they describe. If no tentacle docs need updates, say that explicitly.`,
           "",
-          "6. **Report completion** only after the shared workspace is reviewed, tests pass, and all items are marked done.",
+          "6. **Wait for explicit user approval** before creating any commit on the shared main branch. Present a concise summary of the reviewed diff, test results, and tentacle-doc updates first.",
+          "",
+          "7. **Only after approval, create one final commit** on the shared branch that captures the swarm's completed work.",
+          "",
+          "8. **Report completion** only after the shared workspace is reviewed, tests pass, tentacle docs are synced, approval is granted, and the final commit is created.",
           "",
           "### Shared-workspace failure recovery",
           "",
@@ -498,6 +521,9 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         apiPort,
         workspaceContextIntro: buildWorkerContextIntro(),
         workspaceGuidelines: buildWorkerGuidelines(worker.terminalId),
+        commitGuidance: buildWorkerCommitGuidance(),
+        definitionOfDoneCommitStep: buildWorkerDefinitionOfDoneCommitStep(),
+        workspaceReminder: buildWorkerReminder(),
         parentTerminalId: "",
         parentSection: "",
       });
@@ -547,6 +573,9 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
             apiPort,
             workspaceContextIntro: buildWorkerContextIntro(),
             workspaceGuidelines: buildWorkerGuidelines(workerTerminalId),
+            commitGuidance: buildWorkerCommitGuidance(),
+            definitionOfDoneCommitStep: buildWorkerDefinitionOfDoneCommitStep(),
+            workspaceReminder: buildWorkerReminder(),
             parentTerminalId,
             parentSection,
           });

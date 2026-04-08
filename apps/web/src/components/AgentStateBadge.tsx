@@ -30,5 +30,18 @@ const stateTone = (state: AgentRuntimeState): StatusBadgeTone => {
 };
 
 export const AgentStateBadge = ({ state }: AgentStateBadgeProps) => (
-  <StatusBadge className="terminal-state-badge" label={stateLabel(state)} tone={stateTone(state)} />
+  <StatusBadge
+    className="terminal-state-badge"
+    label={stateLabel(state)}
+    compactLabel={
+      state === "waiting_for_permission"
+        ? "PERM"
+        : state === "waiting_for_user"
+          ? "WAIT"
+          : state === "processing"
+            ? "PROC"
+            : state.toUpperCase()
+    }
+    tone={stateTone(state)}
+  />
 );

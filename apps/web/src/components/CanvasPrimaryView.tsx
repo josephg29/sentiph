@@ -207,6 +207,7 @@ export const CanvasPrimaryView = ({
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef(new Map<string, HTMLElement>());
 
   const agentRuntimeStates = useAgentRuntimeStates(columns);
 
@@ -385,6 +386,17 @@ export const CanvasPrimaryView = ({
       }
     },
     [nodesById, onNavigateToConversation],
+  );
+
+  const setPanelRef = useCallback(
+    (nodeId: string) => (element: HTMLElement | null) => {
+      if (element) {
+        panelRefs.current.set(nodeId, element);
+        return;
+      }
+      panelRefs.current.delete(nodeId);
+    },
+    [],
   );
 
   const handleCloseTentacle = useCallback((nodeId: string) => {
@@ -607,12 +619,40 @@ export const CanvasPrimaryView = ({
     const node = nodesById.get(nodeId);
     if (!node) return;
     setPendingOpenAgentId(null);
+    setSelectedNodeId(nodeId);
     setOpenTerminals((prev) => {
       const next = new Map(prev);
       next.set(nodeId, { ...node });
       return next;
     });
   }, [pendingOpenAgentId, nodesById]);
+
+  useEffect(() => {
+    if (!selectedNodeId) {
+      return;
+    }
+    if (!openTerminals.has(selectedNodeId) && !openTentacles.has(selectedNodeId)) {
+      return;
+    }
+
+    const panel = panelRefs.current.get(selectedNodeId);
+    if (!panel) {
+      return;
+    }
+
+    const rafId = window.requestAnimationFrame(() => {
+      panel.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+      panel.focus({ preventScroll: true });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [selectedNodeId, openTerminals, openTentacles]);
 
   // Separate tentacle and session nodes for render order
   const tentacleNodes = simulatedNodes.filter(
@@ -909,6 +949,7 @@ export const CanvasPrimaryView = ({
                 key={nodeId}
                 node={node}
                 isFocused={selectedNodeId === nodeId}
+                panelRef={setPanelRef(nodeId)}
                 onClose={() => handleCloseTentacle(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(tentacleId) => {
@@ -936,6 +977,7 @@ export const CanvasPrimaryView = ({
                 node={node}
                 terminals={columns}
                 isFocused={selectedNodeId === nodeId}
+                panelRef={setPanelRef(nodeId)}
                 onClose={() => handleCloseTerminal(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onTerminalRenamed={onTerminalRenamed}

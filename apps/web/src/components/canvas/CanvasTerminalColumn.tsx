@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { type Ref, useCallback, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
 import type { TerminalView } from "../../app/types";
@@ -12,6 +12,7 @@ type CanvasTerminalColumnProps = {
   isFocused?: boolean;
   onClose: () => void;
   onFocus?: () => void;
+  panelRef?: Ref<HTMLElement> | undefined;
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
 };
@@ -22,6 +23,7 @@ export const CanvasTerminalColumn = ({
   isFocused,
   onClose,
   onFocus,
+  panelRef,
   onTerminalRenamed,
   onTerminalActivity,
 }: CanvasTerminalColumnProps) => {
@@ -40,7 +42,9 @@ export const CanvasTerminalColumn = ({
 
   return (
     <section
+      ref={panelRef}
       className={`canvas-terminal-column${isFocused ? " canvas-terminal-column--focused" : ""}`}
+      tabIndex={-1}
       onPointerDown={handleFocus}
       onFocusCapture={handleFocus}
     >
