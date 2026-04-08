@@ -25,6 +25,10 @@
 - Frontend UI preference state is persisted in the same registry under `uiState`.
 - Monitor config is persisted at `.octogent/state/monitor-config.json`.
 - Monitor feed cache is persisted at `.octogent/state/monitor-cache.json`.
+- Deck tentacle state is persisted at `.octogent/state/deck.json`.
+- Code intelligence events are persisted at `.octogent/state/code-intel.jsonl`.
+- Core prompts are synced from `prompts/` to `.octogent/prompts/core/` on server startup.
+- User-created prompts are persisted at `.octogent/prompts/`.
 - Runtime restores tentacles from that registry on startup and does not auto-create a default tentacle.
 - Runtime restores UI state from that registry on startup and serves it via `GET /api/ui-state`.
 - Runtime serves monitor config/feed from monitor state files via `GET/PATCH /api/monitor/config`, `GET /api/monitor/feed`, and `POST /api/monitor/refresh`.
@@ -50,6 +54,17 @@
 - Invalid JSON and validation failures return `400` with structured error messages.
 - Unsupported methods return `405`.
 - Monitor config responses are sanitized and redact stored secrets.
+
+## Inter-agent channels
+
+- Agents can send and receive messages via `GET/POST /api/channels/:terminalId/messages`.
+- Channel messages are in-memory only and do not persist across API restarts.
+
+## Agent lifecycle hooks
+
+- Claude Code agent hooks (`session-start`, `user-prompt-submit`, `pre-tool-use`, `notification`, `stop`) are ingested via `POST /api/hooks/:hookName`.
+- Hooks drive terminal state detection (idle/processing/blocked) and code intelligence tracking.
+- The `session-start` and `stop` hooks also trigger Claude usage cache invalidation.
 
 ## Known limitations (scratch baseline)
 
