@@ -176,9 +176,9 @@ export const createHookProcessor = (deps: {
           ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
         });
       } else if (notificationType === "idle_prompt") {
-        session.agentState = "waiting_for_user";
-        session.stateTracker.forceState("waiting_for_user");
-        broadcastMessage(session, { type: "state", state: "waiting_for_user" });
+        session.agentState = "idle";
+        session.stateTracker.forceState("idle");
+        broadcastMessage(session, { type: "state", state: "idle" });
 
         // Deliver any queued channel messages now that the agent is idle.
         deliverChannelMessages(octogentSessionId);
