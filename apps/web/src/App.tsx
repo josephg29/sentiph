@@ -1,4 +1,4 @@
-import { buildTerminalList, isAgentRuntimeState, type TerminalSnapshot } from "@octogent/core";
+import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@octogent/core";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
@@ -16,26 +16,33 @@ import { useTerminalCompletionNotification } from "./app/hooks/useTerminalComple
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
-import { clampSidebarWidth } from "./app/uiStateNormalizers";
+import {
+  createTerminalRuntimeStateStore,
+  getTerminalRuntimeStateInfo,
+  stripTerminalRuntimeState,
+  stripTerminalRuntimeStates,
+} from "./app/terminalRuntimeStateStore";
 import type { TerminalView } from "./app/types";
+import { clampSidebarWidth } from "./app/uiStateNormalizers";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
-import type { AgentRuntimeState } from "./components/AgentStateBadge";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
-import { buildTerminalEventsSocketUrl, buildTerminalSnapshotsUrl } from "./runtime/runtimeEndpoints";
+import {
+  buildTerminalEventsSocketUrl,
+  buildTerminalSnapshotsUrl,
+} from "./runtime/runtimeEndpoints";
 
 export const App = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
-  const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<TerminalView[number] | null>(
-    null,
-  );
+  const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
+    TerminalView[number] | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [terminalStates, setTerminalStates] = useState<Record<string, AgentRuntimeState>>({});
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
@@ -45,13 +52,14 @@ export const App = () => {
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
   const columnsRefreshTimerIdsRef = useRef<number[]>([]);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
+  const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
+  const runtimeStateStore = runtimeStateStoreRef.current;
 
   const sortTerminalSnapshots = useCallback(
     (snapshots: TerminalView) =>
-      [...snapshots].sort(
-        (left, right) =>
-          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
-      ),
+      [...snapshots].sort((left, right) => {
+        return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+      }),
     [],
   );
 
@@ -90,16 +98,21 @@ export const App = () => {
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
 
-  const readColumns = useCallback(async (signal?: AbortSignal) => {
-    const readerOptions: { endpoint: string; signal?: AbortSignal } = {
-      endpoint: buildTerminalSnapshotsUrl(),
-    };
-    if (signal) {
-      readerOptions.signal = signal;
-    }
-    const reader = new HttpTerminalSnapshotReader(readerOptions);
-    return buildTerminalList(reader);
-  }, []);
+  const readColumns = useCallback(
+    async (signal?: AbortSignal) => {
+      const readerOptions: { endpoint: string; signal?: AbortSignal } = {
+        endpoint: buildTerminalSnapshotsUrl(),
+      };
+      if (signal) {
+        readerOptions.signal = signal;
+      }
+      const reader = new HttpTerminalSnapshotReader(readerOptions);
+      const nextColumns = await buildTerminalList(reader);
+      runtimeStateStore.syncFromTerminals(nextColumns);
+      return stripTerminalRuntimeStates(nextColumns);
+    },
+    [runtimeStateStore],
+  );
 
   const refreshColumns = useCallback(async () => {
     const nextColumns = await readColumns();
@@ -209,13 +222,18 @@ export const App = () => {
           if (!payload.snapshot) {
             return;
           }
+          const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
+          runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
+          const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
           if (payload.type === "terminal-created") {
-            setRecentlyCreatedTerminal(payload.snapshot as TerminalView[number]);
+            setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
           }
           setTerminals((current) =>
             sortTerminalSnapshots([
-              ...current.filter((terminal) => terminal.terminalId !== payload.snapshot!.terminalId),
-              payload.snapshot,
+              ...current.filter(
+                (terminal) => terminal.terminalId !== structuralSnapshot.terminalId,
+              ),
+              structuralSnapshot,
             ]),
           );
           return;
@@ -225,16 +243,10 @@ export const App = () => {
           if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
             return;
           }
-          setTerminals((current) =>
-            current.map((terminal) =>
-              terminal.terminalId !== payload.terminalId
-                ? terminal
-                : {
-                    ...terminal,
-                    agentRuntimeState: payload.agentRuntimeState,
-                  },
-            ),
-          );
+          runtimeStateStore.setRuntimeState(payload.terminalId, {
+            state: payload.agentRuntimeState,
+            ...(payload.toolName ? { toolName: payload.toolName } : {}),
+          });
           return;
         }
 
@@ -242,6 +254,7 @@ export const App = () => {
           if (!payload.terminalId) {
             return;
           }
+          runtimeStateStore.removeTerminal(payload.terminalId);
           setTerminals((current) =>
             current.filter((terminal) => terminal.terminalId !== payload.terminalId),
           );
@@ -271,7 +284,7 @@ export const App = () => {
       }
       socket.close();
     };
-  }, [refreshColumns, sortTerminalSnapshots]);
+  }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 
   const { codexUsageSnapshot, refreshCodexUsage } = useCodexUsagePolling();
   const { claudeUsageSnapshot, isRefreshingClaudeUsage, refreshClaudeUsage } =
@@ -287,14 +300,20 @@ export const App = () => {
     },
     [setMinimizedTerminalIds],
   );
+  const handleActiveTerminalIdsChange = useCallback(
+    (activeTerminalIds: ReadonlySet<string>) => {
+      runtimeStateStore.retainTerminalIds(activeTerminalIds);
+    },
+    [runtimeStateStore],
+  );
 
   useTerminalStateReconciliation({
     columns: terminals,
     setMinimizedTerminalIds,
-    setTerminalStates,
+    onActiveTerminalIdsChange: handleActiveTerminalIdsChange,
   });
   const { playCompletionSoundPreview } = useTerminalCompletionNotification(
-    terminalStates,
+    runtimeStateStore,
     terminalCompletionSound,
   );
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
@@ -365,19 +384,6 @@ export const App = () => {
     }
     setIsAgentsSidebarVisible(true);
   }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
-
-  const handleTerminalStateChange = useCallback((terminalId: string, state: AgentRuntimeState) => {
-    setTerminalStates((current) => {
-      if (current[terminalId] === state) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [terminalId]: state,
-      };
-    });
-  }, []);
 
   const handleTerminalRenamed = useCallback((terminalId: string, tentacleName: string) => {
     setTerminals((current) =>
@@ -479,6 +485,7 @@ export const App = () => {
             }}
             canvasPrimaryViewProps={{
               columns: terminals,
+              runtimeStateStore,
               isUiStateHydrated,
               recentlyCreatedTerminal,
               canvasOpenTerminalIds,

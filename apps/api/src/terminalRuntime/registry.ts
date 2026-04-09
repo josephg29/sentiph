@@ -7,6 +7,7 @@ import { TERMINAL_REGISTRY_VERSION } from "./constants";
 import { toErrorMessage } from "./systemClients";
 import type {
   PersistedTerminal,
+  TerminalNameOrigin,
   PersistedUiState,
   TentacleWorkspaceMode,
   TerminalRegistryDocument,
@@ -22,6 +23,20 @@ type TerminalRegistryState = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+
+const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
+  value === "generated" || value === "user" || value === "prompt";
+
+const inferTerminalNameOrigin = (
+  terminalId: string,
+  tentacleName: string,
+): TerminalNameOrigin => {
+  if (tentacleName === terminalId || /^Octogent Terminal \d+$/.test(tentacleName)) {
+    return "generated";
+  }
+
+  return "user";
+};
 
 const parsePersistedUiState = (value: unknown): PersistedUiState => {
   if (!isRecord(value)) {
@@ -189,6 +204,7 @@ const migrateV2ToV3 = (
       terminalId: tentacleId,
       tentacleId,
       tentacleName,
+      nameOrigin: inferTerminalNameOrigin(tentacleId, tentacleName),
       createdAt,
       workspaceMode,
     });
@@ -236,6 +252,9 @@ const parseV3Terminals = (
       terminalId,
       tentacleId,
       tentacleName,
+      nameOrigin: isTerminalNameOrigin(entry.nameOrigin)
+        ? entry.nameOrigin
+        : inferTerminalNameOrigin(terminalId, tentacleName),
       createdAt,
       workspaceMode,
     };
@@ -244,6 +263,9 @@ const parseV3Terminals = (
       terminal.parentTerminalId = entry.parentTerminalId;
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
     if (typeof entry.initialPrompt === "string") terminal.initialPrompt = entry.initialPrompt;
+    if (typeof entry.autoRenamePromptContext === "string") {
+      terminal.autoRenamePromptContext = entry.autoRenamePromptContext;
+    }
     if (typeof entry.lastActiveAt === "string") terminal.lastActiveAt = entry.lastActiveAt;
     terminals.set(terminalId, terminal);
   }

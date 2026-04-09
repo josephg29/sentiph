@@ -37,6 +37,7 @@ import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalNameOrigin,
   type TerminalSession,
 } from "./terminalRuntime/types";
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
@@ -45,6 +46,7 @@ export type {
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
+  TerminalNameOrigin,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
 export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
@@ -253,6 +255,8 @@ export const createTerminalRuntime = ({
     initialPrompt,
     baseRef,
     parentTerminalId,
+    nameOrigin,
+    autoRenamePromptContext,
   }: {
     terminalId?: string;
     tentacleId?: string;
@@ -263,6 +267,8 @@ export const createTerminalRuntime = ({
     initialPrompt?: string;
     baseRef?: string;
     parentTerminalId?: string;
+    nameOrigin?: TerminalNameOrigin;
+    autoRenamePromptContext?: string;
   }): TerminalSnapshot => {
     // Enforce max children per parent.
     if (parentTerminalId) {
@@ -295,6 +301,8 @@ export const createTerminalRuntime = ({
       tentacleId,
       ...(worktreeId ? { worktreeId } : {}),
       tentacleName: effectiveName,
+      nameOrigin: nameOrigin ?? (tentacleName ? "user" : "generated"),
+      ...(autoRenamePromptContext ? { autoRenamePromptContext } : {}),
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
@@ -463,6 +471,8 @@ export const createTerminalRuntime = ({
       }
 
       terminal.tentacleName = tentacleName;
+      terminal.nameOrigin = "user";
+      delete terminal.autoRenamePromptContext;
       persistRegistry();
       broadcastTerminalEvent({
         type: "terminal-updated",

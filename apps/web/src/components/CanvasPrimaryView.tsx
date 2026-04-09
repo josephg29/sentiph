@@ -22,6 +22,10 @@ import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
+import {
+  createTerminalRuntimeStateStore,
+  type TerminalRuntimeStateStore,
+} from "../app/terminalRuntimeStateStore";
 import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
@@ -47,6 +51,7 @@ type ContextMenuState =
 
 type CanvasPrimaryViewProps = {
   columns: TerminalView;
+  runtimeStateStore?: TerminalRuntimeStateStore;
   isUiStateHydrated?: boolean;
   canvasOpenTerminalIds?: string[];
   canvasOpenTentacleIds?: string[];
@@ -174,6 +179,7 @@ const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) 
 
 export const CanvasPrimaryView = ({
   columns,
+  runtimeStateStore: providedRuntimeStateStore,
   isUiStateHydrated,
   canvasOpenTerminalIds,
   canvasOpenTentacleIds,
@@ -200,6 +206,11 @@ export const CanvasPrimaryView = ({
   onTerminalActivity,
   onRefreshColumns,
 }: CanvasPrimaryViewProps) => {
+  const runtimeStateStoreRef = useRef<TerminalRuntimeStateStore | null>(null);
+  if (runtimeStateStoreRef.current === null) {
+    runtimeStateStoreRef.current = providedRuntimeStateStore ?? createTerminalRuntimeStateStore();
+  }
+  const runtimeStateStore = providedRuntimeStateStore ?? runtimeStateStoreRef.current;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
@@ -218,8 +229,9 @@ export const CanvasPrimaryView = ({
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
+  const lastFocusedPanelIdRef = useRef<string | null>(null);
 
-  const agentRuntimeStates = useAgentRuntimeStates(columns);
+  const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
   const {
     nodes,
@@ -258,20 +270,18 @@ export const CanvasPrimaryView = ({
     (terminalId: string): GraphNode | null => {
       const nodeId = buildActiveSessionNodeId(terminalId);
       const existingNode = nodesById.get(nodeId);
-      if (existingNode?.type === "active-session") {
-        return existingNode;
-      }
-
       const terminal = columns.find((entry) => entry.terminalId === terminalId);
       if (!terminal) {
-        return null;
+        return existingNode?.type === "active-session" ? existingNode : null;
       }
 
       const parentNodeId = terminal.parentTerminalId
         ? buildActiveSessionNodeId(terminal.parentTerminalId)
         : buildTentacleNodeId(terminal.tentacleId);
       const anchorNode =
-        nodesById.get(parentNodeId) ?? nodesById.get(buildTentacleNodeId(terminal.tentacleId));
+        existingNode?.type === "active-session"
+          ? existingNode
+          : (nodesById.get(parentNodeId) ?? nodesById.get(buildTentacleNodeId(terminal.tentacleId)));
 
       return {
         id: nodeId,
@@ -290,7 +300,6 @@ export const CanvasPrimaryView = ({
         hasUserPrompt: terminal.hasUserPrompt ?? false,
         ...(terminal.workspaceMode ? { workspaceMode: terminal.workspaceMode } : {}),
         ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
-        ...(terminal.agentRuntimeState ? { agentRuntimeState: terminal.agentRuntimeState } : {}),
       };
     },
     [columns, nodesById],
@@ -346,6 +355,54 @@ export const CanvasPrimaryView = ({
     if (!hasHydratedTerminals.current) return;
     onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
   }, [openTerminals, onCanvasOpenTerminalIdsChange]);
+
+  useEffect(() => {
+    setOpenTerminals((current) => {
+      let didChange = false;
+      const next = new Map<string, GraphNode>();
+
+      for (const [nodeId, node] of current) {
+        if (!node.sessionId) {
+          next.set(nodeId, node);
+          continue;
+        }
+
+        const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
+        if (!terminal) {
+          didChange = true;
+          continue;
+        }
+
+        const nextLabel = terminal.tentacleName || terminal.label || terminal.terminalId;
+        const nextNode: GraphNode = {
+          ...node,
+          tentacleId: terminal.tentacleId,
+          label: nextLabel,
+          agentState: terminal.state,
+          hasUserPrompt: terminal.hasUserPrompt ?? false,
+          ...(terminal.workspaceMode ? { workspaceMode: terminal.workspaceMode } : {}),
+          ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
+        };
+
+        if (
+          node.label !== nextNode.label ||
+          node.tentacleId !== nextNode.tentacleId ||
+          node.agentState !== nextNode.agentState ||
+          node.hasUserPrompt !== nextNode.hasUserPrompt ||
+          node.workspaceMode !== nextNode.workspaceMode ||
+          node.parentTerminalId !== nextNode.parentTerminalId
+        ) {
+          didChange = true;
+          next.set(nodeId, nextNode);
+          continue;
+        }
+
+        next.set(nodeId, node);
+      }
+
+      return didChange ? next : current;
+    });
+  }, [columns]);
 
   // Hydrate open tentacles from persisted IDs.
   // Gate on tentacle-type nodes being present (deck API fetch is async).
@@ -414,12 +471,14 @@ export const CanvasPrimaryView = ({
       if (!node) return;
 
       if (node.type === "active-session") {
+        const resolvedNode =
+          node.sessionId ? (resolveActiveSessionNode(node.sessionId) ?? node) : node;
         setOpenTerminals((prev) => {
           const next = new Map(prev);
           if (next.has(nodeId)) {
             next.delete(nodeId);
           } else {
-            next.set(nodeId, { ...node });
+            next.set(nodeId, { ...resolvedNode });
           }
           return next;
         });
@@ -437,7 +496,7 @@ export const CanvasPrimaryView = ({
         onNavigateToConversation?.(node.sessionId);
       }
     },
-    [nodesById, onNavigateToConversation],
+    [nodesById, onNavigateToConversation, resolveActiveSessionNode],
   );
 
   const setPanelRef = useCallback(
@@ -725,9 +784,16 @@ export const CanvasPrimaryView = ({
 
   useEffect(() => {
     if (!selectedNodeId) {
+      lastFocusedPanelIdRef.current = null;
       return;
     }
     if (!openTerminals.has(selectedNodeId) && !openTentacles.has(selectedNodeId)) {
+      if (lastFocusedPanelIdRef.current === selectedNodeId) {
+        lastFocusedPanelIdRef.current = null;
+      }
+      return;
+    }
+    if (lastFocusedPanelIdRef.current === selectedNodeId) {
       return;
     }
 
@@ -736,6 +802,7 @@ export const CanvasPrimaryView = ({
       return;
     }
 
+    lastFocusedPanelIdRef.current = selectedNodeId;
     const rafId = window.requestAnimationFrame(() => {
       panel.scrollIntoView({
         behavior: "smooth",

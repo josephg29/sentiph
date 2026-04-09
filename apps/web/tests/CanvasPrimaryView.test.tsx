@@ -3,7 +3,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CanvasPrimaryView } from "../src/components/CanvasPrimaryView";
 
-const nodes = [
+type MockCanvasNode = {
+  id: string;
+  type: "tentacle" | "active-session";
+  tentacleId: string;
+  label: string;
+  color: string;
+  x: number;
+  y: number;
+  radius: number;
+  sessionId?: string;
+  agentState?: "live";
+  agentRuntimeState?: "idle";
+  hasUserPrompt?: boolean;
+  workspaceMode?: "shared";
+  parentTerminalId?: string;
+};
+
+const nodes: MockCanvasNode[] = [
   {
     id: "t:tentacle-a",
     type: "tentacle" as const,
@@ -106,7 +123,7 @@ vi.mock("../src/components/canvas/CanvasTerminalColumn", () => ({
     panelRef?: ((element: HTMLElement | null) => void) | undefined;
   }) => (
     <section ref={panelRef} data-testid={`panel-${node.id}`} tabIndex={-1}>
-      panel {node.id}
+      panel {node.id} label {node.label}
     </section>
   ),
 }));
@@ -161,7 +178,6 @@ describe("CanvasPrimaryView", () => {
             label: "terminal-1",
             state: "live",
             tentacleId: "tentacle-a",
-            parentTerminalId: undefined,
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]}
@@ -200,7 +216,6 @@ describe("CanvasPrimaryView", () => {
             label: "terminal-1",
             state: "live",
             tentacleId: "tentacle-a",
-            parentTerminalId: undefined,
             createdAt: "2026-02-24T10:00:00.000Z",
           },
           {
@@ -232,6 +247,54 @@ describe("CanvasPrimaryView", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-2")).toBeInTheDocument();
+    });
+  });
+
+  it("updates an open terminal panel label when the terminal is renamed", async () => {
+    const { rerender } = render(
+      <CanvasPrimaryView
+        columns={[
+          {
+            terminalId: "terminal-1",
+            label: "terminal-1",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "tentacle-a",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]}
+        isUiStateHydrated
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "terminal-1" })[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-a:terminal-1")).toHaveTextContent(
+        "panel a:terminal-1 label tentacle-a",
+      );
+    });
+
+    rerender(
+      <CanvasPrimaryView
+        columns={[
+          {
+            terminalId: "terminal-1",
+            label: "terminal-1",
+            state: "live",
+            tentacleId: "tentacle-a",
+            tentacleName: "renamed-tentacle",
+            createdAt: "2026-02-24T10:00:00.000Z",
+          },
+        ]}
+        isUiStateHydrated
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-a:terminal-1")).toHaveTextContent(
+        "panel a:terminal-1 label renamed-tentacle",
+      );
     });
   });
 

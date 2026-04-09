@@ -4,10 +4,12 @@ import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalNameOrigin,
 } from "../terminalRuntime";
 import {
   parseTerminalAgentProvider,
   parseTerminalName,
+  parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
 } from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
@@ -72,6 +74,12 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const nameOriginResult = parseTerminalNameOrigin(bodyReadResult.payload);
+  if (nameOriginResult.error) {
+    writeJson(response, 400, { error: nameOriginResult.error }, corsOrigin);
+    return true;
+  }
+
   try {
     const createTerminalInput: {
       terminalId?: string;
@@ -80,7 +88,9 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       tentacleName?: string;
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TerminalAgentProvider;
+      nameOrigin?: TerminalNameOrigin;
       initialPrompt?: string;
+      autoRenamePromptContext?: string;
       parentTerminalId?: string;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
@@ -90,6 +100,9 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     }
     if (agentProviderResult.agentProvider !== undefined) {
       createTerminalInput.agentProvider = agentProviderResult.agentProvider;
+    }
+    if (nameOriginResult.nameOrigin !== undefined) {
+      createTerminalInput.nameOrigin = nameOriginResult.nameOrigin;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
     if (
@@ -112,6 +125,13 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.parentTerminalId.trim().length > 0
     ) {
       createTerminalInput.parentTerminalId = bodyPayload.parentTerminalId.trim();
+    }
+    if (
+      bodyPayload &&
+      typeof bodyPayload.autoRenamePromptContext === "string" &&
+      bodyPayload.autoRenamePromptContext.trim().length > 0
+    ) {
+      createTerminalInput.autoRenamePromptContext = bodyPayload.autoRenamePromptContext.trim();
     }
     if (
       bodyPayload &&

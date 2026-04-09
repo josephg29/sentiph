@@ -78,6 +78,8 @@ export type TerminalSession = {
   lastToolName?: string;
 };
 
+export type TerminalNameOrigin = "generated" | "user" | "prompt";
+
 export {
   type ChannelMessage,
   type PersistedUiState,
@@ -94,6 +96,8 @@ export type PersistedTerminal = {
   tentacleId: string;
   worktreeId?: string;
   tentacleName: string;
+  nameOrigin?: TerminalNameOrigin;
+  autoRenamePromptContext?: string;
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
   agentProvider?: TerminalAgentProvider;

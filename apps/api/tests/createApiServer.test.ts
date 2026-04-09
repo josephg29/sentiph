@@ -1061,6 +1061,150 @@ describe("createApiServer", () => {
     expect(secondBody.primaryUsedPercent).toBeGreaterThan(10);
   });
 
+  it("POST /api/hooks/user-prompt-submit auto-renames generated default terminal names", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const secondHookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Something else later" }),
+      },
+    );
+    expect(secondHookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "Investigate flaky CI failures",
+        }),
+      ]),
+    );
+  });
+
+  it("POST /api/hooks/user-prompt-submit preserves explicit terminal names", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "reviewer" }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "reviewer",
+        }),
+      ]),
+    );
+  });
+
+  it("infers generated terminal names from older registry entries", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    mkdirSync(join(workspaceCwd, ".octogent", "state"), { recursive: true });
+    writeFileSync(
+      registryPath,
+      `${JSON.stringify(
+        {
+          version: 3,
+          terminals: [
+            {
+              terminalId: "terminal-1",
+              tentacleId: "terminal-1",
+              tentacleName: "Octogent Terminal 1",
+              createdAt: "2026-04-10T10:00:00.000Z",
+              workspaceMode: "shared",
+            },
+          ],
+          uiState: {},
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "Investigate flaky CI failures",
+        }),
+      ]),
+    );
+  });
+
   it("returns 405 for unsupported methods on /api/github/summary", async () => {
     const baseUrl = await startServer({
       readGithubRepoSummary: async () => ({
@@ -2445,6 +2589,63 @@ describe("createApiServer", () => {
         terminalId: "docs-knowledge-todo-0",
         tentacleId: "docs-knowledge",
         tentacleName: "Docs & Knowledge",
+        workspaceMode: "shared",
+      }),
+    ]);
+  });
+
+  it("auto-renames todo agents from the todo item context on first prompt submit", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    mkdirSync(join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "CONTEXT.md"),
+      "# Docs & Knowledge\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "todo.md"),
+      "# Todo\n\n- [ ] Audit docs\n- [ ] Consolidate principles\n",
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const solveResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/todo/solve`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ itemIndex: 0 }),
+    });
+    expect(solveResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=docs-knowledge-todo-0`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Generic worker prompt body" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({
+        terminalId: "docs-knowledge-todo-0",
+        tentacleId: "docs-knowledge",
+        tentacleName: "Audit docs",
         workspaceMode: "shared",
       }),
     ]);

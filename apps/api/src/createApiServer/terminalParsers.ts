@@ -1,8 +1,12 @@
 import {
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalNameOrigin,
   isTerminalAgentProvider,
 } from "../terminalRuntime";
+
+const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
+  value === "generated" || value === "user" || value === "prompt";
 
 export const parseTerminalName = (payload: unknown) => {
   if (payload === null || payload === undefined) {
@@ -122,6 +126,42 @@ export const parseTerminalAgentProvider = (payload: unknown) => {
 
   return {
     agentProvider: rawAgentProvider,
+    error: null as string | null,
+  };
+};
+
+export const parseTerminalNameOrigin = (payload: unknown) => {
+  if (payload === null || payload === undefined) {
+    return {
+      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      error: null as string | null,
+    };
+  }
+
+  if (typeof payload !== "object") {
+    return {
+      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      error: "Expected a JSON object body.",
+    };
+  }
+
+  const rawNameOrigin = (payload as Record<string, unknown>).nameOrigin;
+  if (rawNameOrigin === undefined) {
+    return {
+      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      error: null as string | null,
+    };
+  }
+
+  if (!isTerminalNameOrigin(rawNameOrigin)) {
+    return {
+      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      error: "Terminal name origin must be 'generated', 'user', or 'prompt'.",
+    };
+  }
+
+  return {
+    nameOrigin: rawNameOrigin,
     error: null as string | null,
   };
 };
