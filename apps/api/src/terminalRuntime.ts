@@ -99,6 +99,19 @@ export const createTerminalRuntime = ({
     return null;
   };
 
+  const broadcastTerminalStateChanged = (
+    terminalId: string,
+    agentRuntimeState: string,
+    toolName?: string,
+  ) => {
+    broadcastTerminalEvent({
+      type: "terminal-state-changed",
+      terminalId,
+      agentRuntimeState,
+      ...(toolName ? { toolName } : {}),
+    });
+  };
+
   const sessionRuntime = createSessionRuntime({
     websocketServer,
     terminals,
@@ -108,6 +121,7 @@ export const createTerminalRuntime = ({
     isDebugPtyLogsEnabled,
     ptyLogDir,
     transcriptDirectoryPath,
+    onStateChange: broadcastTerminalStateChanged,
   });
 
   const gitOps = createGitOperations({
@@ -130,6 +144,7 @@ export const createTerminalRuntime = ({
     workspaceCwd,
     persistRegistry,
     deliverChannelMessages: channelMessaging.deliverChannelMessages,
+    onStateChange: broadcastTerminalStateChanged,
   });
 
   const allocateTerminalId = () => {

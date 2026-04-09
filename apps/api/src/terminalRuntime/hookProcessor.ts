@@ -28,6 +28,7 @@ export const createHookProcessor = (deps: {
   workspaceCwd: string;
   persistRegistry: () => void;
   deliverChannelMessages: (terminalId: string) => void;
+  onStateChange?: (terminalId: string, state: TerminalSession["agentState"], toolName?: string) => void;
 }) => {
   const {
     terminals,
@@ -37,6 +38,7 @@ export const createHookProcessor = (deps: {
     workspaceCwd,
     persistRegistry,
     deliverChannelMessages,
+    onStateChange,
   } = deps;
 
   const installHooksInDirectory = (targetCwd: string) => {
@@ -170,6 +172,7 @@ export const createHookProcessor = (deps: {
       if (notificationType === "permission_prompt") {
         session.agentState = "waiting_for_permission";
         session.stateTracker.forceState("waiting_for_permission");
+        onStateChange?.(octogentSessionId, "waiting_for_permission", session.lastToolName);
         broadcastMessage(session, {
           type: "state",
           state: "waiting_for_permission",
@@ -178,6 +181,7 @@ export const createHookProcessor = (deps: {
       } else if (notificationType === "idle_prompt") {
         session.agentState = "idle";
         session.stateTracker.forceState("idle");
+        onStateChange?.(octogentSessionId, "idle");
         broadcastMessage(session, { type: "state", state: "idle" });
 
         // Deliver any queued channel messages now that the agent is idle.
@@ -208,6 +212,7 @@ export const createHookProcessor = (deps: {
       if (toolName === "AskUserQuestion") {
         session.agentState = "waiting_for_user";
         session.stateTracker.forceState("waiting_for_user");
+        onStateChange?.(octogentSessionId, "waiting_for_user");
         broadcastMessage(session, { type: "state", state: "waiting_for_user" });
       }
 
@@ -234,6 +239,7 @@ export const createHookProcessor = (deps: {
         activitySession.agentState = "processing";
         delete activitySession.lastToolName;
         activitySession.stateTracker.forceState("processing");
+        onStateChange?.(terminal.terminalId, "processing");
         broadcastMessage(activitySession, { type: "state", state: "processing" });
         broadcastMessage(activitySession, { type: "activity" });
       }

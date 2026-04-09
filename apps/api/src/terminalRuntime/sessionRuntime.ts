@@ -38,6 +38,7 @@ type CreateSessionRuntimeOptions = {
   transcriptDirectoryPath: string;
   sessionIdleGraceMs?: number;
   scrollbackMaxBytes?: number;
+  onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
 };
 
 export const createSessionRuntime = ({
@@ -51,6 +52,7 @@ export const createSessionRuntime = ({
   transcriptDirectoryPath,
   sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
   scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
+  onStateChange,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -158,9 +160,11 @@ export const createSessionRuntime = ({
       state: nextState,
       timestamp: new Date().toISOString(),
     });
+    onStateChange?.(sessionId, nextState, session.lastToolName);
     broadcastMessage(session, {
       type: "state",
       state: nextState,
+      ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
     });
   };
 

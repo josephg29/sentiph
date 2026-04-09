@@ -1,4 +1,4 @@
-import { buildTerminalList, type TerminalSnapshot } from "@octogent/core";
+import { buildTerminalList, isAgentRuntimeState, type TerminalSnapshot } from "@octogent/core";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
@@ -193,7 +193,13 @@ export const App = () => {
 
       try {
         const payload = JSON.parse(event.data) as
-          | { type?: unknown; snapshot?: TerminalSnapshot; terminalId?: string }
+          | {
+              type?: unknown;
+              snapshot?: TerminalSnapshot;
+              terminalId?: string;
+              agentRuntimeState?: string;
+              toolName?: string;
+            }
           | undefined;
         if (!payload || typeof payload.type !== "string") {
           return;
@@ -211,6 +217,23 @@ export const App = () => {
               ...current.filter((terminal) => terminal.terminalId !== payload.snapshot!.terminalId),
               payload.snapshot,
             ]),
+          );
+          return;
+        }
+
+        if (payload.type === "terminal-state-changed") {
+          if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
+            return;
+          }
+          setTerminals((current) =>
+            current.map((terminal) =>
+              terminal.terminalId !== payload.terminalId
+                ? terminal
+                : {
+                    ...terminal,
+                    agentRuntimeState: payload.agentRuntimeState,
+                  },
+            ),
           );
           return;
         }
