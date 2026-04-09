@@ -1,9 +1,40 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CanvasTentaclePanel } from "../src/components/canvas/CanvasTentaclePanel";
 
-describe("CanvasTentaclePanel swarm actions", () => {
+const buildTentacleFetchResponse = () =>
+  new Response(
+    JSON.stringify([
+      {
+        tentacleId: "docs-knowledge",
+        displayName: "Docs & Knowledge",
+        description: "Keep docs aligned with the product.",
+        status: "active",
+        color: "#ff6b2b",
+        octopus: {
+          animation: null,
+          expression: null,
+          accessory: null,
+          hairColor: null,
+        },
+        scope: { paths: [], tags: [] },
+        vaultFiles: ["todo.md"],
+        todoTotal: 2,
+        todoDone: 0,
+        todoItems: [
+          { text: "Audit docs", done: false },
+          { text: "Consolidate principles", done: false },
+        ],
+      },
+    ]),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+
+describe("CanvasTentaclePanel actions", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -16,35 +47,7 @@ describe("CanvasTentaclePanel swarm actions", () => {
       const url = String(input);
 
       if (url.endsWith("/api/deck/tentacles")) {
-        return new Response(
-          JSON.stringify([
-            {
-              tentacleId: "docs-knowledge",
-              displayName: "Docs & Knowledge",
-              description: "Keep docs aligned with the product.",
-              status: "active",
-              color: "#ff6b2b",
-              octopus: {
-                animation: null,
-                expression: null,
-                accessory: null,
-                hairColor: null,
-              },
-              scope: { paths: [], tags: [] },
-              vaultFiles: ["todo.md"],
-              todoTotal: 2,
-              todoDone: 0,
-              todoItems: [
-                { text: "Audit docs", done: false },
-                { text: "Consolidate principles", done: false },
-              ],
-            },
-          ]),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return buildTentacleFetchResponse();
       }
 
       if (url.endsWith("/api/conversations")) {
@@ -89,5 +92,65 @@ describe("CanvasTentaclePanel swarm actions", () => {
 
     expect(onSpawnSwarm).toHaveBeenNthCalledWith(1, "docs-knowledge", "worktree");
     expect(onSpawnSwarm).toHaveBeenNthCalledWith(2, "docs-knowledge", "shared");
+  });
+
+  it("spawns a dedicated agent for an individual todo item", async () => {
+    const onSolveTodoItem = vi.fn();
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/deck/tentacles")) {
+        return buildTentacleFetchResponse();
+      }
+
+      if (url.endsWith("/api/conversations")) {
+        return new Response("[]", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.endsWith("/api/deck/tentacles/docs-knowledge/todo/solve")) {
+        expect(init?.method).toBe("POST");
+        expect(init?.body).toBe(JSON.stringify({ itemIndex: 0 }));
+        return new Response(JSON.stringify({ terminalId: "docs-knowledge-todo-0" }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(
+      <CanvasTentaclePanel
+        node={{
+          id: "docs-knowledge",
+          type: "tentacle",
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          pinned: false,
+          radius: 48,
+          tentacleId: "docs-knowledge",
+          label: "Docs & Knowledge",
+          color: "#ff6b2b",
+        }}
+        onClose={() => {}}
+        onSolveTodoItem={onSolveTodoItem}
+      />,
+    );
+
+    const solveButtons = await screen.findAllByRole("button", {
+      name: /spawn agent for todo item/i,
+    });
+
+    fireEvent.click(solveButtons[0] as HTMLElement);
+
+    await waitFor(() => {
+      expect(onSolveTodoItem).toHaveBeenCalledWith("docs-knowledge", 0);
+    });
   });
 });

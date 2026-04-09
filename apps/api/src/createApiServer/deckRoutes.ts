@@ -25,6 +25,49 @@ import {
 
 const shellSingleQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
+const buildSingleTodoWorkerPrompt = async ({
+  promptsDir,
+  workspaceCwd,
+  tentacleId,
+  tentacleName,
+  todoItemText,
+  terminalId,
+}: {
+  promptsDir: string;
+  workspaceCwd: string;
+  tentacleId: string;
+  tentacleName: string;
+  todoItemText: string;
+  terminalId: string;
+}) => {
+  const tentacleContextPath = join(workspaceCwd, ".octogent/tentacles", tentacleId);
+  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
+
+  return await resolvePrompt(promptsDir, "swarm-worker", {
+    tentacleName,
+    tentacleId,
+    tentacleContextPath,
+    todoItemText,
+    terminalId,
+    apiPort,
+    workspaceContextIntro:
+      "You are working in the shared main workspace on the main branch, not in an isolated worktree.",
+    workspaceGuidelines: [
+      "- You must work in the main project directory. Do NOT create or use git worktrees for this task.",
+      "- You are working in the shared main workspace. Keep edits narrow and focused on this one todo item.",
+      "- Do NOT create commits. Leave your completed changes uncommitted in the main workspace.",
+      "- Do NOT mark todo items done or rewrite tentacle context files unless this specific todo item explicitly requires it.",
+    ].join("\n"),
+    commitGuidance:
+      "- Do NOT commit. Leave your completed changes uncommitted in the shared workspace and report what changed.",
+    definitionOfDoneCommitStep:
+      "Changes are left uncommitted in the shared main workspace, ready for operator review.",
+    workspaceReminder: "Do not commit. Do not use worktrees.",
+    parentTerminalId: "",
+    parentSection: "",
+  });
+};
+
 export const handleDeckTentaclesRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { workspaceCwd, projectStateDir },
@@ -278,6 +321,118 @@ export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
 
   writeJson(response, 200, result, corsOrigin);
   return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Solve a single todo item
+// ---------------------------------------------------------------------------
+
+const DECK_TODO_SOLVE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/solve$/;
+
+export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime, workspaceCwd, projectStateDir, promptsDir },
+) => {
+  const match = requestUrl.pathname.match(DECK_TODO_SOLVE_PATTERN);
+  if (!match) return false;
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) return true;
+
+  const body = (bodyReadResult.payload ?? {}) as Record<string, unknown>;
+  const itemIndex = body.itemIndex;
+  if (typeof itemIndex !== "number") {
+    writeJson(response, 400, { error: "itemIndex (number) is required" }, corsOrigin);
+    return true;
+  }
+
+  const agentProviderResult = parseTerminalAgentProvider(body);
+  if (agentProviderResult.error) {
+    writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const todoContent = readDeckVaultFile(workspaceCwd, tentacleId, "todo.md");
+  if (todoContent === null) {
+    writeJson(response, 404, { error: "Tentacle or todo.md not found." }, corsOrigin);
+    return true;
+  }
+
+  const todoResult = parseTodoProgress(todoContent);
+  const todoItem = todoResult.items[itemIndex] ?? null;
+  if (!todoItem) {
+    writeJson(response, 404, { error: "Todo item not found." }, corsOrigin);
+    return true;
+  }
+  if (todoItem.done) {
+    writeJson(response, 400, { error: "Todo item is already complete." }, corsOrigin);
+    return true;
+  }
+
+  const terminalId = `${tentacleId}-todo-${itemIndex}`;
+  const existingTerminal = runtime
+    .listTerminalSnapshots()
+    .find((terminal) => terminal.terminalId === terminalId);
+  if (existingTerminal) {
+    writeJson(
+      response,
+      409,
+      { error: "A solve agent is already active for this todo item.", terminalId },
+      corsOrigin,
+    );
+    return true;
+  }
+
+  const deckTentacles = readDeckTentacles(workspaceCwd, projectStateDir);
+  const deckEntry = deckTentacles.find((tentacle) => tentacle.tentacleId === tentacleId);
+  const tentacleName = deckEntry?.displayName ?? tentacleId;
+
+  try {
+    const workerPrompt = await buildSingleTodoWorkerPrompt({
+      promptsDir,
+      workspaceCwd,
+      tentacleId,
+      tentacleName,
+      todoItemText: todoItem.text,
+      terminalId,
+    });
+
+    const snapshot = runtime.createTerminal({
+      terminalId,
+      tentacleId,
+      tentacleName,
+      workspaceMode: "shared",
+      ...(agentProviderResult.agentProvider
+        ? { agentProvider: agentProviderResult.agentProvider }
+        : {}),
+      ...(workerPrompt ? { initialPrompt: workerPrompt } : {}),
+    });
+
+    writeJson(
+      response,
+      201,
+      {
+        terminalId: snapshot.terminalId,
+        tentacleId,
+        itemIndex,
+        workspaceMode: "shared",
+      },
+      corsOrigin,
+    );
+    return true;
+  } catch (error) {
+    if (error instanceof RuntimeInputError) {
+      writeJson(response, 400, { error: error.message }, corsOrigin);
+      return true;
+    }
+
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------

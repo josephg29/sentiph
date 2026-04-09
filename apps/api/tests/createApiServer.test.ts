@@ -2281,6 +2281,60 @@ describe("createApiServer", () => {
     expect(renameResponse.status).toBe(400);
   });
 
+  it("spawns a shared-workspace todo agent for an individual item", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    mkdirSync(join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "CONTEXT.md"),
+      "# Docs & Knowledge\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "todo.md"),
+      "# Todo\n\n- [ ] Audit docs\n- [ ] Consolidate principles\n",
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const solveResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/todo/solve`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ itemIndex: 0 }),
+    });
+
+    expect(solveResponse.status).toBe(201);
+    await expect(solveResponse.json()).resolves.toEqual({
+      terminalId: "docs-knowledge-todo-0",
+      tentacleId: "docs-knowledge",
+      itemIndex: 0,
+      workspaceMode: "shared",
+    });
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({
+        terminalId: "docs-knowledge-todo-0",
+        tentacleId: "docs-knowledge",
+        tentacleName: "Docs & Knowledge",
+        workspaceMode: "shared",
+      }),
+    ]);
+  });
+
   it("deletes a tentacle and removes it from snapshots", async () => {
     const baseUrl = await startServer();
 

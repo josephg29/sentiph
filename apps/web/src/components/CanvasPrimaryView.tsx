@@ -60,6 +60,7 @@ type CanvasPrimaryViewProps = {
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | void;
   onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
+  onSolveTodoItem?: (tentacleId: string, itemIndex: number) => Promise<void> | void;
   onOctobossAction?: (action: string) => Promise<string | undefined> | void;
   onTentacleAction?: (tentacleId: string, action: string) => Promise<string | undefined> | void;
   onNavigateToConversation?: (sessionId: string) => void;
@@ -186,6 +187,7 @@ export const CanvasPrimaryView = ({
   onCreateWorktreeTerminal,
   onCreateTentacle,
   onSpawnSwarm,
+  onSolveTodoItem,
   onOctobossAction,
   onTentacleAction,
   onNavigateToConversation,
@@ -1052,6 +1054,9 @@ export const CanvasPrimaryView = ({
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(tentacleId) => {
                   handleCreateAgent(tentacleId);
+                }}
+                onSolveTodoItem={(tentacleId, itemIndex) => {
+                  void onSolveTodoItem?.(tentacleId, itemIndex);
                 }}
                 onSpawnSwarm={(tentacleId, workspaceMode) => {
                   handleSpawnSwarm(tentacleId, workspaceMode);

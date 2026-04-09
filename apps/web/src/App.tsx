@@ -487,6 +487,10 @@ export const App = () => {
                 await refreshColumns();
                 scheduleColumnsRefreshBurst();
               },
+              onSolveTodoItem: async () => {
+                await refreshColumns();
+                scheduleColumnsRefreshBurst();
+              },
               onOctobossAction: async (action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",

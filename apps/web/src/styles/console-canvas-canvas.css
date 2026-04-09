@@ -1032,6 +1032,7 @@
   border-color: var(--accent-primary);
 }
 
+.detail-todo-solve,
 .detail-todo-delete {
   background: none;
   border: none;
@@ -1046,8 +1047,24 @@
   transition: opacity 0.1s, color 0.1s;
 }
 
+.detail-todo-solve {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.detail-todo:hover .detail-todo-solve,
 .detail-todo:hover .detail-todo-delete {
   opacity: 1;
+}
+
+.detail-todo-solve:hover {
+  color: var(--accent-primary);
+}
+
+.detail-todo-solve:disabled {
+  cursor: default;
+  opacity: 0.2;
 }
 
 .detail-todo-delete:hover {

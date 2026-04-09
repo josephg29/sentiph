@@ -11,6 +11,7 @@ import {
   buildDeckTodoAddUrl,
   buildDeckTodoDeleteUrl,
   buildDeckTodoEditUrl,
+  buildDeckTodoSolveUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
 import {
@@ -79,6 +80,7 @@ type CanvasTentaclePanelProps = {
   onFocus?: () => void;
   panelRef?: Ref<HTMLDivElement> | undefined;
   onCreateAgent?: ((tentacleId: string) => void) | undefined;
+  onSolveTodoItem?: ((tentacleId: string, itemIndex: number) => void) | undefined;
   onSpawnSwarm?: ((tentacleId: string, workspaceMode: TentacleWorkspaceMode) => void) | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
 };
@@ -111,6 +113,7 @@ export const CanvasTentaclePanel = ({
   onFocus,
   panelRef,
   onCreateAgent,
+  onSolveTodoItem,
   onSpawnSwarm,
   onNavigateToConversation,
 }: CanvasTentaclePanelProps) => {
@@ -160,6 +163,7 @@ export const CanvasTentaclePanel = ({
   const [editText, setEditText] = useState("");
   const [addingTodo, setAddingTodo] = useState(false);
   const [addText, setAddText] = useState("");
+  const [solvingTodoIndex, setSolvingTodoIndex] = useState<number | null>(null);
 
   const handleTodoToggle = useCallback(
     async (itemIndex: number, done: boolean) => {
@@ -232,6 +236,26 @@ export const CanvasTentaclePanel = ({
       }
     },
     [node.tentacleId, fetchTentacle],
+  );
+
+  const handleTodoSolve = useCallback(
+    async (itemIndex: number) => {
+      try {
+        setSolvingTodoIndex(itemIndex);
+        const response = await fetch(buildDeckTodoSolveUrl(node.tentacleId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemIndex }),
+        });
+        if (!response.ok) return;
+        onSolveTodoItem?.(node.tentacleId, itemIndex);
+      } catch {
+        // silent
+      } finally {
+        setSolvingTodoIndex((current) => (current === itemIndex ? null : current));
+      }
+    },
+    [node.tentacleId, onSolveTodoItem],
   );
 
   useEffect(() => {
@@ -353,6 +377,16 @@ export const CanvasTentaclePanel = ({
                         {item.text}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      className="detail-todo-solve"
+                      aria-label={`Spawn agent for todo item: ${item.text}`}
+                      title="Spawn agent for this item"
+                      disabled={item.done || solvingTodoIndex === i}
+                      onClick={() => void handleTodoSolve(i)}
+                    >
+                      {solvingTodoIndex === i ? "…" : ">_"}
+                    </button>
                     <button
                       type="button"
                       className="detail-todo-delete"
