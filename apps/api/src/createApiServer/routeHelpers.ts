@@ -18,6 +18,8 @@ export type RouteHandlerDependencies = {
   promptsDir: string;
   userPromptsDir: string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeOauthUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeCliUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;

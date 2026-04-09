@@ -395,6 +395,49 @@ describe("readClaudeUsageSnapshot", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("serves the last successful oauth snapshot when a later oauth request is rate limited", async () => {
+    const deps = {
+      now: () => new Date("2026-03-03T12:00:00.000Z"),
+      spawnCliUsage: noCliPty,
+      readCredentialsJson: async () => validCredentials(),
+    };
+
+    const okSnapshot = await readClaudeUsageSnapshot({
+      ...deps,
+      fetchImpl: async () =>
+        new Response(usageResponseBody, {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    });
+
+    expect(okSnapshot.status).toBe("ok");
+    expect(okSnapshot.source).toBe("oauth-api");
+
+    const staleSnapshot = await readClaudeUsageSnapshot({
+      ...deps,
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              type: "rate_limit_error",
+              message: "Rate limited. Please try again later.",
+            },
+          }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+    });
+
+    expect(staleSnapshot.status).toBe("ok");
+    expect(staleSnapshot.source).toBe("oauth-api");
+    expect(staleSnapshot.primaryUsedPercent).toBe(14);
+    expect(staleSnapshot.secondaryUsedPercent).toBe(52);
+    expect(staleSnapshot.sonnetUsedPercent).toBe(33);
+  });
+
   it("returns error when credentials json is not parseable", async () => {
     const snapshot = await readClaudeUsageSnapshot({
       now: () => new Date("2026-03-03T12:00:00.000Z"),

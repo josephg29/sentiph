@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { GITHUB_SPARKLINE_HEIGHT, GITHUB_SPARKLINE_WIDTH } from "../app/constants";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
@@ -39,27 +39,103 @@ const buildUsageBars = (data: UsageChartData): MiniBar[] => {
 
 const pct = (value: number | null | undefined, loading?: boolean): string => {
   if (loading) return "···";
-  return value == null ? "--" : `${Math.round(value)}%`;
+  return value == null ? "NA" : `${Math.round(value)}%`;
+};
+
+const usageState = (
+  claudeUsage: ClaudeUsageSnapshot | null,
+): {
+  label: string;
+  loading: boolean;
+  sessionPercent: number | null | undefined;
+  weekPercent: number | null | undefined;
+  message?: string;
+} => {
+  if (claudeUsage === null) {
+    return {
+      label: "Session",
+      loading: true,
+      sessionPercent: 0,
+      weekPercent: 0,
+    };
+  }
+
+  const label = claudeUsage.source === "oauth-api" ? "5h" : "Session";
+  if (claudeUsage.status === "ok") {
+    return {
+      label,
+      loading: false,
+      sessionPercent: claudeUsage.primaryUsedPercent,
+      weekPercent: claudeUsage.secondaryUsedPercent,
+    };
+  }
+
+  return {
+    label,
+    loading: false,
+    sessionPercent: null,
+    weekPercent: null,
+    message: claudeUsage.message ?? "Claude usage unavailable",
+  };
 };
 
 const UsageRail = ({
   label,
   percent,
   loading,
-}: { label: string; percent: number | null | undefined; loading?: boolean }) => (
-  <div className="console-status-usage-row">
-    <span className="console-status-usage-row-meta">
-      <span className="console-status-usage-row-label">{label}</span>
-      <span className="console-status-usage-row-value">{pct(percent, loading)}</span>
-    </span>
-    <span className="console-status-usage-rail">
-      <span
-        className="console-status-usage-rail-fill"
-        style={{ width: `${Math.min(100, percent ?? 0)}%` }}
-      />
-    </span>
-  </div>
-);
+  title,
+}: {
+  label: string;
+  percent: number | null | undefined;
+  loading?: boolean;
+  title?: string;
+}) => {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null);
+
+  const showTooltip = (clientX: number, clientY: number) => {
+    if (!title) return;
+    setTooltip({ x: clientX, y: clientY });
+  };
+
+  return (
+    <div
+      className="console-status-usage-row"
+      data-has-tooltip={title ? "true" : undefined}
+      tabIndex={title ? 0 : -1}
+      onMouseEnter={(event) => showTooltip(event.clientX, event.clientY)}
+      onMouseMove={(event) => showTooltip(event.clientX, event.clientY)}
+      onMouseLeave={() => setTooltip(null)}
+      onBlur={() => setTooltip(null)}
+      onFocus={(event) => {
+        if (!title) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        setTooltip({ x: rect.left + 24, y: rect.bottom + 8 });
+      }}
+    >
+      <span className="console-status-usage-row-meta">
+        <span className="console-status-usage-row-label">{label}</span>
+        <span className="console-status-usage-row-value">{pct(percent, loading)}</span>
+      </span>
+      <span className="console-status-usage-rail">
+        <span
+          className="console-status-usage-rail-fill"
+          style={{ width: `${Math.min(100, percent ?? 0)}%` }}
+        />
+      </span>
+      {title && tooltip ? (
+        <span
+          className="console-status-usage-tooltip"
+          style={{
+            left: `${Math.max(8, tooltip.x - 260)}px`,
+            top: `${Math.min(window.innerHeight - 80, tooltip.y + 14)}px`,
+          }}
+        >
+          {title}
+        </span>
+      ) : null}
+    </div>
+  );
+};
 
 export const RuntimeStatusStrip = ({
   sparklinePoints,
@@ -68,6 +144,7 @@ export const RuntimeStatusStrip = ({
   onRefreshClaudeUsage,
 }: RuntimeStatusStripProps) => {
   const usageBars = useMemo(() => (usageData ? buildUsageBars(usageData) : []), [usageData]);
+  const claudeUsageState = usageState(claudeUsage);
 
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
@@ -136,17 +213,18 @@ export const RuntimeStatusStrip = ({
           USAGE
         </span>
         <div className="console-status-claude-usage-bars">
-          {claudeUsage?.status === "ok" ? (
-            <>
-              <UsageRail label="Session" percent={claudeUsage.primaryUsedPercent} />
-              <UsageRail label="Week (all)" percent={claudeUsage.secondaryUsedPercent} />
-            </>
-          ) : (
-            <>
-              <UsageRail label="Session" percent={0} loading />
-              <UsageRail label="Week (all)" percent={0} loading />
-            </>
-          )}
+          <UsageRail
+            label={claudeUsageState.label}
+            percent={claudeUsageState.sessionPercent}
+            loading={claudeUsageState.loading}
+            title={claudeUsageState.message}
+          />
+          <UsageRail
+            label="Week (all)"
+            percent={claudeUsageState.weekPercent}
+            loading={claudeUsageState.loading}
+            title={claudeUsageState.message}
+          />
         </div>
       </div>
     </section>

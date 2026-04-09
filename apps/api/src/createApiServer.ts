@@ -5,6 +5,8 @@ import { join, resolve } from "node:path";
 import { scanClaudeUsageChart } from "./claudeSessionScanner";
 import {
   invalidateUsageCache as invalidateUsageCacheDefault,
+  readClaudeCliUsageSnapshot as readClaudeCliUsageSnapshotDefault,
+  readClaudeOauthUsageSnapshot as readClaudeOauthUsageSnapshotDefault,
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
 } from "./claudeUsage";
 import { createCodeIntelStore } from "./codeIntelStore";
@@ -23,6 +25,8 @@ export const createApiServer = ({
   webDistDir,
   gitClient,
   readClaudeUsageSnapshot = readClaudeUsageSnapshotDefault,
+  readClaudeOauthUsageSnapshot = readClaudeOauthUsageSnapshotDefault,
+  readClaudeCliUsageSnapshot = readClaudeCliUsageSnapshotDefault,
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
   scanUsageHeatmap,
@@ -88,6 +92,8 @@ export const createApiServer = ({
     userPromptsDir: resolvedUserPromptsDir,
     webDistDir,
     readClaudeUsageSnapshot,
+    readClaudeOauthUsageSnapshot,
+    readClaudeCliUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     scanUsageHeatmap: scanUsageHeatmapWithDefault,

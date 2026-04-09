@@ -87,6 +87,8 @@ type CreateApiRequestHandlerOptions = {
   userPromptsDir: string;
   webDistDir?: string | undefined;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeOauthUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeCliUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
@@ -180,6 +182,8 @@ export const createApiRequestHandler = ({
   userPromptsDir,
   webDistDir,
   readClaudeUsageSnapshot,
+  readClaudeOauthUsageSnapshot,
+  readClaudeCliUsageSnapshot,
   readCodexUsageSnapshot,
   readGithubRepoSummary,
   scanUsageHeatmap,
@@ -197,6 +201,8 @@ export const createApiRequestHandler = ({
     promptsDir,
     userPromptsDir,
     readClaudeUsageSnapshot,
+    readClaudeOauthUsageSnapshot,
+    readClaudeCliUsageSnapshot,
     readCodexUsageSnapshot,
     readGithubRepoSummary,
     scanUsageHeatmap,

@@ -21,9 +21,13 @@ export const handleCodexUsageRoute: ApiRouteHandler = async (
 
 export const handleClaudeUsageRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { readClaudeUsageSnapshot },
+  { readClaudeUsageSnapshot, readClaudeOauthUsageSnapshot, readClaudeCliUsageSnapshot },
 ) => {
-  if (requestUrl.pathname !== "/api/claude/usage") {
+  if (
+    requestUrl.pathname !== "/api/claude/usage" &&
+    requestUrl.pathname !== "/api/claude/usage/oauth" &&
+    requestUrl.pathname !== "/api/claude/usage/cli"
+  ) {
     return false;
   }
 
@@ -32,7 +36,12 @@ export const handleClaudeUsageRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const payload = await readClaudeUsageSnapshot();
+  const payload =
+    requestUrl.pathname === "/api/claude/usage/oauth"
+      ? await readClaudeOauthUsageSnapshot()
+      : requestUrl.pathname === "/api/claude/usage/cli"
+        ? await readClaudeCliUsageSnapshot()
+        : await readClaudeUsageSnapshot();
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };

@@ -11,7 +11,7 @@ const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const CLAUDE_OAUTH_USAGE_BETA_HEADER = "oauth-2025-04-20";
 
-const CLI_PTY_TIMEOUT_MS = 20_000;
+const CLI_PTY_TIMEOUT_MS = 10_000;
 const CLI_PTY_SETTLE_MS = 2_000;
 const CLI_PTY_ENTER_INTERVAL_MS = 800;
 const CLI_PTY_COLS = 160;
@@ -351,6 +351,9 @@ const scrubbedEnv = (): Record<string, string> => {
 let cachedSnapshot: { snapshot: ClaudeUsageSnapshot; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 300_000;
 
+const getCachedOkSnapshot = (): ClaudeUsageSnapshot | null =>
+  cachedSnapshot?.snapshot.status === "ok" ? cachedSnapshot.snapshot : null;
+
 // Patterns that indicate the CLI welcome screen has fully rendered.
 // After ANSI stripping, cursor-movement codes collapse spaces, so we
 // match with all whitespace removed (e.g. "tipsforgettingstarted").
@@ -572,6 +575,55 @@ const cliHasRealData = (parsed: ParsedCliUsage): boolean =>
   parsed.secondaryUsedPercent !== null ||
   parsed.sonnetUsedPercent !== null;
 
+export const readClaudeOauthUsageSnapshot = async (
+  dependencies: ClaudeUsageDependencies = {},
+): Promise<ClaudeUsageSnapshot> => {
+  const now = dependencies.now?.() ?? new Date();
+  const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
+  const fetchImpl = dependencies.fetchImpl ?? fetch;
+  return await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
+};
+
+export const readClaudeCliUsageSnapshot = async (
+  dependencies: ClaudeUsageDependencies = {},
+): Promise<ClaudeUsageSnapshot> => {
+  const now = dependencies.now?.() ?? new Date();
+  const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
+  const fetchImpl = dependencies.fetchImpl ?? fetch;
+  const oauthSnapshot = await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
+
+  console.log(
+    `[claude-usage] OAuth state before CLI-only request: ${oauthSnapshot.message ?? oauthSnapshot.status}`,
+  );
+
+  const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
+  try {
+    const cliOutput = await spawnCliUsage();
+    if (cliOutput) {
+      const cleaned = stripAnsiCodes(cliOutput);
+      console.log(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
+      const parsed = parseCliUsageOutput(cliOutput);
+      if (cliHasRealData(parsed)) {
+        console.log(
+          `[claude-usage] CLI PTY parsed: session=${parsed.primaryUsedPercent}% week=${parsed.secondaryUsedPercent}% sonnet=${parsed.sonnetUsedPercent}%`,
+        );
+        return buildCliSnapshot(parsed, now);
+      }
+      console.log(
+        `[claude-usage] CLI PTY output had no parseable usage data. First 500 chars:\n${cleaned.slice(0, 500)}`,
+      );
+    } else {
+      console.log("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
+    }
+  } catch (error) {
+    console.log(
+      `[claude-usage] CLI PTY error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  return unavailableSnapshot(now, "Claude CLI usage unavailable.", "error");
+};
+
 export const readClaudeUsageSnapshot = async (
   dependencies: ClaudeUsageDependencies = {},
 ): Promise<ClaudeUsageSnapshot> => {
@@ -592,9 +644,11 @@ export const readClaudeUsageSnapshot = async (
     return oauthSnapshot;
   }
 
+  const cachedOkSnapshot = getCachedOkSnapshot();
+
   // If OAuth reached the API but got a non-ok response (rate-limited, server error),
-  // don't waste 20s on CLI PTY — return the OAuth result directly.
-  // Only fall back to CLI PTY when OAuth credentials are missing/unreadable.
+  // serve the last successful snapshot if available. Only fall back to CLI PTY
+  // when OAuth credentials are missing/unreadable and there is no good cache.
   const oauthReachedApi =
     oauthSnapshot.source === "none" &&
     oauthSnapshot.message != null &&
@@ -604,8 +658,17 @@ export const readClaudeUsageSnapshot = async (
 
   if (oauthReachedApi) {
     console.log(`[claude-usage] OAuth API responded with error: ${oauthSnapshot.message}`);
-    cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
+    if (cachedOkSnapshot) {
+      return { ...cachedOkSnapshot, fetchedAt: now.toISOString() };
+    }
     return oauthSnapshot;
+  }
+
+  if (cachedOkSnapshot) {
+    console.log(
+      `[claude-usage] OAuth unavailable (${oauthSnapshot.message}), serving stale cached snapshot`,
+    );
+    return { ...cachedOkSnapshot, fetchedAt: now.toISOString() };
   }
 
   console.log(
@@ -641,9 +704,9 @@ export const readClaudeUsageSnapshot = async (
   }
 
   // Both sources failed — return cached or error
-  if (cachedSnapshot) {
-    return { ...cachedSnapshot.snapshot, fetchedAt: now.toISOString() };
+  const finalCachedOkSnapshot = getCachedOkSnapshot();
+  if (finalCachedOkSnapshot) {
+    return { ...finalCachedOkSnapshot, fetchedAt: now.toISOString() };
   }
-  cachedSnapshot = { snapshot: oauthSnapshot, fetchedAt: Date.now() };
   return oauthSnapshot;
 };

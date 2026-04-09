@@ -12,6 +12,8 @@ export type CreateApiServerOptions = {
   webDistDir?: string | undefined;
   gitClient?: GitClient;
   readClaudeUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeOauthUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
+  readClaudeCliUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
   readCodexUsageSnapshot?: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary?: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap?: (scope: "all" | "project") => Promise<UsageChartResponse>;

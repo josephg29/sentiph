@@ -272,10 +272,13 @@
 }
 
 .console-status-usage-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.3rem;
   flex: 1;
+  outline: none;
+  overflow: visible;
 }
 
 .console-status-usage-rail {
@@ -334,6 +337,33 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
   white-space: nowrap;
+}
+
+.console-status-usage-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: min(19rem, calc(100vw - 1rem));
+  padding: 0.36rem 0.46rem;
+  border: 1px solid color-mix(in srgb, var(--term-red) 55%, #3a1216);
+  background: color-mix(in srgb, #07090c 92%, #230c0f 8%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.42);
+  color: #f1d7da;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0);
+  transition: opacity 0.12s ease;
+}
+
+.console-status-usage-row[data-has-tooltip="true"]:hover .console-status-usage-tooltip,
+.console-status-usage-row[data-has-tooltip="true"]:focus-visible .console-status-usage-tooltip {
+  opacity: 1;
 }
 
 .console-shell .console-primary-nav {

@@ -828,6 +828,55 @@ describe("createApiServer", () => {
     await expect(response.json()).resolves.toEqual(claudeSnapshot);
   });
 
+  it("returns oauth claude usage snapshot for GET /api/claude/usage/oauth", async () => {
+    const claudeSnapshot = {
+      status: "ok",
+      source: "oauth-api",
+      fetchedAt: "2026-03-03T12:00:00.000Z",
+      primaryUsedPercent: 11,
+      secondaryUsedPercent: 27,
+    } as const;
+
+    const baseUrl = await startServer({
+      readClaudeOauthUsageSnapshot: async () => claudeSnapshot,
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage/oauth`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(claudeSnapshot);
+  });
+
+  it("returns cli claude usage snapshot for GET /api/claude/usage/cli", async () => {
+    const claudeSnapshot = {
+      status: "ok",
+      source: "cli-pty",
+      fetchedAt: "2026-03-03T12:00:00.000Z",
+      primaryUsedPercent: 9,
+      secondaryUsedPercent: 22,
+      sonnetUsedPercent: 14,
+    } as const;
+
+    const baseUrl = await startServer({
+      readClaudeCliUsageSnapshot: async () => claudeSnapshot,
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage/cli`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(claudeSnapshot);
+  });
+
   it("returns github summary for GET /api/github/summary", async () => {
     const githubSummary: GitHubRepoSummarySnapshot = {
       status: "ok",
@@ -899,6 +948,38 @@ describe("createApiServer", () => {
     });
 
     const response = await fetch(`${baseUrl}/api/claude/usage`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns 405 for unsupported methods on /api/claude/usage/oauth", async () => {
+    const baseUrl = await startServer({
+      readClaudeOauthUsageSnapshot: async () => ({
+        status: "unavailable",
+        source: "none",
+        fetchedAt: "2026-03-03T12:00:00.000Z",
+      }),
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage/oauth`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns 405 for unsupported methods on /api/claude/usage/cli", async () => {
+    const baseUrl = await startServer({
+      readClaudeCliUsageSnapshot: async () => ({
+        status: "unavailable",
+        source: "none",
+        fetchedAt: "2026-03-03T12:00:00.000Z",
+      }),
+    });
+
+    const response = await fetch(`${baseUrl}/api/claude/usage/cli`, {
       method: "POST",
     });
 
