@@ -364,6 +364,17 @@ const READY_NEEDLES = [
   "whatcanihelpyouwith",
 ];
 
+const isClaudeCliReady = (normalized: string, collapsed: string): boolean => {
+  if (READY_NEEDLES.some((needle) => collapsed.includes(needle))) {
+    return true;
+  }
+
+  // Claude Code v2.1.x can land directly on the shell prompt instead of the
+  // older welcome copy. In that mode we see the product header and a visible
+  // prompt glyph, but none of the historical ready markers.
+  return collapsed.includes("claudecodev") && normalized.includes("❯");
+};
+
 const spawnCliAndCapture = (binary: string): Promise<string | null> =>
   new Promise<string | null>((resolve) => {
     import("node-pty")
@@ -444,7 +455,7 @@ const spawnCliAndCapture = (binary: string): Promise<string | null> =>
 
           // Phase 1: wait for welcome screen to render, then send /usage
           if (phase === "waiting") {
-            if (READY_NEEDLES.some((n) => collapsed.includes(n))) {
+            if (isClaudeCliReady(normalized, collapsed)) {
               sendUsageCommand();
             }
             return;
