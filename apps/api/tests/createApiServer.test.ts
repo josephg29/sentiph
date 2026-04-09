@@ -2505,6 +2505,75 @@ describe("createApiServer", () => {
     expect(missingResponse.status).toBe(404);
   });
 
+  it("deletes descendant terminals when deleting a parent terminal", async () => {
+    const baseUrl = await startServer();
+
+    const createParentResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ terminalId: "parent-terminal" }),
+    });
+    expect(createParentResponse.status).toBe(201);
+
+    const createChildResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        terminalId: "child-terminal",
+        parentTerminalId: "parent-terminal",
+      }),
+    });
+    expect(createChildResponse.status).toBe(201);
+
+    const createGrandchildResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        terminalId: "grandchild-terminal",
+        parentTerminalId: "child-terminal",
+      }),
+    });
+    expect(createGrandchildResponse.status).toBe(201);
+
+    const createSiblingResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ terminalId: "unrelated-terminal" }),
+    });
+    expect(createSiblingResponse.status).toBe(201);
+
+    const deleteResponse = await fetch(`${baseUrl}/api/terminals/parent-terminal`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(deleteResponse.status).toBe(204);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({ terminalId: "unrelated-terminal" }),
+    ]);
+  });
+
   it("restores tentacles across API restarts using persisted registry", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);

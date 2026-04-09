@@ -221,6 +221,27 @@ export const createTerminalRuntime = ({
     broadcastTerminalEvent({ type: "terminal-list-changed" });
   };
 
+  const collectTerminalCascade = (rootTerminalId: string): string[] => {
+    const toDelete = new Set<string>();
+    const queue = [rootTerminalId];
+
+    while (queue.length > 0) {
+      const currentTerminalId = queue.shift();
+      if (!currentTerminalId || toDelete.has(currentTerminalId)) {
+        continue;
+      }
+
+      toDelete.add(currentTerminalId);
+      for (const terminal of terminals.values()) {
+        if (terminal.parentTerminalId === currentTerminalId) {
+          queue.push(terminal.terminalId);
+        }
+      }
+    }
+
+    return Array.from(toDelete);
+  };
+
   const createTerminal = ({
     terminalId: requestedTerminalId,
     tentacleId: requestedTentacleId,
@@ -456,16 +477,29 @@ export const createTerminalRuntime = ({
         return false;
       }
 
-      sessionRuntime.closeSession(terminalId);
-      if (terminal.workspaceMode === "worktree") {
-        worktreeManager.removeTentacleWorktree(terminal.worktreeId ?? terminal.tentacleId);
+      const cascadeTerminalIds = collectTerminalCascade(terminalId);
+      for (const cascadeTerminalId of cascadeTerminalIds) {
+        const cascadeTerminal = terminals.get(cascadeTerminalId);
+        if (!cascadeTerminal) {
+          continue;
+        }
+
+        sessionRuntime.closeSession(cascadeTerminalId);
+        if (cascadeTerminal.workspaceMode === "worktree") {
+          worktreeManager.removeTentacleWorktree(
+            cascadeTerminal.worktreeId ?? cascadeTerminal.tentacleId,
+          );
+        }
+        terminals.delete(cascadeTerminalId);
       }
-      terminals.delete(terminalId);
+
       persistRegistry();
-      broadcastTerminalEvent({
-        type: "terminal-deleted",
-        terminalId,
-      });
+      for (const cascadeTerminalId of cascadeTerminalIds) {
+        broadcastTerminalEvent({
+          type: "terminal-deleted",
+          terminalId: cascadeTerminalId,
+        });
+      }
       return true;
     },
 

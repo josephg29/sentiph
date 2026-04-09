@@ -194,6 +194,8 @@
   padding: 0.5rem 0.7rem;
   display: grid;
   gap: 0.14rem;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .conversations-turn[data-role="assistant"] {
@@ -259,6 +261,8 @@
   font-size: 0.88rem;
   line-height: 1.52;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .conversations-turn-content > *:first-child {
@@ -297,6 +301,8 @@
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 0.3rem;
+  box-sizing: border-box;
+  max-width: 100%;
   overflow-x: auto;
 }
 
@@ -347,8 +353,12 @@
 .conversations-turn-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.4rem 0.8rem;
+  margin: 0.5rem 0;
   font-size: 0.82rem;
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .conversations-turn-content th,
