@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -421,6 +421,27 @@ describe("createApiServer", () => {
     httpBaseUrl.startsWith("https://")
       ? httpBaseUrl.replace("https://", "wss://")
       : httpBaseUrl.replace("http://", "ws://");
+
+  const waitForRegistryDocument = async <TDocument>(
+    workspaceCwd: string,
+    predicate: (document: TDocument) => boolean,
+  ): Promise<TDocument> => {
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    const timeoutAt = Date.now() + 2_000;
+
+    while (Date.now() < timeoutAt) {
+      if (existsSync(registryPath)) {
+        const document = JSON.parse(readFileSync(registryPath, "utf8")) as TDocument;
+        if (predicate(document)) {
+          return document;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    throw new Error(`Timed out waiting for registry persistence at ${registryPath}`);
+  };
 
   const writeConversationTranscript = (
     workspaceCwd: string,
@@ -1429,14 +1450,20 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
-    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+    const registryDocument = await waitForRegistryDocument<{
       terminals: Array<{
         terminalId: string;
         tentacleId: string;
         workspaceMode: "shared" | "worktree";
       }>;
-    };
+    }>(workspaceCwd, (document) =>
+      document.terminals.some(
+        (terminal) =>
+          terminal.terminalId === "terminal-1" &&
+          terminal.tentacleId === "terminal-1" &&
+          terminal.workspaceMode === "shared",
+      ),
+    );
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1517,14 +1544,20 @@ describe("createApiServer", () => {
       }),
     );
 
-    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
-    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+    const registryDocument = await waitForRegistryDocument<{
       terminals: Array<{
         terminalId: string;
         tentacleId: string;
         workspaceMode: "shared" | "worktree";
       }>;
-    };
+    }>(workspaceCwd, (document) =>
+      document.terminals.some(
+        (terminal) =>
+          terminal.terminalId === "terminal-1" &&
+          terminal.tentacleId === "terminal-1" &&
+          terminal.workspaceMode === "worktree",
+      ),
+    );
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2428,8 +2461,9 @@ describe("createApiServer", () => {
       "# Docs & Knowledge\n",
       "utf8",
     );
-    const todoItems = Array.from({ length: MAX_CHILDREN_PER_PARENT + 4 }, (_, index) =>
-      `- [ ] item ${index}`,
+    const todoItems = Array.from(
+      { length: MAX_CHILDREN_PER_PARENT + 4 },
+      (_, index) => `- [ ] item ${index}`,
     ).join("\n");
     writeFileSync(
       join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "todo.md"),

@@ -1,19 +1,145 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
 import { MIN_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
-import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../uiStateNormalizers";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
   type TerminalCompletionSoundId,
 } from "../notificationSounds";
+import { retainActiveTerminalEntries, retainActiveTerminalIds } from "../terminalState";
 import type { FrontendUiStateSnapshot, TerminalView } from "../types";
+import { clampSidebarWidth, normalizeFrontendUiStateSnapshot } from "../uiStateNormalizers";
 
 type UsePersistedUiStateOptions = {
   columns: TerminalView;
 };
+
+const DEFAULT_ACTIVE_PRIMARY_NAV: PrimaryNavIndex = 1;
+const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
+const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
+const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
+const DEFAULT_IS_MONITOR_VISIBLE = true;
+const DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE = true;
+const DEFAULT_IS_CODEX_USAGE_VISIBLE = true;
+const DEFAULT_IS_CLAUDE_USAGE_VISIBLE = true;
+const DEFAULT_IS_CLAUDE_USAGE_SECTION_EXPANDED = true;
+const DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED = true;
+const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
+const DEFAULT_TERMINAL_WIDTHS: Record<string, number> = {};
+const DEFAULT_CANVAS_OPEN_TERMINAL_IDS: string[] = [];
+const DEFAULT_CANVAS_OPEN_TENTACLE_IDS: string[] = [];
+
+const areStringArraysEqual = (left: string[] | undefined, right: string[] | undefined) => {
+  if (left === right) {
+    return true;
+  }
+
+  const nextLeft = left ?? [];
+  const nextRight = right ?? [];
+  if (nextLeft.length !== nextRight.length) {
+    return false;
+  }
+
+  return nextLeft.every((value, index) => value === nextRight[index]);
+};
+
+const areNumberRecordMapsEqual = (
+  left: Record<string, number> | undefined,
+  right: Record<string, number> | undefined,
+) => {
+  if (left === right) {
+    return true;
+  }
+
+  const leftEntries = Object.entries(left ?? {});
+  const rightEntries = right ?? {};
+  if (leftEntries.length !== Object.keys(rightEntries).length) {
+    return false;
+  }
+
+  return leftEntries.every(([key, value]) => rightEntries[key] === value);
+};
+
+const buildPersistedUiStateSnapshot = ({
+  activePrimaryNav,
+  isAgentsSidebarVisible,
+  sidebarWidth,
+  isActiveAgentsSectionExpanded,
+  isRuntimeStatusStripVisible,
+  isMonitorVisible,
+  isBottomTelemetryVisible,
+  isCodexUsageVisible,
+  isClaudeUsageVisible,
+  isClaudeUsageSectionExpanded,
+  isCodexUsageSectionExpanded,
+  terminalCompletionSound,
+  minimizedTerminalIds,
+  terminalWidths,
+  canvasOpenTerminalIds,
+  canvasOpenTentacleIds,
+  canvasTerminalsPanelWidth,
+}: {
+  activePrimaryNav: PrimaryNavIndex;
+  isAgentsSidebarVisible: boolean;
+  sidebarWidth: number;
+  isActiveAgentsSectionExpanded: boolean;
+  isRuntimeStatusStripVisible: boolean;
+  isMonitorVisible: boolean;
+  isBottomTelemetryVisible: boolean;
+  isCodexUsageVisible: boolean;
+  isClaudeUsageVisible: boolean;
+  isClaudeUsageSectionExpanded: boolean;
+  isCodexUsageSectionExpanded: boolean;
+  terminalCompletionSound: TerminalCompletionSoundId;
+  minimizedTerminalIds: string[];
+  terminalWidths: Record<string, number>;
+  canvasOpenTerminalIds: string[];
+  canvasOpenTentacleIds: string[];
+  canvasTerminalsPanelWidth: number | null;
+}): FrontendUiStateSnapshot => ({
+  activePrimaryNav,
+  isAgentsSidebarVisible,
+  sidebarWidth: clampSidebarWidth(sidebarWidth),
+  isActiveAgentsSectionExpanded,
+  isRuntimeStatusStripVisible,
+  isMonitorVisible,
+  isBottomTelemetryVisible,
+  isCodexUsageVisible,
+  isClaudeUsageVisible,
+  isClaudeUsageSectionExpanded,
+  isCodexUsageSectionExpanded,
+  terminalCompletionSound,
+  minimizedTerminalIds,
+  terminalWidths,
+  canvasOpenTerminalIds,
+  canvasOpenTentacleIds,
+  ...(canvasTerminalsPanelWidth != null ? { canvasTerminalsPanelWidth } : {}),
+});
+
+const areUiStateSnapshotsEqual = (
+  left: FrontendUiStateSnapshot | null,
+  right: FrontendUiStateSnapshot,
+) =>
+  left !== null &&
+  left.activePrimaryNav === right.activePrimaryNav &&
+  left.isAgentsSidebarVisible === right.isAgentsSidebarVisible &&
+  left.sidebarWidth === right.sidebarWidth &&
+  left.isActiveAgentsSectionExpanded === right.isActiveAgentsSectionExpanded &&
+  left.isRuntimeStatusStripVisible === right.isRuntimeStatusStripVisible &&
+  left.isMonitorVisible === right.isMonitorVisible &&
+  left.isBottomTelemetryVisible === right.isBottomTelemetryVisible &&
+  left.isCodexUsageVisible === right.isCodexUsageVisible &&
+  left.isClaudeUsageVisible === right.isClaudeUsageVisible &&
+  left.isClaudeUsageSectionExpanded === right.isClaudeUsageSectionExpanded &&
+  left.isCodexUsageSectionExpanded === right.isCodexUsageSectionExpanded &&
+  left.terminalCompletionSound === right.terminalCompletionSound &&
+  areStringArraysEqual(left.minimizedTerminalIds, right.minimizedTerminalIds) &&
+  areNumberRecordMapsEqual(left.terminalWidths, right.terminalWidths) &&
+  areStringArraysEqual(left.canvasOpenTerminalIds, right.canvasOpenTerminalIds) &&
+  areStringArraysEqual(left.canvasOpenTentacleIds, right.canvasOpenTentacleIds) &&
+  left.canvasTerminalsPanelWidth === right.canvasTerminalsPanelWidth;
 
 type UsePersistedUiStateResult = {
   activePrimaryNav: PrimaryNavIndex;
@@ -62,26 +188,48 @@ type UsePersistedUiStateResult = {
 export const usePersistedUiState = ({
   columns,
 }: UsePersistedUiStateOptions): UsePersistedUiStateResult => {
-  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(1);
-  const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(true);
+  const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(
+    DEFAULT_ACTIVE_PRIMARY_NAV,
+  );
+  const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(
+    DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE,
+  );
   const [sidebarWidth, setSidebarWidth] = useState(MIN_SIDEBAR_WIDTH);
-  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(true);
-  const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(true);
-  const [isMonitorVisible, setIsMonitorVisible] = useState(true);
-  const [isBottomTelemetryVisible, setIsBottomTelemetryVisible] = useState(true);
-  const [isCodexUsageVisible, setIsCodexUsageVisible] = useState(true);
-  const [isClaudeUsageVisible, setIsClaudeUsageVisible] = useState(true);
-  const [isClaudeUsageSectionExpanded, setIsClaudeUsageSectionExpanded] = useState(true);
-  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(true);
+  const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(
+    DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
+  );
+  const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(
+    DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
+  );
+  const [isMonitorVisible, setIsMonitorVisible] = useState(DEFAULT_IS_MONITOR_VISIBLE);
+  const [isBottomTelemetryVisible, setIsBottomTelemetryVisible] = useState(
+    DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
+  );
+  const [isCodexUsageVisible, setIsCodexUsageVisible] = useState(DEFAULT_IS_CODEX_USAGE_VISIBLE);
+  const [isClaudeUsageVisible, setIsClaudeUsageVisible] = useState(DEFAULT_IS_CLAUDE_USAGE_VISIBLE);
+  const [isClaudeUsageSectionExpanded, setIsClaudeUsageSectionExpanded] = useState(
+    DEFAULT_IS_CLAUDE_USAGE_SECTION_EXPANDED,
+  );
+  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(
+    DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
+  );
   const [terminalCompletionSound, setTerminalCompletionSound] = useState<TerminalCompletionSoundId>(
     DEFAULT_TERMINAL_COMPLETION_SOUND,
   );
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
-  const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>([]);
-  const [terminalWidths, setTerminalWidths] = useState<Record<string, number>>({});
-  const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>([]);
-  const [canvasOpenTentacleIds, setCanvasOpenTentacleIds] = useState<string[]>([]);
+  const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>(
+    DEFAULT_MINIMIZED_TERMINAL_IDS,
+  );
+  const [terminalWidths, setTerminalWidths] =
+    useState<Record<string, number>>(DEFAULT_TERMINAL_WIDTHS);
+  const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>(
+    DEFAULT_CANVAS_OPEN_TERMINAL_IDS,
+  );
+  const [canvasOpenTentacleIds, setCanvasOpenTentacleIds] = useState<string[]>(
+    DEFAULT_CANVAS_OPEN_TENTACLE_IDS,
+  );
   const [canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth] = useState<number | null>(null);
+  const lastPersistedUiStateRef = useRef<FrontendUiStateSnapshot | null>(null);
 
   const readUiState = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -112,9 +260,76 @@ export const usePersistedUiState = ({
 
   const applyHydratedUiState = useCallback(
     (snapshot: FrontendUiStateSnapshot | null, nextColumns: TerminalView) => {
+      const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
+      const activeTentacleIds = new Set(nextColumns.map((entry) => entry.tentacleId));
+
       if (!snapshot) {
+        lastPersistedUiStateRef.current = buildPersistedUiStateSnapshot({
+          activePrimaryNav: DEFAULT_ACTIVE_PRIMARY_NAV,
+          isAgentsSidebarVisible: DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE,
+          sidebarWidth: MIN_SIDEBAR_WIDTH,
+          isActiveAgentsSectionExpanded: DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
+          isRuntimeStatusStripVisible: DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
+          isMonitorVisible: DEFAULT_IS_MONITOR_VISIBLE,
+          isBottomTelemetryVisible: DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
+          isCodexUsageVisible: DEFAULT_IS_CODEX_USAGE_VISIBLE,
+          isClaudeUsageVisible: DEFAULT_IS_CLAUDE_USAGE_VISIBLE,
+          isClaudeUsageSectionExpanded: DEFAULT_IS_CLAUDE_USAGE_SECTION_EXPANDED,
+          isCodexUsageSectionExpanded: DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
+          terminalCompletionSound: DEFAULT_TERMINAL_COMPLETION_SOUND,
+          minimizedTerminalIds: DEFAULT_MINIMIZED_TERMINAL_IDS,
+          terminalWidths: DEFAULT_TERMINAL_WIDTHS,
+          canvasOpenTerminalIds: DEFAULT_CANVAS_OPEN_TERMINAL_IDS,
+          canvasOpenTentacleIds: DEFAULT_CANVAS_OPEN_TENTACLE_IDS,
+          canvasTerminalsPanelWidth: null,
+        });
         return;
       }
+
+      const nextMinimizedTerminalIds = snapshot.minimizedTerminalIds
+        ? retainActiveTerminalIds(snapshot.minimizedTerminalIds, activeTerminalIds)
+        : DEFAULT_MINIMIZED_TERMINAL_IDS;
+      const nextTerminalWidths = snapshot.terminalWidths
+        ? retainActiveTerminalEntries(snapshot.terminalWidths, activeTerminalIds)
+        : DEFAULT_TERMINAL_WIDTHS;
+      const nextCanvasOpenTerminalIds = snapshot.canvasOpenTerminalIds
+        ? retainActiveTerminalIds(snapshot.canvasOpenTerminalIds, activeTerminalIds)
+        : DEFAULT_CANVAS_OPEN_TERMINAL_IDS;
+      const nextCanvasOpenTentacleIds = snapshot.canvasOpenTentacleIds
+        ? retainActiveTerminalIds(snapshot.canvasOpenTentacleIds, activeTentacleIds)
+        : DEFAULT_CANVAS_OPEN_TENTACLE_IDS;
+
+      lastPersistedUiStateRef.current = buildPersistedUiStateSnapshot({
+        activePrimaryNav:
+          snapshot.activePrimaryNav !== undefined &&
+          snapshot.activePrimaryNav >= 1 &&
+          snapshot.activePrimaryNav <= PRIMARY_NAV_ITEMS.length
+            ? (snapshot.activePrimaryNav as PrimaryNavIndex)
+            : DEFAULT_ACTIVE_PRIMARY_NAV,
+        isAgentsSidebarVisible:
+          snapshot.isAgentsSidebarVisible ?? DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE,
+        sidebarWidth: snapshot.sidebarWidth ?? MIN_SIDEBAR_WIDTH,
+        isActiveAgentsSectionExpanded:
+          snapshot.isActiveAgentsSectionExpanded ?? DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
+        isRuntimeStatusStripVisible:
+          snapshot.isRuntimeStatusStripVisible ?? DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
+        isMonitorVisible: snapshot.isMonitorVisible ?? DEFAULT_IS_MONITOR_VISIBLE,
+        isBottomTelemetryVisible:
+          snapshot.isBottomTelemetryVisible ?? DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
+        isCodexUsageVisible: snapshot.isCodexUsageVisible ?? DEFAULT_IS_CODEX_USAGE_VISIBLE,
+        isClaudeUsageVisible: snapshot.isClaudeUsageVisible ?? DEFAULT_IS_CLAUDE_USAGE_VISIBLE,
+        isClaudeUsageSectionExpanded:
+          snapshot.isClaudeUsageSectionExpanded ?? DEFAULT_IS_CLAUDE_USAGE_SECTION_EXPANDED,
+        isCodexUsageSectionExpanded:
+          snapshot.isCodexUsageSectionExpanded ?? DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
+        terminalCompletionSound:
+          snapshot.terminalCompletionSound ?? DEFAULT_TERMINAL_COMPLETION_SOUND,
+        minimizedTerminalIds: nextMinimizedTerminalIds,
+        terminalWidths: nextTerminalWidths,
+        canvasOpenTerminalIds: nextCanvasOpenTerminalIds,
+        canvasOpenTentacleIds: nextCanvasOpenTentacleIds,
+        canvasTerminalsPanelWidth: snapshot.canvasTerminalsPanelWidth ?? null,
+      });
 
       if (
         snapshot.activePrimaryNav !== undefined &&
@@ -169,33 +384,19 @@ export const usePersistedUiState = ({
       }
 
       if (snapshot.minimizedTerminalIds) {
-        const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
-        setMinimizedTerminalIds(
-          snapshot.minimizedTerminalIds.filter((id) => activeTerminalIds.has(id)),
-        );
+        setMinimizedTerminalIds(nextMinimizedTerminalIds);
       }
 
       if (snapshot.terminalWidths) {
-        const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
-        setTerminalWidths(
-          Object.entries(snapshot.terminalWidths).reduce<Record<string, number>>(
-            (acc, [id, width]) => {
-              if (activeTerminalIds.has(id)) {
-                acc[id] = width;
-              }
-              return acc;
-            },
-            {},
-          ),
-        );
+        setTerminalWidths(nextTerminalWidths);
       }
 
       if (snapshot.canvasOpenTerminalIds) {
-        setCanvasOpenTerminalIds(snapshot.canvasOpenTerminalIds);
+        setCanvasOpenTerminalIds(nextCanvasOpenTerminalIds);
       }
 
       if (snapshot.canvasOpenTentacleIds) {
-        setCanvasOpenTentacleIds(snapshot.canvasOpenTentacleIds);
+        setCanvasOpenTentacleIds(nextCanvasOpenTentacleIds);
       }
 
       if (snapshot.canvasTerminalsPanelWidth !== undefined) {
@@ -206,15 +407,23 @@ export const usePersistedUiState = ({
   );
 
   useEffect(() => {
+    const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
+    const activeTentacleIds = new Set(columns.map((entry) => entry.tentacleId));
+    setMinimizedTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
+    setTerminalWidths((current) => retainActiveTerminalEntries(current, activeTerminalIds));
+    setCanvasOpenTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
+    setCanvasOpenTentacleIds((current) => retainActiveTerminalIds(current, activeTentacleIds));
+  }, [columns]);
+
+  useEffect(() => {
     if (!isUiStateHydrated) {
       return;
     }
 
-    const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
-    const payload: FrontendUiStateSnapshot = {
+    const payload = buildPersistedUiStateSnapshot({
       activePrimaryNav,
       isAgentsSidebarVisible,
-      sidebarWidth: clampSidebarWidth(sidebarWidth),
+      sidebarWidth,
       isActiveAgentsSectionExpanded,
       isRuntimeStatusStripVisible,
       isMonitorVisible,
@@ -224,20 +433,16 @@ export const usePersistedUiState = ({
       isClaudeUsageSectionExpanded,
       isCodexUsageSectionExpanded,
       terminalCompletionSound,
-      minimizedTerminalIds: minimizedTerminalIds.filter((id) => activeTerminalIds.has(id)),
-      terminalWidths: Object.entries(terminalWidths).reduce<Record<string, number>>(
-        (acc, [id, width]) => {
-          if (activeTerminalIds.has(id)) {
-            acc[id] = width;
-          }
-          return acc;
-        },
-        {},
-      ),
+      minimizedTerminalIds,
+      terminalWidths,
       canvasOpenTerminalIds,
       canvasOpenTentacleIds,
-      ...(canvasTerminalsPanelWidth != null ? { canvasTerminalsPanelWidth } : {}),
-    };
+      canvasTerminalsPanelWidth,
+    });
+
+    if (areUiStateSnapshotsEqual(lastPersistedUiStateRef.current, payload)) {
+      return;
+    }
 
     const timerId = window.setTimeout(() => {
       void fetch(buildUiStateUrl(), {
@@ -247,9 +452,16 @@ export const usePersistedUiState = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      }).catch((error: unknown) => {
-        console.warn("[ui-state] Failed to persist UI state:", error);
-      });
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Unexpected status ${response.status}`);
+          }
+          lastPersistedUiStateRef.current = payload;
+        })
+        .catch((error: unknown) => {
+          console.warn("[ui-state] Failed to persist UI state:", error);
+        });
     }, UI_STATE_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -260,7 +472,6 @@ export const usePersistedUiState = ({
     canvasOpenTerminalIds,
     canvasOpenTentacleIds,
     canvasTerminalsPanelWidth,
-    columns,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
     isBottomTelemetryVisible,

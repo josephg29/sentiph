@@ -23,8 +23,8 @@ import {
 import { createGitOperations } from "./terminalRuntime/gitOperations";
 import { createHookProcessor } from "./terminalRuntime/hookProcessor";
 import {
+  createTerminalRegistryPersistence,
   loadTerminalRegistry,
-  persistTerminalRegistry,
   pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
@@ -64,6 +64,7 @@ export const createTerminalRuntime = ({
   const terminalEventClients = new Set<WebSocket>();
   const registryPath = join(stateDir, "state", "tentacles.json");
   const registryState = loadTerminalRegistry(registryPath);
+  const registryPersistence = createTerminalRegistryPersistence(registryPath);
   const terminals = registryState.terminals;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
@@ -73,7 +74,7 @@ export const createTerminalRuntime = ({
 
   const persistRegistry = () => {
     uiState = pruneUiStateTerminalReferences(uiState, terminals);
-    persistTerminalRegistry(registryPath, {
+    registryPersistence.schedulePersist({
       terminals,
       uiState,
     });
@@ -287,8 +288,7 @@ export const createTerminalRuntime = ({
     // Auto-allocate a unique worktreeId when creating a worktree terminal
     // so multiple worktree terminals can coexist (each gets its own directory).
     const worktreeId =
-      requestedWorktreeId ??
-      (workspaceMode === "worktree" ? terminalId : undefined);
+      requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
     const terminal: PersistedTerminal = {
       terminalId,
@@ -540,7 +540,8 @@ export const createTerminalRuntime = ({
       return sessionRuntime.resizeSession(terminalId, cols, rows);
     },
 
-    close() {
+    async close() {
+      await registryPersistence.close();
       sessionRuntime.close();
       for (const client of terminalEventClients) {
         client.close();

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
@@ -11,6 +12,13 @@ import type {
   TerminalRegistryDocument,
 } from "./types";
 import { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./types";
+
+const REGISTRY_PERSIST_DEBOUNCE_MS = 100;
+
+type TerminalRegistryState = {
+  terminals: Map<string, PersistedTerminal>;
+  uiState: PersistedUiState;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -291,19 +299,103 @@ export const loadTerminalRegistry = (registryPath: string) => {
   return parseRegistryDocument(raw, registryPath);
 };
 
-export const persistTerminalRegistry = (
-  registryPath: string,
-  state: {
-    terminals: Map<string, PersistedTerminal>;
-    uiState: PersistedUiState;
-  },
-) => {
+const serializeTerminalRegistry = (state: TerminalRegistryState) => {
   const document: TerminalRegistryDocument = {
     version: TERMINAL_REGISTRY_VERSION,
     terminals: [...state.terminals.values()],
     uiState: state.uiState,
   };
 
+  return `${JSON.stringify(document, null, 2)}\n`;
+};
+
+const writeSerializedRegistrySync = (registryPath: string, serialized: string) => {
   mkdirSync(dirname(registryPath), { recursive: true });
-  writeFileSync(registryPath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
+  writeFileSync(registryPath, serialized, "utf8");
+};
+
+const writeSerializedRegistry = async (registryPath: string, serialized: string) => {
+  mkdirSync(dirname(registryPath), { recursive: true });
+  await writeFile(registryPath, serialized, "utf8");
+};
+
+export const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {
+  writeSerializedRegistrySync(registryPath, serializeTerminalRegistry(state));
+};
+
+export const createTerminalRegistryPersistence = (registryPath: string) => {
+  let pendingSerialized: string | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let writeLoopPromise: Promise<void> | null = null;
+  let lastPersistedSerialized: string | null = null;
+
+  const runWriteLoop = (): Promise<void> => {
+    if (writeLoopPromise) {
+      return writeLoopPromise;
+    }
+
+    if (pendingSerialized === null) {
+      return Promise.resolve();
+    }
+
+    writeLoopPromise = (async () => {
+      while (pendingSerialized !== null) {
+        const serialized = pendingSerialized;
+        pendingSerialized = null;
+
+        try {
+          await writeSerializedRegistry(registryPath, serialized);
+          lastPersistedSerialized = serialized;
+        } catch (error) {
+          console.warn("[terminal-registry] Failed to persist registry:", error);
+        }
+      }
+    })().finally(() => {
+      writeLoopPromise = null;
+      if (pendingSerialized !== null) {
+        void runWriteLoop();
+      }
+    });
+
+    return writeLoopPromise;
+  };
+
+  const clearDebounceTimer = () => {
+    if (debounceTimer !== null) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+  };
+
+  const flush = async () => {
+    clearDebounceTimer();
+    await runWriteLoop();
+  };
+
+  return {
+    schedulePersist(state: TerminalRegistryState) {
+      const serialized = serializeTerminalRegistry(state);
+      if (
+        serialized === pendingSerialized ||
+        (pendingSerialized === null &&
+          writeLoopPromise === null &&
+          serialized === lastPersistedSerialized)
+      ) {
+        return;
+      }
+
+      pendingSerialized = serialized;
+      clearDebounceTimer();
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void runWriteLoop();
+      }, REGISTRY_PERSIST_DEBOUNCE_MS);
+    },
+
+    flush,
+
+    async close() {
+      await flush();
+    },
+  };
 };
