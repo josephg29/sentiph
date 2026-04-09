@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Terminal, X } from "lucide-react";
 import { type Ref, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary, TentacleWorkspaceMode } from "@octogent/core";
@@ -288,7 +288,7 @@ export const CanvasTentaclePanel = ({
             {STATUS_LABELS[tentacle.status] ?? tentacle.status}
           </span>
         )}
-        <button className="detail-close" type="button" onClick={onClose}>
+        <button className="detail-close" type="button" onClick={onClose} aria-label="Close panel">
           <X size={14} />
         </button>
       </div>
@@ -324,6 +324,34 @@ export const CanvasTentaclePanel = ({
           </div>
         </div>
 
+        {/* Actions section */}
+        <div className="detail-section">
+          <div className="detail-section-title">Actions</div>
+          <div className="detail-actions">
+            <button
+              type="button"
+              className="detail-action-btn"
+              onClick={() => onCreateAgent?.(node.tentacleId)}
+            >
+              &gt;_ Create Agent
+            </button>
+            <button
+              type="button"
+              className="detail-action-btn"
+              onClick={() => onSpawnSwarm?.(node.tentacleId, "worktree")}
+            >
+              &#x2263; Spawn Swarm (Worktrees)
+            </button>
+            <button
+              type="button"
+              className="detail-action-btn"
+              onClick={() => onSpawnSwarm?.(node.tentacleId, "shared")}
+            >
+              &#x2263; Spawn Swarm (Normal)
+            </button>
+          </div>
+        </div>
+
         {/* Progress section */}
         {tentacle && (
           <div className="detail-section">
@@ -348,11 +376,31 @@ export const CanvasTentaclePanel = ({
                     key={`${i}-${item.text}`}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={() => handleTodoToggle(i, !item.done)}
-                    />
+                    <div className="detail-todo-controls">
+                      <button
+                        type="button"
+                        className="detail-todo-delete"
+                        title="Delete item"
+                        onClick={() => void handleTodoDelete(i)}
+                      >
+                        <X size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="detail-todo-solve"
+                        aria-label={`Spawn agent for todo item: ${item.text}`}
+                        title="Spawn agent for this item"
+                        disabled={item.done || solvingTodoIndex === i}
+                        onClick={() => void handleTodoSolve(i)}
+                      >
+                        {solvingTodoIndex === i ? "…" : <Terminal size={15} strokeWidth={2.4} />}
+                      </button>
+                      <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={() => handleTodoToggle(i, !item.done)}
+                      />
+                    </div>
                     {editingIndex === i ? (
                       <input
                         className="detail-todo-edit-input"
@@ -377,24 +425,6 @@ export const CanvasTentaclePanel = ({
                         {item.text}
                       </span>
                     )}
-                    <button
-                      type="button"
-                      className="detail-todo-solve"
-                      aria-label={`Spawn agent for todo item: ${item.text}`}
-                      title="Spawn agent for this item"
-                      disabled={item.done || solvingTodoIndex === i}
-                      onClick={() => void handleTodoSolve(i)}
-                    >
-                      {solvingTodoIndex === i ? "…" : ">_"}
-                    </button>
-                    <button
-                      type="button"
-                      className="detail-todo-delete"
-                      title="Delete item"
-                      onClick={() => void handleTodoDelete(i)}
-                    >
-                      <X size={12} />
-                    </button>
                   </li>
                 ))}
               </ul>
@@ -479,33 +509,6 @@ export const CanvasTentaclePanel = ({
           )}
         </div>
 
-        {/* Actions section */}
-        <div className="detail-section">
-          <div className="detail-section-title">Actions</div>
-          <div className="detail-actions">
-            <button
-              type="button"
-              className="detail-action-btn"
-              onClick={() => onCreateAgent?.(node.tentacleId)}
-            >
-              &gt;_ Create Agent
-            </button>
-            <button
-              type="button"
-              className="detail-action-btn"
-              onClick={() => onSpawnSwarm?.(node.tentacleId, "worktree")}
-            >
-              &#x2263; Spawn Swarm (Worktrees)
-            </button>
-            <button
-              type="button"
-              className="detail-action-btn"
-              onClick={() => onSpawnSwarm?.(node.tentacleId, "shared")}
-            >
-              &#x2263; Spawn Swarm (Normal)
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -832,15 +832,25 @@
   border: none;
   color: inherit;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   padding: 0 0.25rem;
   line-height: 1;
   flex-shrink: 0;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease,
+    text-shadow 0.12s ease;
 }
 
 .detail-close:hover {
-  color: #000;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.detail-close:active {
+  transform: translateY(0);
 }
 
 .detail-content {
@@ -985,13 +995,20 @@
 
 .detail-todo {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   font-size: 12px;
   color: #cdd6e4;
   padding: 5px 6px;
   border-radius: 4px;
   transition: background 0.1s;
+}
+
+.detail-todo-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .detail-todo:hover {
@@ -1004,7 +1021,6 @@
 }
 
 .detail-todo input[type="checkbox"] {
-  margin-top: 2px;
   flex-shrink: 0;
   accent-color: var(--accent-primary);
 }
@@ -1036,21 +1052,27 @@
 .detail-todo-delete {
   background: none;
   border: none;
-  color: #484f58;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
   flex-shrink: 0;
-  opacity: 0;
   transition: opacity 0.1s, color 0.1s;
 }
 
 .detail-todo-solve {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+  min-width: 18px;
+  padding: 0;
+  opacity: 1;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease,
+    text-shadow 0.12s ease;
 }
 
 .detail-todo:hover .detail-todo-solve,
@@ -1059,16 +1081,35 @@
 }
 
 .detail-todo-solve:hover {
-  color: var(--accent-primary);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.detail-todo-solve:active {
+  transform: translateY(0);
 }
 
 .detail-todo-solve:disabled {
   cursor: default;
-  opacity: 0.2;
+  opacity: 0.45;
+  filter: saturate(0.45);
+  text-shadow: none;
+}
+
+.detail-todo-solve svg {
+  display: block;
+  overflow: visible;
+}
+
+.detail-todo-delete {
+  color: var(--accent-primary);
+  opacity: 1;
 }
 
 .detail-todo-delete:hover {
   color: var(--term-red, #ff6b6b);
+  transform: translateY(-1px);
 }
 
 .detail-todo-add-row {
