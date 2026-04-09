@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
-import type { MonitorFeedSnapshot } from "../app/types";
+import type { UseMonitorRuntimeResult } from "../app/hooks/useMonitorRuntime";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
@@ -18,8 +18,16 @@ type PrimaryViewRouterProps = {
   activityPrimaryViewProps: ComponentProps<typeof ActivityPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
-  monitorEnabled: boolean;
-  onMonitorFeed: (feed: MonitorFeedSnapshot | null) => void;
+  monitorRuntime: Pick<
+    UseMonitorRuntimeResult,
+    | "monitorConfig"
+    | "monitorFeed"
+    | "monitorError"
+    | "isRefreshingMonitorFeed"
+    | "isSavingMonitorConfig"
+    | "refreshMonitorFeed"
+    | "patchMonitorConfig"
+  >;
   conversationsEnabled: boolean;
   onConversationsSidebarContent: (content: ReactNode) => void;
   onConversationsActionPanel: (content: ReactNode) => void;
@@ -34,8 +42,7 @@ export const PrimaryViewRouter = ({
   activityPrimaryViewProps,
   settingsPrimaryViewProps,
   canvasPrimaryViewProps,
-  monitorEnabled,
-  onMonitorFeed,
+  monitorRuntime,
   conversationsEnabled,
   onConversationsSidebarContent,
   onConversationsActionPanel,
@@ -56,7 +63,7 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 5) {
     if (isMonitorVisible) {
-      return <MonitorPrimaryView enabled={monitorEnabled} onMonitorFeed={onMonitorFeed} />;
+      return <MonitorPrimaryView monitorRuntime={monitorRuntime} />;
     }
     return (
       <section className="monitor-view" aria-label="Monitor primary view disabled">

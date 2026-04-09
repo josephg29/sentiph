@@ -180,6 +180,28 @@ describe("readClaudeUsageSnapshot", () => {
     expect(snapshot.source).toBe("oauth-api");
   });
 
+  it("prefers CLI data over OAuth when both are available", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(usageResponseBody, {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const snapshot = await readClaudeUsageSnapshot({
+      now: () => new Date("2026-03-03T12:00:00.000Z"),
+      spawnCliUsage: async () => cliUsageOutput,
+      readCredentialsJson: async () => validCredentials(),
+      fetchImpl: fetchMock,
+    });
+
+    expect(snapshot.status).toBe("ok");
+    expect(snapshot.source).toBe("cli-pty");
+    expect(snapshot.primaryUsedPercent).toBe(2);
+    expect(snapshot.secondaryUsedPercent).toBe(0);
+    expect(snapshot.sonnetUsedPercent).toBe(0);
+  });
+
   it("returns unavailable when credentials cannot be found", async () => {
     const snapshot = await readClaudeUsageSnapshot({
       now: () => new Date("2026-03-03T12:00:00.000Z"),

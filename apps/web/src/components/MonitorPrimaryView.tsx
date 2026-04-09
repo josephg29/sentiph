@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 
+import type {
+  MonitorConfigPatchRequest,
+  UseMonitorRuntimeResult,
+} from "../app/hooks/useMonitorRuntime";
 import { formatTimestamp } from "../app/formatTimestamp";
-import { useMonitorRuntime } from "../app/hooks/useMonitorRuntime";
-import type { MonitorFeedSnapshot } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
 type MonitorPrimaryViewProps = {
-  enabled: boolean;
-  onMonitorFeed?: (feed: MonitorFeedSnapshot | null) => void;
+  monitorRuntime: Pick<
+    UseMonitorRuntimeResult,
+    | "monitorConfig"
+    | "monitorFeed"
+    | "monitorError"
+    | "isRefreshingMonitorFeed"
+    | "isSavingMonitorConfig"
+    | "refreshMonitorFeed"
+    | "patchMonitorConfig"
+  >;
 };
 
 type MonitorSubtabId = "resources" | "configure";
@@ -34,7 +44,7 @@ const normalizeTerms = (terms: string[]): string[] => {
   return [...new Set(split)];
 };
 
-export const MonitorPrimaryView = ({ enabled, onMonitorFeed }: MonitorPrimaryViewProps) => {
+export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) => {
   const {
     monitorConfig,
     monitorFeed,
@@ -43,11 +53,7 @@ export const MonitorPrimaryView = ({ enabled, onMonitorFeed }: MonitorPrimaryVie
     isSavingMonitorConfig,
     refreshMonitorFeed,
     patchMonitorConfig,
-  } = useMonitorRuntime({ enabled });
-
-  useEffect(() => {
-    onMonitorFeed?.(monitorFeed);
-  }, [monitorFeed, onMonitorFeed]);
+  } = monitorRuntime;
 
   const onRefresh = () => {
     void refreshMonitorFeed(true);
@@ -55,7 +61,7 @@ export const MonitorPrimaryView = ({ enabled, onMonitorFeed }: MonitorPrimaryVie
   const onSyncFeed = () => {
     void refreshMonitorFeed(false);
   };
-  const onPatchConfig = patchMonitorConfig;
+  const onPatchConfig = patchMonitorConfig as (patch: MonitorConfigPatchRequest) => Promise<boolean>;
   const activeProviderId: MonitorProviderId = "x";
   const [activeSubtab, setActiveSubtab] = useState<MonitorSubtabId>("resources");
   const [queryTermsDraft, setQueryTermsDraft] = useState<string[]>([]);

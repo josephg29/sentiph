@@ -599,14 +599,6 @@ export const readClaudeCliUsageSnapshot = async (
   dependencies: ClaudeUsageDependencies = {},
 ): Promise<ClaudeUsageSnapshot> => {
   const now = dependencies.now?.() ?? new Date();
-  const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
-  const fetchImpl = dependencies.fetchImpl ?? fetch;
-  const oauthSnapshot = await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
-
-  console.log(
-    `[claude-usage] OAuth state before CLI-only request: ${oauthSnapshot.message ?? oauthSnapshot.status}`,
-  );
-
   const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
   try {
     const cliOutput = await spawnCliUsage();
@@ -645,7 +637,36 @@ export const readClaudeUsageSnapshot = async (
     return { ...cachedSnapshot.snapshot, fetchedAt: now.toISOString() };
   }
 
-  // Try OAuth API first (fast — single HTTP call)
+  // Prefer the CLI PTY path when it works, since it reflects Claude Code
+  // usage directly and avoids OAuth API rate-limit failures.
+  const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
+  try {
+    const cliOutput = await spawnCliUsage();
+    if (cliOutput) {
+      const cleaned = stripAnsiCodes(cliOutput);
+      console.log(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
+      const parsed = parseCliUsageOutput(cliOutput);
+      if (cliHasRealData(parsed)) {
+        console.log(
+          `[claude-usage] CLI PTY parsed: session=${parsed.primaryUsedPercent}% week=${parsed.secondaryUsedPercent}% sonnet=${parsed.sonnetUsedPercent}%`,
+        );
+        const snapshot = buildCliSnapshot(parsed, now);
+        cachedSnapshot = { snapshot, fetchedAt: Date.now() };
+        return snapshot;
+      }
+      console.log(
+        `[claude-usage] CLI PTY output had no parseable usage data. First 500 chars:\n${cleaned.slice(0, 500)}`,
+      );
+    } else {
+      console.log("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
+    }
+  } catch (error) {
+    console.log(
+      `[claude-usage] CLI PTY error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Fall back to OAuth API when CLI does not yield usable data.
   const readCredentialsJson = dependencies.readCredentialsJson ?? readDefaultCredentialsJson;
   const fetchImpl = dependencies.fetchImpl ?? fetch;
   const oauthSnapshot = await readOauthUsageSnapshot(now, readCredentialsJson, fetchImpl);
@@ -680,38 +701,6 @@ export const readClaudeUsageSnapshot = async (
       `[claude-usage] OAuth unavailable (${oauthSnapshot.message}), serving stale cached snapshot`,
     );
     return { ...cachedOkSnapshot, fetchedAt: now.toISOString() };
-  }
-
-  console.log(
-    `[claude-usage] OAuth credentials unavailable: ${oauthSnapshot.message}, falling back to CLI PTY`,
-  );
-
-  // Fall back to CLI PTY (slow — spawns a full claude session)
-  const spawnCliUsage = dependencies.spawnCliUsage ?? spawnDefaultCliUsage;
-  try {
-    const cliOutput = await spawnCliUsage();
-    if (cliOutput) {
-      const cleaned = stripAnsiCodes(cliOutput);
-      console.log(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
-      const parsed = parseCliUsageOutput(cliOutput);
-      if (cliHasRealData(parsed)) {
-        console.log(
-          `[claude-usage] CLI PTY parsed: session=${parsed.primaryUsedPercent}% week=${parsed.secondaryUsedPercent}% sonnet=${parsed.sonnetUsedPercent}%`,
-        );
-        const snapshot = buildCliSnapshot(parsed, now);
-        cachedSnapshot = { snapshot, fetchedAt: Date.now() };
-        return snapshot;
-      }
-      console.log(
-        `[claude-usage] CLI PTY output had no parseable usage data. First 500 chars:\n${cleaned.slice(0, 500)}`,
-      );
-    } else {
-      console.log("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
-    }
-  } catch (error) {
-    console.log(
-      `[claude-usage] CLI PTY error: ${error instanceof Error ? error.message : String(error)}`,
-    );
   }
 
   // Both sources failed — return cached or error

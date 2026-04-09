@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { MONITOR_SCAN_INTERVAL_MS } from "../src/app/constants";
 import { App } from "../src/App";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
@@ -9,6 +10,7 @@ describe("App Monitor runtime", () => {
     cleanup();
     resetAppTestHarness();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("saves X credentials, renders monitor feed rows, and supports manual refresh", async () => {
@@ -185,7 +187,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[4] Monitor",
+        name: "[5] Monitor",
       }),
     );
 
@@ -266,18 +268,8 @@ describe("App Monitor runtime", () => {
   });
 
   it("polls monitor feed and updates stale view automatically", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     let feedRequestCount = 0;
-    const intervalCallbacks: Array<() => void> = [];
-
-    vi.spyOn(window, "setInterval").mockImplementation(((handler: TimerHandler) => {
-      if (typeof handler === "function") {
-        intervalCallbacks.push(() => {
-          (handler as () => void)();
-        });
-      }
-      return 1;
-    }) as typeof window.setInterval);
-    vi.spyOn(window, "clearInterval").mockImplementation((() => {}) as typeof window.clearInterval);
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
@@ -403,7 +395,7 @@ describe("App Monitor runtime", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "[4] Monitor",
+        name: "[5] Monitor",
       }),
     );
 
@@ -411,15 +403,120 @@ describe("App Monitor runtime", () => {
     expect(within(monitorView).getByText("Older stale post")).toBeInTheDocument();
     expect(within(monitorView).getByText("STALE")).toBeInTheDocument();
 
-    for (const callback of intervalCallbacks) {
-      callback();
-    }
+    await vi.advanceTimersByTimeAsync(MONITOR_SCAN_INTERVAL_MS);
 
     await waitFor(() => {
       expect(within(monitorView).getByText("Fresh post after auto refresh")).toBeInTheDocument();
     });
     expect(within(monitorView).getByText("FRESH")).toBeInTheDocument();
     expect(feedRequestCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("hydrates the bottom telemetry tape after reload without opening the monitor view", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
+        return jsonResponse([]);
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          source: "none",
+          fetchedAt: "2026-02-28T12:00:00.000Z",
+        });
+      }
+
+      if (url.endsWith("/api/github/summary") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          source: "none",
+          fetchedAt: "2026-02-28T12:00:00.000Z",
+          commitsPerDay: [],
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({
+          isMonitorVisible: true,
+          isBottomTelemetryVisible: true,
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "PATCH") {
+        return jsonResponse({});
+      }
+
+      if (url.endsWith("/api/monitor/config") && method === "GET") {
+        return jsonResponse({
+          providerId: "x",
+          queryTerms: ["Codex"],
+          refreshPolicy: {
+            maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
+          },
+          providers: {
+            x: {
+              credentials: {
+                isConfigured: true,
+                bearerTokenHint: "****oken",
+                apiKeyHint: null,
+                hasApiSecret: false,
+                hasAccessToken: false,
+                hasAccessTokenSecret: false,
+                updatedAt: "2026-02-28T12:00:00.000Z",
+              },
+            },
+          },
+        });
+      }
+
+      if (url.endsWith("/api/monitor/feed") && method === "GET") {
+        return jsonResponse({
+          providerId: "x",
+          queryTerms: ["Codex"],
+          refreshPolicy: {
+            maxCacheAgeMs: 86400000,
+            maxPosts: 30,
+            searchWindowDays: 7,
+          },
+          lastFetchedAt: "2026-02-28T12:00:00.000Z",
+          staleAfter: "2026-03-01T12:00:00.000Z",
+          isStale: false,
+          lastError: null,
+          usage: null,
+          posts: [
+            {
+              source: "x",
+              id: "1",
+              text: "Telemetry should hydrate without visiting monitor",
+              author: "octogent",
+              createdAt: "2026-02-28T10:00:00.000Z",
+              likeCount: 123,
+              permalink: "https://x.com/octogent/status/1",
+              matchedQueryTerm: "Codex",
+            },
+          ],
+        });
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    const telemetryTape = await screen.findByLabelText("Telemetry ticker tape");
+    await waitFor(() => {
+      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
+      expect(
+        within(telemetryTape).queryByText("Waiting for X resources..."),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("does not call monitor APIs when Monitor is disabled, even if bottom telemetry is enabled", async () => {
@@ -484,10 +581,9 @@ describe("App Monitor runtime", () => {
 
     render(<App />);
 
-    await screen.findByLabelText("Active Agents sidebar");
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "[4] Monitor" }));
+    fireEvent.click(screen.getByRole("button", { name: "[5] Monitor" }));
     expect(await screen.findByLabelText("Monitor primary view disabled")).toBeInTheDocument();
 
     expect(monitorConfigCalls).toBe(0);

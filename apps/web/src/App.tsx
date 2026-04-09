@@ -9,6 +9,7 @@ import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShort
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
+import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
@@ -16,7 +17,7 @@ import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
 import { clampSidebarWidth } from "./app/uiStateNormalizers";
-import type { MonitorFeedSnapshot, TerminalView } from "./app/types";
+import type { TerminalView } from "./app/types";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import type { AgentRuntimeState } from "./components/AgentStateBadge";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
@@ -42,7 +43,6 @@ export const App = () => {
   const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
-  const [monitorFeed, setMonitorFeed] = useState<MonitorFeedSnapshot | null>(null);
   const columnsRefreshTimerIdsRef = useRef<number[]>([]);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
 
@@ -301,6 +301,9 @@ export const App = () => {
   });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
+  const monitorRuntime = useMonitorRuntime({
+    enabled: isUiStateHydrated && isMonitorVisible,
+  });
 
   const {
     githubCommitCount30d,
@@ -462,8 +465,7 @@ export const App = () => {
                 },
               },
             }}
-            monitorEnabled={isUiStateHydrated && isMonitorVisible}
-            onMonitorFeed={setMonitorFeed}
+            monitorRuntime={monitorRuntime}
             settingsPrimaryViewProps={{
               isMonitorVisible,
               isRuntimeStatusStripVisible,
@@ -577,7 +579,9 @@ export const App = () => {
         </div>
       </section>
 
-      {isMonitorVisible && isBottomTelemetryVisible && <TelemetryTape monitorFeed={monitorFeed} />}
+      {isUiStateHydrated && isMonitorVisible && isBottomTelemetryVisible && (
+        <TelemetryTape monitorFeed={monitorRuntime.monitorFeed} />
+      )}
     </div>
   );
 };

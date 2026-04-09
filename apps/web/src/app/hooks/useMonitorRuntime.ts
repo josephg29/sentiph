@@ -9,7 +9,7 @@ import { MONITOR_SCAN_INTERVAL_MS } from "../constants";
 import { normalizeMonitorConfigSnapshot, normalizeMonitorFeedSnapshot } from "../monitorNormalizers";
 import type { MonitorConfigSnapshot, MonitorFeedSnapshot } from "../types";
 
-type MonitorConfigPatchRequest = {
+export type MonitorConfigPatchRequest = {
   providerId?: "x";
   queryTerms?: string[];
   refreshPolicy?: {
@@ -27,7 +27,7 @@ type MonitorConfigPatchRequest = {
   validateCredentials?: boolean;
 };
 
-type UseMonitorRuntimeResult = {
+export type UseMonitorRuntimeResult = {
   monitorConfig: MonitorConfigSnapshot | null;
   monitorFeed: MonitorFeedSnapshot | null;
   isRefreshingMonitorFeed: boolean;
