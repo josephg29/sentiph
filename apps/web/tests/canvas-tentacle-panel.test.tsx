@@ -3,36 +3,27 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CanvasTentaclePanel } from "../src/components/canvas/CanvasTentaclePanel";
 
-const buildTentacleFetchResponse = () =>
-  new Response(
-    JSON.stringify([
-      {
-        tentacleId: "docs-knowledge",
-        displayName: "Docs & Knowledge",
-        description: "Keep docs aligned with the product.",
-        status: "active",
-        color: "#ff6b2b",
-        octopus: {
-          animation: null,
-          expression: null,
-          accessory: null,
-          hairColor: null,
-        },
-        scope: { paths: [], tags: [] },
-        vaultFiles: ["todo.md"],
-        todoTotal: 2,
-        todoDone: 0,
-        todoItems: [
-          { text: "Audit docs", done: false },
-          { text: "Consolidate principles", done: false },
-        ],
-      },
-    ]),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    },
-  );
+const tentacle = {
+  tentacleId: "docs-knowledge",
+  displayName: "Docs & Knowledge",
+  description: "Keep docs aligned with the product.",
+  status: "active" as const,
+  color: "#ff6b2b",
+  octopus: {
+    animation: null,
+    expression: null,
+    accessory: null,
+    hairColor: null,
+  },
+  scope: { paths: [], tags: [] },
+  vaultFiles: ["todo.md"],
+  todoTotal: 2,
+  todoDone: 0,
+  todoItems: [
+    { text: "Audit docs", done: false },
+    { text: "Consolidate principles", done: false },
+  ],
+};
 
 describe("CanvasTentaclePanel actions", () => {
   afterEach(() => {
@@ -42,23 +33,6 @@ describe("CanvasTentaclePanel actions", () => {
 
   it("offers worktree and normal swarm options", async () => {
     const onSpawnSwarm = vi.fn();
-
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const url = String(input);
-
-      if (url.endsWith("/api/deck/tentacles")) {
-        return buildTentacleFetchResponse();
-      }
-
-      if (url.endsWith("/api/conversations")) {
-        return new Response("[]", {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response("not-found", { status: 404 });
-    });
 
     render(
       <CanvasTentaclePanel
@@ -75,6 +49,8 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
+        tentacle={tentacle}
+        sessions={[]}
         onClose={() => {}}
         onSpawnSwarm={onSpawnSwarm}
       />,
@@ -99,17 +75,6 @@ describe("CanvasTentaclePanel actions", () => {
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
-
-      if (url.endsWith("/api/deck/tentacles")) {
-        return buildTentacleFetchResponse();
-      }
-
-      if (url.endsWith("/api/conversations")) {
-        return new Response("[]", {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
 
       if (url.endsWith("/api/deck/tentacles/docs-knowledge/todo/solve")) {
         expect(init?.method).toBe("POST");
@@ -138,6 +103,8 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
+        tentacle={tentacle}
+        sessions={[]}
         onClose={() => {}}
         onSolveTodoItem={onSolveTodoItem}
       />,
@@ -151,6 +118,50 @@ describe("CanvasTentaclePanel actions", () => {
 
     await waitFor(() => {
       expect(onSolveTodoItem).toHaveBeenCalledWith("docs-knowledge", 0);
+    });
+  });
+
+  it("refreshes centralized tentacle data after mutating todo items", async () => {
+    const onRefreshTentacleData = vi.fn().mockResolvedValue(undefined);
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/deck/tentacles/docs-knowledge/todo/toggle")) {
+        expect(init?.method).toBe("PATCH");
+        expect(init?.body).toBe(JSON.stringify({ itemIndex: 0, done: true }));
+        return new Response(null, { status: 200 });
+      }
+
+      return new Response("not-found", { status: 404 });
+    });
+
+    render(
+      <CanvasTentaclePanel
+        node={{
+          id: "docs-knowledge",
+          type: "tentacle",
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          pinned: false,
+          radius: 48,
+          tentacleId: "docs-knowledge",
+          label: "Docs & Knowledge",
+          color: "#ff6b2b",
+        }}
+        tentacle={tentacle}
+        sessions={[]}
+        onClose={() => {}}
+        onRefreshTentacleData={onRefreshTentacleData}
+      />,
+    );
+
+    fireEvent.click((await screen.findAllByRole("checkbox"))[0] as HTMLElement);
+
+    await waitFor(() => {
+      expect(onRefreshTentacleData).toHaveBeenCalledTimes(1);
     });
   });
 });

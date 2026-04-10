@@ -236,7 +236,10 @@ export const CanvasPrimaryView = ({
   const {
     nodes,
     edges,
+    tentacleById,
+    sessionsByTentacleId,
     refresh: refreshGraphData,
+    refreshDeckTentacles,
   } = useCanvasGraphData({ columns, enabled: true, agentRuntimeStates });
 
   const {
@@ -1117,6 +1120,8 @@ export const CanvasPrimaryView = ({
                 node={node}
                 isFocused={selectedNodeId === nodeId}
                 panelRef={setPanelRef(nodeId)}
+                tentacle={tentacleById.get(node.tentacleId) ?? null}
+                sessions={sessionsByTentacleId.get(node.tentacleId) ?? []}
                 onClose={() => handleCloseTentacle(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(tentacleId) => {
@@ -1129,6 +1134,7 @@ export const CanvasPrimaryView = ({
                   handleSpawnSwarm(tentacleId, workspaceMode);
                 }}
                 onNavigateToConversation={onNavigateToConversation}
+                onRefreshTentacleData={refreshDeckTentacles}
               />
             ))}
             {isHydratingTerminals && openTerminals.size === 0 && (

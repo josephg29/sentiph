@@ -56,7 +56,10 @@ vi.mock("../src/app/hooks/useCanvasGraphData", () => ({
   useCanvasGraphData: () => ({
     nodes,
     edges: [],
+    tentacleById: new Map(),
+    sessionsByTentacleId: new Map(),
     refresh: vi.fn(),
+    refreshDeckTentacles: vi.fn(),
   }),
 }));
 
