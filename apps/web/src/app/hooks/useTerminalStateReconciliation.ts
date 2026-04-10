@@ -1,23 +1,23 @@
 import { useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
-import { retainActiveTerminalEntries, retainActiveTerminalIds } from "../terminalState";
+import { retainActiveTerminalIds } from "../terminalState";
 import type { TerminalView } from "../types";
 
-type UseTerminalStateReconciliationOptions<TState> = {
+type UseTerminalStateReconciliationOptions = {
   columns: TerminalView;
   setMinimizedTerminalIds: Dispatch<SetStateAction<string[]>>;
-  setTerminalStates: Dispatch<SetStateAction<Record<string, TState>>>;
+  onActiveTerminalIdsChange?: (activeTerminalIds: ReadonlySet<string>) => void;
 };
 
-export const useTerminalStateReconciliation = <TState>({
+export const useTerminalStateReconciliation = ({
   columns,
   setMinimizedTerminalIds,
-  setTerminalStates,
-}: UseTerminalStateReconciliationOptions<TState>) => {
+  onActiveTerminalIdsChange,
+}: UseTerminalStateReconciliationOptions) => {
   useEffect(() => {
     const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
     setMinimizedTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
-    setTerminalStates((current) => retainActiveTerminalEntries(current, activeTerminalIds));
-  }, [columns, setMinimizedTerminalIds, setTerminalStates]);
+    onActiveTerminalIdsChange?.(activeTerminalIds);
+  }, [columns, onActiveTerminalIdsChange, setMinimizedTerminalIds]);
 };

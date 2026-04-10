@@ -315,6 +315,8 @@ const terminalCreate = async () => {
   const tentacleId = parseFlag("--tentacle-id");
   const worktreeId = parseFlag("--worktree-id");
   const parentTerminalId = parseFlag("--parent-terminal-id");
+  const nameOrigin = parseFlag("--name-origin");
+  const autoRenamePromptContext = parseFlag("--auto-rename-prompt-context");
   const promptTemplate = parseFlag("--prompt-template");
   const promptVariables = parseJsonFlag("--prompt-variables");
 
@@ -326,6 +328,8 @@ const terminalCreate = async () => {
   if (tentacleId) body.tentacleId = tentacleId;
   if (worktreeId) body.worktreeId = worktreeId;
   if (parentTerminalId) body.parentTerminalId = parentTerminalId;
+  if (nameOrigin) body.nameOrigin = nameOrigin;
+  if (autoRenamePromptContext) body.autoRenamePromptContext = autoRenamePromptContext;
   if (promptTemplate) body.promptTemplate = promptTemplate;
   if (promptVariables) body.promptVariables = promptVariables;
   try {

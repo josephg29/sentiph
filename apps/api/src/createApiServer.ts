@@ -146,7 +146,7 @@ export const createApiServer = ({
       return { host, port: resolvedPort };
     },
     async stop() {
-      runtime.close();
+      await runtime.close();
       await new Promise<void>((resolveStop, rejectStop) => {
         server.close((error) => {
           if (error) {

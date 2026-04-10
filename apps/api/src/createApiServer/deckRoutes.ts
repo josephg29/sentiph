@@ -406,6 +406,8 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
       terminalId,
       tentacleId,
       tentacleName,
+      nameOrigin: "generated",
+      autoRenamePromptContext: todoItem.text,
       workspaceMode: "shared",
       ...(agentProviderResult.agentProvider
         ? { agentProvider: agentProviderResult.agentProvider }
@@ -693,6 +695,8 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         tentacleId,
         ...(workerWorkspaceMode === "worktree" ? { worktreeId: worker.terminalId } : {}),
         tentacleName,
+        nameOrigin: "generated",
+        autoRenamePromptContext: item.text,
         workspaceMode: workerWorkspaceMode,
         ...(agentProviderResult.agentProvider
           ? { agentProvider: agentProviderResult.agentProvider }
@@ -747,6 +751,8 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
             `--parent-terminal-id ${shellSingleQuote(parentTerminalId)}`,
             `--workspace-mode ${workerWorkspaceMode}`,
             `--name ${shellSingleQuote(tentacleName)}`,
+            `--name-origin generated`,
+            `--auto-rename-prompt-context ${shellSingleQuote(item.text)}`,
             `--prompt-template swarm-worker`,
             `--prompt-variables ${shellSingleQuote(promptVariables)}`,
           ];

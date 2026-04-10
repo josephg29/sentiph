@@ -1,13 +1,10 @@
 import { Terminal, X } from "lucide-react";
-import { type Ref, useCallback, useEffect, useMemo, useState } from "react";
+import { type Ref, useCallback, useMemo, useState } from "react";
 
 import type { DeckTentacleSummary, TentacleWorkspaceMode } from "@octogent/core";
 import type { GraphNode } from "../../app/canvas/types";
-import { normalizeConversationSessionSummary } from "../../app/conversationNormalizers";
 import type { ConversationSessionSummary } from "../../app/types";
 import {
-  buildConversationsUrl,
-  buildDeckTentaclesUrl,
   buildDeckTodoAddUrl,
   buildDeckTodoDeleteUrl,
   buildDeckTodoEditUrl,
@@ -79,10 +76,13 @@ type CanvasTentaclePanelProps = {
   onClose: () => void;
   onFocus?: () => void;
   panelRef?: Ref<HTMLDivElement> | undefined;
+  tentacle: DeckTentacleSummary | null;
+  sessions: ConversationSessionSummary[];
   onCreateAgent?: ((tentacleId: string) => void) | undefined;
   onSolveTodoItem?: ((tentacleId: string, itemIndex: number) => void) | undefined;
   onSpawnSwarm?: ((tentacleId: string, workspaceMode: TentacleWorkspaceMode) => void) | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
+  onRefreshTentacleData?: (() => Promise<void>) | undefined;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -112,58 +112,23 @@ export const CanvasTentaclePanel = ({
   onClose,
   onFocus,
   panelRef,
+  tentacle,
+  sessions,
   onCreateAgent,
   onSolveTodoItem,
   onSpawnSwarm,
   onNavigateToConversation,
+  onRefreshTentacleData,
 }: CanvasTentaclePanelProps) => {
-  const [tentacle, setTentacle] = useState<DeckTentacleSummary | null>(null);
-  const [sessions, setSessions] = useState<ConversationSessionSummary[]>([]);
-
   const visuals = useMemo(() => (tentacle ? deriveVisuals(tentacle) : null), [tentacle]);
-
-  const fetchTentacle = useCallback(async () => {
-    try {
-      const response = await fetch(buildDeckTentaclesUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as unknown;
-      if (!Array.isArray(payload)) return;
-      const match = (payload as DeckTentacleSummary[]).find(
-        (t) => t.tentacleId === node.tentacleId,
-      );
-      if (match) setTentacle(match);
-    } catch {
-      // silent
-    }
-  }, [node.tentacleId]);
-
-  const fetchSessions = useCallback(async () => {
-    try {
-      const response = await fetch(buildConversationsUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as unknown;
-      const all = Array.isArray(payload)
-        ? payload
-            .map((entry) => normalizeConversationSessionSummary(entry))
-            .filter((entry): entry is ConversationSessionSummary => entry !== null)
-        : [];
-      setSessions(all.filter((s) => s.tentacleId === node.tentacleId));
-    } catch {
-      // silent
-    }
-  }, [node.tentacleId]);
-
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [addingTodo, setAddingTodo] = useState(false);
   const [addText, setAddText] = useState("");
   const [solvingTodoIndex, setSolvingTodoIndex] = useState<number | null>(null);
+  const refreshTentacleData = useCallback(async () => {
+    await onRefreshTentacleData?.();
+  }, [onRefreshTentacleData]);
 
   const handleTodoToggle = useCallback(
     async (itemIndex: number, done: boolean) => {
@@ -174,12 +139,12 @@ export const CanvasTentaclePanel = ({
           body: JSON.stringify({ itemIndex, done }),
         });
         if (!response.ok) return;
-        await fetchTentacle();
+        await refreshTentacleData();
       } catch {
         // silent
       }
     },
-    [node.tentacleId, fetchTentacle],
+    [node.tentacleId, refreshTentacleData],
   );
 
   const handleTodoEdit = useCallback(
@@ -193,12 +158,12 @@ export const CanvasTentaclePanel = ({
         });
         if (!response.ok) return;
         setEditingIndex(null);
-        await fetchTentacle();
+        await refreshTentacleData();
       } catch {
         // silent
       }
     },
-    [node.tentacleId, fetchTentacle],
+    [node.tentacleId, refreshTentacleData],
   );
 
   const handleTodoAdd = useCallback(
@@ -213,12 +178,12 @@ export const CanvasTentaclePanel = ({
         if (!response.ok) return;
         setAddingTodo(false);
         setAddText("");
-        await fetchTentacle();
+        await refreshTentacleData();
       } catch {
         // silent
       }
     },
-    [node.tentacleId, fetchTentacle],
+    [node.tentacleId, refreshTentacleData],
   );
 
   const handleTodoDelete = useCallback(
@@ -230,12 +195,12 @@ export const CanvasTentaclePanel = ({
           body: JSON.stringify({ itemIndex }),
         });
         if (!response.ok) return;
-        await fetchTentacle();
+        await refreshTentacleData();
       } catch {
         // silent
       }
     },
-    [node.tentacleId, fetchTentacle],
+    [node.tentacleId, refreshTentacleData],
   );
 
   const handleTodoSolve = useCallback(
@@ -257,11 +222,6 @@ export const CanvasTentaclePanel = ({
     },
     [node.tentacleId, onSolveTodoItem],
   );
-
-  useEffect(() => {
-    void fetchTentacle();
-    void fetchSessions();
-  }, [fetchTentacle, fetchSessions]);
 
   const progressPct =
     tentacle && tentacle.todoTotal > 0

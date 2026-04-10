@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -421,6 +421,27 @@ describe("createApiServer", () => {
     httpBaseUrl.startsWith("https://")
       ? httpBaseUrl.replace("https://", "wss://")
       : httpBaseUrl.replace("http://", "ws://");
+
+  const waitForRegistryDocument = async <TDocument>(
+    workspaceCwd: string,
+    predicate: (document: TDocument) => boolean,
+  ): Promise<TDocument> => {
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    const timeoutAt = Date.now() + 2_000;
+
+    while (Date.now() < timeoutAt) {
+      if (existsSync(registryPath)) {
+        const document = JSON.parse(readFileSync(registryPath, "utf8")) as TDocument;
+        if (predicate(document)) {
+          return document;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    throw new Error(`Timed out waiting for registry persistence at ${registryPath}`);
+  };
 
   const writeConversationTranscript = (
     workspaceCwd: string,
@@ -1040,6 +1061,150 @@ describe("createApiServer", () => {
     expect(secondBody.primaryUsedPercent).toBeGreaterThan(10);
   });
 
+  it("POST /api/hooks/user-prompt-submit auto-renames generated default terminal names", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const secondHookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Something else later" }),
+      },
+    );
+    expect(secondHookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "Investigate flaky CI failures",
+        }),
+      ]),
+    );
+  });
+
+  it("POST /api/hooks/user-prompt-submit preserves explicit terminal names", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "reviewer" }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "reviewer",
+        }),
+      ]),
+    );
+  });
+
+  it("infers generated terminal names from older registry entries", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
+    mkdirSync(join(workspaceCwd, ".octogent", "state"), { recursive: true });
+    writeFileSync(
+      registryPath,
+      `${JSON.stringify(
+        {
+          version: 3,
+          terminals: [
+            {
+              terminalId: "terminal-1",
+              tentacleId: "terminal-1",
+              tentacleName: "Octogent Terminal 1",
+              createdAt: "2026-04-10T10:00:00.000Z",
+              workspaceMode: "shared",
+            },
+          ],
+          uiState: {},
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          terminalId: "terminal-1",
+          tentacleName: "Investigate flaky CI failures",
+        }),
+      ]),
+    );
+  });
+
   it("returns 405 for unsupported methods on /api/github/summary", async () => {
     const baseUrl = await startServer({
       readGithubRepoSummary: async () => ({
@@ -1429,14 +1594,20 @@ describe("createApiServer", () => {
     });
     expect(createResponse.status).toBe(201);
 
-    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
-    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+    const registryDocument = await waitForRegistryDocument<{
       terminals: Array<{
         terminalId: string;
         tentacleId: string;
         workspaceMode: "shared" | "worktree";
       }>;
-    };
+    }>(workspaceCwd, (document) =>
+      document.terminals.some(
+        (terminal) =>
+          terminal.terminalId === "terminal-1" &&
+          terminal.tentacleId === "terminal-1" &&
+          terminal.workspaceMode === "shared",
+      ),
+    );
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1517,14 +1688,20 @@ describe("createApiServer", () => {
       }),
     );
 
-    const registryPath = join(workspaceCwd, ".octogent", "state", "tentacles.json");
-    const registryDocument = JSON.parse(readFileSync(registryPath, "utf8")) as {
+    const registryDocument = await waitForRegistryDocument<{
       terminals: Array<{
         terminalId: string;
         tentacleId: string;
         workspaceMode: "shared" | "worktree";
       }>;
-    };
+    }>(workspaceCwd, (document) =>
+      document.terminals.some(
+        (terminal) =>
+          terminal.terminalId === "terminal-1" &&
+          terminal.tentacleId === "terminal-1" &&
+          terminal.workspaceMode === "worktree",
+      ),
+    );
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2417,6 +2594,63 @@ describe("createApiServer", () => {
     ]);
   });
 
+  it("auto-renames todo agents from the todo item context on first prompt submit", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    mkdirSync(join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "CONTEXT.md"),
+      "# Docs & Knowledge\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "todo.md"),
+      "# Todo\n\n- [ ] Audit docs\n- [ ] Consolidate principles\n",
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const solveResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/todo/solve`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ itemIndex: 0 }),
+    });
+    expect(solveResponse.status).toBe(201);
+
+    const hookResponse = await fetch(
+      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=docs-knowledge-todo-0`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Generic worker prompt body" }),
+      },
+    );
+    expect(hookResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual([
+      expect.objectContaining({
+        terminalId: "docs-knowledge-todo-0",
+        tentacleId: "docs-knowledge",
+        tentacleName: "Audit docs",
+        workspaceMode: "shared",
+      }),
+    ]);
+  });
+
   it("limits swarm prompts to the top-priority items that fit under the child cap", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
@@ -2428,8 +2662,9 @@ describe("createApiServer", () => {
       "# Docs & Knowledge\n",
       "utf8",
     );
-    const todoItems = Array.from({ length: MAX_CHILDREN_PER_PARENT + 4 }, (_, index) =>
-      `- [ ] item ${index}`,
+    const todoItems = Array.from(
+      { length: MAX_CHILDREN_PER_PARENT + 4 },
+      (_, index) => `- [ ] item ${index}`,
     ).join("\n");
     writeFileSync(
       join(workspaceCwd, ".octogent", "tentacles", "docs-knowledge", "todo.md"),
@@ -2502,7 +2737,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
-    expect(missingResponse.status).toBe(404);
+    expect(missingResponse.status).toBe(204);
   });
 
   it("deletes descendant terminals when deleting a parent terminal", async () => {

@@ -23,8 +23,8 @@ import {
 import { createGitOperations } from "./terminalRuntime/gitOperations";
 import { createHookProcessor } from "./terminalRuntime/hookProcessor";
 import {
+  createTerminalRegistryPersistence,
   loadTerminalRegistry,
-  persistTerminalRegistry,
   pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
@@ -37,6 +37,7 @@ import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalNameOrigin,
   type TerminalSession,
 } from "./terminalRuntime/types";
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
@@ -45,6 +46,7 @@ export type {
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
+  TerminalNameOrigin,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
 export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
@@ -64,6 +66,7 @@ export const createTerminalRuntime = ({
   const terminalEventClients = new Set<WebSocket>();
   const registryPath = join(stateDir, "state", "tentacles.json");
   const registryState = loadTerminalRegistry(registryPath);
+  const registryPersistence = createTerminalRegistryPersistence(registryPath);
   const terminals = registryState.terminals;
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
@@ -73,7 +76,7 @@ export const createTerminalRuntime = ({
 
   const persistRegistry = () => {
     uiState = pruneUiStateTerminalReferences(uiState, terminals);
-    persistTerminalRegistry(registryPath, {
+    registryPersistence.schedulePersist({
       terminals,
       uiState,
     });
@@ -252,6 +255,8 @@ export const createTerminalRuntime = ({
     initialPrompt,
     baseRef,
     parentTerminalId,
+    nameOrigin,
+    autoRenamePromptContext,
   }: {
     terminalId?: string;
     tentacleId?: string;
@@ -262,6 +267,8 @@ export const createTerminalRuntime = ({
     initialPrompt?: string;
     baseRef?: string;
     parentTerminalId?: string;
+    nameOrigin?: TerminalNameOrigin;
+    autoRenamePromptContext?: string;
   }): TerminalSnapshot => {
     // Enforce max children per parent.
     if (parentTerminalId) {
@@ -287,14 +294,15 @@ export const createTerminalRuntime = ({
     // Auto-allocate a unique worktreeId when creating a worktree terminal
     // so multiple worktree terminals can coexist (each gets its own directory).
     const worktreeId =
-      requestedWorktreeId ??
-      (workspaceMode === "worktree" ? terminalId : undefined);
+      requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
     const terminal: PersistedTerminal = {
       terminalId,
       tentacleId,
       ...(worktreeId ? { worktreeId } : {}),
       tentacleName: effectiveName,
+      nameOrigin: nameOrigin ?? (tentacleName ? "user" : "generated"),
+      ...(autoRenamePromptContext ? { autoRenamePromptContext } : {}),
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
@@ -463,6 +471,8 @@ export const createTerminalRuntime = ({
       }
 
       terminal.tentacleName = tentacleName;
+      terminal.nameOrigin = "user";
+      delete terminal.autoRenamePromptContext;
       persistRegistry();
       broadcastTerminalEvent({
         type: "terminal-updated",
@@ -540,7 +550,8 @@ export const createTerminalRuntime = ({
       return sessionRuntime.resizeSession(terminalId, cols, rows);
     },
 
-    close() {
+    async close() {
+      await registryPersistence.close();
       sessionRuntime.close();
       for (const client of terminalEventClients) {
         client.close();

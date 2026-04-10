@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import type { AgentRuntimeState } from "../../components/AgentStateBadge";
 import {
   type TerminalCompletionSoundId,
   buildTerminalCompletionSoundDataUrl,
 } from "../notificationSounds";
+import type { TerminalRuntimeStateStore } from "../terminalRuntimeStateStore";
 
 const createCompletionAudio = (soundId: TerminalCompletionSoundId): HTMLAudioElement | null => {
   if (soundId === "silent" || typeof Audio === "undefined") {
@@ -26,10 +26,10 @@ const createCompletionAudio = (soundId: TerminalCompletionSoundId): HTMLAudioEle
 };
 
 export const useTerminalCompletionNotification = (
-  terminalStates: Record<string, AgentRuntimeState>,
+  runtimeStateStore: TerminalRuntimeStateStore,
   selectedSound: TerminalCompletionSoundId,
 ) => {
-  const previousTerminalStatesRef = useRef<Record<string, AgentRuntimeState>>({});
+  const previousTerminalStatesRef = useRef(runtimeStateStore.getSnapshot());
   const audioCacheRef = useRef<Partial<Record<TerminalCompletionSoundId, HTMLAudioElement | null>>>(
     {},
   );
@@ -62,19 +62,24 @@ export const useTerminalCompletionNotification = (
   }, []);
 
   useEffect(() => {
-    const previousTerminalStates = previousTerminalStatesRef.current;
-    const shouldPlayCompletionSound = Object.entries(terminalStates).some(
-      ([terminalId, state]) =>
-        previousTerminalStates[terminalId] === "processing" && state === "idle",
-    );
-    previousTerminalStatesRef.current = terminalStates;
+    previousTerminalStatesRef.current = runtimeStateStore.getSnapshot();
 
-    if (!shouldPlayCompletionSound) {
-      return;
-    }
+    return runtimeStateStore.subscribe(() => {
+      const previousTerminalStates = previousTerminalStatesRef.current;
+      const nextTerminalStates = runtimeStateStore.getSnapshot();
+      const shouldPlayCompletionSound = Object.entries(nextTerminalStates).some(
+        ([terminalId, state]) =>
+          previousTerminalStates[terminalId]?.state === "processing" && state.state === "idle",
+      );
 
-    playCompletionSound(selectedSound);
-  }, [playCompletionSound, selectedSound, terminalStates]);
+      previousTerminalStatesRef.current = nextTerminalStates;
+      if (!shouldPlayCompletionSound) {
+        return;
+      }
+
+      playCompletionSound(selectedSound);
+    });
+  }, [playCompletionSound, runtimeStateStore, selectedSound]);
 
   const playCompletionSoundPreview = useCallback(
     (soundId?: TerminalCompletionSoundId) => {

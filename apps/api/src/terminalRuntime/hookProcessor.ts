@@ -245,12 +245,15 @@ export const createHookProcessor = (deps: {
       }
 
       // Auto-name the terminal from the first prompt when it still has its default name.
-      if (terminal.tentacleName === terminal.terminalId) {
+      if (terminal.nameOrigin === "generated") {
         const prompt =
           typeof hookPayloadRecord.prompt === "string" ? hookPayloadRecord.prompt.trim() : "";
-        if (prompt.length > 0) {
-          const derived = deriveTerminalNameFromPrompt(prompt);
+        const renameContext = terminal.autoRenamePromptContext?.trim() || prompt;
+        if (renameContext.length > 0) {
+          const derived = deriveTerminalNameFromPrompt(renameContext);
           terminal.tentacleName = derived;
+          terminal.nameOrigin = "prompt";
+          delete terminal.autoRenamePromptContext;
           console.log(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
 
           const session = sessions.get(terminal.terminalId);

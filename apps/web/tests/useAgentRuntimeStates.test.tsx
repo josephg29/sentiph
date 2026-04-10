@@ -2,10 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { useAgentRuntimeStates } from "../src/app/hooks/useAgentRuntimeStates";
+import { createTerminalRuntimeStateStore } from "../src/app/terminalRuntimeStateStore";
 import type { TerminalView } from "../src/app/types";
 
 const HookProbe = ({ columns }: { columns: TerminalView }) => {
-  const runtimeStates = useAgentRuntimeStates(columns);
+  const runtimeStateStore = createTerminalRuntimeStateStore();
+  runtimeStateStore.syncFromTerminals(columns);
+  const runtimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
   return (
     <output aria-label="runtime-states">
       {JSON.stringify(Array.from(runtimeStates.entries()))}

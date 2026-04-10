@@ -8,7 +8,20 @@ type DeleteAllTerminalsDialogProps = {
   columns: TerminalView;
   nodes: GraphNode[];
   onCancel: () => void;
-  onDeleted: () => void;
+  onDeleted: (result: { hadFailures: boolean }) => void;
+};
+
+const readDeleteFailureMessage = async (response: Response, fallback: string) => {
+  try {
+    const payload = (await response.json()) as { error?: unknown };
+    if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+      return payload.error;
+    }
+  } catch {
+    // Ignore malformed error payloads and fall back to the status line.
+  }
+
+  return fallback;
 };
 
 export const DeleteAllTerminalsDialog = ({
@@ -20,6 +33,7 @@ export const DeleteAllTerminalsDialog = ({
   const [inactiveOnly, setInactiveOnly] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [failureMessages, setFailureMessages] = useState<string[]>([]);
 
   const inactiveTerminals = useMemo(() => columns.filter((t) => !t.hasUserPrompt), [columns]);
 
@@ -34,34 +48,58 @@ export const DeleteAllTerminalsDialog = ({
 
   const handleConfirm = useCallback(async () => {
     if (totalTargetCount === 0) return;
+    setFailureMessages([]);
     setIsDeleting(true);
     setProgress({ done: 0, total: totalTargetCount });
 
     let done = 0;
+    const failures: string[] = [];
 
-    // Delete active terminals
     for (const terminal of activeTargets) {
       try {
-        await fetch(`/api/terminals/${encodeURIComponent(terminal.terminalId)}`, {
+        const response = await fetch(`/api/terminals/${encodeURIComponent(terminal.terminalId)}`, {
           method: "DELETE",
           headers: { Accept: "application/json" },
         });
-      } catch {
-        // continue
+        if (!response.ok) {
+          failures.push(
+            `${terminal.tentacleName || terminal.label || terminal.terminalId}: ${await readDeleteFailureMessage(
+              response,
+              `Delete failed (${response.status})`,
+            )}`,
+          );
+        }
+      } catch (error) {
+        failures.push(
+          `${terminal.tentacleName || terminal.label || terminal.terminalId}: ${
+            error instanceof Error ? error.message : "Delete failed."
+          }`,
+        );
       }
       done += 1;
       setProgress({ done, total: totalTargetCount });
     }
 
-    // Delete inactive conversation sessions
     for (const sessionId of inactiveSessionIds) {
       try {
-        await fetch(`/api/conversations/${encodeURIComponent(sessionId)}`, {
+        const response = await fetch(`/api/conversations/${encodeURIComponent(sessionId)}`, {
           method: "DELETE",
           headers: { Accept: "application/json" },
         });
-      } catch {
-        // continue
+        if (!response.ok) {
+          failures.push(
+            `Conversation ${sessionId}: ${await readDeleteFailureMessage(
+              response,
+              `Delete failed (${response.status})`,
+            )}`,
+          );
+        }
+      } catch (error) {
+        failures.push(
+          `Conversation ${sessionId}: ${
+            error instanceof Error ? error.message : "Delete failed."
+          }`,
+        );
       }
       done += 1;
       setProgress({ done, total: totalTargetCount });
@@ -69,7 +107,8 @@ export const DeleteAllTerminalsDialog = ({
 
     setIsDeleting(false);
     setProgress(null);
-    onDeleted();
+    setFailureMessages(failures);
+    onDeleted({ hadFailures: failures.length > 0 });
   }, [activeTargets, inactiveSessionIds, totalTargetCount, onDeleted]);
 
   return (
@@ -110,6 +149,12 @@ export const DeleteAllTerminalsDialog = ({
         <p className="delete-confirm-message">
           Worktree-backed terminals also remove their local worktree directories and branches.
         </p>
+        {failureMessages.length > 0 && (
+          <p className="delete-confirm-message" role="alert">
+            Failed to delete {failureMessages.length}{" "}
+            {failureMessages.length === 1 ? "item" : "items"}: {failureMessages.slice(0, 3).join("; ")}
+          </p>
+        )}
         <div className="delete-all-mode-row">
           <span className="delete-all-mode-label">
             {inactiveOnly ? "Inactive only" : "All terminals"}

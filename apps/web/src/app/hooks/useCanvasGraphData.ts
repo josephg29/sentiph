@@ -56,24 +56,104 @@ type UseCanvasGraphDataOptions = {
 type UseCanvasGraphDataResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
-  refresh: () => void;
+  tentacleById: ReadonlyMap<string, DeckTentacleSummary>;
+  sessionsByTentacleId: ReadonlyMap<string, ConversationSessionSummary[]>;
+  refresh: () => Promise<void>;
+  refreshDeckTentacles: () => Promise<void>;
 };
 
 const buildTentacleNodeId = (tentacleId: string) => `t:${tentacleId}`;
 const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
-type DeckTentacleMinimal = Pick<
-  DeckTentacleSummary,
-  "tentacleId" | "displayName" | "color" | "octopus"
->;
+const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | null => {
+  if (value === null || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.tentacleId !== "string") {
+    return null;
+  }
+
+  const todoItems = Array.isArray(record.todoItems)
+    ? record.todoItems
+        .map((item) => {
+          if (item === null || typeof item !== "object") {
+            return null;
+          }
+
+          const todoRecord = item as Record<string, unknown>;
+          if (typeof todoRecord.text !== "string") {
+            return null;
+          }
+
+          return {
+            text: todoRecord.text,
+            done: todoRecord.done === true,
+          };
+        })
+        .filter((item): item is { text: string; done: boolean } => item !== null)
+    : [];
+
+  const scopeRecord =
+    record.scope !== null && typeof record.scope === "object"
+      ? (record.scope as Record<string, unknown>)
+      : null;
+  const octopusRecord =
+    record.octopus !== null && typeof record.octopus === "object"
+      ? (record.octopus as Record<string, unknown>)
+      : null;
+
+  const status =
+    record.status === "idle" ||
+    record.status === "active" ||
+    record.status === "blocked" ||
+    record.status === "needs-review"
+      ? record.status
+      : "idle";
+
+  return {
+    tentacleId: record.tentacleId,
+    displayName: typeof record.displayName === "string" ? record.displayName : record.tentacleId,
+    description: typeof record.description === "string" ? record.description : "",
+    status,
+    color: typeof record.color === "string" ? record.color : null,
+    octopus: {
+      animation: typeof octopusRecord?.animation === "string" ? octopusRecord.animation : null,
+      expression: typeof octopusRecord?.expression === "string" ? octopusRecord.expression : null,
+      accessory: typeof octopusRecord?.accessory === "string" ? octopusRecord.accessory : null,
+      hairColor: typeof octopusRecord?.hairColor === "string" ? octopusRecord.hairColor : null,
+    },
+    scope: {
+      paths: Array.isArray(scopeRecord?.paths)
+        ? scopeRecord.paths.filter((path): path is string => typeof path === "string")
+        : [],
+      tags: Array.isArray(scopeRecord?.tags)
+        ? scopeRecord.tags.filter((tag): tag is string => typeof tag === "string")
+        : [],
+    },
+    vaultFiles: Array.isArray(record.vaultFiles)
+      ? record.vaultFiles.filter((file): file is string => typeof file === "string")
+      : [],
+    todoTotal:
+      typeof record.todoTotal === "number" && Number.isFinite(record.todoTotal)
+        ? record.todoTotal
+        : todoItems.length,
+    todoDone:
+      typeof record.todoDone === "number" && Number.isFinite(record.todoDone)
+        ? record.todoDone
+        : todoItems.filter((item) => item.done).length,
+    todoItems,
+  };
+};
 
 export const useCanvasGraphData = ({
   columns,
   enabled,
   agentRuntimeStates,
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
-  const [deckTentacles, setDeckTentacles] = useState<DeckTentacleMinimal[]>([]);
+  const [deckTentacles, setDeckTentacles] = useState<DeckTentacleSummary[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
   const prevNodesRef = useRef<Map<string, GraphNode>>(new Map());
 
@@ -86,24 +166,9 @@ export const useCanvasGraphData = ({
       if (!response.ok) return;
       const payload = (await response.json()) as unknown;
       if (!Array.isArray(payload)) return;
-      const items: DeckTentacleMinimal[] = payload
-        .filter(
-          (t: unknown): t is { tentacleId: string; displayName: string; color: string | null } =>
-            t !== null &&
-            typeof t === "object" &&
-            typeof (t as Record<string, unknown>).tentacleId === "string",
-        )
-        .map((t) => ({
-          tentacleId: t.tentacleId,
-          displayName: t.displayName ?? t.tentacleId,
-          color: t.color ?? null,
-          octopus: ((t as Record<string, unknown>).octopus as DeckTentacleSummary["octopus"]) ?? {
-            animation: null,
-            expression: null,
-            accessory: null,
-            hairColor: null,
-          },
-        }));
+      const items = payload
+        .map((entry) => normalizeDeckTentacleSummary(entry))
+        .filter((entry): entry is DeckTentacleSummary => entry !== null);
       setDeckTentacles(items);
     } catch {
       // silent
@@ -139,17 +204,32 @@ export const useCanvasGraphData = ({
     void fetchInactiveSessions();
   }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
 
-  const refresh = useCallback(() => {
-    void fetchDeckTentacles();
-    void fetchInactiveSessions();
+  const refresh = useCallback(async () => {
+    await Promise.all([fetchDeckTentacles(), fetchInactiveSessions()]);
   }, [fetchDeckTentacles, fetchInactiveSessions]);
+  const refreshDeckTentacles = useCallback(async () => {
+    await fetchDeckTentacles();
+  }, [fetchDeckTentacles]);
 
   const activeTerminalIds = new Set(columns.map((terminal) => terminal.terminalId));
 
   // Build a map of deck tentacles for color/label lookup
-  const deckMap = new Map<string, DeckTentacleMinimal>();
+  const deckMap = new Map<string, DeckTentacleSummary>();
   for (const dt of deckTentacles) {
     deckMap.set(dt.tentacleId, dt);
+  }
+
+  const sessionsByTentacleId = new Map<string, ConversationSessionSummary[]>();
+  for (const session of inactiveSessions) {
+    if (!session.tentacleId) {
+      continue;
+    }
+    const tentacleSessions = sessionsByTentacleId.get(session.tentacleId);
+    if (tentacleSessions) {
+      tentacleSessions.push(session);
+    } else {
+      sessionsByTentacleId.set(session.tentacleId, [session]);
+    }
   }
 
   const nodes: GraphNode[] = [];
@@ -354,5 +434,12 @@ export const useCanvasGraphData = ({
   }
   prevNodesRef.current = nextMap;
 
-  return { nodes, edges, refresh };
+  return {
+    nodes,
+    edges,
+    tentacleById: deckMap,
+    sessionsByTentacleId,
+    refresh,
+    refreshDeckTentacles,
+  };
 };

@@ -1,26 +1,18 @@
 import { useMemo } from "react";
 
-import type { AgentRuntimeState } from "@octogent/core";
+import {
+  type TerminalRuntimeStateInfo,
+  type TerminalRuntimeStateStore,
+  useTerminalRuntimeStates,
+} from "../terminalRuntimeStateStore";
 import type { TerminalView } from "../types";
 
-export type AgentRuntimeStateInfo = {
-  state: AgentRuntimeState;
-  toolName?: string;
-};
+export type AgentRuntimeStateInfo = TerminalRuntimeStateInfo;
 
 export const useAgentRuntimeStates = (
+  runtimeStateStore: TerminalRuntimeStateStore,
   columns: TerminalView,
 ): Map<string, AgentRuntimeStateInfo> => {
-  return useMemo(() => {
-    const next = new Map<string, AgentRuntimeStateInfo>();
-    for (const col of columns) {
-      if (!col.agentRuntimeState) {
-        continue;
-      }
-      next.set(col.terminalId, {
-        state: col.agentRuntimeState,
-      });
-    }
-    return next;
-  }, [columns]);
+  const terminalIds = useMemo(() => columns.map((column) => column.terminalId), [columns]);
+  return useTerminalRuntimeStates(runtimeStateStore, terminalIds);
 };
