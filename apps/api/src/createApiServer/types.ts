@@ -10,6 +10,7 @@ export type CreateApiServerOptions = {
   projectStateDir?: string | undefined;
   promptsDir?: string | undefined;
   webDistDir?: string | undefined;
+  apiBaseUrl?: string | undefined;
   gitClient?: GitClient;
   readClaudeUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;
   readClaudeOauthUsageSnapshot?: () => Promise<ClaudeUsageSnapshot>;

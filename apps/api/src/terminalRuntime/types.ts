@@ -153,4 +153,5 @@ export type CreateTerminalRuntimeOptions = {
   workspaceCwd: string;
   projectStateDir?: string | undefined;
   gitClient?: GitClient;
+  getApiBaseUrl?: () => string;
 };

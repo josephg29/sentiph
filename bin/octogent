@@ -1,22 +1,3 @@
 #!/usr/bin/env node
 
-// Octogent CLI entry point.
-// Delegates to the TypeScript CLI module via tsx (development).
-
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PACKAGE_ROOT = resolve(__dirname, "..");
-const cliModule = resolve(PACKAGE_ROOT, "apps/api/src/cli.ts");
-
-try {
-  execFileSync(
-    resolve(PACKAGE_ROOT, "node_modules/.bin/tsx"),
-    [cliModule, ...process.argv.slice(2)],
-    { stdio: "inherit", env: { ...process.env, OCTOGENT_PACKAGE_ROOT: PACKAGE_ROOT } },
-  );
-} catch (err) {
-  process.exit(err.status ?? 1);
-}
+import "../dist/api/cli.js";

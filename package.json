@@ -10,13 +10,22 @@
   "bin": {
     "octogent": "./bin/octogent"
   },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "start": "pnpm dev",
     "dev": "node scripts/dev.mjs",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @octogent/web build && pnpm --filter @octogent/web exec vite build --config vite.api.bundle.config.mts && node scripts/build-package.mjs",
     "test": "pnpm -r test",
     "lint": "biome check .",
     "format": "biome format --write ."
+  },
+  "dependencies": {
+    "node-pty": "^1.1.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

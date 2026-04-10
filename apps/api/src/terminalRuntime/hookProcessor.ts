@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseClaudeTranscript } from "./claudeTranscript";
@@ -24,8 +24,7 @@ export const createHookProcessor = (deps: {
   terminals: Map<string, PersistedTerminal>;
   sessions: Map<string, TerminalSession>;
   transcriptDirectoryPath: string;
-  apiPort: string;
-  workspaceCwd: string;
+  getApiBaseUrl: () => string;
   persistRegistry: () => void;
   deliverChannelMessages: (terminalId: string) => void;
   onStateChange?: (terminalId: string, state: TerminalSession["agentState"], toolName?: string) => void;
@@ -34,16 +33,54 @@ export const createHookProcessor = (deps: {
     terminals,
     sessions,
     transcriptDirectoryPath,
-    apiPort,
-    workspaceCwd,
+    getApiBaseUrl,
     persistRegistry,
     deliverChannelMessages,
     onStateChange,
   } = deps;
 
+  const parseSettingsObject = (fileContents: string): Record<string, unknown> | null => {
+    try {
+      const parsed = JSON.parse(fileContents) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return null;
+      }
+      return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+
+  const mergeHookEntries = (
+    existingValue: unknown,
+    eventName: string,
+    nextEntries: unknown[],
+  ): Record<string, unknown> => {
+    const nextHooks =
+      existingValue && typeof existingValue === "object" && !Array.isArray(existingValue)
+        ? { ...(existingValue as Record<string, unknown>) }
+        : {};
+    const existingEntries = Array.isArray(nextHooks[eventName]) ? [...(nextHooks[eventName] as unknown[])] : [];
+    const mergedEntries = [...existingEntries];
+
+    for (const nextEntry of nextEntries) {
+      const serializedNextEntry = JSON.stringify(nextEntry);
+      const alreadyPresent = existingEntries.some(
+        (existingEntry) => JSON.stringify(existingEntry) === serializedNextEntry,
+      );
+      if (!alreadyPresent) {
+        mergedEntries.push(nextEntry);
+      }
+    }
+
+    nextHooks[eventName] = mergedEntries;
+    return nextHooks;
+  };
+
   const installHooksInDirectory = (targetCwd: string) => {
     const targetClaudeDir = join(targetCwd, ".claude");
     const targetSettingsPath = join(targetClaudeDir, "settings.json");
+    const apiBaseUrl = getApiBaseUrl();
 
     const hooksConfig = {
       hooks: {
@@ -53,7 +90,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/session-start?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/session-start?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 5,
               },
             ],
@@ -65,7 +102,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/user-prompt-submit?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/user-prompt-submit?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 5,
               },
             ],
@@ -77,7 +114,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "http",
-                url: `http://localhost:${apiPort}/api/hooks/pre-tool-use`,
+                url: `${apiBaseUrl}/api/hooks/pre-tool-use`,
                 headers: { "X-Octogent-Session": "$OCTOGENT_SESSION_ID" },
                 allowedEnvVars: ["OCTOGENT_SESSION_ID"],
                 timeout: 5,
@@ -91,7 +128,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "http",
-                url: `http://localhost:${apiPort}/api/code-intel/events`,
+                url: `${apiBaseUrl}/api/code-intel/events`,
                 headers: { "X-Octogent-Session": "$OCTOGENT_SESSION_ID" },
                 allowedEnvVars: ["OCTOGENT_SESSION_ID"],
                 timeout: 5,
@@ -105,7 +142,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "http",
-                url: `http://localhost:${apiPort}/api/hooks/notification`,
+                url: `${apiBaseUrl}/api/hooks/notification`,
                 headers: { "X-Octogent-Session": "$OCTOGENT_SESSION_ID" },
                 allowedEnvVars: ["OCTOGENT_SESSION_ID"],
                 timeout: 5,
@@ -119,7 +156,7 @@ export const createHookProcessor = (deps: {
             hooks: [
               {
                 type: "command",
-                command: `curl -s -X POST "http://localhost:${apiPort}/api/hooks/stop?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/stop?octogent_session=$OCTOGENT_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
                 timeout: 15,
               },
             ],
@@ -130,7 +167,25 @@ export const createHookProcessor = (deps: {
 
     try {
       mkdirSync(targetClaudeDir, { recursive: true });
-      writeFileSync(targetSettingsPath, `${JSON.stringify(hooksConfig, null, 2)}\n`, "utf8");
+      const existingSettings = existsSync(targetSettingsPath)
+        ? parseSettingsObject(readFileSync(targetSettingsPath, "utf8"))
+        : null;
+      const mergedSettings =
+        existingSettings && typeof existingSettings === "object"
+          ? { ...existingSettings }
+          : {};
+
+      let mergedHooks =
+        mergedSettings.hooks && typeof mergedSettings.hooks === "object" && !Array.isArray(mergedSettings.hooks)
+          ? { ...(mergedSettings.hooks as Record<string, unknown>) }
+          : {};
+
+      for (const [eventName, eventEntries] of Object.entries(hooksConfig.hooks)) {
+        mergedHooks = mergeHookEntries(mergedHooks, eventName, eventEntries);
+      }
+
+      mergedSettings.hooks = mergedHooks;
+      writeFileSync(targetSettingsPath, `${JSON.stringify(mergedSettings, null, 2)}\n`, "utf8");
     } catch {
       // Best-effort
     }

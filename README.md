@@ -1,77 +1,81 @@
 # Octogent
 
-Octogent is a web-first command surface for running and coordinating multiple coding agents in parallel.
+Octogent is a web-first local control surface for coordinating multiple coding agents in parallel.
 
-This repository is currently a scratch baseline built with:
+## Install
 
-- TypeScript + Node.js 22+
-- pnpm workspace
-- Vite + React frontend
-- ports-and-adapters core package
-- Vitest and Biome
+Octogent is being prepared for a normal public CLI flow:
 
-Current UI baseline includes:
+```bash
+npm install -g octogent
+```
 
-- a left dashboard deck for `Active Agents`
-- tentacle-grouped agent listings in that deck
-- keyboard/mouse-resizable and toggleable sidebar behavior
-- top-bar `+ Main Tentacle` and `+ Worktree Tentacle` creation actions
-- immediate inline naming after tentacle creation
-- in-place tentacle rename from each column header (stable id + editable name)
-- tentacle delete action from each column header
-- tentacle minimize from header and maximize from the `Active Agents` sidebar
-- minimum-width tentacle columns with horizontal scrolling when space is constrained
-- draggable tentacle splitters that resize adjacent panes
-- sidebar footer usage telemetry for Codex and Claude Code OAuth accounts
-- `[4] Monitor` tab for X topic monitoring (credentials, usage/cap metrics, top posts)
+Current runtime requirements:
 
-## Quickstart
+- Node.js 22+
+- `claude` installed for Claude-backed terminals
+- `codex` installed for Codex-backed terminals
+- `git` for worktree terminals
+- `gh` for GitHub pull request features
+
+## Start
+
+From any project directory:
+
+```bash
+octogent
+```
+
+On first run, Octogent now:
+
+- creates a local `.octogent/` scaffold automatically
+- writes a stable per-project ID to `.octogent/project.json`
+- stores global runtime state in `~/.octogent/projects/<project-id>/`
+- chooses an available local API port starting at `8787`
+- persists the actual bound API address for follow-up CLI commands
+- opens the web UI automatically unless `OCTOGENT_NO_OPEN=1` is set
+
+Useful commands:
+
+```bash
+octogent init [project-name]
+octogent projects
+octogent tentacle create <name>
+octogent tentacle list
+octogent terminal create --name "Planner"
+octogent channel send <terminal-id> "message"
+```
+
+## Persistence
+
+Octogent now separates project-local and global data intentionally:
+
+- `.octogent/` holds local project metadata, tentacle docs, and worktrees
+- `~/.octogent/projects/<project-id>/state/` holds runtime state, transcripts, monitor/cache data, and active runtime metadata
+- `~/.octogent/projects.json` maps stable project IDs to local paths
+
+This avoids collisions between unrelated repositories that share the same display name.
+
+## Claude Integration
+
+Claude Code hook installation is now scoped to Claude-backed terminals only.
+
+When Octogent installs Claude hooks, it:
+
+- writes to `.claude/settings.json` only in the relevant workspace
+- merges Octogent hook entries into existing settings instead of overwriting the file
+- keeps the integration local to the workspace or worktree being used by that terminal
+
+## Contributors
+
+For monorepo development:
 
 ```bash
 pnpm install
-pnpm start
-```
-
-Open `http://localhost:5173` to launch the operator UI.
-
-In dev mode:
-
-- `pnpm dev` auto-selects an available API port (starting at `8787`) and injects it into both apps.
-- `apps/web` may auto-select a free Vite port (`5173`, `5174`, `5175`, ...), and still proxies `/api` and terminal websocket traffic to the selected API port.
-- `apps/api` runs tentacle terminals as native PTY processes via `node-pty` (no `tmux` dependency).
-- Isolated worktree tentacles require `git` and a git repository at the workspace root.
-- Optional: X developer bearer token/API credentials for Monitor data.
-- Optional: Codex OAuth credentials in `~/.codex/auth.json` and Claude OAuth credentials in `~/.claude/.credentials.json` for sidebar usage telemetry.
-- Runtime endpoints:
-  - `GET /api/agent-snapshots`
-  - `GET /api/codex/usage`
-  - `GET /api/claude/usage`
-  - `GET /api/monitor/config`
-  - `PATCH /api/monitor/config`
-  - `GET /api/monitor/feed`
-  - `POST /api/monitor/refresh`
-  - `POST /api/tentacles` (`{ "name"?: string, "workspaceMode"?: "shared" | "worktree" }`)
-  - `PATCH /api/tentacles/:tentacleId` (`{ "name": string }`)
-  - `DELETE /api/tentacles/:tentacleId`
-  - `WS /api/terminals/:tentacleId/ws`
-
-Set `VITE_OCTOGENT_API_ORIGIN` to route runtime calls directly to an external backend.
-
-## Common workflows
-
-```bash
+pnpm dev
+pnpm build
 pnpm test
 pnpm lint
-pnpm build
-pnpm format
 ```
 
-GitHub Actions runs `lint`, `test`, and `build` checks on every push to `main` and on pull requests.
-
-## Repo layout
-
-- `apps/web` - web UI shell
-- `apps/api` - runtime API service with PTY-backed tentacle terminals
-- `packages/core` - application/domain/ports/adapters core logic
-- `docs` - contributor and architecture documentation
-- `context` - long-term project context and decisions
+`pnpm dev` still runs the API and web app in workspace mode for contributors.

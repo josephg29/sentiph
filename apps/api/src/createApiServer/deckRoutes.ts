@@ -32,6 +32,7 @@ const buildSingleTodoWorkerPrompt = async ({
   tentacleName,
   todoItemText,
   terminalId,
+  apiPort,
 }: {
   promptsDir: string;
   workspaceCwd: string;
@@ -39,9 +40,9 @@ const buildSingleTodoWorkerPrompt = async ({
   tentacleName: string;
   todoItemText: string;
   terminalId: string;
+  apiPort: string;
 }) => {
   const tentacleContextPath = join(workspaceCwd, ".octogent/tentacles", tentacleId);
-  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
 
   return await resolvePrompt(promptsDir, "swarm-worker", {
     tentacleName,
@@ -331,7 +332,7 @@ const DECK_TODO_SOLVE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/solve$/
 
 export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd, projectStateDir, promptsDir },
+  { runtime, workspaceCwd, projectStateDir, promptsDir, getApiPort },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_SOLVE_PATTERN);
   if (!match) return false;
@@ -400,6 +401,7 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
       tentacleName,
       todoItemText: todoItem.text,
       terminalId,
+      apiPort: getApiPort(),
     });
 
     const snapshot = runtime.createTerminal({
@@ -445,7 +447,7 @@ const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/swarm$/;
 
 export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd, projectStateDir, promptsDir },
+  { runtime, workspaceCwd, projectStateDir, promptsDir, getApiPort },
 ) => {
   const match = requestUrl.pathname.match(DECK_TENTACLE_SWARM_PATTERN);
   if (!match) return false;
@@ -542,7 +544,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
   const deckEntry = deckTentacles.find((t) => t.tentacleId === tentacleId);
   const tentacleName = deckEntry?.displayName ?? tentacleId;
 
-  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
+  const apiPort = getApiPort();
   const needsParent = targetItems.length > 1;
   const parentTerminalId = needsParent ? `${tentacleId}-swarm-parent` : null;
   const tentacleContextPath = join(workspaceCwd, ".octogent/tentacles", tentacleId);

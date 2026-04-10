@@ -84,13 +84,29 @@ const resolveProjectStateDir = (workspaceCwd) => {
   if (process.env.OCTOGENT_PROJECT_STATE_DIR) {
     return process.env.OCTOGENT_PROJECT_STATE_DIR;
   }
+  const projectConfigPath = join(workspaceCwd, ".octogent", "project.json");
+  if (existsSync(projectConfigPath)) {
+    try {
+      const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
+      if (typeof projectConfig.projectId === "string" && projectConfig.projectId.trim().length > 0) {
+        return join(homedir(), ".octogent", "projects", projectConfig.projectId);
+      }
+    } catch {
+      // fall through
+    }
+  }
   const projectsFile = join(homedir(), ".octogent", "projects.json");
   if (existsSync(projectsFile)) {
     try {
       const registry = JSON.parse(readFileSync(projectsFile, "utf-8"));
       const project = registry.projects?.find((p) => p.path === workspaceCwd);
       if (project) {
-        return join(homedir(), ".octogent", "projects", project.name);
+        if (typeof project.id === "string" && project.id.trim().length > 0) {
+          return join(homedir(), ".octogent", "projects", project.id);
+        }
+        if (typeof project.name === "string" && project.name.trim().length > 0) {
+          return join(homedir(), ".octogent", "projects", project.name);
+        }
       }
     } catch {
       // fall through

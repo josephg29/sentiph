@@ -20,17 +20,19 @@ const MINI_BAR_GAP = 1;
 type MiniBar = { x: number; y: number; width: number; height: number };
 
 const buildUsageBars = (data: UsageChartData): MiniBar[] => {
-  const days = data.days.slice(-30);
+  const days = Array.isArray(data.days) ? data.days.slice(-30) : [];
   if (days.length === 0) return [];
 
-  const max = Math.max(...days.map((d) => d.totalTokens), 1);
+  const totals = days.map((day) => (typeof day.totalTokens === "number" ? day.totalTokens : 0));
+  const max = Math.max(...totals, 1);
   const barSlot = MINI_USAGE_WIDTH / days.length;
   const barWidth = Math.max(1, barSlot - MINI_BAR_GAP);
 
-  return days.map((d, i) => {
-    const h = Math.max(0.5, (d.totalTokens / max) * (MINI_USAGE_HEIGHT - 2));
+  return days.map((day, index) => {
+    const totalTokens = typeof day.totalTokens === "number" ? day.totalTokens : 0;
+    const h = Math.max(0.5, (totalTokens / max) * (MINI_USAGE_HEIGHT - 2));
     return {
-      x: i * barSlot,
+      x: index * barSlot,
       y: MINI_USAGE_HEIGHT - h,
       width: barWidth,
       height: h,
@@ -256,13 +258,13 @@ export const RuntimeStatusStrip = ({
             label={claudeUsageState.label}
             percent={claudeUsageState.sessionPercent}
             loading={claudeUsageState.loading}
-            title={claudeUsageState.message}
+            {...(claudeUsageState.message ? { title: claudeUsageState.message } : {})}
           />
           <UsageRail
             label="Week (all)"
             percent={claudeUsageState.weekPercent}
             loading={claudeUsageState.loading}
-            title={claudeUsageState.message}
+            {...(claudeUsageState.message ? { title: claudeUsageState.message } : {})}
           />
         </div>
       </div>

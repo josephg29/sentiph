@@ -23,6 +23,7 @@ export const createApiServer = ({
   projectStateDir,
   promptsDir,
   webDistDir,
+  apiBaseUrl,
   gitClient,
   readClaudeUsageSnapshot,
   readClaudeOauthUsageSnapshot,
@@ -37,6 +38,15 @@ export const createApiServer = ({
   const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
   // State lives in ~/.octogent/projects/<name>/ when provided, else falls back to <project>/.octogent/
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".octogent");
+  let resolvedApiBaseUrl = apiBaseUrl ?? "http://127.0.0.1:8787";
+  const getApiBaseUrl = () => resolvedApiBaseUrl;
+  const getApiPort = () => {
+    try {
+      return String(new URL(resolvedApiBaseUrl).port || 80);
+    } catch {
+      return "8787";
+    }
+  };
   const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
   const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
 
@@ -86,6 +96,7 @@ export const createApiServer = ({
   const runtimeOptions: Parameters<typeof createTerminalRuntime>[0] = {
     workspaceCwd: resolvedWorkspaceCwd,
     projectStateDir: resolvedStateDir,
+    getApiBaseUrl,
   };
   if (gitClient) {
     runtimeOptions.gitClient = gitClient;
@@ -110,6 +121,8 @@ export const createApiServer = ({
     promptsDir: resolvedPromptsDir,
     userPromptsDir: resolvedUserPromptsDir,
     webDistDir,
+    getApiBaseUrl,
+    getApiPort,
     readClaudeUsageSnapshot: readClaudeUsageSnapshotWithDefault,
     readClaudeOauthUsageSnapshot: readClaudeOauthUsageSnapshotWithDefault,
     readClaudeCliUsageSnapshot: readClaudeCliUsageSnapshotWithDefault,
@@ -142,6 +155,7 @@ export const createApiServer = ({
 
       const address = server.address();
       const resolvedPort = typeof address === "object" && address ? address.port : port;
+      resolvedApiBaseUrl = `http://${host}:${resolvedPort}`;
 
       return { host, port: resolvedPort };
     },

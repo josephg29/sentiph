@@ -17,6 +17,8 @@ export type RouteHandlerDependencies = {
   projectStateDir: string;
   promptsDir: string;
   userPromptsDir: string;
+  getApiBaseUrl: () => string;
+  getApiPort: () => string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readClaudeOauthUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readClaudeCliUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;

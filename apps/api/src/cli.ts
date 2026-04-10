@@ -1,65 +1,61 @@
-import {
-  appendFileSync,
-  copyFileSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { spawn } from "node:child_process";
 
-import { createApiServer } from "./createApiServer";
+import {
+  ensureProjectScaffold,
+  loadProjectConfig,
+  loadProjectsRegistry,
+  migrateStateToGlobal,
+  registerProject,
+  resolveProjectStateDir,
+} from "./projectPersistence";
+import {
+  clearRuntimeMetadata,
+  readRuntimeMetadata,
+  writeRuntimeMetadata,
+} from "./runtimeMetadata";
 
 const args = process.argv.slice(2);
 const command = args[0];
 
-const PACKAGE_ROOT = process.env.OCTOGENT_PACKAGE_ROOT ?? resolve(import.meta.dirname ?? ".", "../../..");
-
-// ─── Global config ──────��───────────────────────────────────────────────
-
-const GLOBAL_DIR = join(homedir(), ".octogent");
-const PROJECTS_FILE = join(GLOBAL_DIR, "projects.json");
-
-type ProjectEntry = { name: string; path: string; createdAt: string };
-type ProjectsRegistry = { projects: ProjectEntry[] };
-
-const ensureGlobalDir = () => {
-  if (!existsSync(GLOBAL_DIR)) mkdirSync(GLOBAL_DIR, { recursive: true });
-};
-
-const loadProjects = (): ProjectsRegistry => {
-  ensureGlobalDir();
-  if (!existsSync(PROJECTS_FILE)) return { projects: [] };
-  try {
-    return JSON.parse(readFileSync(PROJECTS_FILE, "utf-8"));
-  } catch {
-    return { projects: [] };
+const resolvePackageRoot = () => {
+  const envRoot = process.env.OCTOGENT_PACKAGE_ROOT?.trim();
+  if (envRoot) {
+    return resolve(envRoot);
   }
-};
 
-const saveProjects = (registry: ProjectsRegistry) => {
-  ensureGlobalDir();
-  writeFileSync(PROJECTS_FILE, JSON.stringify(registry, null, 2), "utf-8");
-};
+  const candidates = [
+    resolve(import.meta.dirname ?? ".", "../.."),
+    resolve(import.meta.dirname ?? ".", "../../.."),
+    process.cwd(),
+  ];
 
-const registerProject = (name: string, projectPath: string) => {
-  const registry = loadProjects();
-  const existing = registry.projects.find((p) => p.name === name);
-  if (existing) {
-    existing.path = projectPath;
-    saveProjects(registry);
-    return existing;
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, "package.json"))) {
+      return candidate;
+    }
   }
-  const entry: ProjectEntry = { name, path: projectPath, createdAt: new Date().toISOString() };
-  registry.projects.push(entry);
-  saveProjects(registry);
-  return entry;
+
+  return candidates[0];
 };
 
-// ─── Init ────────────────────────────────────────────────────────────────
+const PACKAGE_ROOT = resolvePackageRoot();
+
+const resolveRuntimeAssetPath = (...relativePathCandidates: string[][]) => {
+  for (const relativePath of relativePathCandidates) {
+    const candidate = join(PACKAGE_ROOT, ...relativePath);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return join(PACKAGE_ROOT, ...relativePathCandidates[0]);
+};
+
+const DEFAULT_START_PORT = 8787;
+const MAX_PORT_ATTEMPTS = 200;
 
 const ensureGitignore = (projectPath: string) => {
   const gitignorePath = join(projectPath, ".gitignore");
@@ -67,124 +63,141 @@ const ensureGitignore = (projectPath: string) => {
 
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, "utf-8");
-    if (content.split("\n").map((l) => l.trim()).includes(entry)) return;
+    if (content.split("\n").map((line) => line.trim()).includes(entry)) {
+      return;
+    }
+
     appendFileSync(gitignorePath, `\n${entry}\n`, "utf-8");
-  } else {
-    writeFileSync(gitignorePath, `${entry}\n`, "utf-8");
+    return;
   }
+
+  writeFileSync(gitignorePath, `${entry}\n`, "utf-8");
 };
 
-const initProject = (name: string) => {
+const initializeProject = (workspaceCwd: string, preferredName?: string) => {
+  const projectName = preferredName?.trim() || basename(workspaceCwd) || "octogent-project";
+  const hadConfig = loadProjectConfig(workspaceCwd) !== null;
+  const projectConfig = ensureProjectScaffold(workspaceCwd, projectName);
+  ensureGitignore(workspaceCwd);
+  registerProject(workspaceCwd, projectConfig.displayName);
+  const projectStateDir = resolveProjectStateDir(workspaceCwd, projectConfig.displayName);
+  migrateStateToGlobal(workspaceCwd, projectStateDir);
+  return {
+    created: !hadConfig,
+    projectConfig,
+    projectStateDir,
+  };
+};
+
+const initProject = (name?: string) => {
   const projectPath = process.cwd();
-  const octogentDir = join(projectPath, ".octogent");
+  const { created, projectConfig, projectStateDir } = initializeProject(projectPath, name);
 
-  for (const sub of ["tentacles", "worktrees"]) {
-    const dir = join(octogentDir, sub);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  }
-
-  ensureGitignore(projectPath);
-  registerProject(name, projectPath);
-
-  // Create global state dir for the project.
-  const globalStateDir = join(GLOBAL_DIR, "projects", name, "state");
-  if (!existsSync(globalStateDir)) mkdirSync(globalStateDir, { recursive: true });
-
-  console.log(`Initialized Octogent project "${name}" at ${projectPath}`);
-  console.log("  .octogent/ directory created (tentacles, worktrees)");
-  console.log("  ~/.octogent/projects/${name}/ created (state)");
+  console.log(
+    `${created ? "Initialized" : "Updated"} Octogent project "${projectConfig.displayName}" at ${projectPath}`,
+  );
+  console.log("  .octogent/ directory ready (project metadata, tentacles, worktrees)");
+  console.log(`  Global state: ${projectStateDir}`);
   console.log("  .gitignore updated");
-  console.log(`\nRun \`octogent\` to start the dashboard.`);
+  console.log("\nRun `octogent` to start the dashboard.");
 };
-
-// ─── Start server ──────────��─────────────────────────────────────────────
 
 const canListenOnPort = (port: number): Promise<boolean> =>
-  new Promise((res) => {
-    const srv = createServer();
-    srv.once("error", () => res(false));
-    srv.once("listening", () => {
-      srv.close(() => res(true));
+  new Promise((resolvePort) => {
+    const server = createServer();
+    server.once("error", () => resolvePort(false));
+    server.once("listening", () => {
+      server.close(() => resolvePort(true));
     });
-    srv.listen(port, "127.0.0.1");
+    server.listen(port, "127.0.0.1");
   });
 
 const findOpenPort = async (startPort: number): Promise<number> => {
-  for (let offset = 0; offset < 200; offset++) {
+  for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
     const port = startPort + offset;
-    if (port > 65535) break;
-    if (await canListenOnPort(port)) return port;
-  }
-  throw new Error(`Unable to find an open port starting from ${startPort}`);
-};
+    if (port > 65535) {
+      break;
+    }
 
-const resolveProjectStateDir = (workspaceCwd: string): string => {
-  // Look up the project name from the global registry by path.
-  const registry = loadProjects();
-  const project = registry.projects.find((p) => p.path === workspaceCwd);
-  if (project) {
-    const dir = join(GLOBAL_DIR, "projects", project.name);
-    if (!existsSync(join(dir, "state"))) mkdirSync(join(dir, "state"), { recursive: true });
-    return dir;
-  }
-  // Fallback: use in-project .octogent (backwards compat).
-  return join(workspaceCwd, ".octogent");
-};
-
-const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: string) => {
-  // Skip if state dir is the same (in-project fallback).
-  if (projectStateDir === join(workspaceCwd, ".octogent")) return;
-
-  const oldStateDir = join(workspaceCwd, ".octogent", "state");
-  const newStateDir = join(projectStateDir, "state");
-  if (!existsSync(oldStateDir)) return;
-  if (existsSync(join(newStateDir, "tentacles.json"))) return;
-
-  mkdirSync(newStateDir, { recursive: true });
-
-  const stateFiles = [
-    "tentacles.json",
-    "deck.json",
-    "monitor-config.json",
-    "monitor-cache.json",
-    "code-intel-events.jsonl",
-  ];
-
-  let migrated = 0;
-  for (const file of stateFiles) {
-    const src = join(oldStateDir, file);
-    if (existsSync(src)) {
-      copyFileSync(src, join(newStateDir, file));
-      migrated++;
+    // eslint-disable-next-line no-await-in-loop
+    if (await canListenOnPort(port)) {
+      return port;
     }
   }
 
-  const oldTranscripts = join(oldStateDir, "transcripts");
-  if (existsSync(oldTranscripts)) {
-    cpSync(oldTranscripts, join(newStateDir, "transcripts"), { recursive: true });
-    migrated++;
+  throw new Error(`Unable to find an open port starting from ${startPort}`);
+};
+
+const readPreferredStartPort = () => {
+  const rawPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT;
+  if (!rawPort) {
+    return DEFAULT_START_PORT;
   }
 
-  if (migrated > 0) {
-    console.log(`  Migrated state to ~/.octogent/projects/`);
+  const parsed = Number.parseInt(rawPort, 10);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 65535) {
+    return DEFAULT_START_PORT;
+  }
+
+  return parsed;
+};
+
+const resolveRuntimeApiBase = () => {
+  const explicitBase =
+    process.env.OCTOGENT_API_ORIGIN?.trim() || process.env.OCTOGENT_API_BASE?.trim();
+  if (explicitBase) {
+    return explicitBase;
+  }
+
+  const projectConfig = loadProjectConfig(process.cwd());
+  if (projectConfig) {
+    const projectStateDir = resolveProjectStateDir(process.cwd(), projectConfig.displayName);
+    const runtimeMetadata = readRuntimeMetadata(projectStateDir);
+    if (runtimeMetadata) {
+      return runtimeMetadata.apiBaseUrl;
+    }
+  }
+
+  return `http://127.0.0.1:${readPreferredStartPort()}`;
+};
+
+const apiError = () => {
+  console.error(
+    `Error: Could not reach API at ${resolveRuntimeApiBase()}. Start Octogent in this project first.`,
+  );
+  process.exit(1);
+};
+
+const maybeOpenBrowser = (url: string) => {
+  if (process.env.OCTOGENT_NO_OPEN === "1" || process.env.CI === "1") {
+    return;
+  }
+
+  const command =
+    process.platform === "darwin"
+      ? { file: "open", args: [url] }
+      : process.platform === "win32"
+        ? { file: "cmd", args: ["/c", "start", "", url] }
+        : { file: "xdg-open", args: [url] };
+
+  try {
+    const child = spawn(command.file, command.args, {
+      stdio: "ignore",
+      detached: true,
+    });
+    child.unref();
+  } catch {
+    // Best-effort browser open.
   }
 };
 
 const startServer = async () => {
   const workspaceCwd = process.cwd();
-  const promptsDir = join(PACKAGE_ROOT, "prompts");
-  const webDistDir = join(PACKAGE_ROOT, "apps", "web", "dist");
-
-  if (!existsSync(join(workspaceCwd, ".octogent"))) {
-    console.error("No .octogent directory found. Run `octogent init <project-name>` first.");
-    process.exit(1);
-  }
-
-  const projectStateDir = resolveProjectStateDir(workspaceCwd);
-  await migrateStateToGlobal(workspaceCwd, projectStateDir);
-
-  const startPort = Number.parseInt(process.env.OCTOGENT_API_PORT ?? "8787", 10);
-  const port = await findOpenPort(startPort);
+  const { created, projectConfig, projectStateDir } = initializeProject(workspaceCwd);
+  const promptsDir = resolveRuntimeAssetPath(["dist", "prompts"], ["prompts"]);
+  const webDistDir = resolveRuntimeAssetPath(["dist", "web"], ["apps", "web", "dist"]);
+  const port = await findOpenPort(readPreferredStartPort());
+  const { createApiServer } = await import("./createApiServer");
 
   const apiServer = createApiServer({
     workspaceCwd,
@@ -195,6 +208,7 @@ const startServer = async () => {
   });
 
   const shutdown = async () => {
+    clearRuntimeMetadata(projectStateDir);
     await apiServer.stop();
     process.exit(0);
   };
@@ -202,37 +216,65 @@ const startServer = async () => {
   process.on("SIGINT", () => void shutdown());
   process.on("SIGTERM", () => void shutdown());
 
-  const { port: activePort } = await apiServer.start(port, "127.0.0.1");
+  const { host, port: activePort } = await apiServer.start(port, "127.0.0.1");
+  const apiBaseUrl = `http://${host}:${activePort}`;
+  writeRuntimeMetadata(projectStateDir, {
+    apiBaseUrl,
+    host,
+    port: activePort,
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    workspaceCwd,
+  });
 
   const hasWebDist = existsSync(webDistDir);
-  console.log(`\n  Octogent is running`);
-  console.log(`  Project: ${workspaceCwd}`);
-  console.log(`  API:     http://127.0.0.1:${activePort}`);
   if (hasWebDist) {
-    console.log(`  UI:      http://127.0.0.1:${activePort}`);
+    maybeOpenBrowser(apiBaseUrl);
+  }
+
+  console.log();
+  console.log("  Octogent is running");
+  console.log(`  Project: ${workspaceCwd}`);
+  console.log(`  Name:    ${projectConfig.displayName}`);
+  console.log(`  API:     ${apiBaseUrl}`);
+  if (hasWebDist) {
+    console.log(`  UI:      ${apiBaseUrl}`);
   } else {
-    console.log(`  UI:      run \`pnpm build --filter @octogent/web\` then restart`);
+    console.log("  UI:      bundled web assets are missing from this install");
+  }
+  if (created) {
+    console.log("  Setup:   project scaffold was created automatically on first run");
   }
   console.log();
 };
 
-// ─── API client helpers ──────────────────────────────────────────────────
-
-const API_PORT = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
-const API_BASE = `http://localhost:${API_PORT}`;
-
 const COLORS = [
-  "#ff6b2b", "#ff2d6b", "#00ffaa", "#bf5fff", "#00c8ff",
-  "#ffee00", "#39ff14", "#ff4df0", "#00fff7", "#ff9500",
+  "#ff6b2b",
+  "#ff2d6b",
+  "#00ffaa",
+  "#bf5fff",
+  "#00c8ff",
+  "#ffee00",
+  "#39ff14",
+  "#ff4df0",
+  "#00fff7",
+  "#ff9500",
 ];
 const ANIMATIONS = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
 const EXPRESSIONS = ["normal", "happy", "angry", "surprised"];
 const ACCESSORIES = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
 const HAIR_COLORS = [
-  "#4a2c0a", "#1a1a1a", "#c8a04a", "#e04020", "#f5f5f5", "#6b3fa0", "#2a6e3f", "#1e90ff",
+  "#4a2c0a",
+  "#1a1a1a",
+  "#c8a04a",
+  "#e04020",
+  "#f5f5f5",
+  "#6b3fa0",
+  "#2a6e3f",
+  "#1e90ff",
 ];
 
-const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
+const pick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)] as T;
 
 const randomAppearance = () => ({
   color: pick(COLORS),
@@ -245,14 +287,18 @@ const randomAppearance = () => ({
 });
 
 const parseFlag = (flag: string): string | undefined => {
-  const idx = args.indexOf(flag);
-  if (idx === -1 || idx + 1 >= args.length) return undefined;
-  return args[idx + 1];
+  const index = args.indexOf(flag);
+  if (index === -1 || index + 1 >= args.length) {
+    return undefined;
+  }
+  return args[index + 1];
 };
 
 const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
   const raw = parseFlag(flag);
-  if (!raw) return undefined;
+  if (!raw) {
+    return undefined;
+  }
 
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -269,42 +315,57 @@ const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
   }
 };
 
-const apiError = (err: unknown) => {
-  console.error(`Error: Could not reach API at ${API_BASE}. Is the server running?`);
-  process.exit(1);
-};
-
 const tentacleCreate = async () => {
   const name = args[2];
   if (!name || name.startsWith("-")) {
     console.error("Error: tentacle name is required.");
     process.exit(1);
   }
+
   const description = parseFlag("--description") ?? parseFlag("-d") ?? "";
   const { color, octopus } = randomAppearance();
+  const apiBase = resolveRuntimeApiBase();
+
   try {
-    const res = await fetch(`${API_BASE}/api/deck/tentacles`, {
+    const response = await fetch(`${apiBase}/api/deck/tentacles`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, color, octopus }),
     });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) { console.error(`Error: ${data.error ?? "Failed"}`); process.exit(1); }
+    const data = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      console.error(`Error: ${data.error ?? "Failed"}`);
+      process.exit(1);
+    }
     console.log(`Created tentacle "${data.tentacleId}"`);
-  } catch (err) { apiError(err); }
+  } catch {
+    apiError();
+  }
 };
 
 const tentacleList = async () => {
+  const apiBase = resolveRuntimeApiBase();
+
   try {
-    const res = await fetch(`${API_BASE}/api/deck/tentacles`);
-    if (!res.ok) { console.error("Error: failed to fetch tentacles."); process.exit(1); }
-    const tentacles = (await res.json()) as Array<Record<string, unknown>>;
-    if (tentacles.length === 0) { console.log("No tentacles found."); return; }
-    for (const t of tentacles) {
-      const desc = t.description ? ` — ${t.description}` : "";
-      console.log(`  ${t.tentacleId}${desc}`);
+    const response = await fetch(`${apiBase}/api/deck/tentacles`);
+    if (!response.ok) {
+      console.error("Error: failed to fetch tentacles.");
+      process.exit(1);
     }
-  } catch (err) { apiError(err); }
+
+    const tentacles = (await response.json()) as Array<Record<string, unknown>>;
+    if (tentacles.length === 0) {
+      console.log("No tentacles found.");
+      return;
+    }
+
+    for (const tentacle of tentacles) {
+      const description = tentacle.description ? ` — ${tentacle.description}` : "";
+      console.log(`  ${tentacle.tentacleId}${description}`);
+    }
+  } catch {
+    apiError();
+  }
 };
 
 const terminalCreate = async () => {
@@ -319,6 +380,7 @@ const terminalCreate = async () => {
   const autoRenamePromptContext = parseFlag("--auto-rename-prompt-context");
   const promptTemplate = parseFlag("--prompt-template");
   const promptVariables = parseJsonFlag("--prompt-variables");
+  const apiBase = resolveRuntimeApiBase();
 
   const body: Record<string, unknown> = {};
   if (name) body.name = name;
@@ -332,16 +394,22 @@ const terminalCreate = async () => {
   if (autoRenamePromptContext) body.autoRenamePromptContext = autoRenamePromptContext;
   if (promptTemplate) body.promptTemplate = promptTemplate;
   if (promptVariables) body.promptVariables = promptVariables;
+
   try {
-    const res = await fetch(`${API_BASE}/api/terminals`, {
+    const response = await fetch(`${apiBase}/api/terminals`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) { console.error(`Error: ${data.error ?? "Failed"}`); process.exit(1); }
+    const data = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      console.error(`Error: ${data.error ?? "Failed"}`);
+      process.exit(1);
+    }
     console.log(`Created terminal "${data.terminalId}"`);
-  } catch (err) { apiError(err); }
+  } catch {
+    apiError();
+  }
 };
 
 const channelSend = async () => {
@@ -350,28 +418,46 @@ const channelSend = async () => {
     console.error("Error: target terminalId is required.");
     process.exit(1);
   }
+
   const fromTerminalId = parseFlag("--from") ?? process.env.OCTOGENT_SESSION_ID ?? "";
-  const fromIdx = args.indexOf("--from");
-  let message: string;
-  if (fromIdx !== -1) {
-    message = args.slice(3).filter((_, i) => {
-      const absIdx = i + 3;
-      return absIdx !== fromIdx && absIdx !== fromIdx + 1;
-    }).join(" ").trim();
-  } else {
-    message = args.slice(3).filter((a) => !a.startsWith("--from")).join(" ").trim();
+  const fromIndex = args.indexOf("--from");
+  const message =
+    fromIndex !== -1
+      ? args
+          .slice(3)
+          .filter((_, index) => {
+            const absoluteIndex = index + 3;
+            return absoluteIndex !== fromIndex && absoluteIndex !== fromIndex + 1;
+          })
+          .join(" ")
+          .trim()
+      : args
+          .slice(3)
+          .filter((value) => !value.startsWith("--from"))
+          .join(" ")
+          .trim();
+
+  if (!message) {
+    console.error("Error: message content is required.");
+    process.exit(1);
   }
-  if (!message) { console.error("Error: message content is required."); process.exit(1); }
+
+  const apiBase = resolveRuntimeApiBase();
   try {
-    const res = await fetch(`${API_BASE}/api/channels/${encodeURIComponent(terminalId)}/messages`, {
+    const response = await fetch(`${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fromTerminalId, content: message }),
     });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) { console.error(`Error: ${data.error ?? "Failed"}`); process.exit(1); }
+    const data = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      console.error(`Error: ${data.error ?? "Failed"}`);
+      process.exit(1);
+    }
     console.log(`Message sent (${data.messageId}) to ${terminalId}`);
-  } catch (err) { apiError(err); }
+  } catch {
+    apiError();
+  }
 };
 
 const channelList = async () => {
@@ -380,71 +466,96 @@ const channelList = async () => {
     console.error("Error: terminalId is required.");
     process.exit(1);
   }
+
+  const apiBase = resolveRuntimeApiBase();
   try {
-    const res = await fetch(`${API_BASE}/api/channels/${encodeURIComponent(terminalId)}/messages`);
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) { console.error(`Error: ${data.error ?? "Failed"}`); process.exit(1); }
-    const messages = (data.messages ?? []) as Array<Record<string, unknown>>;
-    if (messages.length === 0) { console.log(`No messages for ${terminalId}.`); return; }
-    for (const m of messages) {
-      const status = m.delivered ? "delivered" : "pending";
-      console.log(`  [${m.messageId}] from=${m.fromTerminalId || "(unknown)"} status=${status}: ${m.content}`);
+    const response = await fetch(`${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`);
+    const data = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      console.error(`Error: ${data.error ?? "Failed"}`);
+      process.exit(1);
     }
-  } catch (err) { apiError(err); }
+
+    const messages = (data.messages ?? []) as Array<Record<string, unknown>>;
+    if (messages.length === 0) {
+      console.log(`No messages for ${terminalId}.`);
+      return;
+    }
+
+    for (const message of messages) {
+      const status = message.delivered ? "delivered" : "pending";
+      console.log(
+        `  [${message.messageId}] from=${message.fromTerminalId || "(unknown)"} status=${status}: ${message.content}`,
+      );
+    }
+  } catch {
+    apiError();
+  }
 };
 
-// ─── Main ────────────────────────────────────────────────────────────────
-
 const main = async () => {
-  if (!command || command === "start") return startServer();
+  if (!command || command === "start") {
+    return startServer();
+  }
 
   if (command === "init") {
-    const name = args[1];
-    if (!name) { console.error("Usage: octogent init <project-name>"); process.exit(1); }
-    return initProject(name);
+    return initProject(args[1]);
   }
 
   if (command === "projects" || command === "project") {
-    const projects = loadProjects().projects;
+    const projects = loadProjectsRegistry().projects;
     if (projects.length === 0) {
-      console.log("No projects registered. Run `octogent init <name>` in a project directory.");
+      console.log("No projects registered yet. Run `octogent` or `octogent init` in a project directory.");
       return;
     }
-    for (const p of projects) console.log(`  ${p.name}  ${p.path}`);
+
+    for (const project of projects) {
+      console.log(`  ${project.name}  ${project.id}  ${project.path}`);
+    }
     return;
   }
 
   if (command === "tentacle" || command === "tentacles") {
-    if (args[1] === "create") return tentacleCreate();
-    if (args[1] === "list" || args[1] === "ls") return tentacleList();
+    if (args[1] === "create") {
+      return tentacleCreate();
+    }
+    if (args[1] === "list" || args[1] === "ls") {
+      return tentacleList();
+    }
   }
 
   if (command === "terminal" || command === "terminals") {
-    if (args[1] === "create") return terminalCreate();
+    if (args[1] === "create") {
+      return terminalCreate();
+    }
   }
 
   if (command === "channel") {
-    if (args[1] === "send") return channelSend();
-    if (args[1] === "list" || args[1] === "ls") return channelList();
+    if (args[1] === "send") {
+      return channelSend();
+    }
+    if (args[1] === "list" || args[1] === "ls") {
+      return channelList();
+    }
   }
 
   console.log(`Usage:
-  octogent                             Start the dashboard
-  octogent init <project-name>         Initialize current directory as a project
+  octogent                             Start the dashboard in the current project
+  octogent init [project-name]         Initialize the current directory explicitly
   octogent projects                    List registered projects
 
-  octogent tentacle create <name>      Create a tentacle (server must be running)
+  octogent tentacle create <name>      Create a tentacle (Octogent must be running)
   octogent tentacle list               List tentacles
   octogent terminal create [options]   Create a terminal
     --name, -n                         Terminal display name
-    --workspace-mode, -w              shared | worktree
-    --initial-prompt, -p              Raw initial prompt text
-    --terminal-id                     Explicit terminal ID
-    --tentacle-id                     Existing tentacle ID to attach to
-    --worktree-id                     Explicit worktree ID
-    --parent-terminal-id              Parent terminal ID for child terminals
-    --prompt-template                 Prompt template name
-    --prompt-variables                JSON object of prompt template variables
+    --workspace-mode, -w               shared | worktree
+    --initial-prompt, -p               Raw initial prompt text
+    --terminal-id                      Explicit terminal ID
+    --tentacle-id                      Existing tentacle ID to attach to
+    --worktree-id                      Explicit worktree ID
+    --parent-terminal-id               Parent terminal ID for child terminals
+    --prompt-template                  Prompt template name
+    --prompt-variables                 JSON object of prompt template variables
   octogent channel send <id> <msg>     Send a channel message
   octogent channel list <id>           List channel messages`);
   process.exit(1);

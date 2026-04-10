@@ -58,6 +58,7 @@ export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
   gitClient = createDefaultGitClient(),
+  getApiBaseUrl = () => process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
 }: CreateTerminalRuntimeOptions) => {
   const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
   const sessions = new Map<string, TerminalSession>();
@@ -72,8 +73,6 @@ export const createTerminalRuntime = ({
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir = process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
   const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
-  const apiPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT ?? "8787";
-
   const persistRegistry = () => {
     uiState = pruneUiStateTerminalReferences(uiState, terminals);
     registryPersistence.schedulePersist({
@@ -143,8 +142,7 @@ export const createTerminalRuntime = ({
     terminals,
     sessions,
     transcriptDirectoryPath,
-    apiPort,
-    workspaceCwd,
+    getApiBaseUrl,
     persistRegistry,
     deliverChannelMessages: channelMessaging.deliverChannelMessages,
     onStateChange: broadcastTerminalStateChanged,
@@ -317,14 +315,16 @@ export const createTerminalRuntime = ({
       worktreeManager.createTentacleWorktree(effectiveWorktreeId, baseRef);
     }
 
-    // Install hooks in the terminal's working directory.
-    try {
-      const hookTargetCwd = shouldCreateWorktree
-        ? worktreeManager.getTentacleWorkspaceCwd(effectiveWorktreeId)
-        : workspaceCwd;
-      hookProcessor.installHooksInDirectory(hookTargetCwd);
-    } catch {
-      // Best-effort: hooks installation should not block terminal creation.
+    if (terminal.agentProvider === "claude-code") {
+      // Claude hooks should only be installed for Claude-backed terminals.
+      try {
+        const hookTargetCwd = shouldCreateWorktree
+          ? worktreeManager.getTentacleWorkspaceCwd(effectiveWorktreeId)
+          : workspaceCwd;
+        hookProcessor.installHooksInDirectory(hookTargetCwd);
+      } catch {
+        // Best-effort: hook installation should not block terminal creation.
+      }
     }
 
     terminals.set(terminalId, terminal);

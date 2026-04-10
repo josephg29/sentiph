@@ -86,6 +86,8 @@ type CreateApiRequestHandlerOptions = {
   promptsDir: string;
   userPromptsDir: string;
   webDistDir?: string | undefined;
+  getApiBaseUrl: () => string;
+  getApiPort: () => string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readClaudeOauthUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
   readClaudeCliUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
@@ -181,6 +183,8 @@ export const createApiRequestHandler = ({
   promptsDir,
   userPromptsDir,
   webDistDir,
+  getApiBaseUrl,
+  getApiPort,
   readClaudeUsageSnapshot,
   readClaudeOauthUsageSnapshot,
   readClaudeCliUsageSnapshot,
@@ -200,6 +204,8 @@ export const createApiRequestHandler = ({
     projectStateDir,
     promptsDir,
     userPromptsDir,
+    getApiBaseUrl,
+    getApiPort,
     readClaudeUsageSnapshot,
     readClaudeOauthUsageSnapshot,
     readClaudeCliUsageSnapshot,
