@@ -1383,10 +1383,12 @@ export const CanvasPrimaryView = ({
             columns={columns}
             nodes={nodes}
             onCancel={() => setIsDeleteAllDialogOpen(false)}
-            onDeleted={() => {
-              setIsDeleteAllDialogOpen(false);
+            onDeleted={({ hadFailures }) => {
+              if (!hadFailures) {
+                setIsDeleteAllDialogOpen(false);
+              }
               setOpenTerminals(new Map());
-              onRefreshColumns?.();
+              void onRefreshColumns?.();
               refreshGraphData();
             }}
           />

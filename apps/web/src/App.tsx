@@ -50,7 +50,6 @@ export const App = () => {
   const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
-  const columnsRefreshTimerIdsRef = useRef<number[]>([]);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
   const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
   const runtimeStateStore = runtimeStateStoreRef.current;
@@ -120,20 +119,6 @@ export const App = () => {
     return nextColumns;
   }, [readColumns]);
 
-  const scheduleColumnsRefreshBurst = useCallback(() => {
-    for (const timerId of columnsRefreshTimerIdsRef.current) {
-      window.clearTimeout(timerId);
-    }
-    columnsRefreshTimerIdsRef.current = [];
-
-    for (const delayMs of [400, 1_200, 2_500, 5_000]) {
-      const timerId = window.setTimeout(() => {
-        void refreshColumns();
-      }, delayMs);
-      columnsRefreshTimerIdsRef.current.push(timerId);
-    }
-  }, [refreshColumns]);
-
   const {
     clearPendingDeleteTerminal,
     confirmDeleteTerminal,
@@ -185,10 +170,6 @@ export const App = () => {
 
   useEffect(() => {
     return () => {
-      for (const timerId of columnsRefreshTimerIdsRef.current) {
-        window.clearTimeout(timerId);
-      }
-      columnsRefreshTimerIdsRef.current = [];
       if (terminalEventsRefreshTimerRef.current !== null) {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
         terminalEventsRefreshTimerRef.current = null;
@@ -513,17 +494,15 @@ export const App = () => {
                 await refreshColumns();
               },
               onSpawnSwarm: async (tentacleId, workspaceMode) => {
-                await fetch(`/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ workspaceMode }),
-                });
-                await refreshColumns();
-                scheduleColumnsRefreshBurst();
-              },
-              onSolveTodoItem: async () => {
-                await refreshColumns();
-                scheduleColumnsRefreshBurst();
+                const response = await fetch(
+                  `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ workspaceMode }),
+                  },
+                );
+                if (!response.ok) return;
               },
               onOctobossAction: async (action) => {
                 const response = await fetch("/api/terminals", {

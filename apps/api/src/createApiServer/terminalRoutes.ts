@@ -241,12 +241,7 @@ export const handleTerminalItemRoute: ApiRouteHandler = async (
   const terminalId = decodeURIComponent(renameMatch[1] ?? "");
   if (request.method === "DELETE") {
     try {
-      const deleted = runtime.deleteTerminal(terminalId);
-      if (!deleted) {
-        writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
-        return true;
-      }
-
+      runtime.deleteTerminal(terminalId);
       writeNoContent(response, 204, corsOrigin);
       return true;
     } catch (error) {

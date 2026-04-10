@@ -2737,7 +2737,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
-    expect(missingResponse.status).toBe(404);
+    expect(missingResponse.status).toBe(204);
   });
 
   it("deletes descendant terminals when deleting a parent terminal", async () => {
