@@ -2,6 +2,7 @@
   "name": "octogent",
   "version": "0.1.0",
   "description": "Web-first command surface for running multiple coding agents in parallel",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.4.1",
   "engines": {
