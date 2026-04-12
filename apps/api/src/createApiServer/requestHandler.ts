@@ -8,6 +8,7 @@ import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
+import { logVerbose } from "../logging";
 import type { MonitorService } from "../monitor";
 import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
@@ -148,7 +149,7 @@ const extractRoutePrefix = (pathname: string): string | null => {
 };
 
 const logRequest = (method: string, path: string, status: number, startTime: number) => {
-  console.log(`[API] ${method} ${path} ${status} ${Date.now() - startTime}ms`);
+  logVerbose(`[API] ${method} ${path} ${status} ${Date.now() - startTime}ms`);
 };
 
 const serveStaticFile = async (

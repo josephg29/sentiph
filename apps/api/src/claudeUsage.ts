@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { type ClaudeUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
+import { logVerbose } from "./logging";
 import { toResetIso } from "./usageUtils";
 
 const CLAUDE_CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
@@ -459,7 +460,7 @@ const persistOkSnapshot = async (
     await mkdir(join(projectStateDir!, "state"), { recursive: true });
     await writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
   } catch (error) {
-    console.log(
+    console.warn(
       `[claude-usage] unable to persist snapshot: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -544,7 +545,7 @@ const spawnCliAndCapture = (binary: string): Promise<string | null> =>
           usageBuffer = "";
           usageSentAt = Date.now();
           usageSendCount += 1;
-          console.log("[claude-usage] CLI ready, sending /usage");
+          logVerbose("[claude-usage] CLI ready, sending /usage");
           try {
             term.write("/usage\r");
           } catch {
@@ -567,7 +568,7 @@ const spawnCliAndCapture = (binary: string): Promise<string | null> =>
               usageCollapsed.includes(needle.replace(/\s+/gu, "")),
             );
             if (!done && usageSendCount < 2 && !sawStopNeedle) {
-              console.log("[claude-usage] CLI usage view did not render yet, retrying /usage");
+              logVerbose("[claude-usage] CLI usage view did not render yet, retrying /usage");
               sendUsageCommand();
             }
           }, CLI_PTY_USAGE_RETRY_MS);
@@ -761,22 +762,22 @@ export const readClaudeCliUsageSnapshot = async (
     const cliOutput = await spawnCliUsage();
     if (cliOutput) {
       const cleaned = stripAnsiCodes(cliOutput);
-      console.log(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
+      logVerbose(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
       const parsed = parseCliUsageOutput(cliOutput);
       if (cliHasRealData(parsed)) {
-        console.log(
+        logVerbose(
           `[claude-usage] CLI PTY parsed: session=${parsed.primaryUsedPercent}% week=${parsed.secondaryUsedPercent}% sonnet=${parsed.sonnetUsedPercent}%`,
         );
         return await cacheOkSnapshot(buildCliSnapshot(parsed, now), dependencies.projectStateDir);
       }
-      console.log(
+      logVerbose(
         `[claude-usage] CLI PTY output had no parseable usage data. First 500 chars:\n${cleaned.slice(0, 500)}`,
       );
     } else {
-      console.log("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
+      logVerbose("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
     }
   } catch (error) {
-    console.log(
+    logVerbose(
       `[claude-usage] CLI PTY error: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -796,22 +797,22 @@ const refreshClaudeUsageSnapshot = async (
     const cliOutput = await spawnCliUsage();
     if (cliOutput) {
       const cleaned = stripAnsiCodes(cliOutput);
-      console.log(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
+      logVerbose(`[claude-usage] CLI PTY captured ${cleaned.length} chars`);
       const parsed = parseCliUsageOutput(cliOutput);
       if (cliHasRealData(parsed)) {
-        console.log(
+        logVerbose(
           `[claude-usage] CLI PTY parsed: session=${parsed.primaryUsedPercent}% week=${parsed.secondaryUsedPercent}% sonnet=${parsed.sonnetUsedPercent}%`,
         );
         return await cacheOkSnapshot(buildCliSnapshot(parsed, now), dependencies.projectStateDir);
       }
-      console.log(
+      logVerbose(
         `[claude-usage] CLI PTY output had no parseable usage data. First 500 chars:\n${cleaned.slice(0, 500)}`,
       );
     } else {
-      console.log("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
+      logVerbose("[claude-usage] CLI PTY returned null (binary missing or node-pty unavailable)");
     }
   } catch (error) {
-    console.log(
+    logVerbose(
       `[claude-usage] CLI PTY error: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -834,7 +835,7 @@ const refreshClaudeUsageSnapshot = async (
     !oauthSnapshot.message.includes("Re-run");
 
   if (oauthReachedApi) {
-    console.log(`[claude-usage] OAuth API responded with error: ${oauthSnapshot.message}`);
+    logVerbose(`[claude-usage] OAuth API responded with error: ${oauthSnapshot.message}`);
     if (cachedOkSnapshot) {
       return { ...cachedOkSnapshot, fetchedAt: now.toISOString() };
     }
@@ -842,7 +843,7 @@ const refreshClaudeUsageSnapshot = async (
   }
 
   if (cachedOkSnapshot) {
-    console.log(
+    logVerbose(
       `[claude-usage] OAuth unavailable (${oauthSnapshot.message}), serving stale cached snapshot`,
     );
     return { ...cachedOkSnapshot, fetchedAt: now.toISOString() };
@@ -858,7 +859,7 @@ const startBackgroundRefresh = (dependencies: ClaudeUsageDependencies = {}): voi
 
   refreshInFlight = refreshClaudeUsageSnapshot(dependencies)
     .catch((error) => {
-      console.log(
+      logVerbose(
         `[claude-usage] background refresh error: ${error instanceof Error ? error.message : String(error)}`,
       );
       return unavailableSnapshot(
@@ -910,7 +911,7 @@ export const readClaudeUsageSnapshot = async (
 
   refreshInFlight = refreshClaudeUsageSnapshot(dependencies)
     .catch((error) => {
-      console.log(
+      logVerbose(
         `[claude-usage] refresh error: ${error instanceof Error ? error.message : String(error)}`,
       );
       return unavailableSnapshot(now, "Unable to refresh Claude usage.", "error");

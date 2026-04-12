@@ -1,4 +1,5 @@
 import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
+import { logVerbose } from "../logging";
 
 export const createChannelMessaging = (deps: {
   terminals: Map<string, PersistedTerminal>;
@@ -31,7 +32,7 @@ export const createChannelMessaging = (deps: {
     );
     const prompt = `${lines.join("\n")}\r`;
 
-    console.log(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
+    logVerbose(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
 
     for (const m of undelivered) {
       m.delivered = true;
@@ -64,7 +65,7 @@ export const createChannelMessaging = (deps: {
       queue.push(message);
       channelQueues.set(toTerminalId, queue);
 
-      console.log(
+      logVerbose(
         `[Channel] Queued message ${message.messageId} from=${fromTerminalId} to=${toTerminalId}`,
       );
 

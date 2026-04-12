@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { logVerbose } from "../logging";
 import { parseClaudeTranscript } from "./claudeTranscript";
 import { storeClaudeTranscriptTurns } from "./conversations";
 import { broadcastMessage } from "./protocol";
@@ -196,10 +197,7 @@ export const createHookProcessor = (deps: {
     payload: unknown,
     octogentSessionId?: string,
   ): { ok: boolean } => {
-    console.log(
-      `[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`,
-      JSON.stringify(payload),
-    );
+    logVerbose(`[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`);
 
     if (!payload || typeof payload !== "object") {
       return { ok: true };
@@ -213,7 +211,7 @@ export const createHookProcessor = (deps: {
       }
       const session = sessions.get(octogentSessionId);
       if (!session) {
-        console.log(`[Hook] notification: no session for ${octogentSessionId}, skipping.`);
+        logVerbose(`[Hook] notification: no session for ${octogentSessionId}, skipping.`);
         return { ok: true };
       }
 
@@ -222,7 +220,7 @@ export const createHookProcessor = (deps: {
           ? hookPayloadRecord.notification_type
           : null;
 
-      console.log(`[Hook] notification: type=${notificationType} session=${octogentSessionId}`);
+      logVerbose(`[Hook] notification: type=${notificationType} session=${octogentSessionId}`);
 
       if (notificationType === "permission_prompt") {
         session.agentState = "waiting_for_permission";
@@ -258,7 +256,7 @@ export const createHookProcessor = (deps: {
       const toolName =
         typeof hookPayloadRecord.tool_name === "string" ? hookPayloadRecord.tool_name : null;
 
-      console.log(`[Hook] pre-tool-use: tool=${toolName} session=${octogentSessionId}`);
+      logVerbose(`[Hook] pre-tool-use: tool=${toolName} session=${octogentSessionId}`);
 
       if (toolName) {
         session.lastToolName = toolName;
@@ -309,7 +307,7 @@ export const createHookProcessor = (deps: {
           terminal.tentacleName = derived;
           terminal.nameOrigin = "prompt";
           delete terminal.autoRenamePromptContext;
-          console.log(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
+          logVerbose(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
 
           const session = sessions.get(terminal.terminalId);
           if (session) {
@@ -331,10 +329,10 @@ export const createHookProcessor = (deps: {
       typeof hookPayload.transcript_path === "string" ? hookPayload.transcript_path : null;
     const hookCwd = typeof hookPayload.cwd === "string" ? hookPayload.cwd : null;
 
-    console.log(`[Hook] Stop hook: transcriptPath=${transcriptPath}, hookCwd=${hookCwd}`);
+    logVerbose(`[Hook] Stop hook: transcriptPath=${transcriptPath}, hookCwd=${hookCwd}`);
 
     if (!transcriptPath || !hookCwd) {
-      console.log("[Hook] Missing transcriptPath or hookCwd, skipping.");
+      logVerbose("[Hook] Missing transcriptPath or hookCwd, skipping.");
       return { ok: true };
     }
 
@@ -342,20 +340,20 @@ export const createHookProcessor = (deps: {
 
     if (octogentSessionId && sessions.has(octogentSessionId)) {
       matchedSessionId = octogentSessionId;
-      console.log(`[Hook] Matched session by octogent_session param: ${matchedSessionId}`);
+      logVerbose(`[Hook] Matched session by octogent_session param: ${matchedSessionId}`);
     } else if (octogentSessionId) {
-      console.log(
+      logVerbose(
         `[Hook] octogent_session=${octogentSessionId} not found in active sessions, skipping.`,
       );
       return { ok: true };
     } else {
-      console.log("[Hook] No octogent_session param — ignoring hook from external Claude session.");
+      logVerbose("[Hook] No octogent_session param — ignoring hook from external Claude session.");
       return { ok: true };
     }
 
-    console.log(`[Hook] Matched session: ${matchedSessionId}, parsing transcript...`);
+    logVerbose(`[Hook] Matched session: ${matchedSessionId}, parsing transcript...`);
     const turns = parseClaudeTranscript(transcriptPath);
-    console.log(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
+    logVerbose(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
 
     const lastAssistantMessage =
       typeof hookPayload.last_assistant_message === "string"
@@ -375,18 +373,18 @@ export const createHookProcessor = (deps: {
           startedAt: now,
           endedAt: now,
         });
-        console.log("[Hook] Appended last_assistant_message as final turn.");
+        logVerbose("[Hook] Appended last_assistant_message as final turn.");
       }
 
       if (effectiveTurns.length > 0) {
         storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
-        console.log(
+        logVerbose(
           `[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`,
         );
       }
     } else if (turns && turns.length > 0) {
       storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, turns);
-      console.log(`[Hook] Stored ${turns.length} turns for session ${matchedSessionId}.`);
+      logVerbose(`[Hook] Stored ${turns.length} turns for session ${matchedSessionId}.`);
     }
 
     // Deliver any queued channel messages now that the agent is idle.
