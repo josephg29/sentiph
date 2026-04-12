@@ -6,6 +6,24 @@ It's really not fun to have ten Claude Code sessions open at once, constantly sw
 
 This repo is a personal exploration of what an AI coding environment might look like when terminal coding agents are treated as parts of a bigger orchestration layer, not the final interface by themselves. The point is not to hide **Claude Code** behind abstractions. The point is to make *multi-agent work less chaotic for the developer* on a real codebase.
 
+## Screenshots
+
+<div align="center">
+<table>
+<tr>
+<td><img src="./static/images/preview_1.jpg" alt="Screenshot 1" width="100%"/></td>
+<td><img src="./static/images/preview_2.jpg" alt="Screenshot 2" width="100%"/></td>
+</tr>
+<tr>
+<td><img src="./static/images/preview_3.jpg" alt="Screenshot 3" width="100%"/></td>
+<td><img src="./static/images/preview_4.jpg" alt="Screenshot 4" width="100%"/></td>
+</tr>
+<tr>
+<td><img src="./static/images/preview_5.jpg" alt="Screenshot 5" width="100%"/></td>
+<td><img src="./static/images/preview_6.jpg" alt="Screenshot 6" width="100%"/></td>
+</tr>
+</table>
+</div>
 
 ## What Octogent Does for You
 
@@ -57,6 +75,13 @@ This is different from Claude Code's subagent spawning, since it allows you to d
 That means Octogent is not just a dashboard for multiple terminals. It is also a way to structure parent-worker behavior around scoped tasks and shared context files.
 
 For the current model, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
+
+## How It Works
+
+1. Create a tentacle for a scoped slice of work.
+2. Store context, notes, and `todo.md` inside that tentacle so the agent has durable, local guidance.
+3. Run one or more agent terminals against that tentacle, and delegate child work from the task list when needed.
+4. Use the local API and web UI to monitor sessions, messages, transcripts, and worktree state.
 
 ## Quick start
 
