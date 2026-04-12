@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
+import { MockWebSocket } from "./test-utils/appTestHarness";
+
 afterEach(() => {
   cleanup();
 });
@@ -34,8 +36,4 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   value: () => canvasContextStub,
 });
 
-globalThis.WebSocket = class WebSocket {
-  addEventListener() {}
-  removeEventListener() {}
-  close() {}
-} as typeof WebSocket;
+globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;

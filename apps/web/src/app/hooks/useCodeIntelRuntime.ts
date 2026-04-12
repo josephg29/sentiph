@@ -65,8 +65,9 @@ export const useCodeIntelRuntime = (enabled: boolean): CodeIntelRuntimeResult =>
 
 /** Find the longest common directory prefix across all file paths. */
 const deriveWorkspaceCwd = (paths: string[]): string => {
-  if (paths.length === 0) return "";
-  const parts = paths[0]?.split("/");
+  const [firstPath] = paths;
+  if (!firstPath) return "";
+  const parts = firstPath.split("/");
   let prefix = "";
 
   for (let i = 0; i < parts.length - 1; i++) {

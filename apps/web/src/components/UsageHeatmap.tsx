@@ -559,7 +559,9 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
     let streak = 0;
     let maxStreak = 0;
     for (let i = days.length - 1; i >= 0; i--) {
-      if (days[i]?.totalTokens > 0) {
+      const day = days[i];
+      if (!day) continue;
+      if (day.totalTokens > 0) {
         streak++;
         if (streak > maxStreak) maxStreak = streak;
       } else {

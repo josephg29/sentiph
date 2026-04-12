@@ -43,7 +43,9 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const fileIndexMap = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < files.length; i++) {
-      map.set(files[i]?.file, i);
+      const file = files[i];
+      if (!file) continue;
+      map.set(file.file, i);
     }
     return map;
   }, [files]);
