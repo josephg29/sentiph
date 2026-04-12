@@ -294,8 +294,9 @@ export const createDefaultGitClient = (): GitClient => ({
       "--short",
       "refs/remotes/origin/HEAD",
     ]);
-    const defaultBaseBranchName =
-      remoteHead && remoteHead.startsWith("origin/") ? remoteHead.slice("origin/".length) : null;
+    const defaultBaseBranchName = remoteHead?.startsWith("origin/")
+      ? remoteHead.slice("origin/".length)
+      : null;
 
     return {
       branchName,

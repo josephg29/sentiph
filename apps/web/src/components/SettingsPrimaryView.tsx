@@ -31,14 +31,10 @@ export const SettingsPrimaryView = ({
         <p>Play a notification when a tentacle moves from processing to idle.</p>
       </header>
 
-      <div
-        className="settings-sound-picker"
-        role="radiogroup"
-        aria-label="Tentacle completion notification sound"
-      >
+      <div className="settings-sound-picker">
         {TERMINAL_COMPLETION_SOUND_OPTIONS.map((option) => (
           <button
-            aria-checked={terminalCompletionSound === option.id}
+            aria-pressed={terminalCompletionSound === option.id}
             className="settings-sound-option"
             data-active={terminalCompletionSound === option.id ? "true" : "false"}
             key={option.id}
@@ -46,7 +42,6 @@ export const SettingsPrimaryView = ({
               onTerminalCompletionSoundChange(option.id);
               onPreviewTerminalCompletionSound(option.id);
             }}
-            role="radio"
             type="button"
           >
             <span className="settings-sound-option-label">{option.label}</span>
@@ -76,7 +71,7 @@ export const SettingsPrimaryView = ({
         <p>Enable or disable monitor surfaces in the main workspace shell.</p>
       </header>
 
-      <div className="settings-toggle-grid" role="group" aria-label="Workspace surface visibility">
+      <div className="settings-toggle-grid">
         <SettingsToggle
           label="X Monitor"
           description="Auto-fetch X feed and show monitor tab"

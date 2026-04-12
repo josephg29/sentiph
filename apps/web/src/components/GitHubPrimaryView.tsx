@@ -51,8 +51,9 @@ const buildCommitYTicks = (series: GitHubCommitSparkPoint[]): { count: number; y
 const buildAreaPolygonPoints = (series: GitHubCommitSparkPoint[]): string => {
   if (series.length === 0) return "";
   const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
-  const first = series[0]!;
-  const last = series[series.length - 1]!;
+  const first = series[0];
+  const last = series[series.length - 1];
+  if (!first || !last) return "";
   const linePoints = series.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   return `${first.x.toFixed(1)},${H} ${linePoints} ${last.x.toFixed(1)},${H}`;
 };
@@ -313,7 +314,7 @@ export const GitHubPrimaryView = ({
               >
                 <dt>
                   <span aria-hidden="true" className="github-overview-stat-icon">
-                    <svg viewBox="0 0 16 16">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16">
                       <path d="M8 1.5 9.9 5.5 14.3 6 11 9.1 11.9 13.5 8 11.3 4.1 13.5 5 9.1 1.7 6 6.1 5.5z" />
                     </svg>
                   </span>
@@ -329,7 +330,7 @@ export const GitHubPrimaryView = ({
               >
                 <dt>
                   <span aria-hidden="true" className="github-overview-stat-icon">
-                    <svg viewBox="0 0 16 16">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16">
                       <path d="M8 2.2a5.8 5.8 0 1 0 0 11.6A5.8 5.8 0 0 0 8 2.2z" />
                       <path d="M8 5.1v3.6m0 2.2h.01" />
                     </svg>
@@ -346,7 +347,7 @@ export const GitHubPrimaryView = ({
               >
                 <dt>
                   <span aria-hidden="true" className="github-overview-stat-icon">
-                    <svg viewBox="0 0 16 16">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16">
                       <path d="M5 2.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM11 9.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM5 6.5v7m0-3.5h4.2" />
                     </svg>
                   </span>
@@ -362,7 +363,7 @@ export const GitHubPrimaryView = ({
               >
                 <dt>
                   <span aria-hidden="true" className="github-overview-stat-icon">
-                    <svg viewBox="0 0 16 16">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16">
                       <path d="M2 11.8h12M4 9.7l2.2-2.2 2 1.7L12 5.6" />
                     </svg>
                   </span>
@@ -382,49 +383,51 @@ export const GitHubPrimaryView = ({
               {githubRecentCommits.length > 0 ? (
                 <ol className="github-overview-recent-list">
                   {githubRecentCommits.map((commit) => (
-                    <li
-                      className={`github-overview-recent-item${pinnedCommitHash === commit.hash ? " is-selected" : ""}`}
-                      key={commit.hash}
-                      onMouseEnter={(event) => {
-                        if (pinnedCommitHash) {
-                          return;
-                        }
-                        setHoveredCommitHash(commit.hash);
-                        const sectionRect = recentSectionRef.current?.getBoundingClientRect();
-                        if (sectionRect) {
-                          const itemRect = event.currentTarget.getBoundingClientRect();
-                          setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (pinnedCommitHash) {
-                          return;
-                        }
-                        setHoveredCommitHash(null);
-                        setCommitTooltipY(null);
-                      }}
-                      onClick={(event) => {
-                        if (pinnedCommitHash === commit.hash) {
-                          dismissCommitTooltip();
-                          return;
-                        }
-                        setPinnedCommitHash(commit.hash);
-                        const sectionRect = recentSectionRef.current?.getBoundingClientRect();
-                        if (sectionRect) {
-                          const itemRect = event.currentTarget.getBoundingClientRect();
-                          setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);
-                        }
-                      }}
-                    >
-                      <span aria-hidden="true" className="github-overview-recent-node" />
-                      <span className="github-overview-recent-sha">{commit.shortHash}</span>
-                      <div className="github-overview-recent-copy">
-                        <p className="github-overview-recent-subject">{commit.subject}</p>
-                        <p className="github-overview-recent-meta">
-                          <span>{commit.authorName}</span>
-                          <span>{formatRecentCommitTimestamp(commit.authoredAt)}</span>
-                        </p>
-                      </div>
+                    <li key={commit.hash}>
+                      <button
+                        type="button"
+                        className={`github-overview-recent-item${pinnedCommitHash === commit.hash ? " is-selected" : ""}`}
+                        onMouseEnter={(event) => {
+                          if (pinnedCommitHash) {
+                            return;
+                          }
+                          setHoveredCommitHash(commit.hash);
+                          const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+                          if (sectionRect) {
+                            const itemRect = event.currentTarget.getBoundingClientRect();
+                            setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (pinnedCommitHash) {
+                            return;
+                          }
+                          setHoveredCommitHash(null);
+                          setCommitTooltipY(null);
+                        }}
+                        onClick={(event) => {
+                          if (pinnedCommitHash === commit.hash) {
+                            dismissCommitTooltip();
+                            return;
+                          }
+                          setPinnedCommitHash(commit.hash);
+                          const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+                          if (sectionRect) {
+                            const itemRect = event.currentTarget.getBoundingClientRect();
+                            setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);
+                          }
+                        }}
+                      >
+                        <span aria-hidden="true" className="github-overview-recent-node" />
+                        <span className="github-overview-recent-sha">{commit.shortHash}</span>
+                        <div className="github-overview-recent-copy">
+                          <p className="github-overview-recent-subject">{commit.subject}</p>
+                          <p className="github-overview-recent-meta">
+                            <span>{commit.authorName}</span>
+                            <span>{formatRecentCommitTimestamp(commit.authoredAt)}</span>
+                          </p>
+                        </div>
+                      </button>
                     </li>
                   ))}
                 </ol>

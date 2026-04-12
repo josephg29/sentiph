@@ -43,7 +43,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const fileIndexMap = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < files.length; i++) {
-      map.set(files[i]!.file, i);
+      map.set(files[i]?.file, i);
     }
     return map;
   }, [files]);
@@ -53,8 +53,8 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
     for (const p of pairs) {
       if (!map.has(p.fileA)) map.set(p.fileA, []);
       if (!map.has(p.fileB)) map.set(p.fileB, []);
-      map.get(p.fileA)!.push({ partner: p.fileB, coSessions: p.coSessions });
-      map.get(p.fileB)!.push({ partner: p.fileA, coSessions: p.coSessions });
+      map.get(p.fileA)?.push({ partner: p.fileB, coSessions: p.coSessions });
+      map.get(p.fileB)?.push({ partner: p.fileA, coSessions: p.coSessions });
     }
     for (const entries of map.values()) {
       entries.sort((a, b) => b.coSessions - a.coSessions);
@@ -66,7 +66,8 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const arcAreaWidth = size.width - LABEL_WIDTH - 8;
   const minSvgHeight = PADDING_Y + files.length * ROW_HEIGHT + PADDING_Y;
   const svgHeight = Math.max(minSvgHeight, size.height);
-  const dynamicRowHeight = files.length > 0 ? (svgHeight - PADDING_Y * 2) / files.length : ROW_HEIGHT;
+  const dynamicRowHeight =
+    files.length > 0 ? (svgHeight - PADDING_Y * 2) / files.length : ROW_HEIGHT;
 
   const maxCoSessions = useMemo(() => {
     let max = 0;
@@ -211,7 +212,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
           <div className="code-intel-tooltip-path">{hoveredFile}</div>
           {fileCouplingMap.has(hoveredFile) ? (
             <div className="code-intel-tooltip-coupling-list">
-              {fileCouplingMap.get(hoveredFile)!.map((c) => (
+              {fileCouplingMap.get(hoveredFile)?.map((c) => (
                 <div key={c.partner} className="code-intel-tooltip-coupling-row">
                   <span className="code-intel-tooltip-coupling-partner">
                     {shortFileName(c.partner)}

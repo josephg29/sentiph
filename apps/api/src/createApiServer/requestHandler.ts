@@ -19,12 +19,12 @@ import {
 } from "./conversationRoutes";
 import {
   handleDeckTentacleItemRoute,
-  handleDeckTodoSolveRoute,
   handleDeckTentacleSwarmRoute,
   handleDeckTentaclesRoute,
   handleDeckTodoAddRoute,
   handleDeckTodoDeleteRoute,
   handleDeckTodoEditRoute,
+  handleDeckTodoSolveRoute,
   handleDeckTodoToggleRoute,
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
@@ -171,7 +171,10 @@ const serveStaticFile = async (
   } catch (error) {
     const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
     if (code !== "ENOENT") {
-      console.error(`[API] Static file error: ${filePath}`, error instanceof Error ? error.message : error);
+      console.error(
+        `[API] Static file error: ${filePath}`,
+        error instanceof Error ? error.message : error,
+      );
     }
     return false;
   }
@@ -286,7 +289,7 @@ export const createApiRequestHandler = ({
     } catch (error) {
       console.error(
         `[API] Unhandled error: ${request.method ?? "?"} ${request.url ?? "/"}`,
-        error instanceof Error ? error.stack ?? error.message : error,
+        error instanceof Error ? (error.stack ?? error.message) : error,
       );
       writeJson(
         response,

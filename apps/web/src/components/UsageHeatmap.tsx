@@ -49,7 +49,12 @@ type BarData = {
 };
 
 const buildColorMap = (keys: string[]) =>
-  new Map(keys.map((k, i) => [k, SEGMENT_COLORS[i % SEGMENT_COLORS.length]!]));
+  new Map(
+    keys.map((k, i) => [
+      k,
+      SEGMENT_COLORS[i % SEGMENT_COLORS.length] ?? SEGMENT_COLORS[0] ?? "#ffffff",
+    ]),
+  );
 
 const buildBars = (days: UsageDayEntry[], keys: string[], mode: BarSegmentMode): BarData[] => {
   const colorMap = buildColorMap(keys);
@@ -141,15 +146,21 @@ const buildTrendPath = (
   }));
 
   if (points.length === 2) {
-    return `M${points[0]!.x},${points[0]!.y}L${points[1]!.x},${points[1]!.y}`;
+    const [firstPoint, secondPoint] = points;
+    if (!firstPoint || !secondPoint) return "";
+    return `M${firstPoint.x},${firstPoint.y}L${secondPoint.x},${secondPoint.y}`;
   }
 
-  let d = `M${points[0]!.x},${points[0]!.y}`;
+  const [firstPoint] = points;
+  if (!firstPoint) return "";
+
+  let d = `M${firstPoint.x},${firstPoint.y}`;
   for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(0, i - 1)]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[Math.min(points.length - 1, i + 2)]!;
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+    if (!p0 || !p1 || !p2 || !p3) continue;
 
     const cp1x = p1.x + (p2.x - p0.x) / 10;
     const cp1y = Math.max(topPad, p1.y + (p2.y - p0.y) / 10);
@@ -381,7 +392,9 @@ const buildMonthLabels = (cells: HeatmapCell[]): { label: string; week: number }
     if (cell.dayOfWeek !== 0) continue;
     const month = new Date(cell.date).getUTCMonth();
     if (month !== lastMonth) {
-      labels.push({ label: MONTH_LABELS[month]!, week: cell.week });
+      const label = MONTH_LABELS[month];
+      if (!label) continue;
+      labels.push({ label, week: cell.week });
       lastMonth = month;
     }
   }
@@ -443,7 +456,7 @@ const HeatmapView = ({
       {DAY_LABELS.map((label, dayIndex) =>
         label ? (
           <text
-            key={`day-${dayIndex}`}
+            key={label}
             x={dayLabelWidth - 6}
             y={monthLabelHeight + dayIndex * (cellSize + CELL_GAP) + cellSize - 2}
             className="usage-heatmap-day-label"
@@ -461,7 +474,7 @@ const HeatmapView = ({
           width={cellSize}
           height={cellSize}
           rx={CELL_RADIUS}
-          fill={INTENSITY_COLORS[cell.intensity]!}
+          fill={INTENSITY_COLORS[cell.intensity] ?? INTENSITY_COLORS[0] ?? "transparent"}
           className="usage-heatmap-cell"
           onMouseEnter={() => {
             if (cell.bar) setHoveredBar(cell.bar);
@@ -533,10 +546,11 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
   const colorMap = useMemo(() => buildColorMap(segmentKeys), [segmentKeys]);
 
   const stats = useMemo(() => {
-    if (days.length === 0) return null;
+    const [firstDay] = days;
+    if (!firstDay) return null;
     const peakDay = days.reduce(
       (best, d) => (d.totalTokens > best.totalTokens ? d : best),
-      days[0]!,
+      firstDay,
     );
     const avgPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
     const topModel = models[0] ?? "—";
@@ -545,7 +559,7 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
     let streak = 0;
     let maxStreak = 0;
     for (let i = days.length - 1; i >= 0; i--) {
-      if (days[i]!.totalTokens > 0) {
+      if (days[i]?.totalTokens > 0) {
         streak++;
         if (streak > maxStreak) maxStreak = streak;
       } else {

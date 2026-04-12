@@ -70,4 +70,3 @@ export function deriveOctopusVisuals(tentacle: DeckTentacleSummary): OctopusVisu
     hairColor: stored?.hairColor ?? undefined,
   };
 }
-

@@ -110,7 +110,15 @@ vi.mock("../src/components/canvas/OctopusNode", () => ({
     node: (typeof nodes)[number];
     onClick: (nodeId: string) => void;
   }) => (
-    <g data-node-id={node.id} onClick={() => onClick(node.id)}>
+    <g
+      data-node-id={node.id}
+      onClick={() => onClick(node.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          onClick(node.id);
+        }
+      }}
+    >
       <circle cx={node.x} cy={node.y} r={node.radius} />
       <title>{node.label}</title>
     </g>
@@ -137,10 +145,12 @@ vi.mock("../src/components/canvas/CanvasTentaclePanel", () => ({
 
 describe("CanvasPrimaryView", () => {
   beforeEach(() => {
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
-      callback(0);
-      return 1;
-    });
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      },
+    );
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
@@ -163,7 +173,11 @@ describe("CanvasPrimaryView", () => {
   it("reveals and focuses a newly opened terminal panel when a session node is clicked", async () => {
     render(<CanvasPrimaryView columns={[]} isUiStateHydrated />);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "terminal-1" })[0]!);
+    const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
+    expect(terminalButton).toBeDefined();
+    if (!terminalButton) throw new Error("Missing terminal button");
+
+    fireEvent.click(terminalButton);
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-1")).toBeInTheDocument();
@@ -188,7 +202,11 @@ describe("CanvasPrimaryView", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "terminal-1" })[0]!);
+    const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
+    expect(terminalButton).toBeDefined();
+    if (!terminalButton) throw new Error("Missing terminal button");
+
+    fireEvent.click(terminalButton);
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-1")).toBeInTheDocument();
@@ -270,7 +288,11 @@ describe("CanvasPrimaryView", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "terminal-1" })[0]!);
+    const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
+    expect(terminalButton).toBeDefined();
+    if (!terminalButton) throw new Error("Missing terminal button");
+
+    fireEvent.click(terminalButton);
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-1")).toHaveTextContent(
@@ -305,11 +327,7 @@ describe("CanvasPrimaryView", () => {
     const onTentacleAction = vi.fn().mockResolvedValue(undefined);
 
     const { container } = render(
-      <CanvasPrimaryView
-        columns={[]}
-        isUiStateHydrated
-        onTentacleAction={onTentacleAction}
-      />,
+      <CanvasPrimaryView columns={[]} isUiStateHydrated onTentacleAction={onTentacleAction} />,
     );
 
     const tentacleNode = container.querySelector('[data-node-id="t:tentacle-a"]');

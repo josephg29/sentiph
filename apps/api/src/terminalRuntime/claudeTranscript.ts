@@ -270,7 +270,6 @@ export const parseClaudeTranscript = (transcriptPath: string): ConversationTurn[
         pendingAssistantEndedAt = timestamp;
         pendingAssistantParts.push(summary);
       }
-      continue;
     }
   }
 

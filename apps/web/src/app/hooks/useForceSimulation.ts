@@ -99,6 +99,9 @@ export const useForceSimulation = ({
   );
 
   useEffect(() => {
+    void nodeIdKey;
+    void edgeKey;
+
     const currentNodes = nodesRef.current;
     const currentEdges = edgesRef.current;
     const p = paramsRef.current;
@@ -202,6 +205,8 @@ export const useForceSimulation = ({
   // color, label) into the simulation's internal nodes and produce a fresh
   // snapshot without reheating the simulation.
   useEffect(() => {
+    void contentKey;
+
     const map = simNodeMapRef.current;
     const currentNodes = nodesRef.current;
     let changed = false;

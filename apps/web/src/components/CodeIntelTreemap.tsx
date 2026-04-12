@@ -102,7 +102,7 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
                   x={rx + 4}
                   y={ry + 13}
                   className="code-intel-treemap-label"
-                  clipPath={`inset(0 0 0 0)`}
+                  clipPath={"inset(0 0 0 0)"}
                 >
                   <tspan className="code-intel-treemap-count">{r.value}:</tspan>
                   <tspan>{truncateLabel(r.name, rw - 8 - `${r.value}:`.length * 6.5)}</tspan>

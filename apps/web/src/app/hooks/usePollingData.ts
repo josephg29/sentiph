@@ -21,38 +21,44 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
   const fallbackRef = useRef(options.fallback);
   fallbackRef.current = options.fallback;
 
-  const sync = useCallback(async (force = false) => {
-    if (isDisposedRef.current) return;
-    if (isInFlightRef.current) {
-      if (force) {
-        hasQueuedRefreshRef.current = true;
+  const sync = useCallback(
+    async (force = false) => {
+      if (isDisposedRef.current) return;
+      if (isInFlightRef.current) {
+        if (force) {
+          hasQueuedRefreshRef.current = true;
+        }
+        return;
       }
-      return;
-    }
-    isInFlightRef.current = true;
-    setIsLoading(true);
-    try {
-      const response = await fetch(fetchUrl, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error(`Request failed (${response.status})`);
-      const parsed = normalizeRef.current(await response.json());
-      if (!isDisposedRef.current) setData(parsed ?? fallbackRef.current());
-    } catch (error) {
-      if (!isDisposedRef.current) {
-        console.warn(`[polling] ${fetchUrl} failed:`, error instanceof Error ? error.message : error);
+      isInFlightRef.current = true;
+      setIsLoading(true);
+      try {
+        const response = await fetch(fetchUrl, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
+        const parsed = normalizeRef.current(await response.json());
+        if (!isDisposedRef.current) setData(parsed ?? fallbackRef.current());
+      } catch (error) {
+        if (!isDisposedRef.current) {
+          console.warn(
+            `[polling] ${fetchUrl} failed:`,
+            error instanceof Error ? error.message : error,
+          );
+        }
+      } finally {
+        isInFlightRef.current = false;
+        if (!isDisposedRef.current) setIsLoading(false);
+        if (hasQueuedRefreshRef.current) {
+          hasQueuedRefreshRef.current = false;
+          void sync();
+        }
       }
-    } finally {
-      isInFlightRef.current = false;
-      if (!isDisposedRef.current) setIsLoading(false);
-      if (hasQueuedRefreshRef.current) {
-        hasQueuedRefreshRef.current = false;
-        void sync();
-      }
-    }
-  }, [fetchUrl]);
+    },
+    [fetchUrl],
+  );
 
   useEffect(() => {
     if (!enabled) return;

@@ -71,7 +71,10 @@ type Rect = { x: number; y: number; w: number; h: number };
 const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
   if (items.length === 0) return;
   if (items.length === 1) {
-    pushRect(items[0]!, rect, out);
+    const [item] = items;
+    if (item) {
+      pushRect(item, rect, out);
+    }
     return;
   }
 
@@ -84,7 +87,8 @@ const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
   let best = Number.POSITIVE_INFINITY;
 
   for (let i = 0; i < items.length; i++) {
-    const item = items[i]!;
+    const item = items[i];
+    if (!item) continue;
     const nextArea = rowArea + item.area;
     const nextRow = [...row, item];
     const worst = worstRatio(nextRow, nextArea, shortSide);
@@ -190,12 +194,12 @@ export const buildCouplingData = (events: CodeIntelEvent[], workspaceCwd: string
       : e.file;
 
     if (!sessionFiles.has(e.sessionId)) sessionFiles.set(e.sessionId, new Set());
-    sessionFiles.get(e.sessionId)!.add(relative);
+    sessionFiles.get(e.sessionId)?.add(relative);
 
     fileEdits.set(relative, (fileEdits.get(relative) ?? 0) + 1);
 
     if (!fileSessions.has(relative)) fileSessions.set(relative, new Set());
-    fileSessions.get(relative)!.add(e.sessionId);
+    fileSessions.get(relative)?.add(e.sessionId);
   }
 
   // Build coupling pairs
@@ -206,8 +210,9 @@ export const buildCouplingData = (events: CodeIntelEvent[], workspaceCwd: string
     const fileList = [...files];
     for (let i = 0; i < fileList.length; i++) {
       for (let j = i + 1; j < fileList.length; j++) {
-        const a = fileList[i]!;
-        const b = fileList[j]!;
+        const a = fileList[i];
+        const b = fileList[j];
+        if (!a || !b) continue;
         const key = pairKey(a, b);
         const existing = pairCounts.get(key);
         if (existing) {
@@ -263,8 +268,9 @@ export const heatColor = (value: number, maxValue: number): string => {
   const segment = ratio * (MRI_STOPS.length - 1);
   const i = Math.min(Math.floor(segment), MRI_STOPS.length - 2);
   const t = segment - i;
-  const a = MRI_STOPS[i]!;
-  const b = MRI_STOPS[i + 1]!;
+  const a = MRI_STOPS[i];
+  const b = MRI_STOPS[i + 1];
+  if (!a || !b) return "rgb(10,10,46)";
   const r = Math.round(a[0] + t * (b[0] - a[0]));
   const g = Math.round(a[1] + t * (b[1] - a[1]));
   const bl = Math.round(a[2] + t * (b[2] - a[2]));

@@ -39,7 +39,9 @@ export const DeleteAllTerminalsDialog = ({
 
   const inactiveSessionIds = useMemo(
     () =>
-      nodes.filter((n) => n.type === "inactive-session" && n.sessionId).map((n) => n.sessionId!),
+      nodes.flatMap((node) =>
+        node.type === "inactive-session" && node.sessionId ? [node.sessionId] : [],
+      ),
     [nodes],
   );
 
@@ -96,9 +98,7 @@ export const DeleteAllTerminalsDialog = ({
         }
       } catch (error) {
         failures.push(
-          `Conversation ${sessionId}: ${
-            error instanceof Error ? error.message : "Delete failed."
-          }`,
+          `Conversation ${sessionId}: ${error instanceof Error ? error.message : "Delete failed."}`,
         );
       }
       done += 1;
@@ -152,7 +152,8 @@ export const DeleteAllTerminalsDialog = ({
         {failureMessages.length > 0 && (
           <p className="delete-confirm-message" role="alert">
             Failed to delete {failureMessages.length}{" "}
-            {failureMessages.length === 1 ? "item" : "items"}: {failureMessages.slice(0, 3).join("; ")}
+            {failureMessages.length === 1 ? "item" : "items"}:{" "}
+            {failureMessages.slice(0, 3).join("; ")}
           </p>
         )}
         <div className="delete-all-mode-row">

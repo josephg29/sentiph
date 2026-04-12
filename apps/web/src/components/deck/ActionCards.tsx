@@ -49,7 +49,7 @@ export const ActionCards = ({
         </span>
       </div>
     </button>
-    <div className="deck-empty-card" role="group">
+    <div className="deck-empty-card">
       <span className="deck-empty-card-icon deck-empty-card-icon--terminal">&gt;_</span>
       <div className="deck-empty-card-text">
         <span className="deck-empty-card-title">Open Agent</span>

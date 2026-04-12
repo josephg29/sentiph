@@ -1,10 +1,6 @@
 import { asNumber, asRecord, asString } from "@octogent/core";
 
-import type {
-  GitHubCommitPoint,
-  GitHubRecentCommit,
-  GitHubRepoSummarySnapshot,
-} from "./types";
+import type { GitHubCommitPoint, GitHubRecentCommit, GitHubRepoSummarySnapshot } from "./types";
 
 const normalizeGitHubCommitPoint = (value: unknown): GitHubCommitPoint | null => {
   const record = asRecord(value);

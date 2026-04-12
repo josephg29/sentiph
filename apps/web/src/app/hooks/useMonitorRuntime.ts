@@ -6,7 +6,10 @@ import {
   buildMonitorRefreshUrl,
 } from "../../runtime/runtimeEndpoints";
 import { MONITOR_SCAN_INTERVAL_MS } from "../constants";
-import { normalizeMonitorConfigSnapshot, normalizeMonitorFeedSnapshot } from "../monitorNormalizers";
+import {
+  normalizeMonitorConfigSnapshot,
+  normalizeMonitorFeedSnapshot,
+} from "../monitorNormalizers";
 import type { MonitorConfigSnapshot, MonitorFeedSnapshot } from "../types";
 
 export type MonitorConfigPatchRequest = {

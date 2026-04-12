@@ -55,7 +55,7 @@ const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void
   const filePath = join(projectStateDir, "state", "deck.json");
   const dir = join(projectStateDir, "state");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(filePath, JSON.stringify(state, null, 2) + "\n");
+  writeFileSync(filePath, `${JSON.stringify(state, null, 2)}\n`);
 };
 
 const parseTentacleState = (raw: unknown): DeckTentacleState => {
@@ -392,8 +392,8 @@ export const addTodoItem = (
     return null;
   }
 
-  const trimmed = content.endsWith("\n") ? content : content + "\n";
-  const updated = trimmed + `- [ ] ${text}\n`;
+  const trimmed = content.endsWith("\n") ? content : `${content}\n`;
+  const updated = `${trimmed}- [ ] ${text}\n`;
 
   try {
     writeFileSync(filePath, updated, "utf-8");

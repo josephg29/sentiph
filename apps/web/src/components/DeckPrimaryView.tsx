@@ -315,7 +315,12 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
-    <section className="deck-view" data-mode={mode} data-has-pods={tentacles.length > 0} aria-label="Deck">
+    <section
+      className="deck-view"
+      data-mode={mode}
+      data-has-pods={tentacles.length > 0}
+      aria-label="Deck"
+    >
       <div className="deck-pods-container">
         {tentacles.map((t) => {
           const isThis =

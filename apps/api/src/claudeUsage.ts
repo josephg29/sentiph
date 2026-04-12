@@ -1,7 +1,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { type ClaudeUsageSnapshot, asNumber, asRecord, asString } from "@octogent/core";
 import { logVerbose } from "./logging";
@@ -28,7 +28,6 @@ const asTrimmedString = (value: unknown): string | null => {
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
-
 
 export type { ClaudeUsageSnapshot };
 
@@ -244,7 +243,8 @@ const readDefaultCredentialsJson = async (): Promise<unknown> => {
 // CLI PTY usage source — persistent singleton session (like CodexBar)
 // ---------------------------------------------------------------------------
 
-const ANSI_CSI_RE = /\u001B\[[0-?]*[ -/]*[@-~]/gu;
+const ANSI_ESCAPE = String.fromCharCode(0x1b);
+const ANSI_CSI_RE = new RegExp(`${ANSI_ESCAPE}\\[[0-?]*[ -/]*[@-~]`, "gu");
 
 export const stripAnsiCodes = (text: string): string => text.replace(ANSI_CSI_RE, "");
 
@@ -279,7 +279,10 @@ const percentFromLine = (line: string): number | null => {
   const match = PERCENT_RE.exec(line);
   if (!match) return null;
 
-  const raw = Number.parseFloat(match[1]!);
+  const percentText = match[1];
+  if (!percentText) return null;
+
+  const raw = Number.parseFloat(percentText);
   const clamped = Math.max(0, Math.min(100, raw));
   const lower = line.toLowerCase();
   const contextStart = Math.max(0, match.index - 16);
@@ -402,11 +405,7 @@ const normalizePersistedSnapshot = (value: unknown): ClaudeUsageSnapshot | null 
   const status = asTrimmedString(record.status);
   const source = asTrimmedString(record.source);
   const fetchedAt = asTrimmedString(record.fetchedAt);
-  if (
-    status !== "ok" ||
-    (source !== "cli-pty" && source !== "oauth-api") ||
-    fetchedAt === null
-  ) {
+  if (status !== "ok" || (source !== "cli-pty" && source !== "oauth-api") || fetchedAt === null) {
     return null;
   }
 
@@ -457,7 +456,7 @@ const persistOkSnapshot = async (
   }
 
   try {
-    await mkdir(join(projectStateDir!, "state"), { recursive: true });
+    await mkdir(dirname(snapshotPath), { recursive: true });
     await writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
   } catch (error) {
     console.warn(
@@ -904,9 +903,7 @@ export const readClaudeUsageSnapshot = async (
 
   if (refreshInFlight) {
     const snapshot = await refreshInFlight;
-    return snapshot.status === "ok"
-      ? { ...snapshot, fetchedAt: now.toISOString() }
-      : snapshot;
+    return snapshot.status === "ok" ? { ...snapshot, fetchedAt: now.toISOString() } : snapshot;
   }
 
   refreshInFlight = refreshClaudeUsageSnapshot(dependencies)

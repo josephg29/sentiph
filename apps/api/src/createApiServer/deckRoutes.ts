@@ -13,7 +13,6 @@ import {
 } from "../deck/readDeckTentacles";
 import { resolvePrompt } from "../prompts";
 import { MAX_CHILDREN_PER_PARENT, RuntimeInputError } from "../terminalRuntime";
-import { parseTerminalAgentProvider, parseTerminalWorkspaceMode } from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,
@@ -22,6 +21,7 @@ import {
   writeNoContent,
   writeText,
 } from "./routeHelpers";
+import { parseTerminalAgentProvider, parseTerminalWorkspaceMode } from "./terminalParsers";
 
 const shellSingleQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
@@ -101,7 +101,11 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
       hairColor: typeof rawOctopus.hairColor === "string" ? rawOctopus.hairColor : null,
     };
 
-    const result = createDeckTentacle(workspaceCwd, { name, description, color, octopus }, projectStateDir);
+    const result = createDeckTentacle(
+      workspaceCwd,
+      { name, description, color, octopus },
+      projectStateDir,
+    );
     if (!result.ok) {
       writeJson(response, 400, { error: result.error }, corsOrigin);
       return true;
@@ -579,9 +583,7 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
       : "Changes are left uncommitted in the shared workspace, ready for coordinator review.";
 
   const buildWorkerReminder = (): string =>
-    workerWorkspaceMode === "worktree"
-      ? "Commit."
-      : "Do not commit in shared mode.";
+    workerWorkspaceMode === "worktree" ? "Commit." : "Do not commit in shared mode.";
 
   const buildWorkerWorkspaceSection = (): string =>
     workerWorkspaceMode === "worktree"
@@ -753,9 +755,9 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
             `--parent-terminal-id ${shellSingleQuote(parentTerminalId)}`,
             `--workspace-mode ${workerWorkspaceMode}`,
             `--name ${shellSingleQuote(tentacleName)}`,
-            `--name-origin generated`,
+            "--name-origin generated",
             `--auto-rename-prompt-context ${shellSingleQuote(item.text)}`,
-            `--prompt-template swarm-worker`,
+            "--prompt-template swarm-worker",
             `--prompt-variables ${shellSingleQuote(promptVariables)}`,
           ];
           if (workerWorkspaceMode === "worktree") {
@@ -767,11 +769,8 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
         })
         .join("\n");
 
-      const parentBaseBranch = workerWorkspaceMode === "worktree"
-        ? baseRef === "HEAD"
-          ? "main"
-          : baseRef
-        : "main";
+      const parentBaseBranch =
+        workerWorkspaceMode === "worktree" ? (baseRef === "HEAD" ? "main" : baseRef) : "main";
 
       const parentPrompt = await resolvePrompt(promptsDir, "swarm-parent", {
         tentacleName,

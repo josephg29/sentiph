@@ -2,9 +2,9 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { formatTimestamp } from "../app/formatTimestamp";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
-import { ActionButton } from "./ui/ActionButton";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
 import { SidebarConversationsList } from "./SidebarConversationsList";
+import { ActionButton } from "./ui/ActionButton";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 type ConversationsPrimaryViewProps = {
@@ -131,7 +131,7 @@ export const ConversationsPrimaryView = ({
     if (highlightedTurnId && highlightedRef.current) {
       highlightedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [highlightedTurnId, selectedSession]);
+  }, [highlightedTurnId]);
 
   return (
     <section className="conversations-view" aria-label="Conversations primary view">
@@ -178,6 +178,8 @@ export const ConversationsPrimaryView = ({
                     type="button"
                   >
                     <svg
+                      aria-hidden="true"
+                      focusable="false"
                       viewBox="0 0 16 16"
                       fill="none"
                       stroke="currentColor"

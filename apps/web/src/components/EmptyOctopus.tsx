@@ -360,7 +360,8 @@ function drawSprite(
   const yOff = (frame.yOffset ?? 0) + topPad;
   const layers = [...head, ...frame.bottom];
   for (let y = 0; y < layers.length; y++) {
-    const row = layers[y]!;
+    const row = layers[y];
+    if (!row) continue;
     for (let x = 0; x < row.length; x++) {
       const cell = row[x];
       if (!cell) continue;
@@ -709,8 +710,6 @@ export const OctopusGlyph = ({
       width={SPRITE_W * scale}
       height={(topPad + SPRITE_H + BOUNCE_PAD) * scale}
       data-testid={testId}
-      aria-hidden="true"
     />
   );
 };
-

@@ -6,12 +6,6 @@ import {
   type TerminalAgentProvider,
   type TerminalNameOrigin,
 } from "../terminalRuntime";
-import {
-  parseTerminalAgentProvider,
-  parseTerminalName,
-  parseTerminalNameOrigin,
-  parseTerminalWorkspaceMode,
-} from "./terminalParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,
@@ -19,6 +13,12 @@ import {
   writeMethodNotAllowed,
   writeNoContent,
 } from "./routeHelpers";
+import {
+  parseTerminalAgentProvider,
+  parseTerminalName,
+  parseTerminalNameOrigin,
+  parseTerminalWorkspaceMode,
+} from "./terminalParsers";
 
 export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

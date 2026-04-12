@@ -15,10 +15,7 @@ type NewPromptMode = {
   terminalId: string;
 } | null;
 
-export const PromptsPrimaryView = ({
-  enabled,
-  onSidebarContent,
-}: PromptsPrimaryViewProps) => {
+export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimaryViewProps) => {
   const {
     prompts,
     selectedPromptName,
@@ -112,7 +109,7 @@ export const PromptsPrimaryView = ({
     if (newPromptRequestCount > 0) {
       void handleNewPrompt();
     }
-  }, [newPromptRequestCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [newPromptRequestCount, handleNewPrompt]);
 
   // When a prompt is selected from the sidebar, switch away from terminal view
   useEffect(() => {
@@ -136,7 +133,7 @@ export const PromptsPrimaryView = ({
       onTerminalIdChange(null);
       void onRefresh();
     }
-  }, [closeTerminalCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [closeTerminalCount, onRefresh, onTerminalIdChange]);
 
   const handleBackToLibrary = useCallback(() => {
     setNewPromptMode(null);
@@ -164,7 +161,11 @@ export const PromptsPrimaryView = ({
               <strong>Prompt Engineer</strong>
             </span>
           </header>
-          <Terminal terminalId={newPromptMode.terminalId} terminalLabel="Prompt Engineer" hidePromptPicker />
+          <Terminal
+            terminalId={newPromptMode.terminalId}
+            terminalLabel="Prompt Engineer"
+            hidePromptPicker
+          />
         </div>
       )}
 
@@ -230,7 +231,9 @@ export const PromptsPrimaryView = ({
             </div>
           ) : (
             <div className="prompts-empty-state">
-              <p className="prompts-empty">Select a prompt from the sidebar, or create a new one.</p>
+              <p className="prompts-empty">
+                Select a prompt from the sidebar, or create a new one.
+              </p>
             </div>
           )}
         </>

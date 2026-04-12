@@ -1,7 +1,7 @@
+import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
-import { spawn } from "node:child_process";
 
 import {
   ensureProjectScaffold,
@@ -11,11 +11,7 @@ import {
   registerProject,
   resolveProjectStateDir,
 } from "./projectPersistence";
-import {
-  clearRuntimeMetadata,
-  readRuntimeMetadata,
-  writeRuntimeMetadata,
-} from "./runtimeMetadata";
+import { clearRuntimeMetadata, readRuntimeMetadata, writeRuntimeMetadata } from "./runtimeMetadata";
 import {
   collectStartupPrerequisiteReport,
   formatStartupPrerequisiteReport,
@@ -67,7 +63,12 @@ const ensureGitignore = (projectPath: string) => {
 
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, "utf-8");
-    if (content.split("\n").map((line) => line.trim()).includes(entry)) {
+    if (
+      content
+        .split("\n")
+        .map((line) => line.trim())
+        .includes(entry)
+    ) {
       return;
     }
 
@@ -464,11 +465,14 @@ const channelSend = async () => {
 
   const apiBase = resolveRuntimeApiBase();
   try {
-    const response = await fetch(`${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fromTerminalId, content: message }),
-    });
+    const response = await fetch(
+      `${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromTerminalId, content: message }),
+      },
+    );
     const data = (await response.json()) as Record<string, unknown>;
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -489,7 +493,9 @@ const channelList = async () => {
 
   const apiBase = resolveRuntimeApiBase();
   try {
-    const response = await fetch(`${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`);
+    const response = await fetch(
+      `${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`,
+    );
     const data = (await response.json()) as Record<string, unknown>;
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -525,7 +531,9 @@ const main = async () => {
   if (command === "projects" || command === "project") {
     const projects = loadProjectsRegistry().projects;
     if (projects.length === 0) {
-      console.log("No projects registered yet. Run `octogent` or `octogent init` in a project directory.");
+      console.log(
+        "No projects registered yet. Run `octogent` or `octogent init` in a project directory.",
+      );
       return;
     }
 

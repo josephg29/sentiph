@@ -1,7 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { randomUUID } from "node:crypto";
 
 export const GLOBAL_OCTOGENT_DIR = join(homedir(), ".octogent");
 export const PROJECTS_FILE = join(GLOBAL_OCTOGENT_DIR, "projects.json");

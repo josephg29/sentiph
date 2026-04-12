@@ -2,8 +2,8 @@ import { useRef } from "react";
 
 import { buildCodexUsageUrl } from "../../runtime/runtimeEndpoints";
 import { CODEX_USAGE_SCAN_INTERVAL_MS } from "../constants";
-import { normalizeCodexUsageSnapshot } from "../usageNormalizers";
 import type { CodexUsageSnapshot } from "../types";
+import { normalizeCodexUsageSnapshot } from "../usageNormalizers";
 import { usePollingData } from "./usePollingData";
 
 const fallback = (): CodexUsageSnapshot => ({

@@ -197,7 +197,7 @@ export const OctopusNode = ({
       isOctoboss
         ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
         : deriveOctopusVisuals(node),
-    [node.tentacleId, node.octopus, isOctoboss],
+    [node, isOctoboss],
   );
   const glyphScale = isOctoboss ? 6 : GLYPH_SCALE;
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
@@ -215,6 +215,12 @@ export const OctopusNode = ({
         onPointerDown(e, node.id);
       }}
       onClick={(e) => {
+        e.stopPropagation();
+        onClick(node.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
         e.stopPropagation();
         onClick(node.id);
       }}
@@ -238,7 +244,11 @@ export const OctopusNode = ({
               strokeOpacity={1}
             />
             {isEdgeActivityVisible(target)
-              ? renderEdgeActivityDots(path, active ? (selectedNodeColor ?? color) : color, target.id)
+              ? renderEdgeActivityDots(
+                  path,
+                  active ? (selectedNodeColor ?? color) : color,
+                  target.id,
+                )
               : null}
           </g>
         );

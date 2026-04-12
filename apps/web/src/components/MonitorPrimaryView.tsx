@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { formatTimestamp } from "../app/formatTimestamp";
 import type {
   MonitorConfigPatchRequest,
   UseMonitorRuntimeResult,
 } from "../app/hooks/useMonitorRuntime";
-import { formatTimestamp } from "../app/formatTimestamp";
 import { ActionButton } from "./ui/ActionButton";
 
 type MonitorPrimaryViewProps = {
@@ -61,7 +61,9 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
   const onSyncFeed = () => {
     void refreshMonitorFeed(false);
   };
-  const onPatchConfig = patchMonitorConfig as (patch: MonitorConfigPatchRequest) => Promise<boolean>;
+  const onPatchConfig = patchMonitorConfig as (
+    patch: MonitorConfigPatchRequest,
+  ) => Promise<boolean>;
   const activeProviderId: MonitorProviderId = "x";
   const [activeSubtab, setActiveSubtab] = useState<MonitorSubtabId>("resources");
   const [queryTermsDraft, setQueryTermsDraft] = useState<string[]>([]);
@@ -240,8 +242,11 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
         {activeSubtab === "resources" && (
           <div className="monitor-header-roll" aria-label="Monitor rolling stats">
             <div className="monitor-header-roll-track">
-              {[...resourceRollItems, ...resourceRollItems].map((item, index) => (
-                <span key={`${item}-${index}`}>{item}</span>
+              {resourceRollItems.map((item) => (
+                <span key={`primary-${item}`}>{item}</span>
+              ))}
+              {resourceRollItems.map((item) => (
+                <span key={`echo-${item}`}>{item}</span>
               ))}
             </div>
           </div>
@@ -286,7 +291,7 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
                     value={bearerToken}
                   />
                   {credentialsSummary && (
-                    <div className="monitor-credentials-meta" role="status" aria-live="polite">
+                    <output className="monitor-credentials-meta" aria-live="polite">
                       {credentialsSummary.isConfigured ? (
                         <span className="monitor-state-badge monitor-state-badge--saved">
                           Saved
@@ -294,19 +299,15 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
                       ) : (
                         <span>Not configured</span>
                       )}
-                    </div>
+                    </output>
                   )}
                 </div>
 
                 <div className="monitor-config-section">
                   <p className="monitor-section-label">Target terms</p>
-                  <div
-                    className="monitor-query-terms-list"
-                    role="list"
-                    aria-label="Monitor query terms"
-                  >
+                  <ul className="monitor-query-terms-list" aria-label="Monitor query terms">
                     {queryTermsDraft.map((term) => (
-                      <div className="monitor-query-term" key={term} role="listitem">
+                      <li className="monitor-query-term" key={term}>
                         <span>{term}</span>
                         <button
                           aria-label={`Remove query term ${term}`}
@@ -317,12 +318,12 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
                         >
                           Remove
                         </button>
-                      </div>
+                      </li>
                     ))}
                     {queryTermsDraft.length === 0 ? (
                       <p className="monitor-query-empty">Add at least one query term to save.</p>
                     ) : null}
-                  </div>
+                  </ul>
                   <div className="monitor-query-term-form">
                     <input
                       aria-label="Add monitor query term"
@@ -384,18 +385,16 @@ export const MonitorPrimaryView = ({ monitorRuntime }: MonitorPrimaryViewProps) 
                       <div
                         aria-labelledby="monitor-search-window-label"
                         className="monitor-timeframe-picker"
-                        role="radiogroup"
                       >
                         {MONITOR_SEARCH_WINDOW_OPTIONS.map((option) => (
                           <button
-                            aria-checked={searchWindowDaysDraft === option.value}
+                            aria-pressed={searchWindowDaysDraft === option.value}
                             className="monitor-timeframe-option"
                             data-active={searchWindowDaysDraft === option.value ? "true" : "false"}
                             key={option.value}
                             onClick={() => {
                               setSearchWindowDaysDraft(option.value);
                             }}
-                            role="radio"
                             type="button"
                           >
                             {option.label}

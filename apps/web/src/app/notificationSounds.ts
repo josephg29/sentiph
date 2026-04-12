@@ -1,12 +1,6 @@
-import {
-  type TerminalCompletionSoundId,
-  isTerminalCompletionSoundId,
-} from "@octogent/core";
+import { type TerminalCompletionSoundId, isTerminalCompletionSoundId } from "@octogent/core";
 
-export {
-  type TerminalCompletionSoundId,
-  isTerminalCompletionSoundId,
-};
+export { type TerminalCompletionSoundId, isTerminalCompletionSoundId };
 
 export const DEFAULT_TERMINAL_COMPLETION_SOUND: TerminalCompletionSoundId = "pop";
 

@@ -88,7 +88,10 @@ const resolveProjectStateDir = (workspaceCwd) => {
   if (existsSync(projectConfigPath)) {
     try {
       const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
-      if (typeof projectConfig.projectId === "string" && projectConfig.projectId.trim().length > 0) {
+      if (
+        typeof projectConfig.projectId === "string" &&
+        projectConfig.projectId.trim().length > 0
+      ) {
         return join(homedir(), ".octogent", "projects", projectConfig.projectId);
       }
     } catch {

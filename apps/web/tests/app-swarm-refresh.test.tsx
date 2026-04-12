@@ -194,7 +194,9 @@ vi.mock("../src/components/PrimaryViewRouter", () => ({
         Spawn Swarm
       </button>
       <span>
-        {canvasPrimaryViewProps.onSolveTodoItem ? "solve callback present" : "solve callback omitted"}
+        {canvasPrimaryViewProps.onSolveTodoItem
+          ? "solve callback present"
+          : "solve callback omitted"}
       </span>
     </div>
   ),

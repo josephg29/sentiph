@@ -5,9 +5,7 @@ import { RuntimeStatusStrip } from "../src/components/RuntimeStatusStrip";
 
 describe("RuntimeStatusStrip", () => {
   it("shows loading placeholders before claude usage loads", () => {
-    render(
-      <RuntimeStatusStrip sparklinePoints="" usageData={null} claudeUsage={null} />,
-    );
+    render(<RuntimeStatusStrip sparklinePoints="" usageData={null} claudeUsage={null} />);
 
     const usage = screen.getByLabelText("Claude usage limits");
     expect(within(usage).getByText("···")).toBeInTheDocument();

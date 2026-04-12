@@ -24,10 +24,12 @@ export const DeleteTentacleDialog = ({
     !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
   const isDeleting = isDeletingTerminalId !== null;
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;
+  const dialogResetKey = `${pendingDeleteTerminal.terminalId}:${pendingDeleteTerminal.intent}`;
 
   useEffect(() => {
+    void dialogResetKey;
     setCleanupConfirmationInput("");
-  }, [pendingDeleteTerminal.terminalId, pendingDeleteTerminal.intent]);
+  }, [dialogResetKey]);
 
   return (
     <ConfirmationDialog

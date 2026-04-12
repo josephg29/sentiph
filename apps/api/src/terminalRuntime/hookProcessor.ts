@@ -28,7 +28,11 @@ export const createHookProcessor = (deps: {
   getApiBaseUrl: () => string;
   persistRegistry: () => void;
   deliverChannelMessages: (terminalId: string) => void;
-  onStateChange?: (terminalId: string, state: TerminalSession["agentState"], toolName?: string) => void;
+  onStateChange?: (
+    terminalId: string,
+    state: TerminalSession["agentState"],
+    toolName?: string,
+  ) => void;
 }) => {
   const {
     terminals,
@@ -61,7 +65,9 @@ export const createHookProcessor = (deps: {
       existingValue && typeof existingValue === "object" && !Array.isArray(existingValue)
         ? { ...(existingValue as Record<string, unknown>) }
         : {};
-    const existingEntries = Array.isArray(nextHooks[eventName]) ? [...(nextHooks[eventName] as unknown[])] : [];
+    const existingEntries = Array.isArray(nextHooks[eventName])
+      ? [...(nextHooks[eventName] as unknown[])]
+      : [];
     const mergedEntries = [...existingEntries];
 
     for (const nextEntry of nextEntries) {
@@ -172,12 +178,12 @@ export const createHookProcessor = (deps: {
         ? parseSettingsObject(readFileSync(targetSettingsPath, "utf8"))
         : null;
       const mergedSettings =
-        existingSettings && typeof existingSettings === "object"
-          ? { ...existingSettings }
-          : {};
+        existingSettings && typeof existingSettings === "object" ? { ...existingSettings } : {};
 
       let mergedHooks =
-        mergedSettings.hooks && typeof mergedSettings.hooks === "object" && !Array.isArray(mergedSettings.hooks)
+        mergedSettings.hooks &&
+        typeof mergedSettings.hooks === "object" &&
+        !Array.isArray(mergedSettings.hooks)
           ? { ...(mergedSettings.hooks as Record<string, unknown>) }
           : {};
 
@@ -197,7 +203,9 @@ export const createHookProcessor = (deps: {
     payload: unknown,
     octogentSessionId?: string,
   ): { ok: boolean } => {
-    logVerbose(`[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`);
+    logVerbose(
+      `[Hook] Received hook: ${hookName} octogentSession=${octogentSessionId ?? "(none)"}`,
+    );
 
     if (!payload || typeof payload !== "object") {
       return { ok: true };
@@ -290,7 +298,7 @@ export const createHookProcessor = (deps: {
       const activitySession = sessions.get(terminal.terminalId);
       if (activitySession) {
         activitySession.agentState = "processing";
-        delete activitySession.lastToolName;
+        activitySession.lastToolName = undefined;
         activitySession.stateTracker.forceState("processing");
         onStateChange?.(terminal.terminalId, "processing");
         broadcastMessage(activitySession, { type: "state", state: "processing" });
@@ -306,7 +314,7 @@ export const createHookProcessor = (deps: {
           const derived = deriveTerminalNameFromPrompt(renameContext);
           terminal.tentacleName = derived;
           terminal.nameOrigin = "prompt";
-          delete terminal.autoRenamePromptContext;
+          terminal.autoRenamePromptContext = undefined;
           logVerbose(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
 
           const session = sessions.get(terminal.terminalId);
@@ -378,9 +386,7 @@ export const createHookProcessor = (deps: {
 
       if (effectiveTurns.length > 0) {
         storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
-        logVerbose(
-          `[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`,
-        );
+        logVerbose(`[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`);
       }
     } else if (turns && turns.length > 0) {
       storeClaudeTranscriptTurns(transcriptDirectoryPath, matchedSessionId, turns);

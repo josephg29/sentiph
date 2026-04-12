@@ -10,8 +10,7 @@ import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./ro
 const TENTACLE_GIT_ACTION_PATH_PATTERN =
   /^\/api\/tentacles\/([^/]+)\/git\/(status|commit|push|sync)$/;
 const TENTACLE_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr$/;
-const TENTACLE_GIT_PULL_REQUEST_MERGE_PATH_PATTERN =
-  /^\/api\/tentacles\/([^/]+)\/git\/pr\/merge$/;
+const TENTACLE_GIT_PULL_REQUEST_MERGE_PATH_PATTERN = /^\/api\/tentacles\/([^/]+)\/git\/pr\/merge$/;
 
 export const handleTentacleGitRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

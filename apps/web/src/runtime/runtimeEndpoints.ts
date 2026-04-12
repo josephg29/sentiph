@@ -326,12 +326,14 @@ export const buildDeckTodoDeleteUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildDeckTodoSolveUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
+export const buildDeckTodoSolveUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
   const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/solve`;
   if (!runtimeBaseUrl) return path;
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
-
 
 export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {

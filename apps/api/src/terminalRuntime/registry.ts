@@ -7,9 +7,9 @@ import { TERMINAL_REGISTRY_VERSION } from "./constants";
 import { toErrorMessage } from "./systemClients";
 import type {
   PersistedTerminal,
-  TerminalNameOrigin,
   PersistedUiState,
   TentacleWorkspaceMode,
+  TerminalNameOrigin,
   TerminalRegistryDocument,
 } from "./types";
 import { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./types";
@@ -27,10 +27,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
   value === "generated" || value === "user" || value === "prompt";
 
-const inferTerminalNameOrigin = (
-  terminalId: string,
-  tentacleName: string,
-): TerminalNameOrigin => {
+const inferTerminalNameOrigin = (terminalId: string, tentacleName: string): TerminalNameOrigin => {
   if (tentacleName === terminalId || /^Octogent Terminal \d+$/.test(tentacleName)) {
     return "generated";
   }

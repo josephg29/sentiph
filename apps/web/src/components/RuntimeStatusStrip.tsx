@@ -214,9 +214,9 @@ export const RuntimeStatusStrip = ({
             <>
               <div className="console-status-usage-mini-chart">
                 <svg viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`} role="presentation">
-                  {usageBars.map((bar, i) => (
+                  {usageBars.map((bar) => (
                     <rect
-                      key={i}
+                      key={bar.date}
                       x={bar.x}
                       y={bar.y}
                       width={bar.width}

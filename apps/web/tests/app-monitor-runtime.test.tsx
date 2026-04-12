@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MONITOR_SCAN_INTERVAL_MS } from "../src/app/constants";
 import { App } from "../src/App";
+import { MONITOR_SCAN_INTERVAL_MS } from "../src/app/constants";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
 describe("App Monitor runtime", () => {

@@ -5,7 +5,6 @@ import {
   resolvePrompt,
   writeUserPrompt,
 } from "../prompts";
-import { parseUiStatePatch } from "./uiStateParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,
@@ -13,6 +12,7 @@ import {
   writeMethodNotAllowed,
   writeNoContent,
 } from "./routeHelpers";
+import { parseUiStatePatch } from "./uiStateParsers";
 
 export const handleUiStateRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

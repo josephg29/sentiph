@@ -366,7 +366,6 @@ export const CanvasTentaclePanel = ({
                         className="detail-todo-edit-input"
                         type="text"
                         value={editText}
-                        autoFocus
                         onChange={(e) => setEditText(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") void handleTodoEdit(i, editText);
@@ -396,7 +395,6 @@ export const CanvasTentaclePanel = ({
                   type="text"
                   placeholder="New todo item…"
                   value={addText}
-                  autoFocus
                   onChange={(e) => setAddText(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void handleTodoAdd(addText);
@@ -468,7 +466,6 @@ export const CanvasTentaclePanel = ({
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

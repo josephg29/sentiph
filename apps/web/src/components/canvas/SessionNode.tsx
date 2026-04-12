@@ -26,7 +26,7 @@ const splitLabel = (label: string): [string] | [string, string] => {
     return [line1.length > LINE_MAX ? `${line1.slice(0, LINE_MAX - 1)}…` : line1, line2];
   }
   return [
-    label.slice(0, LINE_MAX - 1) + "…",
+    `${label.slice(0, LINE_MAX - 1)}…`,
     label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
   ];
 };
@@ -79,6 +79,12 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         onPointerDown(e, node.id);
       }}
       onClick={(e) => {
+        e.stopPropagation();
+        onClick(node.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
         e.stopPropagation();
         onClick(node.id);
       }}

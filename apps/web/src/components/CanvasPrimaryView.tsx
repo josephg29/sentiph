@@ -23,8 +23,8 @@ import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import {
-  createTerminalRuntimeStateStore,
   type TerminalRuntimeStateStore,
+  createTerminalRuntimeStateStore,
 } from "../app/terminalRuntimeStateStore";
 import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
 import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
@@ -60,14 +60,17 @@ type CanvasPrimaryViewProps = {
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
-  onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | void;
-  onCreateTerminal?: () => Promise<string | undefined> | void;
-  onCreateWorktreeTerminal?: () => Promise<string | undefined> | void;
+  onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | undefined;
+  onCreateTerminal?: () => Promise<string | undefined> | undefined;
+  onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
   onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSolveTodoItem?: (tentacleId: string, itemIndex: number) => Promise<void> | void;
-  onOctobossAction?: (action: string) => Promise<string | undefined> | void;
-  onTentacleAction?: (tentacleId: string, action: string) => Promise<string | undefined> | void;
+  onOctobossAction?: (action: string) => Promise<string | undefined> | undefined;
+  onTentacleAction?: (
+    tentacleId: string,
+    action: string,
+  ) => Promise<string | undefined> | undefined;
   onNavigateToConversation?: (sessionId: string) => void;
   onDeleteActiveSession?: (
     terminalId: string,
@@ -284,7 +287,8 @@ export const CanvasPrimaryView = ({
       const anchorNode =
         existingNode?.type === "active-session"
           ? existingNode
-          : (nodesById.get(parentNodeId) ?? nodesById.get(buildTentacleNodeId(terminal.tentacleId)));
+          : (nodesById.get(parentNodeId) ??
+            nodesById.get(buildTentacleNodeId(terminal.tentacleId)));
 
       return {
         id: nodeId,
@@ -331,10 +335,11 @@ export const CanvasPrimaryView = ({
 
   // Once the settling timer fires, perform the actual hydration from the
   // simulation graph which should now be fully populated.
+  const openTerminalCount = openTerminals.size;
   useEffect(() => {
     if (isHydratingTerminals) return;
     if (!hasHydratedTerminals.current) return;
-    if (openTerminals.size > 0) return;
+    if (openTerminalCount > 0) return;
     if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) return;
 
     const restoredMap = new Map<string, GraphNode>();
@@ -351,7 +356,13 @@ export const CanvasPrimaryView = ({
     if (persistedTerminalsPanelWidth != null && persistedTerminalsPanelWidth > 0) {
       setTerminalsPanelWidth(persistedTerminalsPanelWidth);
     }
-  }, [isHydratingTerminals, canvasOpenTerminalIds, persistedTerminalsPanelWidth, nodesById]);
+  }, [
+    isHydratingTerminals,
+    openTerminalCount,
+    canvasOpenTerminalIds,
+    persistedTerminalsPanelWidth,
+    nodesById,
+  ]);
 
   // Persist open terminal IDs when they change
   useEffect(() => {
@@ -410,6 +421,7 @@ export const CanvasPrimaryView = ({
   // Hydrate open tentacles from persisted IDs.
   // Gate on tentacle-type nodes being present (deck API fetch is async).
   const hasTentacleNodes = simulatedNodes.some((n) => n.type === "tentacle");
+  const openTentacleCount = openTentacles.size;
   useEffect(() => {
     if (hasHydratedTentacles.current) return;
     if (!isUiStateHydrated) return;
@@ -474,8 +486,9 @@ export const CanvasPrimaryView = ({
       if (!node) return;
 
       if (node.type === "active-session") {
-        const resolvedNode =
-          node.sessionId ? (resolveActiveSessionNode(node.sessionId) ?? node) : node;
+        const resolvedNode = node.sessionId
+          ? (resolveActiveSessionNode(node.sessionId) ?? node)
+          : node;
         setOpenTerminals((prev) => {
           const next = new Map(prev);
           if (next.has(nodeId)) {
@@ -563,6 +576,7 @@ export const CanvasPrimaryView = ({
 
   // Convert vertical wheel to horizontal scroll only when hovering terminal headers
   useEffect(() => {
+    if (!isHydratingTerminals && openTerminalCount === 0 && openTentacleCount === 0) return;
     const panel = terminalsPanelRef.current;
     if (!panel) return;
     const handler = (e: WheelEvent) => {
@@ -575,7 +589,7 @@ export const CanvasPrimaryView = ({
     };
     panel.addEventListener("wheel", handler, { passive: false });
     return () => panel.removeEventListener("wheel", handler);
-  }, [openTerminals.size > 0]);
+  }, [isHydratingTerminals, openTerminalCount, openTentacleCount]);
 
   const handleSvgPointerUp = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
@@ -872,8 +886,10 @@ export const CanvasPrimaryView = ({
       }
       if (
         hideIdleTerminals &&
-        ((source.agentState === "idle" || source.hasUserPrompt === false) ||
-          (target.agentState === "idle" || target.hasUserPrompt === false))
+        (source.agentState === "idle" ||
+          source.hasUserPrompt === false ||
+          target.agentState === "idle" ||
+          target.hasUserPrompt === false)
       ) {
         return null;
       }
@@ -912,6 +928,7 @@ export const CanvasPrimaryView = ({
     <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
       <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
         <svg
+          aria-label="Canvas graph"
           ref={svgRef}
           className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
           onWheel={handleWheel}
@@ -919,7 +936,20 @@ export const CanvasPrimaryView = ({
           onPointerMove={handleSvgPointerMove}
           onPointerUp={handleSvgPointerUp}
           onClick={handleSvgClick}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setContextMenu(null);
+              setSelectedNodeId(null);
+              return;
+            }
+            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+              e.preventDefault();
+              setSelectedNodeId(null);
+            }
+          }}
         >
+          <title>Canvas graph</title>
           <g
             transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
           >
@@ -1015,7 +1045,9 @@ export const CanvasPrimaryView = ({
               }
             }}
           >
-            <span className="canvas-toolbar-icon"><TerminalIcon size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <TerminalIcon size={14} />
+            </span>
             <span className="canvas-toolbar-label">Terminal</span>
           </button>
           <button
@@ -1030,20 +1062,28 @@ export const CanvasPrimaryView = ({
               }
             }}
           >
-            <span className="canvas-toolbar-icon"><GitBranch size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <GitBranch size={14} />
+            </span>
             <span className="canvas-toolbar-label">Worktree</span>
           </button>
           <button type="button" className="canvas-toolbar-btn" onClick={onCreateTentacle}>
-            <span className="canvas-toolbar-icon"><Hexagon size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <Hexagon size={14} />
+            </span>
             <span className="canvas-toolbar-label">Tentacle</span>
           </button>
           <div className="canvas-toolbar-separator" />
           <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
-            <span className="canvas-toolbar-icon"><Maximize size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <Maximize size={14} />
+            </span>
             <span className="canvas-toolbar-label">Fit</span>
           </button>
           <button type="button" className="canvas-toolbar-btn" onClick={handleRefresh}>
-            <span className="canvas-toolbar-icon"><RefreshCw size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <RefreshCw size={14} />
+            </span>
             <span className="canvas-toolbar-label">Refresh</span>
           </button>
           <div className="canvas-toolbar-separator" />
@@ -1052,7 +1092,9 @@ export const CanvasPrimaryView = ({
             className={`canvas-toolbar-btn${hideIdleTerminals ? " canvas-toolbar-btn--active" : ""}`}
             onClick={() => setHideIdleTerminals((prev) => !prev)}
           >
-            <span className="canvas-toolbar-icon">{hideIdleTerminals ? <Play size={14} /> : <Pause size={14} />}</span>
+            <span className="canvas-toolbar-icon">
+              {hideIdleTerminals ? <Play size={14} /> : <Pause size={14} />}
+            </span>
             <span className="canvas-toolbar-label">
               {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
             </span>
@@ -1063,7 +1105,9 @@ export const CanvasPrimaryView = ({
             className="canvas-toolbar-btn canvas-toolbar-btn--danger"
             onClick={() => setIsDeleteAllDialogOpen(true)}
           >
-            <span className="canvas-toolbar-icon"><Trash2 size={14} /></span>
+            <span className="canvas-toolbar-icon">
+              <Trash2 size={14} />
+            </span>
             <span className="canvas-toolbar-label">Delete All</span>
           </button>
         </div>
@@ -1169,6 +1213,7 @@ export const CanvasPrimaryView = ({
       {contextMenu && (
         <>
           <div
+            aria-label="Close canvas context menu"
             className="canvas-context-menu-backdrop"
             onClick={() => setContextMenu(null)}
             onContextMenu={(e) => {
@@ -1190,6 +1235,13 @@ export const CanvasPrimaryView = ({
                 }
               });
             }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " " && e.key !== "Escape") return;
+              e.preventDefault();
+              setContextMenu(null);
+            }}
+            role="button"
+            tabIndex={0}
           />
           <div
             className="canvas-context-menu"
@@ -1222,7 +1274,9 @@ export const CanvasPrimaryView = ({
                     onCreateTentacle?.();
                   }}
                 >
-                  <span className="canvas-context-menu-icon"><Hexagon size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Hexagon size={14} />
+                  </span>
                   New Tentacle
                 </button>
                 <button
@@ -1238,7 +1292,9 @@ export const CanvasPrimaryView = ({
                     }
                   }}
                 >
-                  <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <TerminalIcon size={14} />
+                  </span>
                   New Terminal
                 </button>
                 <button
@@ -1254,7 +1310,9 @@ export const CanvasPrimaryView = ({
                     }
                   }}
                 >
-                  <span className="canvas-context-menu-icon"><GitBranch size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <GitBranch size={14} />
+                  </span>
                   New Worktree Terminal
                 </button>
               </>
@@ -1266,7 +1324,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleCreateAgent(contextMenu.tentacleId)}
                 >
-                  <span className="canvas-context-menu-icon"><TerminalIcon size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <TerminalIcon size={14} />
+                  </span>
                   Create new agent
                 </button>
                 <button
@@ -1282,7 +1342,9 @@ export const CanvasPrimaryView = ({
                     }
                   }}
                 >
-                  <span className="canvas-context-menu-icon"><GitBranch size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <GitBranch size={14} />
+                  </span>
                   New Worktree Terminal
                 </button>
                 <button
@@ -1292,7 +1354,9 @@ export const CanvasPrimaryView = ({
                     handleTentacleAction(contextMenu.tentacleId, "tentacle-reorganize-todos")
                   }
                 >
-                  <span className="canvas-context-menu-icon"><ListTodo size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <ListTodo size={14} />
+                  </span>
                   Update To-Do List
                 </button>
                 <button
@@ -1302,7 +1366,9 @@ export const CanvasPrimaryView = ({
                     handleTentacleAction(contextMenu.tentacleId, "tentacle-update-tentacle")
                   }
                 >
-                  <span className="canvas-context-menu-icon"><Hexagon size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Hexagon size={14} />
+                  </span>
                   Update Tentacle
                 </button>
                 <button
@@ -1310,7 +1376,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleSpawnSwarm(contextMenu.tentacleId, "worktree")}
                 >
-                  <span className="canvas-context-menu-icon"><Layers size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Layers size={14} />
+                  </span>
                   Spawn Swarm (Worktrees)
                 </button>
                 <button
@@ -1318,7 +1386,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleSpawnSwarm(contextMenu.tentacleId, "shared")}
                 >
-                  <span className="canvas-context-menu-icon"><Layers size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Layers size={14} />
+                  </span>
                   Spawn Swarm (Normal)
                 </button>
               </>
@@ -1330,7 +1400,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-todos")}
                 >
-                  <span className="canvas-context-menu-icon"><ListTodo size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <ListTodo size={14} />
+                  </span>
                   Reorganize To-Do's
                 </button>
                 <button
@@ -1338,7 +1410,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-reorganize-tentacles")}
                 >
-                  <span className="canvas-context-menu-icon"><Hexagon size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Hexagon size={14} />
+                  </span>
                   Reorganize Tentacles
                 </button>
                 <button
@@ -1346,7 +1420,9 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => handleOctobossAction("octoboss-clean-contexts")}
                 >
-                  <span className="canvas-context-menu-icon"><Sparkles size={14} /></span>
+                  <span className="canvas-context-menu-icon">
+                    <Sparkles size={14} />
+                  </span>
                   Clean Tentacle Contexts
                 </button>
               </>
@@ -1364,7 +1440,9 @@ export const CanvasPrimaryView = ({
                   setContextMenu(null);
                 }}
               >
-                <span className="canvas-context-menu-icon"><Trash2 size={14} /></span>
+                <span className="canvas-context-menu-icon">
+                  <Trash2 size={14} />
+                </span>
                 Delete
               </button>
             )}

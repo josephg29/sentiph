@@ -41,6 +41,12 @@ type CreateSessionRuntimeOptions = {
   onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
 };
 
+const ANSI_BEL = String.fromCharCode(0x07);
+const ANSI_ESCAPE = String.fromCharCode(0x1b);
+const BROKEN_OSC_TAIL_RE = new RegExp(
+  `^\\][^${ANSI_BEL}${ANSI_ESCAPE}]*(?:${ANSI_BEL}|${ANSI_ESCAPE}\\\\)`,
+);
+
 export const createSessionRuntime = ({
   websocketServer,
   terminals,
@@ -221,7 +227,7 @@ export const createSessionRuntime = ({
         return nextText;
       }
 
-      const oscMatch = nextText.match(/^\][^\u0007\u001b]*(?:\u0007|\u001b\\)/);
+      const oscMatch = nextText.match(BROKEN_OSC_TAIL_RE);
       if (oscMatch) {
         nextText = nextText.slice(oscMatch[0].length);
         continue;
@@ -298,7 +304,10 @@ export const createSessionRuntime = ({
       return;
     }
 
-    appendDebugLog(session, `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`);
+    appendDebugLog(
+      session,
+      `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`,
+    );
     clearIdleCloseTimer(session);
     session.idleCloseTimer = setTimeout(() => {
       appendDebugLog(session, `idle-grace-expired session=${sessionId}`);

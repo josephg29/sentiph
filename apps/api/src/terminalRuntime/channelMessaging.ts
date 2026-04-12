@@ -1,5 +1,5 @@
-import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
 import { logVerbose } from "../logging";
+import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
 
 export const createChannelMessaging = (deps: {
   terminals: Map<string, PersistedTerminal>;

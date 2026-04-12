@@ -126,6 +126,8 @@ export const SidebarConversationsList = ({
           type="button"
         >
           <svg
+            aria-hidden="true"
+            focusable="false"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
@@ -147,6 +149,8 @@ export const SidebarConversationsList = ({
           type="button"
         >
           <svg
+            aria-hidden="true"
+            focusable="false"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
@@ -166,7 +170,9 @@ export const SidebarConversationsList = ({
       <form className="sidebar-conversations-search" onSubmit={handleSearchSubmit}>
         <div className="sidebar-conversations-search-input-wrap">
           <svg
+            aria-hidden="true"
             className="sidebar-conversations-search-icon"
+            focusable="false"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
@@ -197,6 +203,8 @@ export const SidebarConversationsList = ({
               aria-label="Clear search"
             >
               <svg
+                aria-hidden="true"
+                focusable="false"
                 viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"

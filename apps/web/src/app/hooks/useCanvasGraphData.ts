@@ -260,7 +260,8 @@ export const useCanvasGraphData = ({
   const totalTentacles = allTentacleIds.length;
 
   for (let i = 0; i < allTentacleIds.length; i++) {
-    const tentacleId = allTentacleIds[i]!;
+    const tentacleId = allTentacleIds[i];
+    if (!tentacleId) continue;
     const tentacleNodeId = buildTentacleNodeId(tentacleId);
     const prev = prevNodes.get(tentacleNodeId);
     const deck = deckMap.get(tentacleId);

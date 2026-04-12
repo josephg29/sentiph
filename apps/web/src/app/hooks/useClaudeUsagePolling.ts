@@ -2,8 +2,8 @@ import { useRef } from "react";
 
 import { buildClaudeUsageUrl } from "../../runtime/runtimeEndpoints";
 import { CODEX_USAGE_SCAN_INTERVAL_MS } from "../constants";
-import { normalizeClaudeUsageSnapshot } from "../usageNormalizers";
 import type { ClaudeUsageSnapshot } from "../types";
+import { normalizeClaudeUsageSnapshot } from "../usageNormalizers";
 import { usePollingData } from "./usePollingData";
 
 const fallback = (): ClaudeUsageSnapshot => ({

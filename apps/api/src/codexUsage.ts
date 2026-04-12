@@ -10,7 +10,6 @@ const OAUTH_REFRESH_URL = "https://auth.openai.com/oauth/token";
 const OAUTH_REFRESH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const OAUTH_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 
-
 const resolveCodexHome = (env: NodeJS.ProcessEnv): string => {
   const codexHome = env.CODEX_HOME?.trim();
   if (codexHome && codexHome.length > 0) {

@@ -70,7 +70,7 @@ export const TentacleGitActionsDialog = ({
 
   const syncDisabledReason =
     globalDisabledReason ??
-    (Boolean(gitStatus?.isDirty) ? "Sync blocked: worktree has uncommitted changes." : null);
+    (gitStatus?.isDirty ? "Sync blocked: worktree has uncommitted changes." : null);
 
   const hasOpenPullRequest = gitPullRequest?.status === "open";
   const canMergePullRequest =

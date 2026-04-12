@@ -96,22 +96,24 @@ export const Terminal = ({
   } | null>(null);
   const fitAddonRef = useRef<{ fit: () => void } | null>(null);
   const requestResizeSyncRef = useRef<() => void>(() => {});
+  const onTerminalActivityRef = useRef(onTerminalActivity);
+  const onTerminalRenamedRef = useRef(onTerminalRenamed);
   const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
   const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
+
+  onTerminalActivityRef.current = onTerminalActivity;
+  onTerminalRenamedRef.current = onTerminalRenamed;
 
   useEffect(() => {
     onAgentRuntimeStateChange?.(agentState);
   }, [agentState, onAgentRuntimeStateChange]);
 
-  const handlePromptPickerSelect = useCallback(
-    (content: string) => {
-      const ws = socketRef.current;
-      if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: "input", data: content }));
-      }
-    },
-    [],
-  );
+  const handlePromptPickerSelect = useCallback((content: string) => {
+    const ws = socketRef.current;
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: "input", data: content }));
+    }
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -227,12 +229,12 @@ export const Terminal = ({
           }
 
           if (payload.type === "rename" && typeof payload.tentacleName === "string") {
-            onTerminalRenamed?.(terminalId, payload.tentacleName);
+            onTerminalRenamedRef.current?.(terminalId, payload.tentacleName);
             return;
           }
 
           if (payload.type === "activity") {
-            onTerminalActivity?.(terminalId);
+            onTerminalActivityRef.current?.(terminalId);
             return;
           }
         } catch {
