@@ -1,6 +1,24 @@
+<div align="center">
+
+<img width="1500" height="500" alt="Octogent header" src="./static/images/octopus-header.png" />
+<br/>
+<br/>
+
+<strong>too many terminals, not enough tentacles</strong>
+<br />
+<br />
+
+![Last Update](https://img.shields.io/github/last-commit/hesamsheikh/octogent?label=Last%20Update&style=flat-square)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Follow on X](https://img.shields.io/badge/Follow%20on-X-000000?style=flat-square&logo=x)](https://x.com/Hesamation)
+[![Discord](https://img.shields.io/badge/Discord-Open%20Source%20AI%20Builders-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/vtJykN3t)
+
+</div>
+
 # Octogent
 
-It's really not fun to have ten Claude Code sessions open at once, constantly switching between them and trying to remember what each one was supposed to do. Things get blurry fast when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Octogent** tries to fix that by giving each job its own scoped context, notes, and task list, while also making it possible for Claude Code to spawn other Claude Code agents, assign them work, and communicate with them.
+It's really not fun to have **ten Claude Code sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Octogent** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for Claude Code to **spawn other Claude Code agents**, assign them work, and communicate with them.
 
 ## The Vision
 
