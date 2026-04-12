@@ -108,9 +108,9 @@ describe("App UI state persistence", () => {
         true,
       );
       expect(uiStatePatchBodies.some((body) => body.isMonitorVisible === true)).toBe(true);
-      expect(uiStatePatchBodies.some((body) => body.terminalCompletionSound === "double-beep")).toBe(
-        true,
-      );
+      expect(
+        uiStatePatchBodies.some((body) => body.terminalCompletionSound === "double-beep"),
+      ).toBe(true);
     });
   });
 });
