@@ -21,6 +21,17 @@ Tentacle example:
       routes.md
 ```
 
+`CONTEXT.md` may end with a managed `Suggested Skills` block when the operator or planner attaches Claude Code skills to that tentacle.
+
+Project-local Claude Code skills, when present, live under:
+
+```text
+.claude/
+  skills/
+    some-skill/
+      SKILL.md
+```
+
 ## Global state
 
 Per-project runtime state is stored under:

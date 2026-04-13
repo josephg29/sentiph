@@ -23,6 +23,7 @@ const tentacle = {
     { text: "Audit docs", done: false },
     { text: "Consolidate principles", done: false },
   ],
+  suggestedSkills: ["docs-writer", "release-helper"],
 };
 
 describe("CanvasTentaclePanel actions", () => {
@@ -163,5 +164,32 @@ describe("CanvasTentaclePanel actions", () => {
     await waitFor(() => {
       expect(onRefreshTentacleData).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("shows suggested skills in the tentacle detail panel", async () => {
+    render(
+      <CanvasTentaclePanel
+        node={{
+          id: "docs-knowledge",
+          type: "tentacle",
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          pinned: false,
+          radius: 48,
+          tentacleId: "docs-knowledge",
+          label: "Docs & Knowledge",
+          color: "#ff6b2b",
+        }}
+        tentacle={tentacle}
+        sessions={[]}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Suggested Skills")).toBeInTheDocument();
+    expect(screen.getByText("docs-writer")).toBeInTheDocument();
+    expect(screen.getByText("release-helper")).toBeInTheDocument();
   });
 });

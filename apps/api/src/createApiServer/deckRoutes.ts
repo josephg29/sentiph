@@ -6,10 +6,12 @@ import {
   deleteDeckTentacle,
   deleteTodoItem,
   editTodoItem,
+  listDeckAvailableSkills,
   parseTodoProgress,
   readDeckTentacles,
   readDeckVaultFile,
   toggleTodoItem,
+  updateDeckTentacleSuggestedSkills,
 } from "../deck/readDeckTentacles";
 import { resolvePrompt } from "../prompts";
 import { MAX_CHILDREN_PER_PARENT, RuntimeInputError } from "../terminalRuntime";
@@ -89,6 +91,10 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
     const name = body && typeof body.name === "string" ? body.name : "";
     const description = body && typeof body.description === "string" ? body.description : "";
     const color = body && typeof body.color === "string" ? body.color : "#d4a017";
+    const suggestedSkills =
+      body && Array.isArray(body.suggestedSkills)
+        ? body.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+        : [];
 
     const rawOctopus =
       body && typeof body.octopus === "object" && body.octopus !== null
@@ -103,7 +109,7 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
 
     const result = createDeckTentacle(
       workspaceCwd,
-      { name, description, color, octopus },
+      { name, description, color, octopus, suggestedSkills },
       projectStateDir,
     );
     if (!result.ok) {
@@ -116,6 +122,21 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
   }
 
   writeMethodNotAllowed(response, corsOrigin);
+  return true;
+};
+
+export const handleDeckSkillsRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd },
+) => {
+  if (requestUrl.pathname !== "/api/deck/skills") return false;
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, listDeckAvailableSkills(workspaceCwd), corsOrigin);
   return true;
 };
 
@@ -167,6 +188,48 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   }
 
   writeText(response, 200, content, "text/markdown; charset=utf-8", corsOrigin);
+  return true;
+};
+
+const DECK_TENTACLE_SKILLS_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/skills$/;
+
+export const handleDeckTentacleSkillsRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd, projectStateDir },
+) => {
+  const match = requestUrl.pathname.match(DECK_TENTACLE_SKILLS_PATTERN);
+  if (!match) return false;
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const payload = body.payload as Record<string, unknown> | null;
+  const suggestedSkills = Array.isArray(payload?.suggestedSkills)
+    ? payload.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+    : null;
+
+  if (suggestedSkills === null) {
+    writeJson(response, 400, { error: "suggestedSkills (string[]) is required" }, corsOrigin);
+    return true;
+  }
+
+  const tentacleId = decodeURIComponent(match[1] as string);
+  const updated = updateDeckTentacleSuggestedSkills(
+    workspaceCwd,
+    tentacleId,
+    suggestedSkills,
+    projectStateDir,
+  );
+  if (!updated) {
+    writeJson(response, 404, { error: "Tentacle not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, updated, corsOrigin);
   return true;
 };
 

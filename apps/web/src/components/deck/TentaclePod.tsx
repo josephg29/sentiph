@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { DeckTentacleSummary } from "@octogent/core";
+import type { DeckAvailableSkill, DeckTentacleSummary } from "@octogent/core";
 import { OctopusGlyph } from "../EmptyOctopus";
 import type { OctopusVisuals } from "./octopusVisuals";
 
@@ -71,6 +71,9 @@ export type TentaclePodProps = {
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
   onTodoToggle?: (tentacleId: string, itemIndex: number, done: boolean) => void;
+  availableSkills: DeckAvailableSkill[];
+  isSavingSkills?: boolean | undefined;
+  onSaveSuggestedSkills?: ((tentacleId: string, suggestedSkills: string[]) => Promise<boolean>) | undefined;
 };
 
 export const TentaclePod = ({
@@ -84,10 +87,39 @@ export const TentaclePod = ({
   onDelete,
   isDeleting,
   onTodoToggle,
+  availableSkills,
+  isSavingSkills,
+  onSaveSuggestedSkills,
 }: TentaclePodProps) => {
   const progressPct =
     tentacle.todoTotal > 0 ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100) : 0;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isEditingSkills, setIsEditingSkills] = useState(false);
+  const [draftSkills, setDraftSkills] = useState<string[]>(tentacle.suggestedSkills);
+
+  useEffect(() => {
+    setDraftSkills(tentacle.suggestedSkills);
+  }, [tentacle.suggestedSkills]);
+
+  const availableSkillNames = availableSkills.map((skill) => skill.name);
+  const skillNames = [...new Set([...availableSkillNames, ...draftSkills])].sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  const toggleSkill = (skillName: string) => {
+    setDraftSkills((current) =>
+      current.includes(skillName)
+        ? current.filter((skill) => skill !== skillName)
+        : [...current, skillName].sort((a, b) => a.localeCompare(b)),
+    );
+  };
+
+  const handleSaveSkills = async () => {
+    const saved = await onSaveSuggestedSkills?.(tentacle.tentacleId, draftSkills);
+    if (saved) {
+      setIsEditingSkills(false);
+    }
+  };
 
   return (
     <article
@@ -103,6 +135,16 @@ export const TentaclePod = ({
         )}
         <button type="button" className="deck-pod-btn">
           Spawn
+        </button>
+        <button
+          type="button"
+          className="deck-pod-btn"
+          onClick={() => {
+            setDraftSkills(tentacle.suggestedSkills);
+            setIsEditingSkills((current) => !current);
+          }}
+        >
+          Skills
         </button>
         <button type="button" className="deck-pod-btn" onClick={() => onVaultBrowse?.()}>
           Vault
@@ -170,6 +212,60 @@ export const TentaclePod = ({
         </div>
 
         <div className="deck-pod-details">
+          {isEditingSkills && (
+            <div className="deck-pod-skills-editor">
+              {skillNames.length === 0 ? (
+                <span className="deck-pod-skills-empty">No Claude Code skills found.</span>
+              ) : (
+                <div className="deck-pod-skills-options">
+                  {skillNames.map((skillName) => {
+                    const skill = availableSkills.find((entry) => entry.name === skillName);
+                    return (
+                      <label key={skillName} className="deck-pod-skill-option">
+                        <input
+                          type="checkbox"
+                          checked={draftSkills.includes(skillName)}
+                          onChange={() => toggleSkill(skillName)}
+                        />
+                        <span className="deck-pod-skill-copy">
+                          <span className="deck-pod-skill-name">{skillName}</span>
+                          {skill?.description && (
+                            <span className="deck-pod-skill-desc">{skill.description}</span>
+                          )}
+                          {!skill && (
+                            <span className="deck-pod-skill-desc">
+                              Stored on this tentacle, but not available right now.
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="deck-pod-skills-actions">
+                <button
+                  type="button"
+                  className="deck-pod-btn deck-pod-btn--secondary"
+                  onClick={() => {
+                    setDraftSkills(tentacle.suggestedSkills);
+                    setIsEditingSkills(false);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="deck-pod-btn"
+                  disabled={Boolean(isSavingSkills)}
+                  onClick={() => void handleSaveSkills()}
+                >
+                  {isSavingSkills ? "Saving..." : "Save Skills"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {tentacle.todoTotal > 0 && (
             <div className="deck-pod-progress">
               <div className="deck-pod-progress-bar">
@@ -193,6 +289,19 @@ export const TentaclePod = ({
               tentacleId={tentacle.tentacleId}
               onToggle={onTodoToggle}
             />
+          )}
+
+          {tentacle.suggestedSkills.length > 0 && (
+            <div className="deck-pod-vault">
+              <span className="deck-pod-vault-label">skills</span>
+              <div className="deck-pod-vault-files">
+                {tentacle.suggestedSkills.map((skill) => (
+                  <span key={skill} className="deck-pod-vault-file">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           {tentacle.vaultFiles.length > 0 && (

@@ -1362,6 +1362,201 @@ describe("createApiServer", () => {
     });
   });
 
+  it("lists Claude skills from the project skills folder", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const projectSkillDir = join(workspaceCwd, ".claude", "skills", "docs-writer");
+    mkdirSync(projectSkillDir, { recursive: true });
+    writeFileSync(
+      join(projectSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: docs-writer",
+        "description: Helps keep docs aligned with product changes.",
+        "---",
+        "",
+        "# Docs Writer",
+        "",
+        "Writes and updates docs.",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const response = await fetch(`${baseUrl}/api/deck/skills`, {
+      headers: { Accept: "application/json" },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "docs-writer",
+          description: "Helps keep docs aligned with product changes.",
+          source: "project",
+        }),
+      ]),
+    );
+  });
+
+  it("ignores a root project skills SKILL.md file and only lists folder-based skills", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const skillsDir = join(workspaceCwd, ".claude", "skills");
+    mkdirSync(skillsDir, { recursive: true });
+    writeFileSync(
+      join(skillsDir, "SKILL.md"),
+      [
+        "---",
+        "name: not-a-real-skill",
+        "description: Should not be listed.",
+        "---",
+        "",
+        "# Root Marker",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    mkdirSync(join(skillsDir, "docs-writer"), { recursive: true });
+    writeFileSync(
+      join(skillsDir, "docs-writer", "SKILL.md"),
+      [
+        "---",
+        "name: docs-writer",
+        "description: Helps keep docs aligned with product changes.",
+        "---",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const response = await fetch(`${baseUrl}/api/deck/skills`, {
+      headers: { Accept: "application/json" },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      {
+        name: "docs-writer",
+        description: "Helps keep docs aligned with product changes.",
+        source: "project",
+      },
+    ]);
+  });
+
+  it("creates tentacles with suggested skills and appends the managed context block", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const response = await fetch(`${baseUrl}/api/deck/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "docs",
+        description: "Docs and guides",
+        suggestedSkills: ["release-helper", "docs-writer"],
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "docs",
+        suggestedSkills: ["docs-writer", "release-helper"],
+      }),
+    );
+
+    const context = readFileSync(
+      join(workspaceCwd, ".octogent", "tentacles", "docs", "CONTEXT.md"),
+      "utf8",
+    );
+    expect(context).toContain("## Suggested Skills");
+    expect(context).toContain("You can use these skills if you need to.");
+    expect(context).toContain("- `docs-writer`");
+    expect(context).toContain("- `release-helper`");
+
+    const listResponse = await fetch(`${baseUrl}/api/deck/tentacles`, {
+      headers: { Accept: "application/json" },
+    });
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tentacleId: "docs",
+          suggestedSkills: ["docs-writer", "release-helper"],
+        }),
+      ]),
+    );
+  });
+
+  it("updates tentacle suggested skills and removes the managed context block when cleared", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const createResponse = await fetch(`${baseUrl}/api/deck/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "docs",
+        description: "Docs and guides",
+      }),
+    });
+    expect(createResponse.status).toBe(201);
+
+    const updateResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs/skills`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        suggestedSkills: ["code-review-specialist"],
+      }),
+    });
+
+    expect(updateResponse.status).toBe(200);
+    await expect(updateResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "docs",
+        suggestedSkills: ["code-review-specialist"],
+      }),
+    );
+
+    const contextPath = join(workspaceCwd, ".octogent", "tentacles", "docs", "CONTEXT.md");
+    expect(readFileSync(contextPath, "utf8")).toContain("- `code-review-specialist`");
+
+    const clearResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs/skills`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        suggestedSkills: [],
+      }),
+    });
+
+    expect(clearResponse.status).toBe(200);
+    await expect(clearResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        tentacleId: "docs",
+        suggestedSkills: [],
+      }),
+    );
+    expect(readFileSync(contextPath, "utf8")).not.toContain("## Suggested Skills");
+    expect(readFileSync(contextPath, "utf8")).not.toContain("octogent:suggested-skills:start");
+  });
+
   it("returns 400 for unsupported tentacle completion sound values", async () => {
     const baseUrl = await startServer();
 

@@ -291,9 +291,29 @@ export const buildDeckTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/tentacles");
 };
 
+export const buildDeckSkillsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/deck/skills";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/skills");
+};
+
 export const buildDeckTentacleUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const encodedTentacleId = encodeURIComponent(tentacleId);
   const path = `/api/deck/tentacles/${encodedTentacleId}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildDeckTentacleSkillsUrl = (
+  tentacleId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/skills`;
   if (!runtimeBaseUrl) {
     return path;
   }

@@ -461,6 +461,48 @@
   color: #e05555;
 }
 
+.deck-add-form-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.2rem;
+}
+
+.deck-add-form-skill-option {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.deck-add-form-skill-option input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent-primary);
+}
+
+.deck-add-form-skill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.deck-add-form-skill-name {
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.deck-add-form-skill-desc {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .deck-add-form-submit {
   font-family: var(--font-main);
   font-size: 0.88rem;
@@ -877,6 +919,68 @@
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.deck-pod-skills-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.45rem;
+  border: 1px solid #1f252d;
+  background: #0d1017;
+}
+
+.deck-pod-skills-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.deck-pod-skill-option {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.deck-pod-skill-option input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent-primary);
+}
+
+.deck-pod-skill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.deck-pod-skill-name {
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.deck-pod-skill-desc,
+.deck-pod-skills-empty {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.deck-pod-skills-actions {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #1a1d24;
+  padding-top: 0.35rem;
+}
+
+.deck-pod-skills-actions .deck-pod-btn {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 }
 
 /* ─── Progress bar ────────────────────────────────────────────────────────── */

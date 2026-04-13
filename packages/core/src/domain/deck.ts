@@ -8,6 +8,12 @@ export type DeckOctopusAppearance = {
   hairColor: string | null;
 };
 
+export type DeckAvailableSkill = {
+  name: string;
+  description: string;
+  source: "project" | "user";
+};
+
 export type DeckTentacleSummary = {
   tentacleId: string;
   displayName: string;
@@ -23,4 +29,5 @@ export type DeckTentacleSummary = {
   todoTotal: number;
   todoDone: number;
   todoItems: { text: string; done: boolean }[];
+  suggestedSkills: string[];
 };

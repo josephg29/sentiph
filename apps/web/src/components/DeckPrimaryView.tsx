@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
+  DeckAvailableSkill,
   DeckTentacleSummary,
   WorkspaceSetupSnapshot,
   WorkspaceSetupStepId,
@@ -8,7 +9,9 @@ import type {
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
+  buildDeckSkillsUrl,
   buildDeckTentacleUrl,
+  buildDeckTentacleSkillsUrl,
   buildDeckTentaclesUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
@@ -26,6 +29,18 @@ import { type OctopusVisuals, deriveOctopusVisuals } from "./deck/octopusVisuals
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { OctopusAppearancePayload } from "./deck/AddTentacleForm";
+
+const normalizeDeckAvailableSkill = (value: unknown): DeckAvailableSkill | null => {
+  if (value === null || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.name !== "string") return null;
+
+  return {
+    name: record.name,
+    description: typeof record.description === "string" ? record.description : "",
+    source: record.source === "project" ? "project" : "user",
+  };
+};
 
 // ─── Main view ───────────────────────────────────────────────────────────────
 
@@ -62,6 +77,8 @@ export const DeckPrimaryView = ({
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>([]);
+  const [savingTentacleSkillsId, setSavingTentacleSkillsId] = useState<string | null>(null);
 
   const [selectedAgent, setSelectedAgent] = useState<TerminalAgentProvider>("claude-code");
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
@@ -95,6 +112,34 @@ export const DeckPrimaryView = ({
   useEffect(() => {
     void fetchTentacles();
   }, [fetchTentacles]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSkills = async () => {
+      try {
+        const response = await fetch(buildDeckSkillsUrl(), {
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as unknown;
+        if (!Array.isArray(payload) || cancelled) return;
+        const skills = payload
+          .map((entry) => normalizeDeckAvailableSkill(entry))
+          .filter((entry): entry is DeckAvailableSkill => entry !== null);
+        if (!cancelled) {
+          setAvailableSkills(skills);
+        }
+      } catch {
+        // silently ignore
+      }
+    };
+
+    void fetchSkills();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Precompute visuals for all tentacles
   const visualsMap = useMemo(() => {
@@ -204,14 +249,20 @@ export const DeckPrimaryView = ({
   );
 
   const handleCreateTentacle = useCallback(
-    async (name: string, description: string, color: string, octopus: OctopusAppearancePayload) => {
+    async (
+      name: string,
+      description: string,
+      color: string,
+      octopus: OctopusAppearancePayload,
+      suggestedSkills: string[],
+    ) => {
       setIsCreating(true);
       setCreateError(null);
       try {
         const response = await fetch(buildDeckTentaclesUrl(), {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ name, description, color, octopus }),
+          body: JSON.stringify({ name, description, color, octopus, suggestedSkills }),
         });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
@@ -232,6 +283,27 @@ export const DeckPrimaryView = ({
       }
     },
     [fetchTentacles, onRefreshWorkspaceSetup],
+  );
+
+  const handleTentacleSkillsSave = useCallback(
+    async (tentacleId: string, suggestedSkills: string[]) => {
+      setSavingTentacleSkillsId(tentacleId);
+      try {
+        const response = await fetch(buildDeckTentacleSkillsUrl(tentacleId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ suggestedSkills }),
+        });
+        if (!response.ok) return false;
+        await fetchTentacles();
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setSavingTentacleSkillsId((current) => (current === tentacleId ? null : current));
+      }
+    },
+    [fetchTentacles],
   );
 
   const [deletingTentacleId, setDeletingTentacleId] = useState<string | null>(null);
@@ -401,6 +473,7 @@ export const DeckPrimaryView = ({
                 onCancel={() => setEmptyViewMode("idle")}
                 isSubmitting={isCreating}
                 error={createError}
+                availableSkills={availableSkills}
               />
             </div>
           )}
@@ -442,6 +515,9 @@ export const DeckPrimaryView = ({
                 onDelete={() => handleDeleteTentacle(t.tentacleId)}
                 isDeleting={deletingTentacleId === t.tentacleId}
                 onTodoToggle={handleTodoToggle}
+                availableSkills={availableSkills}
+                isSavingSkills={savingTentacleSkillsId === t.tentacleId}
+                onSaveSuggestedSkills={handleTentacleSkillsSave}
               />
             </div>
           );

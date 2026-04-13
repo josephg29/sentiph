@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { DeckAvailableSkill } from "@octogent/core";
 import type { OctopusAccessory, OctopusAnimation, OctopusExpression } from "../EmptyOctopus";
 import { OctopusGlyph } from "../EmptyOctopus";
 import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, OCTOPUS_COLORS } from "./octopusVisuals";
@@ -19,10 +20,12 @@ export type AddTentacleFormProps = {
     description: string,
     color: string,
     octopus: OctopusAppearancePayload,
+    suggestedSkills: string[],
   ) => void;
   onCancel: () => void;
   isSubmitting: boolean;
   error: string | null;
+  availableSkills: DeckAvailableSkill[];
 };
 
 export const EXPRESSION_OPTIONS: { value: OctopusExpression; label: string }[] = [
@@ -56,6 +59,7 @@ export const AddTentacleForm = ({
   onCancel,
   isSubmitting,
   error,
+  availableSkills,
 }: AddTentacleFormProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -77,6 +81,7 @@ export const AddTentacleForm = ({
   const [selectedHairColor, setSelectedHairColor] = useState(
     () => HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)] as string,
   );
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,7 +96,15 @@ export const AddTentacleForm = ({
       expression: selectedExpression,
       accessory: selectedAccessory,
       hairColor: selectedHairColor,
-    });
+    }, selectedSkills);
+  };
+
+  const toggleSkill = (skillName: string) => {
+    setSelectedSkills((current) =>
+      current.includes(skillName)
+        ? current.filter((skill) => skill !== skillName)
+        : [...current, skillName].sort((a, b) => a.localeCompare(b)),
+    );
   };
 
   return (
@@ -137,6 +150,32 @@ export const AddTentacleForm = ({
             rows={3}
           />
         </label>
+
+        {availableSkills.length > 0 && (
+          <div className="deck-add-form-label">
+            Suggested Skills
+            <div className="deck-add-form-skills">
+              {availableSkills.map((skill) => {
+                const checked = selectedSkills.includes(skill.name);
+                return (
+                  <label key={`${skill.source}:${skill.name}`} className="deck-add-form-skill-option">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleSkill(skill.name)}
+                    />
+                    <span className="deck-add-form-skill-copy">
+                      <span className="deck-add-form-skill-name">{skill.name}</span>
+                      {skill.description && (
+                        <span className="deck-add-form-skill-desc">{skill.description}</span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="deck-add-form-label">
           Color

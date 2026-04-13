@@ -21,9 +21,11 @@ Octogent exposes a local HTTP and WebSocket API.
 
 ## Deck and tentacles
 
+- `GET /api/deck/skills` - lists available Claude Code skills discovered from project-local `.claude/skills/<skill>/SKILL.md` entries
 - `GET /api/deck/tentacles` - lists tentacles with metadata, vault files, and todo progress
 - `POST /api/deck/tentacles` - creates a new tentacle
 - `DELETE /api/deck/tentacles/:tentacleId` - deletes a tentacle and its stored files
+- `PATCH /api/deck/tentacles/:tentacleId/skills` - updates the tentacle's suggested Claude Code skills and rewrites the managed block in `CONTEXT.md`
 - `POST /api/deck/tentacles/:tentacleId/todo` - adds a todo item to `todo.md`
 - `PATCH /api/deck/tentacles/:tentacleId/todo/toggle` - marks a todo item done or undone
 - `PATCH /api/deck/tentacles/:tentacleId/todo/edit` - edits the text of a todo item

@@ -439,6 +439,19 @@ export const CanvasTentaclePanel = ({
           </div>
         )}
 
+        {tentacle && tentacle.suggestedSkills.length > 0 && (
+          <div className="detail-section">
+            <div className="detail-section-title">Suggested Skills</div>
+            <div className="detail-labels-list">
+              {tentacle.suggestedSkills.map((skill) => (
+                <span key={skill} className="detail-label-tag">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Sessions section */}
         <div className="detail-section">
           <div className="detail-section-title">Sessions ({sessions.length})</div>

@@ -34,8 +34,21 @@ Examples:
 - what already exists
 - constraints and edge cases
 - what not to break
+- any Claude Code skills that are especially useful for this tentacle, when relevant
 
 The first heading and first non-empty paragraph are used by the runtime as the display name and description.
+
+When a tentacle has suggested Claude Code skills, Octogent appends a managed block at the bottom of `CONTEXT.md`:
+
+```md
+<!-- octogent:suggested-skills:start -->
+## Suggested Skills
+
+You can use these skills if you need to.
+
+- `skill-name`
+<!-- octogent:suggested-skills:end -->
+```
 
 ## What goes in `todo.md`
 

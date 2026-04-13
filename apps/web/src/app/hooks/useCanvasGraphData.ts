@@ -145,6 +145,9 @@ const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | nul
         ? record.todoDone
         : todoItems.filter((item) => item.done).length,
     todoItems,
+    suggestedSkills: Array.isArray(record.suggestedSkills)
+      ? record.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+      : [],
   };
 };
 

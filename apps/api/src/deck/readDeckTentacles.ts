@@ -10,11 +10,17 @@ import {
 import { join } from "node:path";
 
 import type {
+  DeckAvailableSkill,
   DeckOctopusAppearance,
   DeckTentacleStatus,
   DeckTentacleSummary,
 } from "@octogent/core";
 
+import {
+  applySuggestedSkillsToContext,
+  parseSuggestedSkillsFromContext,
+  readAvailableClaudeSkills,
+} from "../claudeSkills";
 import { markTentaclesInitialized } from "../setupState";
 
 const TENTACLES_DIR = ".octogent/tentacles";
@@ -108,7 +114,9 @@ const parseTentacleState = (raw: unknown): DeckTentacleState => {
 
 // ─── Parse CONTEXT.md for title and description ───────────────────────────────
 
-const parseContextMd = (content: string): { displayName: string; description: string } | null => {
+const parseContextMd = (
+  content: string,
+): { displayName: string; description: string; suggestedSkills: string[] } | null => {
   const lines = content.split("\n");
   let displayName: string | null = null;
   let description = "";
@@ -130,7 +138,7 @@ const parseContextMd = (content: string): { displayName: string; description: st
   }
 
   if (!displayName) return null;
-  return { displayName, description };
+  return { displayName, description, suggestedSkills: parseSuggestedSkillsFromContext(content) };
 };
 
 // ─── Todo parsing ───────────────────────────────────────────────────────────
@@ -244,6 +252,7 @@ export const readDeckTentacles = (
       todoTotal,
       todoDone,
       todoItems,
+      suggestedSkills: agentInfo.suggestedSkills,
     });
   }
 
@@ -461,6 +470,7 @@ type CreateDeckTentacleInput = {
   description: string;
   color: string;
   octopus: DeckOctopusAppearance;
+  suggestedSkills?: string[];
 };
 
 type CreateDeckTentacleResult =
@@ -490,7 +500,11 @@ export const createDeckTentacle = (
   mkdirSync(tentacleDir, { recursive: true });
 
   const description = input.description.trim();
-  const contextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
+  const baseContextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
+  const suggestedSkills = [...new Set((input.suggestedSkills ?? []).map((skill) => skill.trim()))]
+    .filter((skill) => skill.length > 0)
+    .sort((a, b) => a.localeCompare(b));
+  const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
   writeFileSync(join(tentacleDir, "CONTEXT.md"), contextMd);
   writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
 
@@ -519,8 +533,38 @@ export const createDeckTentacle = (
       todoTotal: 0,
       todoDone: 0,
       todoItems: [],
+      suggestedSkills,
     },
   };
+};
+
+export const listDeckAvailableSkills = (workspaceCwd: string): DeckAvailableSkill[] =>
+  readAvailableClaudeSkills(workspaceCwd);
+
+export const updateDeckTentacleSuggestedSkills = (
+  workspaceCwd: string,
+  tentacleId: string,
+  suggestedSkills: string[],
+  projectStateDir?: string,
+): DeckTentacleSummary | null => {
+  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+
+  const contextPath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "CONTEXT.md");
+  if (!existsSync(contextPath)) return null;
+
+  try {
+    const existing = readFileSync(contextPath, "utf8");
+    const updated = applySuggestedSkillsToContext(existing, suggestedSkills);
+    writeFileSync(contextPath, updated, "utf8");
+  } catch {
+    return null;
+  }
+
+  return (
+    readDeckTentacles(workspaceCwd, projectStateDir).find(
+      (tentacle) => tentacle.tentacleId === tentacleId,
+    ) ?? null
+  );
 };
 
 // ─── Delete a tentacle ──────────────────────────────────────────────────────
