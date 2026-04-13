@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@octogent/core";
 import {
   Check as CheckIcon,
   ChevronDown,
@@ -33,6 +34,7 @@ import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { OctopusNode } from "./canvas/OctopusNode";
 import { SessionNode } from "./canvas/SessionNode";
+import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
@@ -56,6 +58,12 @@ type CanvasPrimaryViewProps = {
   canvasOpenTerminalIds?: string[];
   canvasOpenTentacleIds?: string[];
   canvasTerminalsPanelWidth?: number | null;
+  workspaceSetup?: WorkspaceSetupSnapshot | null;
+  isWorkspaceSetupLoading?: boolean;
+  workspaceSetupError?: string | null;
+  runningWorkspaceSetupStepId?: WorkspaceSetupStepId | null;
+  onRunWorkspaceSetupStep?: (stepId: WorkspaceSetupStepId) => Promise<void> | void;
+  onLaunchWorkspaceSetupPlanner?: () => Promise<string | undefined> | undefined;
   recentlyCreatedTerminal?: TerminalView[number] | null;
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
@@ -187,6 +195,12 @@ export const CanvasPrimaryView = ({
   canvasOpenTerminalIds,
   canvasOpenTentacleIds,
   canvasTerminalsPanelWidth: persistedTerminalsPanelWidth,
+  workspaceSetup = null,
+  isWorkspaceSetupLoading = false,
+  workspaceSetupError = null,
+  runningWorkspaceSetupStepId = null,
+  onRunWorkspaceSetupStep,
+  onLaunchWorkspaceSetupPlanner,
   recentlyCreatedTerminal,
   onCanvasOpenTerminalIdsChange,
   onCanvasOpenTentacleIdsChange,
@@ -223,6 +237,7 @@ export const CanvasPrimaryView = ({
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
   const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
+  const [isLaunchingWorkspaceSetupPlanner, setIsLaunchingWorkspaceSetupPlanner] = useState(false);
   const hasHydratedTerminals = useRef(false);
   const hasHydratedTentacles = useRef(false);
   const lastHandledCreatedTerminalIdRef = useRef<string | null>(null);
@@ -233,6 +248,7 @@ export const CanvasPrimaryView = ({
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
   const lastFocusedPanelIdRef = useRef<string | null>(null);
+  const shouldShowWorkspaceSetupCard = Boolean(workspaceSetup?.shouldShowSetupCard);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -923,6 +939,21 @@ export const CanvasPrimaryView = ({
     const openIds = Array.from(openTerminals.keys()).join("|");
     return `${openIds}::${terminalsPanelWidth ?? "auto"}`;
   }, [openTerminals, terminalsPanelWidth]);
+  const handleLaunchWorkspaceSetupPlanner = useCallback(async () => {
+    if (!onLaunchWorkspaceSetupPlanner) {
+      return;
+    }
+
+    setIsLaunchingWorkspaceSetupPlanner(true);
+    try {
+      const agentId = await onLaunchWorkspaceSetupPlanner();
+      if (agentId) {
+        setPendingOpenAgentId(agentId);
+      }
+    } finally {
+      setIsLaunchingWorkspaceSetupPlanner(false);
+    }
+  }, [onLaunchWorkspaceSetupPlanner]);
 
   return (
     <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
@@ -1136,6 +1167,24 @@ export const CanvasPrimaryView = ({
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {shouldShowWorkspaceSetupCard && (
+          <div className="canvas-setup-overlay">
+            <WorkspaceSetupCard
+              workspaceSetup={workspaceSetup}
+              isLoading={isWorkspaceSetupLoading}
+              error={workspaceSetupError}
+              onRunStep={(stepId) => {
+                void onRunWorkspaceSetupStep?.(stepId);
+              }}
+              onLaunchClaudeCode={() => {
+                void handleLaunchWorkspaceSetupPlanner();
+              }}
+              isLaunchingAgent={isLaunchingWorkspaceSetupPlanner}
+              isRunningStepId={runningWorkspaceSetupStepId}
+            />
           </div>
         )}
       </div>

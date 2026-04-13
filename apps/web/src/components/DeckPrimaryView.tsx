@@ -289,17 +289,8 @@ export const DeckPrimaryView = ({
                 workspaceSetup={workspaceSetup}
                 isLoading={isWorkspaceSetupLoading}
                 error={workspaceSetupError}
-                selectedAgent={selectedAgent}
-                setSelectedAgent={setSelectedAgent}
-                agentMenuOpen={agentMenuOpen}
-                setAgentMenuOpen={setAgentMenuOpen}
-                agentMenuRef={agentMenuRef}
                 onRunStep={handleRunSetupStep}
-                onLaunchPlanner={handleLaunchAgent}
-                onAddManually={() => {
-                  setEmptyViewMode("adding");
-                  setCreateError(null);
-                }}
+                onLaunchClaudeCode={handleLaunchAgent}
                 isLaunchingAgent={isLaunchingAgent}
                 isRunningStepId={runningSetupStepId}
               />
@@ -382,17 +373,8 @@ export const DeckPrimaryView = ({
                 workspaceSetup={workspaceSetup}
                 isLoading={isWorkspaceSetupLoading}
                 error={workspaceSetupError}
-                selectedAgent={selectedAgent}
-                setSelectedAgent={setSelectedAgent}
-                agentMenuOpen={agentMenuOpen}
-                setAgentMenuOpen={setAgentMenuOpen}
-                agentMenuRef={agentMenuRef}
                 onRunStep={handleRunSetupStep}
-                onLaunchPlanner={handleLaunchAgent}
-                onAddManually={() => {
-                  setEmptyViewMode("adding");
-                  setCreateError(null);
-                }}
+                onLaunchClaudeCode={handleLaunchAgent}
                 isLaunchingAgent={isLaunchingAgent}
                 isRunningStepId={runningSetupStepId}
               />

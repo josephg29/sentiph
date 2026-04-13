@@ -234,6 +234,17 @@
   backdrop-filter: blur(6px);
 }
 
+.canvas-setup-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 12;
+  width: min(720px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .canvas-toolbar-btn {
   display: flex;
   flex-direction: column;

@@ -164,21 +164,22 @@ describe("App workspace setup", () => {
     resetAppTestHarness();
   });
 
-  it("shows a standalone setup screen on a fresh workspace before rendering the normal shell", async () => {
+  it("shows the setup card inside the normal Agents view on a fresh workspace", async () => {
     const currentSetup = buildSetupSnapshot();
     mockAppRequests(() => currentSetup);
 
     render(<App />);
 
     expect(await screen.findByLabelText("Workspace setup")).toBeInTheDocument();
-    expect(screen.getByLabelText("Workspace setup canvas")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
+    expect(screen.getByLabelText("Canvas graph view")).toBeInTheDocument();
+    expect(screen.getByLabelText("Runtime status strip")).toBeInTheDocument();
     expect(
-      screen.queryByRole("navigation", {
-        name: "Primary navigation",
+      screen.getByRole("button", {
+        name: "[1] Agents",
       }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Runtime status strip")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Telemetry ticker tape")).not.toBeInTheDocument();
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("only marks a setup step complete after the refreshed server snapshot says it is done", async () => {
@@ -204,11 +205,13 @@ describe("App workspace setup", () => {
 
     render(<App />);
 
-    const setupScreen = await screen.findByLabelText("Workspace setup");
-    fireEvent.click(within(setupScreen).getByRole("button", { name: "Update .gitignore" }));
+    const setupCard = await screen.findByLabelText("Workspace setup");
+    fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));
 
     await waitFor(() => {
-      expect(screen.getByText(".gitignore covers .octogent.")).toBeInTheDocument();
+      const gitignoreStep = screen.getByText("Ignore .octogent").closest(".workspace-setup-step");
+      expect(gitignoreStep).not.toBeNull();
+      expect(within(gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
     });
   });
 });
