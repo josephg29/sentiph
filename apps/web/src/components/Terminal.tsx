@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, X } from "lucide-react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
+import { replayTerminalHistory } from "./terminalReplay";
 import { TerminalPromptPicker } from "./TerminalPromptPicker";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
 
@@ -51,7 +52,6 @@ type TerminalServerMessage =
   | TerminalHistoryMessage
   | TerminalRenameMessage
   | TerminalActivityMessage;
-const SHOW_CURSOR_ESCAPE = "\u001b[?25h";
 
 const PromptInjectIcon = () => (
   <svg
@@ -84,13 +84,13 @@ export const Terminal = ({
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
   const [isPromptPickerOpen, setIsPromptPickerOpen] = useState(false);
   const promptPickerBtnRef = useRef<HTMLButtonElement | null>(null);
-  const viewportScrollTopRef = useRef<number | null>(null);
-  const viewportWasNearBottomRef = useRef(true);
   const terminalRef = useRef<{
-    write: (value: string) => void;
+    write: (value: string, callback?: () => void) => void;
     scrollLines: (lineCount: number) => void;
     clear: () => void;
     reset: () => void;
+    clearSelection?: () => void;
+    refresh?: (start: number, end: number) => void;
     cols: number;
     rows: number;
   } | null>(null);
@@ -123,10 +123,13 @@ export const Terminal = ({
     requestResizeSyncRef.current = () => {};
     let cleanupTerminal = () => {};
     let activeTerminal: {
-      write: (value: string) => void;
+      write: (value: string, callback?: () => void) => void;
       scrollLines: (lineCount: number) => void;
       clear: () => void;
       reset: () => void;
+      clearSelection?: () => void;
+      refresh?: (start: number, end: number) => void;
+      rows: number;
     } | null = null;
     let pendingHistoryData: string | null = null;
     const pendingOutputChunks: string[] = [];
@@ -178,32 +181,7 @@ export const Terminal = ({
             if (activeTerminal) {
               const viewport =
                 containerRef.current?.querySelector<HTMLElement>(".xterm-viewport") ?? null;
-              if (viewport) {
-                viewportScrollTopRef.current = viewport.scrollTop;
-                viewportWasNearBottomRef.current =
-                  viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 8;
-              }
-              activeTerminal.reset();
-              activeTerminal.write(payload.data);
-              activeTerminal.write(SHOW_CURSOR_ESCAPE);
-              if (viewport) {
-                window.requestAnimationFrame(() => {
-                  if (viewportWasNearBottomRef.current) {
-                    viewport.scrollTop = viewport.scrollHeight;
-                    return;
-                  }
-
-                  const previousScrollTop = viewportScrollTopRef.current;
-                  if (previousScrollTop === null) {
-                    return;
-                  }
-
-                  viewport.scrollTop = Math.max(
-                    0,
-                    Math.min(previousScrollTop, viewport.scrollHeight - viewport.clientHeight),
-                  );
-                });
-              }
+              replayTerminalHistory(activeTerminal, payload.data, viewport);
               return;
             }
 
@@ -215,7 +193,6 @@ export const Terminal = ({
           if (payload.type === "output" && typeof payload.data === "string") {
             if (activeTerminal) {
               activeTerminal.write(payload.data);
-              activeTerminal.write(SHOW_CURSOR_ESCAPE);
               return;
             }
 
@@ -240,7 +217,6 @@ export const Terminal = ({
         } catch {
           if (activeTerminal) {
             activeTerminal.write(event.data);
-            activeTerminal.write(SHOW_CURSOR_ESCAPE);
             return;
           }
 
@@ -319,8 +295,7 @@ export const Terminal = ({
         activeTerminal = terminal;
 
         if (pendingHistoryData !== null) {
-          terminal.reset();
-          terminal.write(pendingHistoryData);
+          replayTerminalHistory(terminal, pendingHistoryData, null);
           pendingHistoryData = null;
         }
         if (pendingOutputChunks.length > 0) {
@@ -329,14 +304,12 @@ export const Terminal = ({
           }
           pendingOutputChunks.length = 0;
         }
-        terminal.write(SHOW_CURSOR_ESCAPE);
 
         const wheelListenerTarget = containerRef.current;
         const viewportWheelTarget =
           wheelListenerTarget.querySelector<HTMLElement>(".xterm-viewport") ?? wheelListenerTarget;
         const onPointerDown = () => {
           terminal.focus();
-          terminal.write(SHOW_CURSOR_ESCAPE);
         };
         const onWheel = (event: WheelEvent) => {
           const lines = wheelDeltaToScrollLines(event.deltaY, event.deltaMode);
@@ -392,7 +365,6 @@ export const Terminal = ({
         requestResizeSyncRef.current = scheduleResizeSync;
 
         const onDataDisposable = terminal.onData((data) => {
-          terminal.write(SHOW_CURSOR_ESCAPE);
           if (!socket || socket.readyState !== 1) {
             return;
           }
@@ -415,7 +387,6 @@ export const Terminal = ({
         }
 
         scheduleResizeSync();
-        terminal.write(SHOW_CURSOR_ESCAPE);
         terminalRef.current = terminal;
         fitAddonRef.current = fitAddon;
         cleanupTerminal = () => {
