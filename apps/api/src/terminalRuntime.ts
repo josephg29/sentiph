@@ -475,7 +475,7 @@ export const createTerminalRuntime = ({
 
       terminal.tentacleName = tentacleName;
       terminal.nameOrigin = "user";
-      delete terminal.autoRenamePromptContext;
+      terminal.autoRenamePromptContext = undefined;
       persistRegistry();
       broadcastTerminalEvent({
         type: "terminal-updated",

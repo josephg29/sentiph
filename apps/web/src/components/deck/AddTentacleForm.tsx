@@ -91,12 +91,18 @@ export const AddTentacleForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim().length === 0) return;
-    onSubmit(name.trim(), description.trim(), selectedColor, {
-      animation: selectedAnimation,
-      expression: selectedExpression,
-      accessory: selectedAccessory,
-      hairColor: selectedHairColor,
-    }, selectedSkills);
+    onSubmit(
+      name.trim(),
+      description.trim(),
+      selectedColor,
+      {
+        animation: selectedAnimation,
+        expression: selectedExpression,
+        accessory: selectedAccessory,
+        hairColor: selectedHairColor,
+      },
+      selectedSkills,
+    );
   };
 
   const toggleSkill = (skillName: string) => {
@@ -158,7 +164,10 @@ export const AddTentacleForm = ({
               {availableSkills.map((skill) => {
                 const checked = selectedSkills.includes(skill.name);
                 return (
-                  <label key={`${skill.source}:${skill.name}`} className="deck-add-form-skill-option">
+                  <label
+                    key={`${skill.source}:${skill.name}`}
+                    className="deck-add-form-skill-option"
+                  >
                     <input
                       type="checkbox"
                       checked={checked}

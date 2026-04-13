@@ -10,8 +10,8 @@ import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckSkillsUrl,
-  buildDeckTentacleUrl,
   buildDeckTentacleSkillsUrl,
+  buildDeckTentacleUrl,
   buildDeckTentaclesUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,

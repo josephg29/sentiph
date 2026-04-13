@@ -74,7 +74,7 @@ export type TerminalSession = {
   isInitialInputDraftSent?: boolean;
   keepAliveWithoutClients?: boolean;
   hasSeenProcessing?: boolean;
-  lastToolName?: string;
+  lastToolName?: string | undefined;
 };
 
 export type TerminalNameOrigin = "generated" | "user" | "prompt";
@@ -96,7 +96,7 @@ export type PersistedTerminal = {
   worktreeId?: string;
   tentacleName: string;
   nameOrigin?: TerminalNameOrigin;
-  autoRenamePromptContext?: string;
+  autoRenamePromptContext?: string | undefined;
   createdAt: string;
   workspaceMode: TentacleWorkspaceMode;
   agentProvider?: TerminalAgentProvider;

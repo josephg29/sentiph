@@ -551,10 +551,7 @@ describe("createSessionRuntime", () => {
     expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
 
     vi.advanceTimersByTime(4_000);
-    expect(pty.write).toHaveBeenNthCalledWith(
-      2,
-      "\u001b[200~You are working on docs.\u001b[201~",
-    );
+    expect(pty.write).toHaveBeenNthCalledWith(2, "\u001b[200~You are working on docs.\u001b[201~");
 
     vi.advanceTimersByTime(150);
     expect(pty.write).toHaveBeenCalledTimes(2);

@@ -298,7 +298,7 @@ export const createHookProcessor = (deps: {
       const activitySession = sessions.get(terminal.terminalId);
       if (activitySession) {
         activitySession.agentState = "processing";
-        delete activitySession.lastToolName;
+        activitySession.lastToolName = undefined;
         activitySession.stateTracker.forceState("processing");
         onStateChange?.(terminal.terminalId, "processing");
         broadcastMessage(activitySession, { type: "state", state: "processing" });
@@ -314,7 +314,7 @@ export const createHookProcessor = (deps: {
           const derived = deriveTerminalNameFromPrompt(renameContext);
           terminal.tentacleName = derived;
           terminal.nameOrigin = "prompt";
-          delete terminal.autoRenamePromptContext;
+          terminal.autoRenamePromptContext = undefined;
           logVerbose(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
 
           const session = sessions.get(terminal.terminalId);

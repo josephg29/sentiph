@@ -73,7 +73,9 @@ export type TentaclePodProps = {
   onTodoToggle?: (tentacleId: string, itemIndex: number, done: boolean) => void;
   availableSkills: DeckAvailableSkill[];
   isSavingSkills?: boolean | undefined;
-  onSaveSuggestedSkills?: ((tentacleId: string, suggestedSkills: string[]) => Promise<boolean>) | undefined;
+  onSaveSuggestedSkills?:
+    | ((tentacleId: string, suggestedSkills: string[]) => Promise<boolean>)
+    | undefined;
 };
 
 export const TentaclePod = ({

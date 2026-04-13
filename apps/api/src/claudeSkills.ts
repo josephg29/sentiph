@@ -157,7 +157,10 @@ const renderSuggestedSkillsBlock = (skills: readonly string[]): string => {
   ].join("\n");
 };
 
-export const applySuggestedSkillsToContext = (content: string, skills: readonly string[]): string => {
+export const applySuggestedSkillsToContext = (
+  content: string,
+  skills: readonly string[],
+): string => {
   const trimmedContent = content.trimEnd();
   const start = trimmedContent.indexOf(SKILL_MARKER_START);
   const end = trimmedContent.indexOf(SKILL_MARKER_END);

@@ -56,10 +56,7 @@ describe("TentaclePod skill editor", () => {
     fireEvent.click(screen.getByRole("button", { name: /save skills/i }));
 
     await waitFor(() => {
-      expect(onSaveSuggestedSkills).toHaveBeenCalledWith("docs", [
-        "docs-writer",
-        "release-helper",
-      ]);
+      expect(onSaveSuggestedSkills).toHaveBeenCalledWith("docs", ["docs-writer", "release-helper"]);
     });
   });
 });

@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, X } from "lucide-react";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
-import { replayTerminalHistory } from "./terminalReplay";
 import { TerminalPromptPicker } from "./TerminalPromptPicker";
+import { replayTerminalHistory } from "./terminalReplay";
 import { wheelDeltaToScrollLines } from "./terminalWheel";
 
 import "xterm/css/xterm.css";
