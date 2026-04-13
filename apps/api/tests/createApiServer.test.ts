@@ -1257,6 +1257,8 @@ describe("createApiServer", () => {
       hasAnyTentacles: boolean;
       steps: Array<{ id: string; complete: boolean }>;
     };
+    expect(existsSync(join(workspaceCwd, ".octogent"))).toBe(false);
+    expect(existsSync(join(workspaceCwd, ".gitignore"))).toBe(false);
     expect(initialPayload.isFirstRun).toBe(true);
     expect(initialPayload.shouldShowSetupCard).toBe(true);
     expect(initialPayload.hasAnyTentacles).toBe(false);

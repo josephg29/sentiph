@@ -43,6 +43,7 @@ type DeckPrimaryViewProps = {
   workspaceSetupError: string | null;
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
   onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
+  suppressWorkspaceSetupCard?: boolean;
 };
 
 export const DeckPrimaryView = ({
@@ -52,6 +53,7 @@ export const DeckPrimaryView = ({
   workspaceSetupError,
   onRefreshWorkspaceSetup,
   onRunWorkspaceSetupStep,
+  suppressWorkspaceSetupCard = false,
 }: DeckPrimaryViewProps) => {
   const [tentacles, setTentacles] = useState<DeckTentacleSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
@@ -272,7 +274,8 @@ export const DeckPrimaryView = ({
       ? tentacles.find((t) => t.tentacleId === focus.tentacleId)
       : null;
   const mode = focus ? "detail" : "grid";
-  const shouldShowWorkspaceSetup = tentacles.length === 0 && workspaceSetup?.shouldShowSetupCard;
+  const shouldShowWorkspaceSetup =
+    !suppressWorkspaceSetupCard && tentacles.length === 0 && workspaceSetup?.shouldShowSetupCard;
 
   // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(

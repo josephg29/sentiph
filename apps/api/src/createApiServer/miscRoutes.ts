@@ -7,6 +7,7 @@ import {
   resolvePrompt,
   writeUserPrompt,
 } from "../prompts";
+import { markSetupStepVerified } from "../setupState";
 import {
   ensureWorkspaceGitignore,
   initializeWorkspaceFiles,
@@ -66,6 +67,8 @@ export const handleWorkspaceSetupRoute: ApiRouteHandler = async (
     initializeWorkspaceFiles(workspaceCwd, projectStateDir);
   } else if (stepId === "ensure-gitignore") {
     ensureWorkspaceGitignore(workspaceCwd);
+  } else if (stepId === "check-claude" || stepId === "check-git" || stepId === "check-curl") {
+    markSetupStepVerified(projectStateDir, stepId);
   }
 
   writeJson(response, 200, readWorkspaceSetupSnapshot(workspaceCwd, projectStateDir), corsOrigin);

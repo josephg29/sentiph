@@ -10,6 +10,7 @@ import {
   loadProjectsRegistry,
   migrateStateToGlobal,
   registerProject,
+  resolveEphemeralProjectStateDir,
   resolveProjectStateDir,
 } from "./projectPersistence";
 import { clearRuntimeMetadata, readRuntimeMetadata, writeRuntimeMetadata } from "./runtimeMetadata";
@@ -69,6 +70,28 @@ const initializeProject = (workspaceCwd: string, preferredName?: string) => {
   return {
     created: !hadConfig,
     projectConfig,
+    projectStateDir,
+  };
+};
+
+const resolveStartupProjectContext = (workspaceCwd: string) => {
+  const existingConfig = loadProjectConfig(workspaceCwd);
+  if (existingConfig) {
+    registerProject(workspaceCwd, existingConfig.displayName);
+    const projectStateDir = resolveProjectStateDir(workspaceCwd, existingConfig.displayName);
+    migrateStateToGlobal(workspaceCwd, projectStateDir);
+    return {
+      isInitialized: true,
+      projectDisplayName: existingConfig.displayName,
+      projectStateDir,
+    };
+  }
+
+  const projectDisplayName = basename(workspaceCwd) || "octogent-project";
+  const projectStateDir = resolveEphemeralProjectStateDir(workspaceCwd);
+  return {
+    isInitialized: false,
+    projectDisplayName,
     projectStateDir,
   };
 };
@@ -193,7 +216,8 @@ const startServer = async () => {
   }
 
   const workspaceCwd = process.cwd();
-  const { created, projectConfig, projectStateDir } = initializeProject(workspaceCwd);
+  const { isInitialized, projectDisplayName, projectStateDir } =
+    resolveStartupProjectContext(workspaceCwd);
   const promptsDir = resolveRuntimeAssetPath(["dist", "prompts"], ["prompts"]);
   const webDistDir = resolveRuntimeAssetPath(["dist", "web"], ["apps", "web", "dist"]);
   const port = await findOpenPort(readPreferredStartPort());
@@ -235,15 +259,15 @@ const startServer = async () => {
   console.log();
   console.log("  Octogent is running");
   console.log(`  Project: ${workspaceCwd}`);
-  console.log(`  Name:    ${projectConfig.displayName}`);
+  console.log(`  Name:    ${projectDisplayName}`);
   console.log(`  API:     ${apiBaseUrl}`);
   if (hasWebDist) {
     console.log(`  UI:      ${apiBaseUrl}`);
   } else {
     console.log("  UI:      bundled web assets are missing from this install");
   }
-  if (created) {
-    console.log("  Setup:   project scaffold was created automatically on first run");
+  if (!isInitialized) {
+    console.log("  Setup:   workspace is not initialized yet; use the in-app setup flow");
   }
   console.log();
 };

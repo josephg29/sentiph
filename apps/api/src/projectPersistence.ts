@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   appendFileSync,
   copyFileSync,
@@ -154,6 +154,9 @@ export const saveProjectsRegistry = (registry: ProjectsRegistry) => {
 export const resolveProjectConfigPath = (workspaceCwd: string) =>
   join(workspaceCwd, PROJECT_CONFIG_RELATIVE_PATH);
 
+export const deriveProjectIdFromWorkspace = (workspaceCwd: string) =>
+  `workspace-${createHash("sha1").update(workspaceCwd).digest("hex").slice(0, 16)}`;
+
 const inferLegacyProjectName = (workspaceCwd: string): string | null => {
   const parsed = readJsonFile(PROJECTS_FILE);
   if (!isRecord(parsed) || !Array.isArray(parsed.projects)) {
@@ -181,6 +184,7 @@ export const loadProjectConfig = (workspaceCwd: string): ProjectConfigDocument |
 export const ensureProjectConfig = (
   workspaceCwd: string,
   preferredName?: string,
+  preferredProjectId?: string,
 ): ProjectConfigDocument => {
   const existing = loadProjectConfig(workspaceCwd);
   if (existing) {
@@ -194,7 +198,7 @@ export const ensureProjectConfig = (
     "octogent-project";
   const config: ProjectConfigDocument = {
     version: 1,
-    projectId: randomUUID(),
+    projectId: preferredProjectId?.trim() || randomUUID(),
     displayName,
     createdAt: new Date().toISOString(),
   };
@@ -241,6 +245,9 @@ export const registerProject = (
 export const resolveGlobalProjectDir = (projectId: string) =>
   join(GLOBAL_OCTOGENT_DIR, "projects", projectId);
 
+export const resolveEphemeralProjectStateDir = (workspaceCwd: string) =>
+  resolveGlobalProjectDir(deriveProjectIdFromWorkspace(workspaceCwd));
+
 export const resolveProjectStateDir = (workspaceCwd: string, preferredName?: string): string => {
   const entry = registerProject(workspaceCwd, preferredName);
   const projectDir = resolveGlobalProjectDir(entry.id);
@@ -248,13 +255,17 @@ export const resolveProjectStateDir = (workspaceCwd: string, preferredName?: str
   return projectDir;
 };
 
-export const ensureProjectScaffold = (workspaceCwd: string, preferredName?: string) => {
+export const ensureProjectScaffold = (
+  workspaceCwd: string,
+  preferredName?: string,
+  preferredProjectId?: string,
+) => {
   const octogentDir = join(workspaceCwd, ".octogent");
   for (const subdirectory of ["tentacles", "worktrees"]) {
     mkdirSync(join(octogentDir, subdirectory), { recursive: true });
   }
 
-  return ensureProjectConfig(workspaceCwd, preferredName);
+  return ensureProjectConfig(workspaceCwd, preferredName, preferredProjectId);
 };
 
 export const hasOctogentGitignoreEntry = (workspaceCwd: string) => {

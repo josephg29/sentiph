@@ -5,6 +5,7 @@ import type { WorkspaceSetupSnapshot, WorkspaceSetupStep } from "@octogent/core"
 
 import { readDeckTentacles } from "./deck/readDeckTentacles";
 import {
+  deriveProjectIdFromWorkspace,
   ensureOctogentGitignoreEntry,
   ensureProjectScaffold,
   hasOctogentGitignoreEntry,
@@ -17,7 +18,11 @@ import { collectStartupPrerequisiteReport } from "./startupPrerequisites";
 
 export const initializeWorkspaceFiles = (workspaceCwd: string, projectStateDir: string) => {
   const projectName = loadProjectConfig(workspaceCwd)?.displayName;
-  const projectConfig = ensureProjectScaffold(workspaceCwd, projectName);
+  const projectConfig = ensureProjectScaffold(
+    workspaceCwd,
+    projectName,
+    deriveProjectIdFromWorkspace(workspaceCwd),
+  );
   registerProject(workspaceCwd, projectConfig.displayName);
   mkdirSync(join(projectStateDir, "state"), { recursive: true });
   migrateStateToGlobal(workspaceCwd, projectStateDir);
@@ -46,6 +51,13 @@ export const readWorkspaceSetupSnapshot = (
   const hasAnyTentacles = tentacleCount > 0;
   const setupState = readSetupState(projectStateDir);
   const isFirstRun = !hasAnyTentacles && !setupState.tentaclesInitializedAt;
+  const verifiedSteps = setupState.verifiedSteps ?? {};
+  const isClaudeVerified = Boolean(verifiedSteps["check-claude"]);
+  const isGitVerified = Boolean(verifiedSteps["check-git"]);
+  const isCurlVerified = Boolean(verifiedSteps["check-curl"]);
+  const hasClaudeCode = prerequisites.availability.claude;
+  const hasGit = prerequisites.availability.git;
+  const hasCurl = prerequisites.availability.curl;
 
   const steps: WorkspaceSetupStep[] = [
     {
@@ -82,42 +94,58 @@ export const readWorkspaceSetupSnapshot = (
       id: "check-claude",
       title: "Check Claude Code",
       description: "Verify the default Claude Code workflow is available on this machine.",
-      complete: prerequisites.availability.claude,
+      complete: hasClaudeCode && isClaudeVerified,
       required: false,
       actionLabel: "Check Claude Code",
-      statusText: prerequisites.availability.claude
-        ? "Claude Code is available."
+      statusText: hasClaudeCode
+        ? isClaudeVerified
+          ? "Claude Code is available."
+          : "Confirm Claude Code before using the planner."
         : "Claude Code is unavailable.",
-      guidance: prerequisites.availability.claude
-        ? null
+      guidance: hasClaudeCode
+        ? isClaudeVerified
+          ? null
+          : "Click to verify the Claude Code workflow on this machine."
         : "Install Claude Code and log in before using the default Claude workflow.",
-      command: prerequisites.availability.claude ? null : "claude login",
+      command: hasClaudeCode ? null : "claude login",
     },
     {
       id: "check-git",
       title: "Check Git",
       description: "Verify Git is available for worktree-backed tentacles.",
-      complete: prerequisites.availability.git,
+      complete: hasGit && isGitVerified,
       required: false,
       actionLabel: "Check Git",
-      statusText: prerequisites.availability.git ? "Git is available." : "Git is unavailable.",
-      guidance: prerequisites.availability.git
-        ? null
+      statusText: hasGit
+        ? isGitVerified
+          ? "Git is available."
+          : "Confirm Git before launching worktree-backed tentacles."
+        : "Git is unavailable.",
+      guidance: hasGit
+        ? isGitVerified
+          ? null
+          : "Click to verify Git support for worktree terminal flows."
         : "Install Git to enable worktree terminals and branch flows.",
-      command: prerequisites.availability.git ? null : "git --version",
+      command: hasGit ? null : "git --version",
     },
     {
       id: "check-curl",
       title: "Check curl",
       description: "Verify curl is available for Claude hook callbacks.",
-      complete: prerequisites.availability.curl,
+      complete: hasCurl && isCurlVerified,
       required: false,
       actionLabel: "Check curl",
-      statusText: prerequisites.availability.curl ? "curl is available." : "curl is unavailable.",
-      guidance: prerequisites.availability.curl
-        ? null
+      statusText: hasCurl
+        ? isCurlVerified
+          ? "curl is available."
+          : "Confirm curl before using Claude hook callbacks."
+        : "curl is unavailable.",
+      guidance: hasCurl
+        ? isCurlVerified
+          ? null
+          : "Click to verify hook callback support on this machine."
         : "Install curl to restore Claude hook callbacks.",
-      command: prerequisites.availability.curl ? null : "curl --version",
+      command: hasCurl ? null : "curl --version",
     },
     {
       id: "create-tentacles",

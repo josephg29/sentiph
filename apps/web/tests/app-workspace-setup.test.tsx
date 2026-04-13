@@ -164,20 +164,21 @@ describe("App workspace setup", () => {
     resetAppTestHarness();
   });
 
-  it("opens the Deck setup card on a fresh workspace when no ui state is persisted", async () => {
+  it("shows a standalone setup screen on a fresh workspace before rendering the normal shell", async () => {
     const currentSetup = buildSetupSnapshot();
     mockAppRequests(() => currentSetup);
 
     render(<App />);
 
     expect(await screen.findByLabelText("Workspace setup")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", {
-          name: "[2] Deck",
-        }),
-      ).toHaveAttribute("aria-current", "page");
-    });
+    expect(screen.getByLabelText("Workspace setup canvas")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", {
+        name: "Primary navigation",
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Runtime status strip")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Telemetry ticker tape")).not.toBeInTheDocument();
   });
 
   it("only marks a setup step complete after the refreshed server snapshot says it is done", async () => {
@@ -203,8 +204,8 @@ describe("App workspace setup", () => {
 
     render(<App />);
 
-    const setupCard = await screen.findByLabelText("Workspace setup");
-    fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));
+    const setupScreen = await screen.findByLabelText("Workspace setup");
+    fireEvent.click(within(setupScreen).getByRole("button", { name: "Update .gitignore" }));
 
     await waitFor(() => {
       expect(screen.getByText(".gitignore covers .octogent.")).toBeInTheDocument();
