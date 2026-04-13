@@ -22,6 +22,8 @@ import {
   buildTerminalSocketUrl,
   buildTerminalsUrl,
   buildUiStateUrl,
+  buildWorkspaceSetupStepUrl,
+  buildWorkspaceSetupUrl,
 } from "../src/runtime/runtimeEndpoints";
 
 describe("runtimeEndpoints", () => {
@@ -131,6 +133,22 @@ describe("runtimeEndpoints", () => {
   it("builds absolute ui state URL when runtime base URL is configured", () => {
     expect(buildUiStateUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/ui-state",
+    );
+  });
+
+  it("builds workspace setup URLs on same origin by default", () => {
+    expect(buildWorkspaceSetupUrl()).toBe("/api/setup");
+    expect(buildWorkspaceSetupStepUrl("ensure-gitignore")).toBe(
+      "/api/setup/steps/ensure-gitignore",
+    );
+  });
+
+  it("builds absolute workspace setup URLs when runtime base URL is configured", () => {
+    expect(buildWorkspaceSetupUrl("https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/setup",
+    );
+    expect(buildWorkspaceSetupStepUrl("ensure-gitignore", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/setup/steps/ensure-gitignore",
     );
   });
 

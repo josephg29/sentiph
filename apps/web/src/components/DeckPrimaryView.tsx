@@ -1,6 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { DeckTentacleSummary } from "@octogent/core";
+import type {
+  DeckTentacleSummary,
+  WorkspaceSetupSnapshot,
+  WorkspaceSetupStepId,
+} from "@octogent/core";
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
@@ -17,6 +21,7 @@ import { AddTentacleForm } from "./deck/AddTentacleForm";
 import type { OctopusAppearancePayload } from "./deck/AddTentacleForm";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
 import { TentaclePod } from "./deck/TentaclePod";
+import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 import { type OctopusVisuals, deriveOctopusVisuals } from "./deck/octopusVisuals";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
@@ -33,9 +38,21 @@ type EmptyViewMode = "idle" | "adding";
 
 type DeckPrimaryViewProps = {
   onSidebarContent?: ((content: ReactNode) => void) | undefined;
+  workspaceSetup: WorkspaceSetupSnapshot | null;
+  isWorkspaceSetupLoading: boolean;
+  workspaceSetupError: string | null;
+  onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
+  onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
 };
 
-export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
+export const DeckPrimaryView = ({
+  onSidebarContent,
+  workspaceSetup,
+  isWorkspaceSetupLoading,
+  workspaceSetupError,
+  onRefreshWorkspaceSetup,
+  onRunWorkspaceSetupStep,
+}: DeckPrimaryViewProps) => {
   const [tentacles, setTentacles] = useState<DeckTentacleSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [vaultContent, setVaultContent] = useState<string | null>(null);
@@ -48,6 +65,15 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
+  const [runningSetupStepId, setRunningSetupStepId] = useState<
+    | "initialize-workspace"
+    | "ensure-gitignore"
+    | "check-claude"
+    | "check-git"
+    | "check-curl"
+    | "create-tentacles"
+    | null
+  >(null);
 
   // Fetch tentacle list
   const fetchTentacles = useCallback(async () => {
@@ -58,10 +84,11 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
       if (!response.ok) return;
       const data = await response.json();
       setTentacles(data);
+      await onRefreshWorkspaceSetup();
     } catch {
       // silently ignore
     }
-  }, []);
+  }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
     void fetchTentacles();
@@ -151,6 +178,29 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
     }
   }, [selectedAgent, fetchTentacles]);
 
+  const handleRunSetupStep = useCallback(
+    async (
+      stepId:
+        | "initialize-workspace"
+        | "ensure-gitignore"
+        | "check-claude"
+        | "check-git"
+        | "check-curl"
+        | "create-tentacles",
+    ) => {
+      setRunningSetupStepId(stepId);
+      try {
+        await onRunWorkspaceSetupStep(stepId);
+        if (stepId === "initialize-workspace" || stepId === "ensure-gitignore") {
+          await fetchTentacles();
+        }
+      } finally {
+        setRunningSetupStepId(null);
+      }
+    },
+    [fetchTentacles, onRunWorkspaceSetupStep],
+  );
+
   const handleCreateTentacle = useCallback(
     async (name: string, description: string, color: string, octopus: OctopusAppearancePayload) => {
       setIsCreating(true);
@@ -172,13 +222,14 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
         }
         setEmptyViewMode("idle");
         await fetchTentacles();
+        await onRefreshWorkspaceSetup();
       } catch {
         setCreateError("Network error");
       } finally {
         setIsCreating(false);
       }
     },
-    [fetchTentacles],
+    [fetchTentacles, onRefreshWorkspaceSetup],
   );
 
   const [deletingTentacleId, setDeletingTentacleId] = useState<string | null>(null);
@@ -221,46 +272,86 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
       ? tentacles.find((t) => t.tentacleId === focus.tentacleId)
       : null;
   const mode = focus ? "detail" : "grid";
+  const shouldShowWorkspaceSetup = tentacles.length === 0 && workspaceSetup?.shouldShowSetupCard;
 
   // Push sidebar content to the shared sidebar
-  const sidebarContent =
-    tentacles.length > 0 || focus?.type === "terminal" ? (
-      <div className="deck-sidebar-content">
-        <div className="deck-sidebar-content-top">
-          <ActionCards
-            compact
-            selectedAgent={selectedAgent}
-            setSelectedAgent={setSelectedAgent}
-            agentMenuOpen={agentMenuOpen}
-            setAgentMenuOpen={setAgentMenuOpen}
-            agentMenuRef={agentMenuRef}
-            onAddManually={() => {
-              setEmptyViewMode("adding");
-              setCreateError(null);
-            }}
-            onLaunchAgent={handleLaunchAgent}
-            isLaunchingAgent={isLaunchingAgent}
-          />
-        </div>
-        {tentacles.length > 0 && (
-          <div className="deck-sidebar-content-bottom">
-            <DeckBottomActions
-              onClearAll={async () => {
-                for (const t of tentacles) {
-                  await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
-                }
-                await fetchTentacles();
-              }}
-            />
+  const sidebarContent = useMemo(
+    () =>
+      tentacles.length > 0 || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
+        <div className="deck-sidebar-content">
+          <div className="deck-sidebar-content-top">
+            {shouldShowWorkspaceSetup ? (
+              <WorkspaceSetupCard
+                compact
+                workspaceSetup={workspaceSetup}
+                isLoading={isWorkspaceSetupLoading}
+                error={workspaceSetupError}
+                selectedAgent={selectedAgent}
+                setSelectedAgent={setSelectedAgent}
+                agentMenuOpen={agentMenuOpen}
+                setAgentMenuOpen={setAgentMenuOpen}
+                agentMenuRef={agentMenuRef}
+                onRunStep={handleRunSetupStep}
+                onLaunchPlanner={handleLaunchAgent}
+                onAddManually={() => {
+                  setEmptyViewMode("adding");
+                  setCreateError(null);
+                }}
+                isLaunchingAgent={isLaunchingAgent}
+                isRunningStepId={runningSetupStepId}
+              />
+            ) : (
+              <ActionCards
+                compact
+                selectedAgent={selectedAgent}
+                setSelectedAgent={setSelectedAgent}
+                agentMenuOpen={agentMenuOpen}
+                setAgentMenuOpen={setAgentMenuOpen}
+                agentMenuRef={agentMenuRef}
+                onAddManually={() => {
+                  setEmptyViewMode("adding");
+                  setCreateError(null);
+                }}
+                onLaunchAgent={handleLaunchAgent}
+                isLaunchingAgent={isLaunchingAgent}
+              />
+            )}
           </div>
-        )}
-      </div>
-    ) : null;
+          {tentacles.length > 0 && (
+            <div className="deck-sidebar-content-bottom">
+              <DeckBottomActions
+                onClearAll={async () => {
+                  for (const t of tentacles) {
+                    await fetch(buildDeckTentacleUrl(t.tentacleId), { method: "DELETE" });
+                  }
+                  await fetchTentacles();
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ) : null,
+    [
+      agentMenuOpen,
+      fetchTentacles,
+      focus?.type,
+      handleLaunchAgent,
+      handleRunSetupStep,
+      isLaunchingAgent,
+      isWorkspaceSetupLoading,
+      runningSetupStepId,
+      selectedAgent,
+      shouldShowWorkspaceSetup,
+      tentacles,
+      workspaceSetup,
+      workspaceSetupError,
+    ],
+  );
 
   useEffect(() => {
     onSidebarContent?.(sidebarContent);
     return () => onSidebarContent?.(null);
-  });
+  }, [onSidebarContent, sidebarContent]);
 
   // ─── Empty state (no tentacles) ─────────────────────────────────────────────
 
@@ -283,19 +374,40 @@ export const DeckPrimaryView = ({ onSidebarContent }: DeckPrimaryViewProps) => {
                 scale={20}
               />
             </div>
-            <ActionCards
-              selectedAgent={selectedAgent}
-              setSelectedAgent={setSelectedAgent}
-              agentMenuOpen={agentMenuOpen}
-              setAgentMenuOpen={setAgentMenuOpen}
-              agentMenuRef={agentMenuRef}
-              onAddManually={() => {
-                setEmptyViewMode("adding");
-                setCreateError(null);
-              }}
-              onLaunchAgent={handleLaunchAgent}
-              isLaunchingAgent={isLaunchingAgent}
-            />
+            {shouldShowWorkspaceSetup ? (
+              <WorkspaceSetupCard
+                workspaceSetup={workspaceSetup}
+                isLoading={isWorkspaceSetupLoading}
+                error={workspaceSetupError}
+                selectedAgent={selectedAgent}
+                setSelectedAgent={setSelectedAgent}
+                agentMenuOpen={agentMenuOpen}
+                setAgentMenuOpen={setAgentMenuOpen}
+                agentMenuRef={agentMenuRef}
+                onRunStep={handleRunSetupStep}
+                onLaunchPlanner={handleLaunchAgent}
+                onAddManually={() => {
+                  setEmptyViewMode("adding");
+                  setCreateError(null);
+                }}
+                isLaunchingAgent={isLaunchingAgent}
+                isRunningStepId={runningSetupStepId}
+              />
+            ) : (
+              <ActionCards
+                selectedAgent={selectedAgent}
+                setSelectedAgent={setSelectedAgent}
+                agentMenuOpen={agentMenuOpen}
+                setAgentMenuOpen={setAgentMenuOpen}
+                agentMenuRef={agentMenuRef}
+                onAddManually={() => {
+                  setEmptyViewMode("adding");
+                  setCreateError(null);
+                }}
+                onLaunchAgent={handleLaunchAgent}
+                isLaunchingAgent={isLaunchingAgent}
+              />
+            )}
           </div>
           {emptyViewMode === "adding" && (
             <div className="deck-empty-right">

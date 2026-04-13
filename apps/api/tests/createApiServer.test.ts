@@ -1242,6 +1242,83 @@ describe("createApiServer", () => {
     expect(response.status).toBe(405);
   });
 
+  it("reports file-backed workspace setup status and updates it through setup actions", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const initialResponse = await fetch(`${baseUrl}/api/setup`, {
+      headers: { Accept: "application/json" },
+    });
+    expect(initialResponse.status).toBe(200);
+    const initialPayload = (await initialResponse.json()) as {
+      isFirstRun: boolean;
+      shouldShowSetupCard: boolean;
+      hasAnyTentacles: boolean;
+      steps: Array<{ id: string; complete: boolean }>;
+    };
+    expect(initialPayload.isFirstRun).toBe(true);
+    expect(initialPayload.shouldShowSetupCard).toBe(true);
+    expect(initialPayload.hasAnyTentacles).toBe(false);
+    expect(initialPayload.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "initialize-workspace", complete: false }),
+        expect.objectContaining({ id: "ensure-gitignore", complete: false }),
+        expect.objectContaining({ id: "create-tentacles", complete: false }),
+      ]),
+    );
+
+    const initializeResponse = await fetch(`${baseUrl}/api/setup/steps/initialize-workspace`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    expect(initializeResponse.status).toBe(200);
+    expect(existsSync(join(workspaceCwd, ".octogent", "project.json"))).toBe(true);
+    expect(existsSync(join(workspaceCwd, ".octogent", "tentacles"))).toBe(true);
+    expect(existsSync(join(workspaceCwd, ".octogent", "worktrees"))).toBe(true);
+
+    const gitignoreResponse = await fetch(`${baseUrl}/api/setup/steps/ensure-gitignore`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    expect(gitignoreResponse.status).toBe(200);
+    expect(readFileSync(join(workspaceCwd, ".gitignore"), "utf8")).toContain(".octogent");
+
+    const createTentacleResponse = await fetch(`${baseUrl}/api/deck/tentacles`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "docs",
+        description: "Docs and guides",
+      }),
+    });
+    expect(createTentacleResponse.status).toBe(201);
+
+    const finalResponse = await fetch(`${baseUrl}/api/setup`, {
+      headers: { Accept: "application/json" },
+    });
+    expect(finalResponse.status).toBe(200);
+    const finalPayload = (await finalResponse.json()) as {
+      isFirstRun: boolean;
+      hasAnyTentacles: boolean;
+      tentacleCount: number;
+      steps: Array<{ id: string; complete: boolean }>;
+    };
+    expect(finalPayload.isFirstRun).toBe(false);
+    expect(finalPayload.hasAnyTentacles).toBe(true);
+    expect(finalPayload.tentacleCount).toBe(1);
+    expect(finalPayload.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "initialize-workspace", complete: true }),
+        expect.objectContaining({ id: "ensure-gitignore", complete: true }),
+        expect.objectContaining({ id: "create-tentacles", complete: true }),
+      ]),
+    );
+  });
+
   it("returns 413 when create tentacle body exceeds size limit", async () => {
     const baseUrl = await startServer();
 

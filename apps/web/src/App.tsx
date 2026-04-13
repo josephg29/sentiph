@@ -16,6 +16,7 @@ import { useTerminalCompletionNotification } from "./app/hooks/useTerminalComple
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
+import { useWorkspaceSetup } from "./app/hooks/useWorkspaceSetup";
 import {
   createTerminalRuntimeStateStore,
   getTerminalRuntimeStateInfo,
@@ -66,6 +67,7 @@ export const App = () => {
     activePrimaryNav,
     setActivePrimaryNav,
     applyHydratedUiState,
+    hasHydratedUiStateSnapshot,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
     isBottomTelemetryVisible,
@@ -96,6 +98,14 @@ export const App = () => {
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
+  const {
+    workspaceSetup,
+    isWorkspaceSetupLoading,
+    workspaceSetupError,
+    refreshWorkspaceSetup,
+    runWorkspaceSetupStep,
+  } = useWorkspaceSetup();
+  const hasAppliedFirstRunDeckRef = useRef(false);
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
@@ -167,6 +177,27 @@ export const App = () => {
     setIsLoading,
     setIsUiStateHydrated,
   });
+
+  useEffect(() => {
+    if (hasAppliedFirstRunDeckRef.current) {
+      return;
+    }
+
+    if (!isUiStateHydrated || isWorkspaceSetupLoading) {
+      return;
+    }
+
+    hasAppliedFirstRunDeckRef.current = true;
+    if (!hasHydratedUiStateSnapshot && workspaceSetup?.shouldShowSetupCard) {
+      setActivePrimaryNav(2);
+    }
+  }, [
+    hasHydratedUiStateSnapshot,
+    isUiStateHydrated,
+    isWorkspaceSetupLoading,
+    setActivePrimaryNav,
+    workspaceSetup,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -427,7 +458,14 @@ export const App = () => {
 
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}
-            onDeckSidebarContent={setDeckSidebarContent}
+            deckPrimaryViewProps={{
+              onSidebarContent: setDeckSidebarContent,
+              workspaceSetup,
+              isWorkspaceSetupLoading,
+              workspaceSetupError,
+              onRefreshWorkspaceSetup: refreshWorkspaceSetup,
+              onRunWorkspaceSetupStep: runWorkspaceSetupStep,
+            }}
             isMonitorVisible={isMonitorVisible}
             activityPrimaryViewProps={{
               usageChartProps: {

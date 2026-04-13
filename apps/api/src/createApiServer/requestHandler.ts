@@ -35,6 +35,7 @@ import {
   handlePromptItemRoute,
   handlePromptsCollectionRoute,
   handleUiStateRoute,
+  handleWorkspaceSetupRoute,
 } from "./miscRoutes";
 import {
   handleMonitorConfigRoute,
@@ -124,6 +125,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["claude", [handleClaudeUsageRoute]],
   ["analytics", [handleUsageHeatmapRoute]],
   ["github", [handleGithubSummaryRoute]],
+  ["setup", [handleWorkspaceSetupRoute]],
   ["ui-state", [handleUiStateRoute]],
   ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
   [

@@ -15,6 +15,8 @@ import type {
   DeckTentacleSummary,
 } from "@octogent/core";
 
+import { markTentaclesInitialized } from "../setupState";
+
 const TENTACLES_DIR = ".octogent/tentacles";
 const DECK_STATE_PATH = ".octogent/state/deck.json";
 
@@ -501,6 +503,7 @@ export const createDeckTentacle = (
     scope: { paths: [], tags: [] },
   };
   writeDeckState(stateDir, deckState);
+  markTentaclesInitialized(stateDir);
 
   return {
     ok: true,

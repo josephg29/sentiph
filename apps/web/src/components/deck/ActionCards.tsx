@@ -32,7 +32,7 @@ export const ActionCards = ({
   isLaunchingAgent,
 }: ActionCardsProps) => (
   <div className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}>
-    <button type="button" className="deck-empty-card" onClick={() => {}}>
+    <button type="button" className="deck-empty-card" onClick={onAddManually}>
       <div className="deck-empty-card-icon">
         <OctopusGlyph
           color="#d4a017"
@@ -43,9 +43,9 @@ export const ActionCards = ({
         />
       </div>
       <div className="deck-empty-card-text">
-        <span className="deck-empty-card-title">Create Main Tentacle</span>
+        <span className="deck-empty-card-title">Create First Tentacle</span>
         <span className="deck-empty-card-desc">
-          Set up the main default tentacle to work on your codebase
+          Start the deck by creating a tentacle for your codebase
         </span>
       </div>
     </button>

@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
@@ -247,6 +255,42 @@ export const ensureProjectScaffold = (workspaceCwd: string, preferredName?: stri
   }
 
   return ensureProjectConfig(workspaceCwd, preferredName);
+};
+
+export const hasOctogentGitignoreEntry = (workspaceCwd: string) => {
+  const gitignorePath = join(workspaceCwd, ".gitignore");
+  if (!existsSync(gitignorePath)) {
+    return false;
+  }
+
+  const content = readFileSync(gitignorePath, "utf-8");
+  return content
+    .split("\n")
+    .map((line) => line.trim())
+    .includes(".octogent");
+};
+
+export const ensureOctogentGitignoreEntry = (workspaceCwd: string) => {
+  const gitignorePath = join(workspaceCwd, ".gitignore");
+  const entry = ".octogent";
+
+  if (existsSync(gitignorePath)) {
+    const content = readFileSync(gitignorePath, "utf-8");
+    if (
+      content
+        .split("\n")
+        .map((line) => line.trim())
+        .includes(entry)
+    ) {
+      return { changed: false };
+    }
+
+    appendFileSync(gitignorePath, `\n${entry}\n`, "utf-8");
+    return { changed: true };
+  }
+
+  writeFileSync(gitignorePath, `${entry}\n`, "utf-8");
+  return { changed: true };
 };
 
 export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: string) => {

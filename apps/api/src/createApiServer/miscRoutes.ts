@@ -1,3 +1,5 @@
+import type { WorkspaceSetupStepId } from "@octogent/core";
+
 import {
   deleteUserPrompt,
   listAllPrompts,
@@ -5,6 +7,11 @@ import {
   resolvePrompt,
   writeUserPrompt,
 } from "../prompts";
+import {
+  ensureWorkspaceGitignore,
+  initializeWorkspaceFiles,
+  readWorkspaceSetupSnapshot,
+} from "../setupStatus";
 import type { ApiRouteHandler } from "./routeHelpers";
 import {
   readJsonBodyOrWriteError,
@@ -13,6 +20,57 @@ import {
   writeNoContent,
 } from "./routeHelpers";
 import { parseUiStatePatch } from "./uiStateParsers";
+
+const WORKSPACE_SETUP_PATH = "/api/setup";
+const WORKSPACE_SETUP_STEP_PATH_PATTERN = /^\/api\/setup\/steps\/([^/]+)$/;
+
+const isWorkspaceSetupStepId = (value: string): value is WorkspaceSetupStepId =>
+  value === "initialize-workspace" ||
+  value === "ensure-gitignore" ||
+  value === "check-claude" ||
+  value === "check-git" ||
+  value === "check-curl" ||
+  value === "create-tentacles";
+
+export const handleWorkspaceSetupRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd, projectStateDir },
+) => {
+  if (requestUrl.pathname === WORKSPACE_SETUP_PATH) {
+    if (request.method !== "GET") {
+      writeMethodNotAllowed(response, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 200, readWorkspaceSetupSnapshot(workspaceCwd, projectStateDir), corsOrigin);
+    return true;
+  }
+
+  const match = requestUrl.pathname.match(WORKSPACE_SETUP_STEP_PATH_PATTERN);
+  if (!match) {
+    return false;
+  }
+
+  const stepId = decodeURIComponent(match[1] ?? "");
+  if (!isWorkspaceSetupStepId(stepId)) {
+    writeJson(response, 404, { error: "Setup step not found." }, corsOrigin);
+    return true;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  if (stepId === "initialize-workspace") {
+    initializeWorkspaceFiles(workspaceCwd, projectStateDir);
+  } else if (stepId === "ensure-gitignore") {
+    ensureWorkspaceGitignore(workspaceCwd);
+  }
+
+  writeJson(response, 200, readWorkspaceSetupSnapshot(workspaceCwd, projectStateDir), corsOrigin);
+  return true;
+};
 
 export const handleUiStateRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },

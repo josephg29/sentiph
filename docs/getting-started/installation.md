@@ -29,11 +29,13 @@ npm install -g octogent
 Running `octogent` inside a project directory will:
 
 - create `.octogent/` if it does not exist
+- add `.octogent` to `.gitignore` or create `.gitignore` when it is missing
 - write a stable project ID to `.octogent/project.json`
 - register the project under `~/.octogent/projects.json`
 - move runtime state to `~/.octogent/projects/<project-id>/state/`
 - choose an open local API port starting at `8787`
 - open the browser unless `OCTOGENT_NO_OPEN=1`
+- show a Deck setup card until the first tentacle is created
 
 ## Startup rules
 

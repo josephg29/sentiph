@@ -146,6 +146,7 @@ type UsePersistedUiStateResult = {
   setActivePrimaryNav: Dispatch<SetStateAction<PrimaryNavIndex>>;
   isUiStateHydrated: boolean;
   setIsUiStateHydrated: Dispatch<SetStateAction<boolean>>;
+  hasHydratedUiStateSnapshot: boolean;
   isAgentsSidebarVisible: boolean;
   setIsAgentsSidebarVisible: Dispatch<SetStateAction<boolean>>;
   sidebarWidth: number;
@@ -217,6 +218,7 @@ export const usePersistedUiState = ({
     DEFAULT_TERMINAL_COMPLETION_SOUND,
   );
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
+  const [hasHydratedUiStateSnapshot, setHasHydratedUiStateSnapshot] = useState(false);
   const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>(
     DEFAULT_MINIMIZED_TERMINAL_IDS,
   );
@@ -262,6 +264,8 @@ export const usePersistedUiState = ({
     (snapshot: FrontendUiStateSnapshot | null, nextColumns: TerminalView) => {
       const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
       const activeTentacleIds = new Set(nextColumns.map((entry) => entry.tentacleId));
+      const hasPersistedSnapshot = snapshot !== null && Object.keys(snapshot).length > 0;
+      setHasHydratedUiStateSnapshot(hasPersistedSnapshot);
 
       if (!snapshot) {
         lastPersistedUiStateRef.current = buildPersistedUiStateSnapshot({
@@ -493,6 +497,7 @@ export const usePersistedUiState = ({
     setActivePrimaryNav,
     isUiStateHydrated,
     setIsUiStateHydrated,
+    hasHydratedUiStateSnapshot,
     isAgentsSidebarVisible,
     setIsAgentsSidebarVisible,
     sidebarWidth,

@@ -8,6 +8,7 @@ export * from "./domain/completionSound";
 export * from "./domain/conversation";
 export * from "./domain/git";
 export * from "./domain/monitor";
+export * from "./domain/setup";
 export * from "./domain/uiState";
 export * from "./domain/usage";
 export * from "./ports/TerminalSnapshotReader";

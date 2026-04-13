@@ -13,7 +13,7 @@ import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
 type PrimaryViewRouterProps = {
   activePrimaryNav: PrimaryNavIndex;
-  onDeckSidebarContent?: (content: ReactNode) => void;
+  deckPrimaryViewProps: ComponentProps<typeof DeckPrimaryView>;
   isMonitorVisible: boolean;
   activityPrimaryViewProps: ComponentProps<typeof ActivityPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
@@ -37,7 +37,7 @@ type PrimaryViewRouterProps = {
 
 export const PrimaryViewRouter = ({
   activePrimaryNav,
-  onDeckSidebarContent,
+  deckPrimaryViewProps,
   isMonitorVisible,
   activityPrimaryViewProps,
   settingsPrimaryViewProps,
@@ -50,7 +50,7 @@ export const PrimaryViewRouter = ({
   onPromptsSidebarContent,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
-    return <DeckPrimaryView onSidebarContent={onDeckSidebarContent} />;
+    return <DeckPrimaryView {...deckPrimaryViewProps} />;
   }
 
   if (activePrimaryNav === 3) {

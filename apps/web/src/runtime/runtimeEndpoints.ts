@@ -108,6 +108,26 @@ export const buildUiStateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/ui-state");
 };
 
+export const buildWorkspaceSetupUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/setup";
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/setup");
+};
+
+export const buildWorkspaceSetupStepUrl = (
+  stepId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/setup/steps/${encodeURIComponent(stepId)}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildMonitorConfigUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/monitor/config";

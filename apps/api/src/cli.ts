@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
 
 import {
+  ensureOctogentGitignoreEntry,
   ensureProjectScaffold,
   loadProjectConfig,
   loadProjectsRegistry,
@@ -57,33 +58,11 @@ const resolveRuntimeAssetPath = (...relativePathCandidates: [string[], ...string
 const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;
 
-const ensureGitignore = (projectPath: string) => {
-  const gitignorePath = join(projectPath, ".gitignore");
-  const entry = ".octogent";
-
-  if (existsSync(gitignorePath)) {
-    const content = readFileSync(gitignorePath, "utf-8");
-    if (
-      content
-        .split("\n")
-        .map((line) => line.trim())
-        .includes(entry)
-    ) {
-      return;
-    }
-
-    appendFileSync(gitignorePath, `\n${entry}\n`, "utf-8");
-    return;
-  }
-
-  writeFileSync(gitignorePath, `${entry}\n`, "utf-8");
-};
-
 const initializeProject = (workspaceCwd: string, preferredName?: string) => {
   const projectName = preferredName?.trim() || basename(workspaceCwd) || "octogent-project";
   const hadConfig = loadProjectConfig(workspaceCwd) !== null;
   const projectConfig = ensureProjectScaffold(workspaceCwd, projectName);
-  ensureGitignore(workspaceCwd);
+  ensureOctogentGitignoreEntry(workspaceCwd);
   registerProject(workspaceCwd, projectConfig.displayName);
   const projectStateDir = resolveProjectStateDir(workspaceCwd, projectConfig.displayName);
   migrateStateToGlobal(workspaceCwd, projectStateDir);

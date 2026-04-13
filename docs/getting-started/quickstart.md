@@ -15,6 +15,9 @@ npm install -g octogent
 octogent
 ```
 
+On a fresh workspace, Octogent opens the Deck setup flow first. The setup card verifies the
+workspace files, `.gitignore`, and local prerequisites before you create tentacles.
+
 ## 2. Create or inspect a tentacle
 
 If the app is already running, you can create a tentacle from the CLI:

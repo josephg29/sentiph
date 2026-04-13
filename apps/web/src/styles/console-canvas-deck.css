@@ -1229,3 +1229,183 @@
 .deck-detail-markdown input[type="checkbox"] {
   margin-right: 0.4rem;
 }
+
+.workspace-setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(720px, 100%);
+  padding: 1.2rem;
+  border: 1px solid rgba(238, 194, 83, 0.28);
+  background: linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(11, 14, 19, 0.98)),
+    radial-gradient(circle at top left, rgba(212, 160, 23, 0.16), transparent 55%);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+}
+
+.workspace-setup-card--compact {
+  width: 100%;
+  padding: 1rem;
+}
+
+.workspace-setup-card-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.workspace-setup-card-glyph {
+  flex: 0 0 auto;
+}
+
+.workspace-setup-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.workspace-setup-card-title {
+  margin: 0;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.workspace-setup-card-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.workspace-setup-card-error,
+.workspace-setup-step-guidance,
+.workspace-setup-step-status,
+.workspace-setup-step-desc,
+.workspace-setup-card-loading,
+.workspace-setup-card-actions-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.workspace-setup-card-error {
+  color: #ff9b8e;
+}
+
+.workspace-setup-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.workspace-setup-step {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 14, 0.82);
+}
+
+.workspace-setup-step[data-complete="true"] {
+  border-color: rgba(55, 195, 115, 0.32);
+  background: rgba(9, 18, 13, 0.82);
+}
+
+.workspace-setup-step-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.workspace-setup-step-title-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.workspace-setup-step-title,
+.workspace-setup-card-actions-title {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.workspace-setup-step-state {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.workspace-setup-step-command {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.2rem 0.45rem;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f7d774;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
+.workspace-setup-step-action,
+.workspace-setup-card-primary-action,
+.workspace-setup-card-secondary-action {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.workspace-setup-step-action:hover,
+.workspace-setup-card-primary-action:hover,
+.workspace-setup-card-secondary-action:hover {
+  border-color: rgba(238, 194, 83, 0.4);
+}
+
+.workspace-setup-step-action:disabled,
+.workspace-setup-card-primary-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.workspace-setup-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.workspace-setup-card-actions-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.workspace-setup-card-actions-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .workspace-setup-step,
+  .workspace-setup-card-header,
+  .workspace-setup-card-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

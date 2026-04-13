@@ -73,6 +73,11 @@ Current hook names:
 - `GET /api/ui-state` - reads the persisted UI state for the current project
 - `PATCH /api/ui-state` - updates the persisted UI state
 
+## Workspace setup
+
+- `GET /api/setup` - reads the verified first-run setup status for the current workspace
+- `POST /api/setup/steps/:stepId` - runs one setup step and returns the refreshed setup snapshot
+
 ## Monitor
 
 - `GET /api/monitor/config` - reads monitor configuration
