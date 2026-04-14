@@ -4,16 +4,23 @@ This is the shortest useful path through the project.
 
 ## 1. Start the app
 
+For local development:
+
 ```bash
+pnpm install
 pnpm dev
 ```
 
-For a packaged install:
+For a local global CLI install from a clone:
 
 ```bash
-npm install -g octogent
+pnpm install
+pnpm build
+npm install -g .
 octogent
 ```
+
+Octogent is not published to npm yet, so `npm install -g octogent` is not currently a valid quick start path.
 
 On a fresh workspace, Octogent opens the Deck setup flow first. The setup card verifies the
 workspace files, `.gitignore`, and local prerequisites before you create tentacles.

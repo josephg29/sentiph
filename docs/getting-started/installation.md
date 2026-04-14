@@ -16,13 +16,20 @@ The current docs are Claude Code-first. Some provider plumbing exists in the cod
 
 ```bash
 pnpm install
+pnpm dev
 ```
 
-## Global CLI install
+## Local global CLI install from a clone
 
 ```bash
-npm install -g octogent
+pnpm install
+pnpm build
+npm install -g .
 ```
+
+## npm registry install
+
+Octogent is not published to the npm registry yet, so `npm install -g octogent` will fail with `404`.
 
 ## First run behavior
 

@@ -116,12 +116,29 @@ This starts the API and web app for local development.
 </details>
 
 <details open>
-<summary><strong>CLI usage</strong></summary>
+<summary><strong>Current install status</strong></summary>
 
 ```bash
-npm install -g octogent
+Octogent is not published to the npm registry yet.
+```
+
+For local development:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+For a local global CLI install from a clone:
+
+```bash
+pnpm install
+pnpm build
+npm install -g .
 octogent
 ```
+
+The registry install flow `npm install -g octogent` will only work after the package is published.
 
 </details>
 
