@@ -276,7 +276,7 @@ export const OctopusNode = ({
           }}
         >
           <OctopusGlyph
-            {...(isOctoboss ? {} : { color })}
+            {...(isOctoboss ? { color: "#cc0000" } : { color })}
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
@@ -291,7 +291,7 @@ export const OctopusNode = ({
         y={glyphH / 2 - 12}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
-        fill={isOctoboss ? "var(--accent-primary, #d4a017)" : "#faa32c"}
+        fill={isOctoboss ? "var(--accent-primary, #111)" : "var(--accent-primary, #111)"}
       >
         <tspan x="0" dy="0">
           {lines[0]}

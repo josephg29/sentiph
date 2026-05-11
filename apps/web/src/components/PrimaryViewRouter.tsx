@@ -1,14 +1,12 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
 import type { UseMonitorRuntimeResult } from "../app/hooks/useMonitorRuntime";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
-import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
-import { PromptsPrimaryView } from "./PromptsPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
 type PrimaryViewRouterProps = {
@@ -28,11 +26,6 @@ type PrimaryViewRouterProps = {
     | "refreshMonitorFeed"
     | "patchMonitorConfig"
   >;
-  conversationsEnabled: boolean;
-  onConversationsSidebarContent: (content: ReactNode) => void;
-  onConversationsActionPanel: (content: ReactNode) => void;
-  promptsEnabled: boolean;
-  onPromptsSidebarContent: (content: ReactNode) => void;
 };
 
 export const PrimaryViewRouter = ({
@@ -43,11 +36,6 @@ export const PrimaryViewRouter = ({
   settingsPrimaryViewProps,
   canvasPrimaryViewProps,
   monitorRuntime,
-  conversationsEnabled,
-  onConversationsSidebarContent,
-  onConversationsActionPanel,
-  promptsEnabled,
-  onPromptsSidebarContent,
 }: PrimaryViewRouterProps) => {
   if (activePrimaryNav === 2) {
     return <DeckPrimaryView {...deckPrimaryViewProps} />;
@@ -72,22 +60,6 @@ export const PrimaryViewRouter = ({
           <p>Enable Monitor workspace view in Settings to restore this panel.</p>
         </section>
       </section>
-    );
-  }
-
-  if (activePrimaryNav === 6) {
-    return (
-      <ConversationsPrimaryView
-        enabled={conversationsEnabled}
-        onSidebarContent={onConversationsSidebarContent}
-        onActionPanel={onConversationsActionPanel}
-      />
-    );
-  }
-
-  if (activePrimaryNav === 7) {
-    return (
-      <PromptsPrimaryView enabled={promptsEnabled} onSidebarContent={onPromptsSidebarContent} />
     );
   }
 

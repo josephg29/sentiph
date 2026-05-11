@@ -134,7 +134,7 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         <circle
           className="canvas-node-focus-glow"
           r={node.radius + 12}
-          fill={isWaiting || isLifecycleAttention ? "#f59e0b" : "#ffffff"}
+          fill={isWaiting || isLifecycleAttention ? "#888888" : "#ffffff"}
         />
       )}
 
@@ -142,7 +142,7 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       <circle
         className={`canvas-node-bloom${isLive || isWaiting || isLifecycleAttention ? " canvas-node-bloom--pulse" : ""}`}
         r={node.radius + 3}
-        fill={isWaiting || isLifecycleAttention ? "#f59e0b" : color}
+        fill={isWaiting || isLifecycleAttention ? "#888888" : color}
         opacity={isWaiting || isLifecycleAttention ? 0.45 : isActive ? 0.25 : 0.1}
       />
 
@@ -150,7 +150,7 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       <circle
         className="canvas-node-core"
         r={node.radius}
-        fill={isWaiting || isLifecycleAttention ? "#f59e0b" : color}
+        fill={isWaiting || isLifecycleAttention ? "#888888" : color}
         opacity={isActive ? 1 : 0.4}
       />
 

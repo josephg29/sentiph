@@ -1,6 +1,3 @@
-import { join } from "node:path";
-import { readDeckTentacles } from "../deck/readDeckTentacles";
-import { resolvePrompt } from "../prompts";
 import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
@@ -20,27 +17,6 @@ import {
   parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
 } from "./terminalParsers";
-
-const buildTentacleInitialPrompt = (
-  promptsDir: string,
-  workspaceCwd: string,
-  projectStateDir: string,
-  tentacleId: string,
-): Promise<string | undefined> => {
-  const tentacle = readDeckTentacles(workspaceCwd, projectStateDir).find(
-    (entry) => entry.tentacleId === tentacleId,
-  );
-  if (!tentacle) {
-    return Promise.resolve(undefined);
-  }
-
-  const tentacleFolderPath = join(".octogent", "tentacles", tentacleId);
-  return resolvePrompt(promptsDir, "tentacle-context-init", {
-    tentacleName: tentacle.displayName,
-    tentacleId,
-    tentacleContextPath: tentacleFolderPath,
-  });
-};
 
 export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
@@ -62,7 +38,7 @@ export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
 
 export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, workspaceCwd, projectStateDir, promptsDir, userPromptsDir, getApiPort },
+  { runtime },
 ) => {
   if (requestUrl.pathname !== "/api/terminals") {
     return false;
@@ -164,80 +140,12 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       createTerminalInput.worktreeId = bodyPayload.worktreeId.trim();
     }
 
-    // Support prompt resolution via template name + variables, or a raw string.
     if (
-      bodyPayload &&
-      typeof bodyPayload.promptTemplate === "string" &&
-      bodyPayload.promptTemplate.trim().length > 0
-    ) {
-      const templateName = bodyPayload.promptTemplate.trim();
-      const templateVars: Record<string, string> =
-        bodyPayload.promptVariables != null &&
-        typeof bodyPayload.promptVariables === "object" &&
-        !Array.isArray(bodyPayload.promptVariables)
-          ? Object.fromEntries(
-              Object.entries(bodyPayload.promptVariables as Record<string, unknown>)
-                .filter(([, v]) => typeof v === "string")
-                .map(([k, v]) => [k, v as string]),
-            )
-          : {};
-
-      // Auto-inject terminalId variable so callers don't have to guess it.
-      // The runtime hasn't allocated the ID yet, so we use the tentacle name
-      // when provided (sandbox always passes its name).
-      if (!templateVars.terminalId && createTerminalInput.tentacleName) {
-        templateVars.terminalId = createTerminalInput.tentacleName;
-      }
-
-      // Auto-inject apiPort so prompt templates can reference the local API.
-      if (!templateVars.apiPort) {
-        templateVars.apiPort = getApiPort();
-      }
-
-      // Auto-inject userPromptsDir so prompt templates know where to save user prompts.
-      if (!templateVars.userPromptsDir) {
-        templateVars.userPromptsDir = userPromptsDir;
-      }
-
-      // Auto-inject existingTerminals summary so planner-style prompts have context.
-      if (!templateVars.existingTerminals) {
-        const deckTentacles = readDeckTentacles(workspaceCwd, projectStateDir);
-        if (deckTentacles.length > 0) {
-          const listing = deckTentacles
-            .map(
-              (t) =>
-                `- **${t.displayName}** (\`${t.tentacleId}\`): ${t.description || "(no description)"}`,
-            )
-            .join("\n");
-          templateVars.existingTerminals = `## Existing Terminals\n\nThe following departments already exist:\n\n${listing}\n\nConsider these when proposing new departments — avoid duplicates and note any gaps.`;
-        } else {
-          templateVars.existingTerminals =
-            "## Existing Terminals\n\nNo department terminals exist yet. You are starting from scratch.";
-        }
-      }
-
-      const resolved = await resolvePrompt(promptsDir, templateName, templateVars);
-      if (resolved !== undefined) {
-        createTerminalInput.initialPrompt = resolved;
-      }
-    } else if (
       bodyPayload &&
       typeof bodyPayload.initialPrompt === "string" &&
       bodyPayload.initialPrompt.trim().length > 0
     ) {
       createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
-    }
-
-    if (!createTerminalInput.initialPrompt && createTerminalInput.tentacleId) {
-      const defaultTentaclePrompt = await buildTentacleInitialPrompt(
-        promptsDir,
-        workspaceCwd,
-        projectStateDir,
-        createTerminalInput.tentacleId,
-      );
-      if (defaultTentaclePrompt) {
-        createTerminalInput.initialInputDraft = defaultTentaclePrompt;
-      }
     }
 
     const snapshot = runtime.createTerminal(createTerminalInput);

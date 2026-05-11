@@ -37,7 +37,7 @@ export const WorkspaceSetupCard = ({
     <header className="workspace-setup-card-header">
       <div className="workspace-setup-card-glyph">
         <OctopusGlyph
-          color="#d4a017"
+          color="#cc0000"
           animation={compact ? "idle" : "walk"}
           expression="happy"
           accessory="none"
@@ -47,8 +47,8 @@ export const WorkspaceSetupCard = ({
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>
         <p className="workspace-setup-card-desc">
-          Run each step explicitly. Octogent only marks it done after the workspace is checked
-          again.
+          Run each step explicitly. octogent/sentiph only marks it done after the workspace is
+          checked again.
         </p>
       </div>
     </header>

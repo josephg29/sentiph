@@ -53,19 +53,19 @@ type EmptyViewMode = "idle" | "adding";
 
 type DeckPrimaryViewProps = {
   onSidebarContent?: ((content: ReactNode) => void) | undefined;
-  workspaceSetup: WorkspaceSetupSnapshot | null;
-  isWorkspaceSetupLoading: boolean;
-  workspaceSetupError: string | null;
-  onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
-  onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
+  workspaceSetup?: WorkspaceSetupSnapshot | null;
+  isWorkspaceSetupLoading?: boolean;
+  workspaceSetupError?: string | null;
+  onRefreshWorkspaceSetup?: () => Promise<WorkspaceSetupSnapshot | null>;
+  onRunWorkspaceSetupStep?: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
 };
 
 export const DeckPrimaryView = ({
   onSidebarContent,
-  workspaceSetup,
-  isWorkspaceSetupLoading,
-  workspaceSetupError,
+  workspaceSetup = null,
+  isWorkspaceSetupLoading = false,
+  workspaceSetupError = null,
   onRefreshWorkspaceSetup,
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
@@ -103,7 +103,7 @@ export const DeckPrimaryView = ({
       if (!response.ok) return;
       const data = await response.json();
       setTentacles(data);
-      await onRefreshWorkspaceSetup();
+      await onRefreshWorkspaceSetup?.();
     } catch {
       // silently ignore
     }
@@ -237,7 +237,7 @@ export const DeckPrimaryView = ({
     ) => {
       setRunningSetupStepId(stepId);
       try {
-        await onRunWorkspaceSetupStep(stepId);
+        await onRunWorkspaceSetupStep?.(stepId);
         if (stepId === "initialize-workspace" || stepId === "ensure-gitignore") {
           await fetchTentacles();
         }
@@ -275,7 +275,7 @@ export const DeckPrimaryView = ({
         }
         setEmptyViewMode("idle");
         await fetchTentacles();
-        await onRefreshWorkspaceSetup();
+        await onRefreshWorkspaceSetup?.();
       } catch {
         setCreateError("Network error");
       } finally {
@@ -433,7 +433,7 @@ export const DeckPrimaryView = ({
           <div className="deck-empty-left">
             <div className="deck-empty-octopus">
               <OctopusGlyph
-                color="#d4a017"
+                color="#cc0000"
                 animation="walk"
                 expression="happy"
                 accessory="none"

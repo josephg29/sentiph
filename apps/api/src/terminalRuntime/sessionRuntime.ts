@@ -14,13 +14,6 @@ import {
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
-import {
-  type ConversationTranscriptEvent,
-  type ConversationTranscriptEventPayload,
-  type SessionEndTranscriptEvent,
-  ensureTranscriptDirectory,
-  transcriptFilenameForSession,
-} from "./conversations";
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import { toErrorMessage } from "./systemClients";
@@ -43,7 +36,6 @@ type CreateSessionRuntimeOptions = {
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
-  transcriptDirectoryPath: string;
   sessionIdleGraceMs?: number;
   scrollbackMaxBytes?: number;
   maxConcurrentSessions?: number;
@@ -66,7 +58,6 @@ export const createSessionRuntime = ({
   getTentacleWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
-  transcriptDirectoryPath,
   sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
   scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
   maxConcurrentSessions = TERMINAL_MAX_CONCURRENT_SESSIONS,
@@ -119,54 +110,6 @@ export const createSessionRuntime = ({
     session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
   };
 
-  const createTranscriptLog = (sessionId: string) => {
-    ensureTranscriptDirectory(transcriptDirectoryPath);
-    const filename = transcriptFilenameForSession(sessionId);
-    const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-    stream.on("error", () => {
-      // Keep terminal flow alive even if transcript writes fail.
-    });
-    return stream;
-  };
-
-  const appendTranscriptEvent = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (!session.transcriptLog) {
-      return;
-    }
-
-    const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
-    session.transcriptEventCount = nextEventCount;
-    const payload: ConversationTranscriptEvent = {
-      ...event,
-      eventId: `${sessionId}:${nextEventCount}`,
-      sessionId,
-      tentacleId: session.tentacleId,
-    } as ConversationTranscriptEvent;
-    session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
-  };
-
-  const closeTranscript = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (session.hasTranscriptEnded) {
-      return;
-    }
-
-    appendTranscriptEvent(session, sessionId, event);
-    session.hasTranscriptEnded = true;
-    session.transcriptLog?.end();
-    session.transcriptLog = undefined;
-  };
-
   const emitStateIfChanged = (
     session: TerminalSession,
     sessionId: string,
@@ -178,11 +121,6 @@ export const createSessionRuntime = ({
 
     session.agentState = nextState;
     appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
-    appendTranscriptEvent(session, sessionId, {
-      type: "state_change",
-      state: nextState,
-      timestamp: new Date().toISOString(),
-    });
     onStateChange?.(sessionId, nextState, session.lastToolName);
     broadcastMessage(session, {
       type: "state",
@@ -313,10 +251,18 @@ export const createSessionRuntime = ({
     });
   };
 
+  type SessionEndEvent = {
+    type: "session_end";
+    reason: string;
+    timestamp: string;
+    exitCode?: number;
+    signal?: number | string;
+  };
+
   const teardownSession = (
     sessionId: string,
     session: TerminalSession,
-    event: Omit<SessionEndTranscriptEvent, "eventId" | "sessionId" | "tentacleId">,
+    event: SessionEndEvent,
     options: { killPty: boolean; killSignal?: string },
   ): void => {
     if (session.isClosed) {
@@ -326,7 +272,6 @@ export const createSessionRuntime = ({
     session.isClosed = true;
     clearIdleCloseTimer(session);
     clearPromptTimers(session);
-    closeTranscript(session, sessionId, event);
     onSessionEnd?.(sessionId, {
       reason:
         event.reason === "pty_exit" ||
@@ -563,7 +508,6 @@ export const createSessionRuntime = ({
 
     const stateTracker = new AgentStateTracker();
     const debugLog = createDebugLog(sessionId);
-    const transcriptLog = createTranscriptLog(sessionId);
     const session: TerminalSession = {
       terminalId: sessionId,
       tentacleId,
@@ -577,15 +521,12 @@ export const createSessionRuntime = ({
       isBootstrapCommandSent: false,
       scrollbackChunks: [],
       scrollbackBytes: 0,
-      transcriptEventCount: 0,
       pendingInput: "",
-      hasTranscriptEnded: false,
       keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt),
     };
     if (debugLog) {
       session.debugLog = debugLog;
     }
-    session.transcriptLog = transcriptLog;
 
     appendDebugLog(session, `session-start session=${sessionId} tentacle=${tentacleId}`);
     const processId =
@@ -593,10 +534,6 @@ export const createSessionRuntime = ({
     onSessionStart?.(sessionId, {
       startedAt: new Date().toISOString(),
       ...(processId ? { processId } : {}),
-    });
-    appendTranscriptEvent(session, sessionId, {
-      type: "session_start",
-      timestamp: new Date().toISOString(),
     });
     session.statePollTimer = setInterval(() => {
       emitStateIfChanged(session, sessionId, session.stateTracker.poll(Date.now()));

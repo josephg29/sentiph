@@ -1,12 +1,12 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+/**
+ * Simplified deck tentacle store.
+ *
+ * Tentacles are lightweight visual nodes on the canvas. They are stored in
+ * deck.json (app metadata only). No filesystem scaffolding (CONTEXT.md,
+ * todo.md, tentacle folders) is created or read.
+ */
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
@@ -16,25 +16,20 @@ import type {
   DeckTentacleSummary,
 } from "@octogent/core";
 
-import {
-  applySuggestedSkillsToContext,
-  parseSuggestedSkillsFromContext,
-  readAvailableClaudeSkills,
-} from "../claudeSkills";
-import { markTentaclesInitialized } from "../setupState";
-
-const TENTACLES_DIR = ".octogent/tentacles";
-const DECK_STATE_PATH = ".octogent/state/deck.json";
+import { readAvailableClaudeSkills } from "../claudeSkills";
 
 const VALID_STATUSES: ReadonlySet<string> = new Set(["idle", "active", "blocked", "needs-review"]);
 
-// ─── Deck state (app metadata, separate from agent-facing files) ────────────
+// ─── Deck state (app metadata only) ─────────────────────────────────────────
 
 type DeckTentacleState = {
+  displayName: string;
+  description: string;
   color: string | null;
   status: DeckTentacleStatus;
   octopus: DeckOctopusAppearance;
   scope: { paths: string[]; tags: string[] };
+  suggestedSkills: string[];
 };
 
 type DeckStateDocument = {
@@ -66,17 +61,25 @@ const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void
   writeFileSync(filePath, `${JSON.stringify(state, null, 2)}\n`);
 };
 
-const parseTentacleState = (raw: unknown): DeckTentacleState => {
+const parseTentacleState = (raw: unknown, tentacleId: string): DeckTentacleState => {
   const defaults: DeckTentacleState = {
+    displayName: tentacleId,
+    description: "",
     color: null,
     status: "idle",
     octopus: { animation: null, expression: null, accessory: null, hairColor: null },
     scope: { paths: [], tags: [] },
+    suggestedSkills: [],
   };
 
   if (raw === null || typeof raw !== "object") return defaults;
   const rec = raw as Record<string, unknown>;
 
+  const displayName =
+    typeof rec.displayName === "string" && rec.displayName.trim().length > 0
+      ? rec.displayName.trim()
+      : tentacleId;
+  const description = typeof rec.description === "string" ? rec.description : "";
   const color =
     typeof rec.color === "string" && rec.color.trim().length > 0 ? rec.color.trim() : null;
   const status =
@@ -109,359 +112,89 @@ const parseTentacleState = (raw: unknown): DeckTentacleState => {
     }
   }
 
-  return { color, status, octopus, scope };
+  const suggestedSkills = Array.isArray(rec.suggestedSkills)
+    ? rec.suggestedSkills.filter((s): s is string => typeof s === "string")
+    : [];
+
+  return { displayName, description, color, status, octopus, scope, suggestedSkills };
 };
 
-// ─── Parse CONTEXT.md for title and description ───────────────────────────────
-
-const parseContextMd = (
-  content: string,
-): { displayName: string; description: string; suggestedSkills: string[] } | null => {
-  const lines = content.split("\n");
-  let displayName: string | null = null;
-  let description = "";
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!displayName) {
-      const h1Match = trimmed.match(/^#\s+(.+)/);
-      if (h1Match) {
-        displayName = (h1Match[1] as string).trim();
-      }
-      continue;
-    }
-    // First non-empty line after the H1 is the description
-    if (trimmed.length > 0) {
-      description = trimmed;
-      break;
-    }
-  }
-
-  if (!displayName) return null;
-  return { displayName, description, suggestedSkills: parseSuggestedSkillsFromContext(content) };
-};
-
-// ─── Todo parsing ───────────────────────────────────────────────────────────
+// ─── Todo parsing (no-op — no filesystem backing) ───────────────────────────
 
 export const parseTodoProgress = (
-  content: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } => {
-  const lines = content.split("\n");
-  let total = 0;
-  let done = 0;
-  const items: { text: string; done: boolean }[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const checkedMatch = trimmed.match(/^- \[x\]\s+(.+)/i);
-    const uncheckedMatch = trimmed.match(/^- \[ \]\s+(.+)/);
-
-    if (checkedMatch) {
-      total++;
-      done++;
-      items.push({ text: checkedMatch[1] as string, done: true });
-    } else if (uncheckedMatch) {
-      total++;
-      items.push({ text: uncheckedMatch[1] as string, done: false });
-    }
-  }
-
-  return { total, done, items };
-};
+  _content: string,
+): { total: number; done: number; items: { text: string; done: boolean }[] } => ({
+  total: 0,
+  done: 0,
+  items: [],
+});
 
 // ─── Read all tentacles ─────────────────────────────────────────────────────
 
 export const readDeckTentacles = (
-  workspaceCwd: string,
+  _workspaceCwd: string,
   projectStateDir?: string,
+  resolvedStateDir?: string,
 ): DeckTentacleSummary[] => {
-  const tentaclesRoot = join(workspaceCwd, TENTACLES_DIR);
-  if (!existsSync(tentaclesRoot)) return [];
+  const stateDir = resolvedStateDir ?? projectStateDir ?? "";
+  if (!stateDir) return [];
 
-  let entries: string[];
-  try {
-    entries = readdirSync(tentaclesRoot);
-  } catch {
-    return [];
-  }
+  const deckState = readDeckState(stateDir);
 
-  const deckState = readDeckState(projectStateDir ?? join(workspaceCwd, ".octogent"));
-  const results: DeckTentacleSummary[] = [];
-
-  for (const entry of entries) {
-    const entryPath = join(tentaclesRoot, entry);
-    if (!statSync(entryPath).isDirectory()) continue;
-
-    // A tentacle folder must have CONTEXT.md
-    const contextMdPath = join(entryPath, "CONTEXT.md");
-    if (!existsSync(contextMdPath)) continue;
-
-    let agentInfo: { displayName: string; description: string; suggestedSkills: string[] };
-    try {
-      const content = readFileSync(contextMdPath, "utf-8");
-      const parsed = parseContextMd(content);
-      if (!parsed) continue;
-      agentInfo = parsed;
-    } catch {
-      continue;
-    }
-
-    // App metadata from deck state
-    const state = parseTentacleState(deckState.tentacles[entry]);
-
-    // List markdown files in the tentacle folder (excluding CONTEXT.md itself)
-    let vaultFiles: string[] = [];
-    try {
-      vaultFiles = readdirSync(entryPath)
-        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md")
-        .sort((a, b) => {
-          if (a === "todo.md") return -1;
-          if (b === "todo.md") return 1;
-          return a.localeCompare(b);
-        });
-    } catch {
-      // skip unreadable dirs
-    }
-
-    // Parse todo.md for progress
-    let todoTotal = 0;
-    let todoDone = 0;
-    let todoItems: { text: string; done: boolean }[] = [];
-    const todoPath = join(entryPath, "todo.md");
-    if (existsSync(todoPath)) {
-      try {
-        const todoContent = readFileSync(todoPath, "utf-8");
-        const progress = parseTodoProgress(todoContent);
-        todoTotal = progress.total;
-        todoDone = progress.done;
-        todoItems = progress.items;
-      } catch {
-        // skip unreadable todo
-      }
-    }
-
-    results.push({
-      tentacleId: entry,
-      displayName: agentInfo.displayName,
-      description: agentInfo.description,
+  return Object.entries(deckState.tentacles).map(([tentacleId, raw]) => {
+    const state = parseTentacleState(raw, tentacleId);
+    return {
+      tentacleId,
+      displayName: state.displayName,
+      description: state.description,
       status: state.status,
       color: state.color,
       octopus: state.octopus,
       scope: state.scope,
-      vaultFiles,
-      todoTotal,
-      todoDone,
-      todoItems,
-      suggestedSkills: agentInfo.suggestedSkills,
-    });
-  }
-
-  return results;
+      vaultFiles: [],
+      todoTotal: 0,
+      todoDone: 0,
+      todoItems: [],
+      suggestedSkills: state.suggestedSkills,
+    };
+  });
 };
 
-// ─── Read a vault file from a tentacle ──────────────────────────────────────
+// ─── Read a vault file (no-op — no filesystem backing) ──────────────────────
 
 export const readDeckVaultFile = (
-  workspaceCwd: string,
-  tentacleId: string,
-  fileName: string,
-): string | null => {
-  // Prevent path traversal
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
-  if (fileName.includes("..") || fileName.includes("/")) return null;
+  _workspaceCwd: string,
+  _tentacleId: string,
+  _fileName: string,
+): string | null => null;
 
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, fileName);
+// ─── Todo operations (no-op — no filesystem backing) ─────────────────────────
 
-  if (!existsSync(filePath)) return null;
-
-  try {
-    return readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Toggle a todo checkbox in a tentacle's todo.md by item index.
- */
 export const toggleTodoItem = (
-  workspaceCwd: string,
-  tentacleId: string,
-  itemIndex: number,
-  done: boolean,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+  _workspaceCwd: string,
+  _tentacleId: string,
+  _itemIndex: number,
+  _done: boolean,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
 
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let toggled = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines[i] = done
-          ? (lines[i] as string).replace(/- \[ \]/, "- [x]")
-          : (lines[i] as string).replace(/- \[[xX]\]/, "- [ ]");
-        toggled = true;
-        break;
-      }
-      todoIndex++;
-    }
-  }
-
-  if (!toggled) return null;
-
-  const updated = lines.join("\n");
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Edit the text of a todo item in a tentacle's todo.md by item index.
- */
 export const editTodoItem = (
-  workspaceCwd: string,
-  tentacleId: string,
-  itemIndex: number,
-  text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+  _workspaceCwd: string,
+  _tentacleId: string,
+  _itemIndex: number,
+  _text: string,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
 
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let edited = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
-    const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
-    if (match) {
-      if (todoIndex === itemIndex) {
-        const indent = (lines[i] as string).match(/^(\s*)/)?.[1] ?? "";
-        lines[i] = `${indent}${match[1]} ${text}`;
-        edited = true;
-        break;
-      }
-      todoIndex++;
-    }
-  }
-
-  if (!edited) return null;
-
-  const updated = lines.join("\n");
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Add a new todo item to a tentacle's todo.md.
- */
 export const addTodoItem = (
-  workspaceCwd: string,
-  tentacleId: string,
-  text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+  _workspaceCwd: string,
+  _tentacleId: string,
+  _text: string,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
 
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const trimmed = content.endsWith("\n") ? content : `${content}\n`;
-  const updated = `${trimmed}- [ ] ${text}\n`;
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Delete a todo item from a tentacle's todo.md by item index.
- */
 export const deleteTodoItem = (
-  workspaceCwd: string,
-  tentacleId: string,
-  itemIndex: number,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "todo.md");
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let deleted = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines.splice(i, 1);
-        deleted = true;
-        break;
-      }
-      todoIndex++;
-    }
-  }
-
-  if (!deleted) return null;
-
-  const updated = lines.join("\n");
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
+  _workspaceCwd: string,
+  _tentacleId: string,
+  _itemIndex: number,
+): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
 
 // ─── Create a new tentacle ──────────────────────────────────────────────────
 
@@ -478,52 +211,42 @@ type CreateDeckTentacleResult =
   | { ok: false; error: string };
 
 export const createDeckTentacle = (
-  workspaceCwd: string,
+  _workspaceCwd: string,
   input: CreateDeckTentacleInput,
   projectStateDir?: string,
 ): CreateDeckTentacleResult => {
-  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
-  const name = input.name.trim();
-  if (name.length === 0) {
-    return { ok: false, error: "Name is required" };
-  }
-  if (name.includes("..") || name.includes("/")) {
-    return { ok: false, error: "Name contains invalid characters" };
+  if (!projectStateDir) {
+    return { ok: false, error: "Project state directory is required" };
   }
 
-  const tentacleDir = join(workspaceCwd, TENTACLES_DIR, name);
-  if (existsSync(tentacleDir)) {
+  const name = input.name.trim();
+  const tentacleId = name.length > 0 ? name : `tentacle-${Date.now()}`;
+  const description = input.description.trim();
+  const suggestedSkills = [...new Set((input.suggestedSkills ?? []).map((s) => s.trim()))]
+    .filter((s) => s.length > 0)
+    .sort((a, b) => a.localeCompare(b));
+
+  const deckState = readDeckState(projectStateDir);
+  if (deckState.tentacles[tentacleId]) {
     return { ok: false, error: "A tentacle with this name already exists" };
   }
 
-  // Create the tentacle folder with agent-facing files
-  mkdirSync(tentacleDir, { recursive: true });
-
-  const description = input.description.trim();
-  const baseContextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
-  const suggestedSkills = [...new Set((input.suggestedSkills ?? []).map((skill) => skill.trim()))]
-    .filter((skill) => skill.length > 0)
-    .sort((a, b) => a.localeCompare(b));
-  const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
-  writeFileSync(join(tentacleDir, "CONTEXT.md"), contextMd);
-  writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
-
-  // Persist app metadata in deck state
-  const deckState = readDeckState(stateDir);
-  deckState.tentacles[name] = {
+  deckState.tentacles[tentacleId] = {
+    displayName: tentacleId,
+    description,
     color: input.color,
     status: "idle",
     octopus: input.octopus,
     scope: { paths: [], tags: [] },
+    suggestedSkills,
   };
-  writeDeckState(stateDir, deckState);
-  markTentaclesInitialized(stateDir);
+  writeDeckState(projectStateDir, deckState);
 
   return {
     ok: true,
     tentacle: {
-      tentacleId: name,
-      displayName: name,
+      tentacleId,
+      displayName: tentacleId,
       description,
       status: "idle",
       color: input.color,
@@ -542,54 +265,40 @@ export const listDeckAvailableSkills = (workspaceCwd: string): DeckAvailableSkil
   readAvailableClaudeSkills(workspaceCwd);
 
 export const updateDeckTentacleSuggestedSkills = (
-  workspaceCwd: string,
+  _workspaceCwd: string,
   tentacleId: string,
   suggestedSkills: string[],
   projectStateDir?: string,
 ): DeckTentacleSummary | null => {
-  if (tentacleId.includes("..") || tentacleId.includes("/")) return null;
+  if (!projectStateDir) return null;
 
-  const contextPath = join(workspaceCwd, TENTACLES_DIR, tentacleId, "CONTEXT.md");
-  if (!existsSync(contextPath)) return null;
+  const deckState = readDeckState(projectStateDir);
+  const existing = deckState.tentacles[tentacleId];
+  if (!existing) return null;
 
-  try {
-    const existing = readFileSync(contextPath, "utf8");
-    const updated = applySuggestedSkillsToContext(existing, suggestedSkills);
-    writeFileSync(contextPath, updated, "utf8");
-  } catch {
-    return null;
-  }
+  existing.suggestedSkills = suggestedSkills;
+  writeDeckState(projectStateDir, deckState);
 
-  return (
-    readDeckTentacles(workspaceCwd, projectStateDir).find(
-      (tentacle) => tentacle.tentacleId === tentacleId,
-    ) ?? null
-  );
+  return readDeckTentacles("", projectStateDir).find((t) => t.tentacleId === tentacleId) ?? null;
 };
 
 // ─── Delete a tentacle ──────────────────────────────────────────────────────
 
 export const deleteDeckTentacle = (
-  workspaceCwd: string,
+  _workspaceCwd: string,
   tentacleId: string,
   projectStateDir?: string,
 ): { ok: true } | { ok: false; error: string } => {
-  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
-  if (tentacleId.includes("..") || tentacleId.includes("/")) {
-    return { ok: false, error: "Invalid tentacle ID" };
+  if (!projectStateDir) {
+    return { ok: false, error: "Project state directory is required" };
   }
 
-  const tentacleDir = join(workspaceCwd, TENTACLES_DIR, tentacleId);
-  if (!existsSync(tentacleDir)) {
+  const deckState = readDeckState(projectStateDir);
+  if (!deckState.tentacles[tentacleId]) {
     return { ok: false, error: "Tentacle not found" };
   }
 
-  rmSync(tentacleDir, { recursive: true, force: true });
-
-  // Remove from deck state
-  const deckState = readDeckState(stateDir);
   delete deckState.tentacles[tentacleId];
-  writeDeckState(stateDir, deckState);
-
+  writeDeckState(projectStateDir, deckState);
   return { ok: true };
 };

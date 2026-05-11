@@ -12,12 +12,6 @@ import { logVerbose } from "../logging";
 import type { MonitorService } from "../monitor";
 import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
-  handleConversationExportRoute,
-  handleConversationItemRoute,
-  handleConversationSearchRoute,
-  handleConversationsCollectionRoute,
-} from "./conversationRoutes";
-import {
   handleDeckSkillsRoute,
   handleDeckTentacleItemRoute,
   handleDeckTentacleSkillsRoute,
@@ -31,14 +25,7 @@ import {
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
-import {
-  handleChannelMessagesRoute,
-  handleHookRoute,
-  handlePromptItemRoute,
-  handlePromptsCollectionRoute,
-  handleUiStateRoute,
-  handleWorkspaceSetupRoute,
-} from "./miscRoutes";
+import { handleUiStateRoute } from "./miscRoutes";
 import {
   handleMonitorConfigRoute,
   handleMonitorFeedRoute,
@@ -89,8 +76,6 @@ type CreateApiRequestHandlerOptions = {
   runtime: TerminalRuntime;
   workspaceCwd: string;
   projectStateDir: string;
-  promptsDir: string;
-  userPromptsDir: string;
   webDistDir?: string | undefined;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
@@ -107,9 +92,6 @@ type CreateApiRequestHandlerOptions = {
 };
 
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
-  ["channels", [handleChannelMessagesRoute]],
-  ["hooks", [handleHookRoute]],
-  ["prompts", [handlePromptsCollectionRoute, handlePromptItemRoute]],
   [
     "deck",
     [
@@ -131,18 +113,8 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["claude", [handleClaudeUsageRoute]],
   ["analytics", [handleUsageHeatmapRoute]],
   ["github", [handleGithubSummaryRoute]],
-  ["setup", [handleWorkspaceSetupRoute]],
   ["ui-state", [handleUiStateRoute]],
   ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
-  [
-    "conversations",
-    [
-      handleConversationsCollectionRoute,
-      handleConversationSearchRoute,
-      handleConversationExportRoute,
-      handleConversationItemRoute,
-    ],
-  ],
   [
     "terminals",
     [
@@ -200,8 +172,6 @@ export const createApiRequestHandler = ({
   runtime,
   workspaceCwd,
   projectStateDir,
-  promptsDir,
-  userPromptsDir,
   webDistDir,
   getApiBaseUrl,
   getApiPort,
@@ -222,8 +192,6 @@ export const createApiRequestHandler = ({
     runtime,
     workspaceCwd,
     projectStateDir,
-    promptsDir,
-    userPromptsDir,
     getApiBaseUrl,
     getApiPort,
     readClaudeUsageSnapshot,

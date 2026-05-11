@@ -6,7 +6,6 @@ import type { TerminalSnapshot } from "@octogent/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
-import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
 import {
   DEFAULT_AGENT_PROVIDER,
   DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
@@ -14,22 +13,11 @@ import {
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
 import {
-  conversationExportMarkdown,
-  deleteAllConversations,
-  deleteConversation,
-  listConversationSessions,
-  readConversationSession,
-  searchConversations,
-} from "./terminalRuntime/conversations";
-import { createGitOperations } from "./terminalRuntime/gitOperations";
-import { createHookProcessor } from "./terminalRuntime/hookProcessor";
-import {
   createTerminalRegistryPersistence,
   loadTerminalRegistry,
   pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
-import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import type { DirectSessionListener } from "./terminalRuntime/types";
 import {
   type CreateTerminalRuntimeOptions,
@@ -44,7 +32,6 @@ import {
   type TerminalSessionEndDetails,
   type TerminalSessionStartDetails,
 } from "./terminalRuntime/types";
-import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
   GitClient,
@@ -61,7 +48,6 @@ export const MAX_CHILDREN_PER_PARENT = 9;
 export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
-  gitClient = createDefaultGitClient(),
   getApiBaseUrl = () => process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
@@ -77,7 +63,6 @@ export const createTerminalRuntime = ({
   let uiState = registryState.uiState;
   const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
   const ptyLogDir = process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
-  const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
   const configuredMaxConcurrentSessions = (() => {
     if (maxConcurrentSessions !== undefined) {
       return maxConcurrentSessions;
@@ -207,11 +192,13 @@ export const createTerminalRuntime = ({
     }
   };
 
-  const worktreeManager = createWorktreeManager({
-    workspaceCwd,
-    gitClient,
-    terminals,
-  });
+  // Worktrees are not supported in this build — stub out the worktree manager.
+  const worktreeManager = {
+    getTentacleWorkspaceCwd: (_tentacleId: string) => workspaceCwd,
+    hasTentacleWorktree: (_tentacleId: string) => false,
+    createTentacleWorktree: (_tentacleId: string, _baseRef?: string) => { /* no-op */ },
+    removeTentacleWorktree: (_tentacleId: string) => { /* no-op */ },
+  };
 
   const resolveTerminalSession = (
     terminalId: string,
@@ -248,35 +235,22 @@ export const createTerminalRuntime = ({
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
     isDebugPtyLogsEnabled,
     ptyLogDir,
-    transcriptDirectoryPath,
     maxConcurrentSessions: configuredMaxConcurrentSessions,
     onStateChange: broadcastTerminalStateChanged,
     onSessionStart: markTerminalRunning,
     onSessionEnd: markTerminalEnded,
   });
 
-  const gitOps = createGitOperations({
-    terminals,
-    worktreeManager,
-    gitClient,
-  });
-
-  const channelMessaging = createChannelMessaging({
-    terminals,
-    sessions,
-    writeInput: (terminalId: string, data: string) => sessionRuntime.writeInput(terminalId, data),
-  });
-
-  const hookProcessor = createHookProcessor({
-    terminals,
-    sessions,
-    transcriptDirectoryPath,
-    getApiBaseUrl,
-    persistRegistry,
-    deliverChannelMessages: channelMessaging.deliverChannelMessages,
-    releaseSessionKeepAlive: sessionRuntime.releaseSessionKeepAlive,
-    onStateChange: broadcastTerminalStateChanged,
-  });
+  // Git operations (worktree-backed) are not supported in this build — stubs return null.
+  const gitOps = {
+    readTentacleGitStatus: (_tentacleId: string) => null,
+    commitTentacleWorktree: (_tentacleId: string, _message: string) => null,
+    pushTentacleWorktree: (_tentacleId: string) => null,
+    syncTentacleWorktree: (_tentacleId: string, _baseRef?: string) => null,
+    readTentaclePullRequest: (_tentacleId: string) => null,
+    createTentaclePullRequest: (_tentacleId: string, _opts: Record<string, unknown>) => null,
+    mergeTentaclePullRequest: (_tentacleId: string) => null,
+  };
 
   reconcilePersistedLifecycle();
 
@@ -472,18 +446,6 @@ export const createTerminalRuntime = ({
       worktreeManager.createTentacleWorktree(effectiveWorktreeId, baseRef);
     }
 
-    if (terminal.agentProvider === "claude-code") {
-      // Claude hooks should only be installed for Claude-backed terminals.
-      try {
-        const hookTargetCwd = shouldCreateWorktree
-          ? worktreeManager.getTentacleWorkspaceCwd(effectiveWorktreeId)
-          : workspaceCwd;
-        hookProcessor.installHooksInDirectory(hookTargetCwd);
-      } catch {
-        // Best-effort: hook installation should not block terminal creation.
-      }
-    }
-
     terminals.set(terminalId, terminal);
     persistRegistry();
     broadcastTerminalEvent({
@@ -520,42 +482,6 @@ export const createTerminalRuntime = ({
         snapshots.push(toTerminalSnapshot(terminal));
       }
       return snapshots;
-    },
-
-    listConversationSessions() {
-      return listConversationSessions(transcriptDirectoryPath);
-    },
-
-    readConversationSession(sessionId: string) {
-      return readConversationSession(transcriptDirectoryPath, sessionId);
-    },
-
-    exportConversationSession(sessionId: string, format: "json" | "md") {
-      const conversation = readConversationSession(transcriptDirectoryPath, sessionId);
-      if (!conversation) {
-        return null;
-      }
-
-      if (format === "json") {
-        const exported = {
-          turns: conversation.turns,
-        };
-        return `${JSON.stringify(exported, null, 2)}\n`;
-      }
-
-      return conversationExportMarkdown(conversation);
-    },
-
-    deleteConversationSession(sessionId: string) {
-      deleteConversation(transcriptDirectoryPath, sessionId);
-    },
-
-    deleteAllConversationSessions() {
-      deleteAllConversations(transcriptDirectoryPath);
-    },
-
-    searchConversations(query: string) {
-      return searchConversations(transcriptDirectoryPath, query);
     },
 
     readUiState,
@@ -752,10 +678,6 @@ export const createTerminalRuntime = ({
       }
       return true;
     },
-
-    ...channelMessaging,
-
-    handleHook: hookProcessor.handleHook,
 
     handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): boolean {
       let requestUrl: URL;

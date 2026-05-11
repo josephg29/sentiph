@@ -1,35 +1,35 @@
-.console-shell .dashboard-deck-shell {
-  border-right: 1px solid #2b2f36;
+﻿.console-shell .dashboard-deck-shell {
+  border-right: 1px solid #dddddd;
 }
 
 .console-shell .active-agents-sidebar {
-  background: #0b0f14;
-  border-right: 1px solid #2b2f36;
+  background: #f2f2f2;
+  border-right: 1px solid #dddddd;
 }
 
 .console-shell .active-agents-footer {
-  background: #0f131a;
+  background: #f2f2f2;
 }
 
 .console-shell .active-agents-section,
 .console-shell .active-agents-group {
-  border-color: #2b2f36;
-  background: #11161d;
+  border-color: #dddddd;
+  background: #f0f0f0;
   box-shadow: none;
 }
 
 .console-shell .active-agents-section-toggle,
 .console-shell .active-agents-group-header {
-  background: #181f28;
+  background: #eaeaea;
 }
 
 .console-shell .active-agents-section-toggle:hover {
-  background: #1d2631;
+  background: #e8e8e8;
 }
 
 .console-shell .active-agents-section-title,
 .console-shell .active-agents-group h3 {
-  color: #e6e8ec;
+  color: #111111;
   font-size: 0.78rem;
 }
 
@@ -42,27 +42,27 @@
 }
 
 .console-shell .active-agents-agent-row {
-  background: #10161e;
+  background: #f0f0f0;
   border-bottom-color: #252b33;
   font-size: 0.84rem;
 }
 
 .console-shell .active-agents-agent-row:hover {
-  background: #16202b;
+  background: #ebebeb;
 }
 
 .console-shell .active-agents-agent-row--root {
-  background: #121a23;
-  border-left-color: #d6a21a;
+  background: #f0f0f0;
+  border-left-color: #111111;
 }
 
 .console-shell .active-agents-codex-usage {
-  border-color: #2b2f36;
-  background: #0c131b;
+  border-color: #dddddd;
+  background: #f4f4f4;
 }
 
 .console-shell .active-agents-codex-usage-meta {
-  color: #d6a21a;
+  color: #111111;
   font-size: 0.7rem;
 }
 
@@ -73,18 +73,18 @@
 }
 
 .console-shell .terminals {
-  background: #050607;
+  background: #fafafa;
   padding: 0;
   gap: 0;
 }
 
 .console-shell .empty-state {
-  border: 1px dashed #2b2f36;
-  background: #090c10;
+  border: 1px dashed #dddddd;
+  background: #fafafa;
 }
 
 .console-shell .empty-state h2 {
-  color: #d6a21a;
+  color: #111111;
   font-size: 1rem;
 }
 
@@ -94,46 +94,46 @@
 }
 
 .console-shell .terminal-column {
-  border: 1px solid #2b2f36;
-  background: #0b0d10;
+  border: 1px solid #dddddd;
+  background: #f2f2f2;
 }
 
 .console-shell .terminal-divider {
   flex-basis: 6px;
-  border-left: 1px solid #2b2f36;
-  border-right: 1px solid #11151b;
-  background: linear-gradient(180deg, #141920, #0b0f15);
+  border-left: 1px solid #dddddd;
+  border-right: 1px solid #dddddd;
+  background: linear-gradient(180deg, #f0f0f0, #e8e8e8);
 }
 
 .console-shell .terminal-column-header {
-  background: #161b23;
-  border-bottom: 1px solid #2b2f36;
+  background: #ebebeb;
+  border-bottom: 1px solid #dddddd;
 }
 
 .console-shell .terminal-column-header h2 {
-  color: #d6a21a;
+  color: #111111;
   font-size: 0.78rem;
 }
 
 .console-shell .terminal-name-editor {
-  background: #1e2631;
-  color: #e6e8ec;
+  background: #eaeaea;
+  color: #111111;
 }
 
 .console-shell .terminal-workspace-badge {
-  background: #233346;
-  border-color: #2f4258;
-  color: #bad8ff;
+  background: #eaf0f9;
+  border-color: #c8d8ee;
+  color: #1e59a3;
 }
 
 .console-shell .terminal-workspace-badge--shared {
-  background: #3a2f14;
-  border-color: #604a1a;
-  color: #f3cf72;
+  background: #fdf3e0;
+  border-color: #e0c96a;
+  color: #7a5c00;
 }
 
 .console-shell .terminal-git-cluster {
-  background: #1d2734;
+  background: #e8e8e8;
   border-color: #2f4258;
 }
 
@@ -142,7 +142,7 @@
 }
 
 .console-shell .terminal-pane {
-  background: #0b0d10;
+  background: #f2f2f2;
 }
 
 .console-shell .terminal-header {
@@ -175,18 +175,18 @@
 }
 
 .console-shell .terminal-mount {
-  background: #101722;
+  background: #f0f0f0;
 }
 
 .console-shell .pill,
 .console-shell .status-badge {
-  border-color: color-mix(in srgb, #000000 55%, #2b2f36 45%);
+  border-color: color-mix(in srgb, #000000 55%, #dddddd 45%);
   font-size: 0.68rem;
 }
 
 .console-shell .pill.idle,
 .console-shell .status-badge.idle {
-  background: #0d2a57;
+  background: #eaf0f9;
   color: #e8f2ff;
 }
 
@@ -198,8 +198,8 @@
 
 .console-shell .pill.queued,
 .console-shell .status-badge.queued {
-  background: #d6a21a;
-  color: #161103;
+  background: #111111;
+  color: #fafafa;
 }
 
 .console-shell .pill.blocked,
@@ -209,8 +209,8 @@
 }
 
 .console-telemetry-tape {
-  border-top: 1px solid #2b2f36;
-  background: #050607;
+  border-top: 1px solid #dddddd;
+  background: #fafafa;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -241,12 +241,12 @@
 }
 
 .console-telemetry-item strong {
-  color: #dce6f7;
+  color: #111111;
   font-size: 0.7rem;
 }
 
 .console-telemetry-source {
-  color: #d6a21a;
+  color: #111111;
   font-size: 0.78rem;
   line-height: 1;
 }

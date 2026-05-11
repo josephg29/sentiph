@@ -1,6 +1,6 @@
-import { cpSync, existsSync as fsExistsSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync as fsExistsSync } from "node:fs";
 import { createServer } from "node:http";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 import { scanClaudeUsageChart } from "./claudeSessionScanner";
 import {
@@ -21,7 +21,6 @@ import { createTerminalRuntime } from "./terminalRuntime";
 export const createApiServer = ({
   workspaceCwd,
   projectStateDir,
-  promptsDir,
   webDistDir,
   apiBaseUrl,
   gitClient,
@@ -47,26 +46,6 @@ export const createApiServer = ({
       return "8787";
     }
   };
-  const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
-  const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
-
-  // Sync builtin prompts into the project state dir on every start so prompt
-  // changes in the repo take effect without requiring manual cache cleanup.
-  const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
-  if (fsExistsSync(sourceDir)) {
-    mkdirSync(resolvedCorePromptsDir, { recursive: true });
-    for (const file of readdirSync(sourceDir)) {
-      if (file.endsWith(".md")) {
-        cpSync(join(sourceDir, file), join(resolvedCorePromptsDir, file));
-      }
-    }
-  }
-
-  // Read builtin prompts from the live source directory when available so new
-  // prompt files and prompt edits take effect without restarting the API.
-  // Keep the mirrored state copy as a fallback for packaged/runtime setups
-  // where the source prompts directory is unavailable.
-  const resolvedPromptsDir = fsExistsSync(sourceDir) ? sourceDir : resolvedCorePromptsDir;
   const readClaudeUsageSnapshotWithDefault =
     readClaudeUsageSnapshot ??
     (() =>
@@ -118,8 +97,6 @@ export const createApiServer = ({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
     projectStateDir: resolvedStateDir,
-    promptsDir: resolvedPromptsDir,
-    userPromptsDir: resolvedUserPromptsDir,
     webDistDir,
     getApiBaseUrl,
     getApiPort,

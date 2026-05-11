@@ -93,7 +93,7 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
                 className="code-intel-treemap-cell"
                 style={{
                   filter: isHovered ? "brightness(1.35)" : undefined,
-                  stroke: isHovered ? "#d4a017" : "#0b0d10",
+                  stroke: isHovered ? "#111" : "#ddd",
                   strokeWidth: isHovered ? 1.5 : 0.5,
                 }}
               />

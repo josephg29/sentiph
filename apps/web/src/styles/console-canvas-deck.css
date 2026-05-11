@@ -1,4 +1,4 @@
-/* ─── Deck View ───────────────────────────────────────────────── */
+﻿/* ─── Deck View ───────────────────────────────────────────────── */
 /* Layout is driven entirely by [data-mode="grid"|"detail"] on the root.     */
 /* Pods container is a CSS grid in grid mode, a sidebar column in detail.    */
 /* Non-focused pods collapse; focused pod stretches; detail panel expands.   */
@@ -54,8 +54,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-left: 1px solid #2b2f36;
-  background: #0b0d10;
+  border-left: 1px solid #dddddd;
+  background: #f2f2f2;
   animation: deck-form-slide-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -97,7 +97,7 @@
   gap: 1.25rem;
   width: 480px;
   padding: 1.25rem 1.5rem;
-  background: #0b0d10;
+  background: #f2f2f2;
   border: 1px solid var(--accent-primary);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
@@ -113,7 +113,7 @@
 
 .deck-empty-card:hover {
   border-color: var(--accent-primary);
-  background: #0d1017;
+  background: #f2f2f2;
 }
 
 .deck-empty-card-icon {
@@ -311,7 +311,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #2b2f36;
+  border-bottom: 1px solid #dddddd;
   flex-shrink: 0;
 }
 
@@ -368,8 +368,8 @@
   font-family: var(--font-main);
   font-size: 0.72rem;
   color: var(--text-secondary);
-  background: #11161d;
-  border: 1px solid #2b2f36;
+  background: #f0f0f0;
+  border: 1px solid #dddddd;
   padding: 0.2rem 0.45rem;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
@@ -412,8 +412,8 @@
   font-family: var(--font-main);
   font-size: 0.88rem;
   color: var(--text-primary);
-  background: #11161d;
-  border: 1px solid #2b2f36;
+  background: #f0f0f0;
+  border: 1px solid #dddddd;
   padding: 0.5rem 0.6rem;
   transition: border-color 0.15s;
   resize: vertical;
@@ -473,8 +473,8 @@
   gap: 0.55rem;
   align-items: flex-start;
   padding: 0.45rem 0.55rem;
-  border: 1px solid #2b2f36;
-  background: #11161d;
+  border: 1px solid #dddddd;
+  background: #f0f0f0;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -551,8 +551,8 @@
   font-size: 0.84rem;
   font-weight: 500;
   color: var(--text-primary);
-  background: #11161d;
-  border: 1px solid #2b2f36;
+  background: #f0f0f0;
+  border: 1px solid #dddddd;
   padding: 0.45rem 0.6rem;
   cursor: pointer;
   text-align: left;
@@ -581,8 +581,8 @@
   right: 0;
   margin-bottom: 2px;
   z-index: 100;
-  border: 1px solid #2b2f36;
-  background: #0d1017;
+  border: 1px solid #dddddd;
+  background: #f2f2f2;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
@@ -675,7 +675,7 @@
   gap: 0;
   padding: 0;
   overflow-y: hidden;
-  border-right: 1px solid #2b2f36;
+  border-right: 1px solid #dddddd;
 }
 
 /* ─── Pod slot wrappers ──────────────────────────────────────────────────── */
@@ -704,8 +704,8 @@
 .deck-pod {
   display: flex;
   flex-direction: column;
-  background: #0b0d10;
-  border: 1px solid #2b2f36;
+  background: #f2f2f2;
+  border: 1px solid #dddddd;
   min-height: 0;
   min-width: 0;
   height: 100%;
@@ -740,7 +740,7 @@
   align-items: stretch;
   justify-content: flex-end;
   gap: 0;
-  border-bottom: 1px solid #2b2f36;
+  border-bottom: 1px solid #dddddd;
   flex-shrink: 0;
 }
 
@@ -863,7 +863,7 @@
 
 .deck-pod-status--idle {
   color: #6a7080;
-  background: #1a1d24;
+  background: #ebebeb;
 }
 
 .deck-pod-status--active {
@@ -877,7 +877,7 @@
 }
 
 .deck-pod-status--needs-review {
-  color: #d4a017;
+  color: #111111;
   background: rgba(212, 160, 23, 0.1);
 }
 
@@ -927,7 +927,7 @@
   gap: 0.5rem;
   padding: 0.45rem;
   border: 1px solid #1f252d;
-  background: #0d1017;
+  background: #f2f2f2;
 }
 
 .deck-pod-skills-options {
@@ -974,7 +974,7 @@
 .deck-pod-skills-actions {
   display: flex;
   gap: 0;
-  border-top: 1px solid #1a1d24;
+  border-top: 1px solid #ebebeb;
   padding-top: 0.35rem;
 }
 
@@ -994,7 +994,7 @@
 .deck-pod-progress-bar {
   flex: 1;
   height: 5px;
-  background: #1a1d24;
+  background: #ebebeb;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -1063,7 +1063,7 @@
   align-items: baseline;
   gap: 0.36rem;
   padding-top: 0.24rem;
-  border-top: 1px solid #1a1d24;
+  border-top: 1px solid #ebebeb;
   flex-shrink: 0;
 }
 
@@ -1086,7 +1086,7 @@
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-size: 0.7rem;
   color: var(--text-secondary);
-  background: #11161d;
+  background: #f0f0f0;
   padding: 0.08rem 0.3rem;
   border-radius: 2px;
   border: 1px solid transparent;
@@ -1095,7 +1095,7 @@
 
 .deck-pod-vault-file:hover {
   color: var(--text-primary);
-  background: #1a1d24;
+  background: #ebebeb;
 }
 
 /* ─── Detail panel (right side) ──────────────────────────────────────────── */
@@ -1117,7 +1117,7 @@
 [data-mode="detail"] .deck-detail-main {
   flex: 1;
   opacity: 1;
-  border-left-color: #2b2f36;
+  border-left-color: #dddddd;
   animation: deck-form-slide-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1134,8 +1134,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #2b2f36;
-  background: #0d1017;
+  border-bottom: 1px solid #dddddd;
+  background: #f2f2f2;
   flex-shrink: 0;
 }
 
@@ -1245,7 +1245,7 @@
   color: var(--accent-primary);
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid #2b2f36;
+  border-bottom: 1px solid #dddddd;
 }
 
 .deck-detail-markdown h2 {
@@ -1282,15 +1282,15 @@
 .deck-detail-markdown code {
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-size: 0.82rem;
-  background: #11161d;
+  background: #f0f0f0;
   padding: 0.1rem 0.3rem;
   border-radius: 2px;
   color: #dcdcaa;
 }
 
 .deck-detail-markdown pre {
-  background: #0b0d10;
-  border: 1px solid #2b2f36;
+  background: #f2f2f2;
+  border: 1px solid #dddddd;
   border-radius: 3px;
   padding: 0.6rem 0.75rem;
   overflow-x: auto;
@@ -1311,13 +1311,13 @@
 
 .deck-detail-markdown th,
 .deck-detail-markdown td {
-  border: 1px solid #2b2f36;
+  border: 1px solid #dddddd;
   padding: 0.3rem 0.5rem;
   text-align: left;
 }
 
 .deck-detail-markdown th {
-  background: #0d1017;
+  background: #f2f2f2;
   color: var(--text-secondary);
   font-weight: 600;
 }

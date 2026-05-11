@@ -1,7 +1,7 @@
-.console-shell .monitor-view {
+﻿.console-shell .monitor-view {
   min-height: 0;
-  border: 1px solid #2b2f36;
-  background: #0b0d10;
+  border: 1px solid #dddddd;
+  background: #f2f2f2;
   padding: 0.56rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -40,7 +40,7 @@
 .monitor-header-roll {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent-primary) 55%, #4f3c10);
-  background: color-mix(in srgb, #0a0b0d 78%, #2b1e06 22%);
+  background: color-mix(in srgb, #fafafa 78%, #e8e8e8 22%);
   padding: 0.28rem 0;
 }
 
@@ -60,7 +60,7 @@
 .monitor-header-roll-track span::before {
   content: "•";
   margin-right: 0.45rem;
-  color: color-mix(in srgb, var(--accent-primary) 65%, #f6d68a);
+  color: color-mix(in srgb, var(--accent-primary) 65%, #555555);
 }
 
 .monitor-provider-tabs {
@@ -70,8 +70,8 @@
 }
 
 .monitor-provider-tab {
-  border: 1px solid #2b2f36;
-  background: #11161d;
+  border: 1px solid #dddddd;
+  background: #f0f0f0;
   color: #a9b0ba;
   font-family: var(--font-main);
   font-size: 0.84rem;
@@ -85,8 +85,8 @@
 }
 
 .monitor-provider-tab[data-active="true"] {
-  border-color: color-mix(in srgb, #5ca7ff 58%, #1f3960 42%);
-  background: color-mix(in srgb, #5ca7ff 30%, #101924 70%);
+  border-color: color-mix(in srgb, #1e59a3 58%, #1f3960 42%);
+  background: color-mix(in srgb, #1e59a3 30%, #f0f0f0 70%);
   color: #deebff;
 }
 
@@ -95,8 +95,8 @@
   place-items: center;
   width: 1.1rem;
   height: 1.1rem;
-  border: 1px solid color-mix(in srgb, #5ca7ff 58%, #324e71 42%);
-  background: #0d1520;
+  border: 1px solid color-mix(in srgb, #1e59a3 58%, #324e71 42%);
+  background: #f0f0f0;
   color: #b7d6ff;
   font-size: 0.86rem;
   line-height: 1;
@@ -121,8 +121,8 @@
 }
 
 .monitor-subtab {
-  border: 1px solid #2b2f36;
-  background: #11161d;
+  border: 1px solid #dddddd;
+  background: #f0f0f0;
   color: #a9b0ba;
   font-family: var(--font-main);
   font-size: 0.82rem;
@@ -133,9 +133,9 @@
 }
 
 .monitor-subtab[data-active="true"] {
-  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
+  border-color: color-mix(in srgb, var(--accent-primary) 62%, #444444);
   background: var(--accent-primary);
-  color: #111216;
+  color: #fafafa;
 }
 
 .monitor-panel-grid {
@@ -171,8 +171,8 @@
 }
 
 .monitor-panel {
-  border: 1px solid #2b2f36;
-  background: #090d12;
+  border: 1px solid #dddddd;
+  background: #f4f4f4;
   padding: 0.6rem;
   display: grid;
   gap: 0.4rem;
@@ -188,7 +188,7 @@
 }
 
 .monitor-panel label {
-  color: #9eb0c8;
+  color: #888888;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -231,15 +231,15 @@
 }
 
 .monitor-field-label {
-  color: #9eb0c8;
+  color: #888888;
   font-size: 0.78rem;
   letter-spacing: 0.06em;
 }
 
 .monitor-config-chip {
-  border: 1px solid #2f3946;
-  background: #111822;
-  color: #d9e4f6;
+  border: 1px solid #ddd;
+  background: #f0f0f0;
+  color: #111;
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -248,9 +248,9 @@
 
 .monitor-input,
 .monitor-textarea {
-  border: 1px solid #2b2f36;
-  background: #050607;
-  color: #e6e8ec;
+  border: 1px solid #dddddd;
+  background: #fafafa;
+  color: #111111;
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-size: 0.94rem;
   padding: 0.46rem 0.54rem;
@@ -269,8 +269,8 @@
 }
 
 .monitor-query-terms-list {
-  border: 1px solid #2b2f36;
-  background: #050607;
+  border: 1px solid #dddddd;
+  background: #fafafa;
   padding: 0.36rem;
   display: flex;
   flex-wrap: wrap;
@@ -280,9 +280,9 @@
 }
 
 .monitor-query-term {
-  border: 1px solid #2f3946;
-  background: #111822;
-  color: #d9e4f6;
+  border: 1px solid #ddd;
+  background: #f0f0f0;
+  color: #111;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -291,9 +291,9 @@
 }
 
 .monitor-query-term button {
-  border: 1px solid #3a414a;
-  background: #12161b;
-  color: #ffafaf;
+  border: 1px solid #ddd;
+  background: #f0f0f0;
+  color: #888;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -303,7 +303,7 @@
 
 .monitor-query-empty {
   margin: 0;
-  color: #9cb0cb;
+  color: #888888;
   font-size: 0.8rem;
 }
 
@@ -323,19 +323,19 @@
 
 .monitor-config-save {
   --action-button-border: color-mix(in srgb, #54d98d 62%, #2b5c3d);
-  --action-button-bg: color-mix(in srgb, #54d98d 72%, #1f4b33 28%);
+  --action-button-bg: color-mix(in srgb, #54d98d 72%, #b8f0d4 28%);
   --action-button-color: #06110b;
   align-self: flex-start;
 }
 
 .console-shell .monitor-config-save.action-button {
   border-color: color-mix(in srgb, #54d98d 62%, #2b5c3d);
-  background: color-mix(in srgb, #54d98d 72%, #1f4b33 28%);
+  background: color-mix(in srgb, #54d98d 72%, #b8f0d4 28%);
   color: #06110b;
 }
 
 .console-shell .monitor-config-save.action-button:hover:not(:disabled) {
-  background: color-mix(in srgb, #6ae3a0 76%, #1f4b33 24%);
+  background: color-mix(in srgb, #6ae3a0 76%, #b8f0d4 24%);
 }
 
 .monitor-policy-grid {
@@ -352,8 +352,8 @@
 }
 
 .monitor-timeframe-option {
-  border: 1px solid #2b2f36;
-  background: #10151d;
+  border: 1px solid #dddddd;
+  background: transparent;
   color: #a9b0ba;
   font-family: var(--font-main);
   font-size: 0.78rem;
@@ -364,13 +364,13 @@
 }
 
 .monitor-timeframe-option[data-active="true"] {
-  border-color: color-mix(in srgb, var(--accent-primary) 62%, #6b5210);
-  background: color-mix(in srgb, var(--accent-primary) 82%, #f3cd74 18%);
-  color: #111216;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: #fafafa;
 }
 
 .monitor-timeframe-option:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--accent-primary) 82%, #f0cf75);
+  outline: 1px solid var(--accent-primary);
   outline-offset: 1px;
 }
 
@@ -398,14 +398,14 @@
 
 .monitor-state-badge--saved {
   border: 1px solid color-mix(in srgb, #54d98d 62%, #2b5c3d);
-  background: color-mix(in srgb, #54d98d 20%, #111822);
-  color: #9af2bf;
+  background: color-mix(in srgb, #54d98d 20%, #fafafa);
+  color: #1a7a4a;
 }
 
 .monitor-panel p,
 .monitor-credentials-meta {
   margin: 0;
-  color: #8d9db4;
+  color: #888;
   font-size: 0.8rem;
   line-height: 1.35;
 }
@@ -442,7 +442,7 @@
 
 .monitor-panel--status dd {
   margin: 0;
-  color: #e9edf4;
+  color: #111111;
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -450,8 +450,8 @@
 
 .monitor-feed {
   min-height: 0;
-  border: 1px solid #2b2f36;
-  background: color-mix(in srgb, #090d12 84%, #201505 16%);
+  border: 1px solid #dddddd;
+  background: color-mix(in srgb, #f4f4f4 84%, #201505 16%);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -461,7 +461,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  border-bottom: 1px solid #2b2f36;
+  border-bottom: 1px solid #dddddd;
   padding: 0.5rem 0.56rem;
 }
 
@@ -497,8 +497,8 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: color-mix(in srgb, var(--accent-primary) 75%, #e7c778);
-  border-bottom: 1px solid #2b2f36;
-  background: color-mix(in srgb, #0f141c 84%, #2a1f08 16%);
+  border-bottom: 1px solid #dddddd;
+  background: color-mix(in srgb, #f0f0f0 84%, #e8e8e8 16%);
   padding: 0.36rem 0.44rem;
   position: sticky;
   top: 0;
@@ -506,7 +506,7 @@
 }
 
 .monitor-feed td {
-  border-bottom: 1px solid color-mix(in srgb, #2b2f36 85%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, #dddddd 85%, transparent);
   padding: 0.4rem 0.44rem;
   color: color-mix(in srgb, var(--accent-primary) 82%, #ffe9b4 18%);
   vertical-align: top;
@@ -522,7 +522,7 @@
   display: inline-flex;
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--accent-primary) 60%, #4e3e12);
-  background: color-mix(in srgb, var(--accent-primary) 16%, #10151d);
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
   color: color-mix(in srgb, var(--accent-primary) 86%, #f7e1a4);
   border-radius: 999px;
   padding: 0.12rem 0.42rem;

@@ -666,7 +666,7 @@ export const OctopusGlyph = ({
     const accentColor =
       color ??
       (getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim() ||
-        "#d4a017");
+        "#cc0000");
 
     const head = HEADS[expression];
 

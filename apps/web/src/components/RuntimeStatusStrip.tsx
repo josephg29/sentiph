@@ -191,11 +191,13 @@ export const RuntimeStatusStrip = ({
       <div className="console-status-main">
         <OctopusGlyph
           className="console-status-octopus-icon"
+          color="#cc0000"
           animation="sway"
           expression="normal"
           scale={2}
         />
-        <span className="console-status-brand">OCTOGENT</span>
+        <span className="console-status-brand">octogent/sentiph</span>
+        <span className="console-status-sub">a paradime.tech production</span>
       </div>
       <div className="console-status-charts">
         <div className="console-status-sparkline" aria-label="Commits per day over last 30 days">

@@ -15,8 +15,6 @@ export type RouteHandlerDependencies = {
   runtime: TerminalRuntime;
   workspaceCwd: string;
   projectStateDir: string;
-  promptsDir: string;
-  userPromptsDir: string;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;

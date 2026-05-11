@@ -1,5 +1,5 @@
 import { Minus, X } from "lucide-react";
-import { type Ref, useCallback, useState } from "react";
+import { type KeyboardEvent, type Ref, useCallback, useRef, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
 import type { TerminalView } from "../../app/types";
@@ -32,15 +32,61 @@ export const CanvasTerminalColumn = ({
   onTerminalActivity,
 }: CanvasTerminalColumnProps) => {
   const [agentState, setAgentState] = useState<AgentRuntimeState>("idle");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const cancelRef = useRef(false);
 
   const terminal = terminals.find((t) => t.terminalId === node.sessionId);
   const rawName = terminal?.tentacleName ?? node.tentacleId;
-  const tentacleName = rawName.length > 24 ? `${rawName.slice(0, 24)}...` : rawName;
-  const workspaceMode = terminal?.workspaceMode ?? "shared";
+  const displayName = rawName.length > 24 ? `${rawName.slice(0, 24)}...` : rawName;
 
   const handleFocus = useCallback(() => {
     onFocus?.();
   }, [onFocus]);
+
+  const beginEdit = useCallback(() => {
+    cancelRef.current = false;
+    setNameDraft(rawName);
+    setIsEditingName(true);
+  }, [rawName]);
+
+  const submitRename = useCallback(async () => {
+    if (cancelRef.current) {
+      cancelRef.current = false;
+      setIsEditingName(false);
+      return;
+    }
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === rawName || !node.sessionId) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/terminals/${encodeURIComponent(node.sessionId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (res.ok) {
+        onTerminalRenamed?.(node.sessionId, trimmed);
+      }
+    } finally {
+      setIsEditingName(false);
+    }
+  }, [nameDraft, node.sessionId, onTerminalRenamed, rawName]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void submitRename();
+      } else if (e.key === "Escape") {
+        cancelRef.current = true;
+        setIsEditingName(false);
+      }
+    },
+    [submitRename],
+  );
 
   if (!node.sessionId) return null;
 
@@ -55,16 +101,29 @@ export const CanvasTerminalColumn = ({
       <div className="canvas-terminal-column-header">
         <div className="canvas-terminal-column-heading">
           <h2>
-            <span className="canvas-terminal-column-name">{tentacleName}</span>
-            {workspaceMode === "worktree" && (
-              <span className="canvas-terminal-column-badge">WT</span>
+            {isEditingName ? (
+              <input
+                autoFocus
+                className="canvas-terminal-column-name-input"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => { void submitRename(); }}
+                onKeyDown={handleKeyDown}
+                aria-label="Rename terminal"
+              />
+            ) : (
+              <button
+                type="button"
+                className="canvas-terminal-column-name canvas-terminal-column-name--editable"
+                onClick={beginEdit}
+                title="Click to rename"
+              >
+                {displayName}
+              </button>
             )}
           </h2>
         </div>
         <div className="canvas-terminal-column-actions">
-          <span className="canvas-terminal-column-tentacle-tag" style={{ background: node.color }}>
-            {node.tentacleId}
-          </span>
           <AgentStateBadge state={agentState} />
           <button
             type="button"

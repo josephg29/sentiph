@@ -1,4 +1,4 @@
-.console-shell .pixpack-view {
+﻿.console-shell .pixpack-view {
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -56,7 +56,7 @@
   padding: 0.6rem;
   border: 1px solid #2b2f36;
   border-radius: 6px;
-  background: #0d1017;
+  background: #f2f2f2;
 }
 
 .pixpack-card canvas {

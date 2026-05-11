@@ -16,7 +16,6 @@ import { useTerminalCompletionNotification } from "./app/hooks/useTerminalComple
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
 import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
-import { useWorkspaceSetup } from "./app/hooks/useWorkspaceSetup";
 import {
   createTerminalRuntimeStateStore,
   getTerminalRuntimeStateInfo,
@@ -48,9 +47,6 @@ export const App = () => {
     number | null
   >(null);
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
-  const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
-  const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
-  const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
   const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
   const runtimeStateStore = runtimeStateStoreRef.current;
@@ -97,22 +93,6 @@ export const App = () => {
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
-  const {
-    workspaceSetup,
-    isWorkspaceSetupLoading,
-    workspaceSetupError,
-    refreshWorkspaceSetup,
-    runWorkspaceSetupStep,
-  } = useWorkspaceSetup();
-  const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState<
-    | "initialize-workspace"
-    | "ensure-gitignore"
-    | "check-claude"
-    | "check-git"
-    | "check-curl"
-    | "create-tentacles"
-    | null
-  >(null);
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
@@ -341,39 +321,34 @@ export const App = () => {
     setHoveredGitHubOverviewPointIndex,
   });
   const hasSidebarActionPanel =
-    conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
     (openGitTentacleId !== null &&
       terminals.find((terminal) => terminal.tentacleId === openGitTentacleId)?.workspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
-    conversationsActionPanel ? (
-      <>{conversationsActionPanel}</>
-    ) : (
-      <SidebarActionPanel
-        pendingDeleteTerminal={pendingDeleteTerminal}
-        isDeletingTerminalId={isDeletingTerminalId}
-        clearPendingDeleteTerminal={clearPendingDeleteTerminal}
-        confirmDeleteTerminal={confirmDeleteTerminal}
-        openGitTentacleId={openGitTentacleId}
-        columns={terminals}
-        openGitTentacleStatus={openGitTentacleStatus}
-        openGitTentaclePullRequest={openGitTentaclePullRequest}
-        gitCommitMessageDraft={gitCommitMessageDraft}
-        gitDialogError={gitDialogError}
-        isGitDialogLoading={isGitDialogLoading}
-        isGitDialogMutating={isGitDialogMutating}
-        setGitCommitMessageDraft={setGitCommitMessageDraft}
-        closeTentacleGitActions={closeTentacleGitActions}
-        commitTentacleChanges={commitTentacleChanges}
-        commitAndPushTentacleBranch={commitAndPushTentacleBranch}
-        pushTentacleBranch={pushTentacleBranch}
-        syncTentacleBranch={syncTentacleBranch}
-        mergeTentaclePullRequest={mergeTentaclePullRequest}
-        requestDeleteTerminal={requestDeleteTerminal}
-      />
-    )
+    <SidebarActionPanel
+      pendingDeleteTerminal={pendingDeleteTerminal}
+      isDeletingTerminalId={isDeletingTerminalId}
+      clearPendingDeleteTerminal={clearPendingDeleteTerminal}
+      confirmDeleteTerminal={confirmDeleteTerminal}
+      openGitTentacleId={openGitTentacleId}
+      columns={terminals}
+      openGitTentacleStatus={openGitTentacleStatus}
+      openGitTentaclePullRequest={openGitTentaclePullRequest}
+      gitCommitMessageDraft={gitCommitMessageDraft}
+      gitDialogError={gitDialogError}
+      isGitDialogLoading={isGitDialogLoading}
+      isGitDialogMutating={isGitDialogMutating}
+      setGitCommitMessageDraft={setGitCommitMessageDraft}
+      closeTentacleGitActions={closeTentacleGitActions}
+      commitTentacleChanges={commitTentacleChanges}
+      commitAndPushTentacleBranch={commitAndPushTentacleBranch}
+      pushTentacleBranch={pushTentacleBranch}
+      syncTentacleBranch={syncTentacleBranch}
+      mergeTentaclePullRequest={mergeTentaclePullRequest}
+      requestDeleteTerminal={requestDeleteTerminal}
+    />
   ) : null;
 
   useEffect(() => {
@@ -396,26 +371,6 @@ export const App = () => {
       current.map((t) => (t.terminalId === terminalId ? { ...t, hasUserPrompt: true } : t)),
     );
   }, []);
-
-  const handleRunWorkspaceSetupStep = useCallback(
-    async (
-      stepId:
-        | "initialize-workspace"
-        | "ensure-gitignore"
-        | "check-claude"
-        | "check-git"
-        | "check-curl"
-        | "create-tentacles",
-    ) => {
-      setRunningWorkspaceSetupStepId(stepId);
-      try {
-        await runWorkspaceSetupStep(stepId);
-      } finally {
-        setRunningWorkspaceSetupStepId(null);
-      }
-    },
-    [runWorkspaceSetupStep],
-  );
 
   return (
     <div className="page console-shell">
@@ -451,13 +406,7 @@ export const App = () => {
                 }}
                 actionPanel={sidebarActionPanel}
                 bodyContent={
-                  activePrimaryNav === 2
-                    ? (deckSidebarContent ?? undefined)
-                    : activePrimaryNav === 6
-                      ? (conversationsSidebarContent ?? undefined)
-                      : activePrimaryNav === 7
-                        ? (promptsSidebarContent ?? undefined)
-                        : undefined
+                  activePrimaryNav === 2 ? (deckSidebarContent ?? undefined) : undefined
                 }
               />
             )}
@@ -466,12 +415,6 @@ export const App = () => {
             activePrimaryNav={activePrimaryNav}
             deckPrimaryViewProps={{
               onSidebarContent: setDeckSidebarContent,
-              workspaceSetup,
-              isWorkspaceSetupLoading,
-              workspaceSetupError,
-              onRefreshWorkspaceSetup: refreshWorkspaceSetup,
-              onRunWorkspaceSetupStep: runWorkspaceSetupStep,
-              suppressWorkspaceSetupCard: true,
             }}
             isMonitorVisible={isMonitorVisible}
             activityPrimaryViewProps={{
@@ -517,32 +460,6 @@ export const App = () => {
               canvasOpenTerminalIds,
               canvasOpenTentacleIds,
               canvasTerminalsPanelWidth,
-              workspaceSetup,
-              isWorkspaceSetupLoading,
-              workspaceSetupError,
-              runningWorkspaceSetupStepId,
-              onRunWorkspaceSetupStep: handleRunWorkspaceSetupStep,
-              onLaunchWorkspaceSetupPlanner: async () => {
-                const response = await fetch("/api/terminals", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    name: "tentacle-planner",
-                    workspaceMode: "shared",
-                    agentProvider: "claude-code",
-                    promptTemplate: "tentacle-planner",
-                  }),
-                });
-                if (!response.ok) {
-                  return undefined;
-                }
-                const snapshot = (await response.json()) as { terminalId?: string };
-                await refreshColumns();
-                if (typeof snapshot.terminalId !== "string") {
-                  return undefined;
-                }
-                return snapshot.terminalId;
-              },
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenTentacleIdsChange: setCanvasOpenTentacleIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
@@ -563,53 +480,6 @@ export const App = () => {
                 });
                 if (!response.ok) return;
                 await refreshColumns();
-              },
-              onSpawnSwarm: async (tentacleId, workspaceMode) => {
-                const response = await fetch(
-                  `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ workspaceMode }),
-                  },
-                );
-                if (!response.ok) return;
-              },
-              onOctobossAction: async (action) => {
-                const response = await fetch("/api/terminals", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    workspaceMode: "shared",
-                    tentacleId: OCTOBOSS_ID,
-                    promptTemplate: action,
-                  }),
-                });
-                if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
-                await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
-              },
-              onTentacleAction: async (tentacleId, action) => {
-                const response = await fetch("/api/terminals", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    workspaceMode: "shared",
-                    tentacleId,
-                    promptTemplate: action,
-                    promptVariables: {
-                      tentacleId,
-                    },
-                  }),
-                });
-                if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
-                await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
-              },
-              onNavigateToConversation: (_sessionId) => {
-                setActivePrimaryNav(6);
               },
               onCloseActiveSession: (terminalId, terminalName, workspaceMode) => {
                 requestDeleteTerminal(terminalId, terminalName, {
@@ -635,11 +505,6 @@ export const App = () => {
                 await refreshColumns();
               },
             }}
-            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}
-            onConversationsSidebarContent={setConversationsSidebarContent}
-            onConversationsActionPanel={setConversationsActionPanel}
-            promptsEnabled={isUiStateHydrated && activePrimaryNav === 7}
-            onPromptsSidebarContent={setPromptsSidebarContent}
           />
         </div>
       </section>

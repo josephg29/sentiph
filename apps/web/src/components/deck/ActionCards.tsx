@@ -35,7 +35,7 @@ export const ActionCards = ({
     <button type="button" className="deck-empty-card" onClick={onAddManually}>
       <div className="deck-empty-card-icon">
         <OctopusGlyph
-          color="#d4a017"
+          color="#cc0000"
           animation="idle"
           expression="normal"
           accessory="none"
