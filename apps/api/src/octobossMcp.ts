@@ -62,7 +62,6 @@ const handleToolCall = async (
 
     const body: Record<string, unknown> = {
       workspaceMode: "shared",
-      tentacleId: "__octoboss__",
       initialPrompt: prompt,
     };
     if (args.name && typeof args.name === "string" && args.name.trim()) {
