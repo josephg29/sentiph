@@ -10,6 +10,7 @@ import {
   writeJson,
   writeMethodNotAllowed,
   writeNoContent,
+  writeText,
 } from "./routeHelpers";
 import {
   parseTerminalAgentProvider,
@@ -163,6 +164,31 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
     throw error;
   }
+};
+
+const TERMINAL_SCROLLBACK_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/scrollback$/;
+
+export const handleTerminalScrollbackRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_SCROLLBACK_PATH_PATTERN);
+  if (!match) return false;
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const terminalId = decodeURIComponent(match[1] ?? "");
+  const scrollback = runtime.getScrollback(terminalId);
+  if (scrollback === null) {
+    writeJson(response, 404, { error: "Terminal not found or not active." }, corsOrigin);
+    return true;
+  }
+
+  writeText(response, 200, scrollback, "text/plain; charset=utf-8", corsOrigin);
+  return true;
 };
 
 const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;

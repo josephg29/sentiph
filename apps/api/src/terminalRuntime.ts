@@ -1,6 +1,9 @@
 import type { IncomingMessage } from "node:http";
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { Duplex } from "node:stream";
+import { fileURLToPath } from "node:url";
 
 import type { TerminalSnapshot } from "@octogent/core";
 import type { WebSocket } from "ws";
@@ -9,6 +12,7 @@ import { WebSocketServer } from "ws";
 import {
   DEFAULT_AGENT_PROVIDER,
   DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
+  OCTOBOSS_TENTACLE_ID,
   TERMINAL_ID_PREFIX,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
@@ -45,6 +49,44 @@ export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const MAX_CHILDREN_PER_PARENT = 9;
 
+const writeOctobossMcpConfig = (stateDir: string): string => {
+  const configPath = join(stateDir, "octoboss-mcp-config.json");
+  const mcpServerPath = fileURLToPath(new URL("./octobossMcp.ts", import.meta.url));
+
+  const nodeCommand = process.execPath;
+  let nodeArgs: string[];
+  const _require = createRequire(import.meta.url);
+  try {
+    const tsxPkgPath = _require.resolve("tsx/package.json");
+    const tsxCliPath = join(dirname(tsxPkgPath), "dist", "cli.mjs");
+    nodeArgs = existsSync(tsxCliPath)
+      ? [tsxCliPath, mcpServerPath]
+      : ["--import", "tsx/esm", mcpServerPath];
+  } catch {
+    nodeArgs = ["--import", "tsx/esm", mcpServerPath];
+  }
+
+  // --mcp-config expects a flat servers map, NOT wrapped in { mcpServers: ... }
+  const config = {
+    octogent: {
+      command: nodeCommand,
+      args: nodeArgs,
+      env: {
+        OCTOGENT_API_ORIGIN:
+          process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+      },
+    },
+  };
+
+  try {
+    mkdirSync(join(stateDir, "state"), { recursive: true });
+    writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+  } catch {
+    // Non-fatal: Octoboss will start without MCP tools if config can't be written.
+  }
+  return configPath;
+};
+
 export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
@@ -52,6 +94,7 @@ export const createTerminalRuntime = ({
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
   const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
+  const octobossMcpConfigPath = writeOctobossMcpConfig(stateDir);
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
   const terminalEventsWebsocketServer = new WebSocketServer({ noServer: true });
@@ -239,6 +282,7 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
     onSessionStart: markTerminalRunning,
     onSessionEnd: markTerminalEnded,
+    octobossMcpConfigPath,
   });
 
   // Git operations (worktree-backed) are not supported in this build — stubs return null.
@@ -453,7 +497,7 @@ export const createTerminalRuntime = ({
       snapshot: toTerminalSnapshot(terminal),
     });
 
-    if (initialPrompt) {
+    if (initialPrompt || tentacleId === OCTOBOSS_TENTACLE_ID) {
       sessionRuntime.startSession(terminalId);
     }
 
@@ -702,6 +746,10 @@ export const createTerminalRuntime = ({
 
     connectDirect(terminalId: string, listener: DirectSessionListener): (() => void) | null {
       return sessionRuntime.connectDirect(terminalId, listener);
+    },
+
+    getScrollback(terminalId: string): string | null {
+      return sessionRuntime.getScrollback(terminalId);
     },
 
     writeInput(terminalId: string, data: string): boolean {

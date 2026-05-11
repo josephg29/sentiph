@@ -9,6 +9,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import {
   DEFAULT_AGENT_PROVIDER,
+  OCTOBOSS_TENTACLE_ID,
   TERMINAL_BOOTSTRAP_COMMANDS,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
@@ -42,6 +43,7 @@ type CreateSessionRuntimeOptions = {
   onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
   onSessionStart?: (terminalId: string, details: TerminalSessionStartDetails) => void;
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
+  octobossMcpConfigPath?: string;
 };
 
 const ANSI_BEL = String.fromCharCode(0x07);
@@ -64,6 +66,7 @@ export const createSessionRuntime = ({
   onStateChange,
   onSessionStart,
   onSessionEnd,
+  octobossMcpConfigPath,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -419,8 +422,17 @@ export const createSessionRuntime = ({
     const terminal = terminals.get(session.terminalId);
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
-    const bootstrapCommand =
-      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+    let bootstrapCommand: string;
+    if (session.tentacleId === OCTOBOSS_TENTACLE_ID) {
+      bootstrapCommand = octobossMcpConfigPath
+        ? `claude --dangerously-skip-permissions --mcp-config "${octobossMcpConfigPath}"`
+        : "claude --dangerously-skip-permissions";
+    } else {
+      bootstrapCommand =
+        TERMINAL_BOOTSTRAP_COMMANDS[provider] ??
+        TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ??
+        "claude --dangerously-skip-permissions";
+    }
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
@@ -522,7 +534,7 @@ export const createSessionRuntime = ({
       scrollbackChunks: [],
       scrollbackBytes: 0,
       pendingInput: "",
-      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt),
+      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt) || tentacleId === OCTOBOSS_TENTACLE_ID,
     };
     if (debugLog) {
       session.debugLog = debugLog;
@@ -797,6 +809,12 @@ export const createSessionRuntime = ({
     return true;
   };
 
+  const getScrollback = (terminalId: string): string | null => {
+    const session = sessions.get(terminalId);
+    if (!session) return null;
+    return session.scrollbackChunks.join("");
+  };
+
   return {
     closeSession,
     stopSession,
@@ -808,6 +826,7 @@ export const createSessionRuntime = ({
     resizeSession,
     releaseSessionKeepAlive,
     close,
+    getScrollback,
     getSessionCapacity: () => ({
       active: sessions.size,
       max: sessionLimit,

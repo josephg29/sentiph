@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Octoboss — The Delegating Brain</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0f;
+      --surface:  #14141a;
+      --border:   #232330;
+      --accent:   #7c6dfa;
+      --accent2:  #3ecfcf;
+      --text:     #e8e8f0;
+      --muted:    #6b6b80;
+      --red:      #e05c5c;
+      --green:    #4ecf8e;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── layout ── */
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 80px 32px 120px;
+    }
+
+    /* ── hero ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── section ── */
+    .section {
+      margin-bottom: 72px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .section h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -.01em;
+    }
+
+    .section p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 640px;
+    }
+
+    /* ── problem card ── */
+    .problem-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 48px 1fr 48px 1fr;
+      align-items: center;
+      gap: 0;
+    }
+
+    .pc-step {
+      text-align: center;
+    }
+
+    .pc-step .icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .pc-step .label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .pc-step .desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pc-arrow {
+      text-align: center;
+      font-size: 22px;
+      color: var(--red);
+      opacity: .6;
+    }
+
+    .problem-note {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--red);
+      opacity: .85;
+    }
+
+    .problem-note::before {
+      content: "⚠";
+      font-size: 15px;
+    }
+
+    /* ── diagram ── */
+    .diagram-wrap {
+      margin-top: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .diagram-wrap svg {
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+    }
+
+    /* ── feature cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 600px) {
+      .cards { grid-template-columns: 1fr; }
+      .problem-card {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(5, auto);
+      }
+      .pc-arrow { transform: rotate(90deg); }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color .2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    .card-icon.purple { background: rgba(124,109,250,.15); }
+    .card-icon.teal   { background: rgba(62,207,207,.15); }
+    .card-icon.green  { background: rgba(78,207,142,.15); }
+    .card-icon.orange { background: rgba(235,150,80,.15); }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* ── before/after ── */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 600px) { .compare { grid-template-columns: 1fr; } }
+
+    .compare-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .compare-col.before { border-color: rgba(224,92,92,.3); }
+    .compare-col.after  { border-color: rgba(78,207,142,.3); }
+
+    .compare-tag {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .before .compare-tag { color: var(--red); }
+    .after  .compare-tag { color: var(--green); }
+
+    .compare-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .compare-col li {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .compare-col li::before {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .before li::before { content: "✕"; color: var(--red); }
+    .after  li::before { content: "✓"; color: var(--green); }
+
+    /* ── phases ── */
+    .phases {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 32px;
+      position: relative;
+    }
+
+    .phases::before {
+      content: "";
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: 40px;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .phase {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 20px 0;
+    }
+
+    .phase-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .phase-body { padding-top: 8px; }
+
+    .phase-body h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .phase-body p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── footer ── */
+    .footer {
+      margin-top: 80px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Product Proposal</div>
+    <h1>Give Octoboss<br/><span>its own brain.</span></h1>
+    <p class="hero-sub">
+      Stop being the middleman between your boss session and your worker sessions.
+      Let Octoboss do the delegating itself.
+    </p>
+  </div>
+
+  <!-- THE PROBLEM -->
+  <div class="section">
+    <div class="section-label">The Problem</div>
+    <h2>You're doing work a computer should do.</h2>
+    <p>
+      Every time you want to delegate a task, you manually carry the message from one AI session to another.
+      You're the copy-paste layer — and that's friction you shouldn't have to deal with.
+    </p>
+
+    <div class="problem-card">
+      <div class="pc-step">
+        <div class="icon">🧠</div>
+        <div class="label">Boss Session</div>
+        <div class="desc">You draft a prompt here</div>
+      </div>
+      <div class="pc-arrow">→</div>
+      <div class="pc-step">
+        <div class="icon">🧑‍💻</div>
+        <div class="label">You</div>
+        <div class="desc">Copy, open tab, paste, wait, copy result back</div>
+      </div>
+      <div class="pc-arrow">→</div>
+      <div class="pc-step">
+        <div class="icon">🤖</div>
+        <div class="label">Worker Session</div>
+        <div class="desc">Executes the task</div>
+      </div>
+    </div>
+
+    <div class="problem-note">
+      Every delegation costs you a context switch. That adds up.
+    </div>
+  </div>
+
+  <!-- THE FIX -->
+  <div class="section">
+    <div class="section-label">The Fix</div>
+    <h2>Octoboss delegates. You just think.</h2>
+    <p>
+      Octoboss gets its own AI session — a permanent, always-on brain that lives at the center of your canvas.
+      But unlike regular sessions, it can reach out and spin up new worker sessions on its own,
+      send them tasks, and read their results back — all without you lifting a finger.
+    </p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 640 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- center node -->
+        <circle cx="320" cy="150" r="52" fill="#14141a" stroke="#7c6dfa" stroke-width="2.5"/>
+        <text x="320" y="144" text-anchor="middle" fill="#7c6dfa" font-size="22" font-weight="800">🐙</text>
+        <text x="320" y="166" text-anchor="middle" fill="#7c6dfa" font-size="12" font-weight="700">Octoboss</text>
+
+        <!-- worker nodes -->
+        <!-- top-left -->
+        <line x1="278" y1="115" x2="170" y2="68" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="148" cy="58" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="148" y="52" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="148" y="68" text-anchor="middle" fill="#6b6b80" font-size="10">Worker A</text>
+
+        <!-- top-right -->
+        <line x1="362" y1="115" x2="470" y2="68" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="492" cy="58" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="492" y="52" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="492" y="68" text-anchor="middle" fill="#6b6b80" font-size="10">Worker B</text>
+
+        <!-- left -->
+        <line x1="268" y1="150" x2="120" y2="150" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="92" cy="150" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="92" y="144" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="92" y="160" text-anchor="middle" fill="#6b6b80" font-size="10">Worker C</text>
+
+        <!-- right -->
+        <line x1="372" y1="150" x2="520" y2="150" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="548" cy="150" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="548" y="144" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="548" y="160" text-anchor="middle" fill="#6b6b80" font-size="10">Worker D</text>
+
+        <!-- bottom-left -->
+        <line x1="278" y1="185" x2="170" y2="232" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="148" cy="242" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="148" y="236" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="148" y="252" text-anchor="middle" fill="#6b6b80" font-size="10">Worker E</text>
+
+        <!-- bottom-right -->
+        <line x1="362" y1="185" x2="470" y2="232" stroke="#3ecfcf" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <circle cx="492" cy="242" r="30" fill="#14141a" stroke="#3ecfcf" stroke-width="1.5"/>
+        <text x="492" y="236" text-anchor="middle" fill="#e8e8f0" font-size="14">🤖</text>
+        <text x="492" y="252" text-anchor="middle" fill="#6b6b80" font-size="10">Worker F</text>
+
+        <!-- flow labels -->
+        <text x="200" y="85" text-anchor="middle" fill="#3ecfcf" font-size="9" opacity=".8">spawns + prompts</text>
+        <text x="200" y="222" text-anchor="middle" fill="#4ecf8e" font-size="9" opacity=".8">reads results</text>
+        <text x="440" y="85" text-anchor="middle" fill="#3ecfcf" font-size="9" opacity=".8">spawns + prompts</text>
+        <text x="440" y="222" text-anchor="middle" fill="#4ecf8e" font-size="9" opacity=".8">reads results</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- WHAT YOU GET -->
+  <div class="section">
+    <div class="section-label">What You Get</div>
+    <h2>Four new superpowers.</h2>
+    <p>Everything else stays exactly the same. These are the only additions.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon purple">🧠</div>
+        <h3>A permanent boss session</h3>
+        <p>Octoboss always has its own Claude Code terminal ready. Open it from the canvas at any time — it's a regular Claude Code session, nothing special about it until you need to delegate.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon teal">🚀</div>
+        <h3>Spawn workers on command</h3>
+        <p>Tell Octoboss to delegate a task. It creates a new terminal, types the prompt in, and starts the work — without you touching anything.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon green">📬</div>
+        <h3>Read results back</h3>
+        <p>When a worker finishes, Octoboss can check in on it and pull the output back into the conversation — so you get a summary without switching tabs.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon orange">🎨</div>
+        <h3>See it all on the canvas</h3>
+        <p>Every terminal Octoboss spawns appears as a node on the canvas in real time. You can see what's running, what's done, and what Octoboss is thinking — at a glance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEFORE / AFTER -->
+  <div class="section">
+    <div class="section-label">Before & After</div>
+    <h2>The same workflow, without the busywork.</h2>
+    <p>Your thinking process doesn't change. The manual relay work disappears.</p>
+
+    <div class="compare">
+      <div class="compare-col before">
+        <div class="compare-tag">Before</div>
+        <ul>
+          <li>Write prompt in boss session</li>
+          <li>Open a new terminal manually</li>
+          <li>Copy and paste the prompt in</li>
+          <li>Wait for the result</li>
+          <li>Copy the result back to boss session</li>
+          <li>Repeat for every subtask</li>
+        </ul>
+      </div>
+      <div class="compare-col after">
+        <div class="compare-tag">After</div>
+        <ul>
+          <li>Tell Octoboss what you need done</li>
+          <li>Octoboss spawns workers itself</li>
+          <li>Workers run in the background</li>
+          <li>Octoboss reads results when ready</li>
+          <li>You get a summary in one place</li>
+          <li>You never leave the conversation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW WE BUILD IT -->
+  <div class="section">
+    <div class="section-label">How We Build It</div>
+    <h2>Four steps. Smallest possible change.</h2>
+    <p>We're not rebuilding anything. We're adding a thin layer on top of what already works.</p>
+
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-num">1</div>
+        <div class="phase-body">
+          <h3>Give Octoboss a terminal</h3>
+          <p>The Octoboss node on the canvas gets a persistent Claude Code session that auto-creates on first click. It looks and works exactly like any other terminal.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-num">2</div>
+        <div class="phase-body">
+          <h3>Add a private tool server</h3>
+          <p>A tiny private server starts alongside the app. It knows about all running terminals and exposes two actions: "spawn a terminal with this prompt" and "fetch this terminal's output."</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-num">3</div>
+        <div class="phase-body">
+          <h3>Connect Octoboss to the tool server</h3>
+          <p>Octoboss's Claude Code session is started with access to those two tools. From Octoboss's perspective, delegating feels like using any other built-in tool — it just works.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-num">4</div>
+        <div class="phase-body">
+          <h3>Light up the canvas</h3>
+          <p>Terminals that Octoboss spawns are visually linked to it on the canvas. You can see the delegation graph in real time — who spawned what, what's running, what's done.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><strong>Octoboss Delegation</strong> — a proposal for Octogent</p>
+    <p style="margin-top:6px;">This adds one new behavior to an existing node. Nothing else changes.</p>
+  </div>
+
+</div>
+</body>
+</html>
