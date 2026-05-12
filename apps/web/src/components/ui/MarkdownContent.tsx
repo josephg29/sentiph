@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { useMemo } from "react";
 
@@ -32,12 +33,16 @@ type MarkdownContentProps = {
 export const MarkdownContent = ({ content, className, highlightTerm }: MarkdownContentProps) => {
   const html = useMemo(() => {
     const rendered = marked.parse(content, { async: false }) as string;
-    if (highlightTerm && highlightTerm.length > 0) {
-      return highlightHtml(rendered, highlightTerm);
-    }
-    return rendered;
+    const withHighlight =
+      highlightTerm && highlightTerm.length > 0 ? highlightHtml(rendered, highlightTerm) : rendered;
+    // Sanitise: markdown can be produced by Claude agents and may contain
+    // <script>, event handlers, or other XSS vectors. ALLOW <mark> for highlight.
+    return DOMPurify.sanitize(withHighlight, {
+      ADD_TAGS: ["mark"],
+      ADD_ATTR: ["class"],
+    });
   }, [content, highlightTerm]);
 
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is rendered only inside the local operator UI and highlight markup is controlled.
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is sanitised by DOMPurify above.
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };

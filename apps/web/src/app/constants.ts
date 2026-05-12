@@ -6,14 +6,15 @@ export const UI_STATE_SAVE_DEBOUNCE_MS = 250;
 export const MIN_SIDEBAR_WIDTH = 240;
 export const MAX_SIDEBAR_WIDTH = 520;
 
+// Nav tabs 6 (Conversations) and 7 (Prompts) currently have no PrimaryView
+// implementation (PrimaryViewRouter falls through to CanvasPrimaryView).
+// Re-add them here once the corresponding views exist.
 export const PRIMARY_NAV_ITEMS = [
   { index: 1, label: "Agents" },
   { index: 2, label: "Deck" },
   { index: 3, label: "Activity" },
   { index: 4, label: "Code Intel" },
   { index: 5, label: "Monitor" },
-  { index: 6, label: "Conversations" },
-  { index: 7, label: "Prompts" },
   { index: 8, label: "Settings" },
 ] as const;
 
@@ -23,6 +24,8 @@ export const GITHUB_SPARKLINE_HEIGHT = 36;
 export const GITHUB_OVERVIEW_GRAPH_WIDTH = 640;
 export const GITHUB_OVERVIEW_GRAPH_HEIGHT = 180;
 
-export const PRIMARY_NAV_MAX = PRIMARY_NAV_ITEMS.length;
+// Max valid index (not array length) so removed dead-end tabs in the middle
+// don't invalidate higher indices like Settings (8).
+export const PRIMARY_NAV_MAX = Math.max(...PRIMARY_NAV_ITEMS.map((item) => item.index));
 
 export type PrimaryNavIndex = (typeof PRIMARY_NAV_ITEMS)[number]["index"];

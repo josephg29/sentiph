@@ -26,6 +26,8 @@ export const ConsolePrimaryNav = ({
         </button>
       ))}
     </div>
-    <p className="console-primary-nav-hint">Press 1-{PRIMARY_NAV_ITEMS.length} to navigate</p>
+    <p className="console-primary-nav-hint">
+      Press 1-{Math.max(...PRIMARY_NAV_ITEMS.map((item) => item.index))} to navigate
+    </p>
   </nav>
 );

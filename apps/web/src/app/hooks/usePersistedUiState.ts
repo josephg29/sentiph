@@ -17,6 +17,10 @@ type UsePersistedUiStateOptions = {
 };
 
 const DEFAULT_ACTIVE_PRIMARY_NAV: PrimaryNavIndex = 1;
+// Use the maximum index from PRIMARY_NAV_ITEMS rather than its length, because
+// the index sequence may have gaps (e.g. removed dead-end tabs 6 and 7 leave
+// Settings at index 8).
+const PRIMARY_NAV_MAX_INDEX = Math.max(...PRIMARY_NAV_ITEMS.map((item) => item.index));
 const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
@@ -307,7 +311,7 @@ export const usePersistedUiState = ({
         activePrimaryNav:
           snapshot.activePrimaryNav !== undefined &&
           snapshot.activePrimaryNav >= 1 &&
-          snapshot.activePrimaryNav <= PRIMARY_NAV_ITEMS.length
+          snapshot.activePrimaryNav <= PRIMARY_NAV_MAX_INDEX
             ? (snapshot.activePrimaryNav as PrimaryNavIndex)
             : DEFAULT_ACTIVE_PRIMARY_NAV,
         isAgentsSidebarVisible:
@@ -338,7 +342,7 @@ export const usePersistedUiState = ({
       if (
         snapshot.activePrimaryNav !== undefined &&
         snapshot.activePrimaryNav >= 1 &&
-        snapshot.activePrimaryNav <= PRIMARY_NAV_ITEMS.length
+        snapshot.activePrimaryNav <= PRIMARY_NAV_MAX_INDEX
       ) {
         setActivePrimaryNav(snapshot.activePrimaryNav as PrimaryNavIndex);
       }

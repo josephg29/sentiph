@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,10 @@ import { fileURLToPath } from "node:url";
 import type { TerminalSnapshot } from "@octogent/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
+
+// The repo's ws-shim.d.ts exposes WebSocket only as an interface, so the runtime
+// OPEN constant isn't typed. The value 1 is the canonical WebSocket.OPEN.
+const WS_READYSTATE_OPEN = 1;
 
 import {
   DEFAULT_AGENT_PROVIDER,
@@ -66,23 +70,34 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
     nodeArgs = ["--import", "tsx/esm", mcpServerPath];
   }
 
-  // --mcp-config expects a flat servers map, NOT wrapped in { mcpServers: ... }
   const config = {
-    octogent: {
-      command: nodeCommand,
-      args: nodeArgs,
-      env: {
-        OCTOGENT_API_ORIGIN:
-          process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+    mcpServers: {
+      octogent: {
+        command: nodeCommand,
+        args: nodeArgs,
+        env: {
+          OCTOGENT_API_ORIGIN:
+            process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+        },
       },
     },
   };
 
   try {
-    mkdirSync(join(stateDir, "state"), { recursive: true });
-    writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-  } catch {
-    // Non-fatal: Octoboss will start without MCP tools if config can't be written.
+    if (existsSync(stateDir)) {
+      mkdirSync(join(stateDir, "state"), { recursive: true });
+      // mode 0o600: only the owner can read this config, since it leaks the
+      // local API origin to any user with read access on the state directory.
+      writeFileSync(configPath, JSON.stringify(config, null, 2), {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[octoboss-mcp] Failed to write MCP config at ${configPath}: ${message}. Octoboss will start without MCP tools.`,
+    );
   }
   return configPath;
 };
@@ -90,6 +105,7 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
 export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
+  gitClient,
   getApiBaseUrl = () => process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
@@ -235,12 +251,49 @@ export const createTerminalRuntime = ({
     }
   };
 
-  // Worktrees are not supported in this build — stub out the worktree manager.
+  const worktreesDir = join(stateDir, "worktrees");
+  const gitClientOpt = gitClient;
+
+  const GENERATED_NAME_PATTERN = /^Octogent Terminal \d+$/;
+
   const worktreeManager = {
-    getTentacleWorkspaceCwd: (_tentacleId: string) => workspaceCwd,
-    hasTentacleWorktree: (_tentacleId: string) => false,
-    createTentacleWorktree: (_tentacleId: string, _baseRef?: string) => { /* no-op */ },
-    removeTentacleWorktree: (_tentacleId: string) => { /* no-op */ },
+    getTentacleWorkspaceCwd: (tentacleId: string) => {
+      if (existsSync(join(worktreesDir, tentacleId))) {
+        return join(worktreesDir, tentacleId);
+      }
+      return workspaceCwd;
+    },
+    hasTentacleWorktree: (tentacleId: string) => existsSync(join(worktreesDir, tentacleId)),
+    createTentacleWorktree: (tentacleId: string, baseRef?: string) => {
+      if (!gitClientOpt || !gitClientOpt.isRepository(workspaceCwd)) {
+        throw new RuntimeInputError(
+          "Worktree terminals require a git repository at the workspace root.",
+        );
+      }
+      const path = join(worktreesDir, tentacleId);
+      gitClientOpt.addWorktree({
+        cwd: workspaceCwd,
+        path,
+        branchName: `octogent/${tentacleId}`,
+        baseRef: baseRef ?? "HEAD",
+      });
+    },
+    removeTentacleWorktree: (tentacleId: string) => {
+      if (!gitClientOpt) return;
+      const path = join(worktreesDir, tentacleId);
+      try {
+        gitClientOpt.removeWorktree({ cwd: workspaceCwd, path });
+      } catch (err) {
+        throw new RuntimeInputError(
+          `Unable to remove worktree for ${tentacleId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      try {
+        gitClientOpt.removeBranch({ cwd: workspaceCwd, branchName: `octogent/${tentacleId}` });
+      } catch {
+        // Branch removal is best-effort
+      }
+    },
   };
 
   const resolveTerminalSession = (
@@ -270,6 +323,8 @@ export const createTerminalRuntime = ({
     });
   };
 
+  const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
+
   const sessionRuntime = createSessionRuntime({
     websocketServer,
     terminals,
@@ -278,6 +333,7 @@ export const createTerminalRuntime = ({
     getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
     isDebugPtyLogsEnabled,
     ptyLogDir,
+    transcriptDirectoryPath,
     maxConcurrentSessions: configuredMaxConcurrentSessions,
     onStateChange: broadcastTerminalStateChanged,
     onSessionStart: markTerminalRunning,
@@ -285,15 +341,120 @@ export const createTerminalRuntime = ({
     octobossMcpConfigPath,
   });
 
-  // Git operations (worktree-backed) are not supported in this build — stubs return null.
+  const findWorktreeTerminal = (tentacleId: string) =>
+    [...terminals.values()].find((t) => t.tentacleId === tentacleId);
+
+  const getWorktreePath = (terminal: PersistedTerminal) =>
+    join(worktreesDir, terminal.worktreeId ?? terminal.tentacleId);
+
+  const requireWorktreeTerminal = (tentacleId: string) => {
+    const terminal = findWorktreeTerminal(tentacleId);
+    if (!terminal) return null;
+    if (terminal.workspaceMode !== "worktree") {
+      throw new RuntimeInputError(
+        "Git lifecycle actions are only available for worktree terminals.",
+      );
+    }
+    if (!gitClientOpt) return null;
+    return { terminal, worktreePath: getWorktreePath(terminal) };
+  };
+
+  const toGitStatusSnapshot = (tentacleId: string, worktreePath: string) => {
+    if (!gitClientOpt) return null;
+    const status = gitClientOpt.readWorktreeStatus({ cwd: worktreePath });
+    return { tentacleId, workspaceMode: "worktree" as const, ...status };
+  };
+
   const gitOps = {
-    readTentacleGitStatus: (_tentacleId: string) => null,
-    commitTentacleWorktree: (_tentacleId: string, _message: string) => null,
-    pushTentacleWorktree: (_tentacleId: string) => null,
-    syncTentacleWorktree: (_tentacleId: string, _baseRef?: string) => null,
-    readTentaclePullRequest: (_tentacleId: string) => null,
-    createTentaclePullRequest: (_tentacleId: string, _opts: Record<string, unknown>) => null,
-    mergeTentaclePullRequest: (_tentacleId: string) => null,
+    readTentacleGitStatus: (tentacleId: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      return toGitStatusSnapshot(tentacleId, result.worktreePath);
+    },
+
+    commitTentacleWorktree: (tentacleId: string, message: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      gitClientOpt!.commitAll({ cwd: result.worktreePath, message });
+      return toGitStatusSnapshot(tentacleId, result.worktreePath);
+    },
+
+    pushTentacleWorktree: (tentacleId: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      gitClientOpt!.pushCurrentBranch({ cwd: result.worktreePath });
+      return toGitStatusSnapshot(tentacleId, result.worktreePath);
+    },
+
+    syncTentacleWorktree: (tentacleId: string, baseRef?: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      gitClientOpt!.syncWithBase({ cwd: result.worktreePath, baseRef: baseRef ?? "HEAD" });
+      return toGitStatusSnapshot(tentacleId, result.worktreePath);
+    },
+
+    readTentaclePullRequest: (tentacleId: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      const pr = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
+      const { state, ...prRest } = pr;
+      return {
+        tentacleId,
+        workspaceMode: "worktree" as const,
+        status: state.toLowerCase() as "open" | "merged" | "closed",
+        ...prRest,
+      };
+    },
+
+    createTentaclePullRequest: (tentacleId: string, opts: Record<string, unknown>) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      const existing = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      if (existing && existing.state === "OPEN") {
+        throw new RuntimeInputError(
+          "An open pull request already exists for this branch.",
+        );
+      }
+      const worktreeStatus = gitClientOpt!.readWorktreeStatus({ cwd: result.worktreePath });
+      const pr = gitClientOpt!.createPullRequest({
+        cwd: result.worktreePath,
+        title: String(opts.title ?? ""),
+        body: String(opts.body ?? ""),
+        baseRef: String(opts.baseRef ?? worktreeStatus.defaultBaseBranchName ?? "main"),
+        headRef: worktreeStatus.branchName,
+      });
+      if (!pr) return null;
+      const { state, ...prRest } = pr;
+      return {
+        tentacleId,
+        workspaceMode: "worktree" as const,
+        status: state.toLowerCase() as "open" | "merged" | "closed",
+        ...prRest,
+      };
+    },
+
+    mergeTentaclePullRequest: (tentacleId: string) => {
+      const result = requireWorktreeTerminal(tentacleId);
+      if (!result) return null;
+      const existing = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      if (!existing || existing.state !== "OPEN") {
+        throw new RuntimeInputError("No open pull request found for this branch.");
+      }
+      gitClientOpt!.mergeCurrentBranchPullRequest({
+        cwd: result.worktreePath,
+        strategy: "squash",
+      });
+      const pr = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
+      const { state, ...prRest } = pr;
+      return {
+        tentacleId,
+        workspaceMode: "worktree" as const,
+        status: state.toLowerCase() as "open" | "merged" | "closed",
+        ...prRest,
+      };
+    },
   };
 
   reconcilePersistedLifecycle();
@@ -372,7 +533,7 @@ export const createTerminalRuntime = ({
   const broadcastTerminalEvent = (event: Record<string, unknown>) => {
     const payload = JSON.stringify(event);
     for (const client of terminalEventClients) {
-      if (client.readyState !== 1) {
+      if (client.readyState !== WS_READYSTATE_OPEN) {
         continue;
       }
       client.send(payload);
@@ -758,6 +919,174 @@ export const createTerminalRuntime = ({
 
     resizeTerminal(terminalId: string, cols: number, rows: number): boolean {
       return sessionRuntime.resizeSession(terminalId, cols, rows);
+    },
+
+    listConversationSessions() {
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      if (!existsSync(transcriptDir)) return [];
+      const summaries: unknown[] = [];
+      try {
+        const files = readdirSync(transcriptDir).filter((f) => f.endsWith(".jsonl"));
+        for (const file of files) {
+          const sessionId = decodeURIComponent(file.slice(0, -6));
+          const raw = readFileSync(join(transcriptDir, file), "utf8").trim();
+          if (!raw) continue;
+          const events = raw.split("\n").map((l) => {
+            try { return JSON.parse(l) as Record<string, unknown>; } catch { return null; }
+          }).filter(Boolean) as Record<string, unknown>[];
+
+          const startEvent = events.find((e) => e.type === "session_start");
+          const endEvent = events.find((e) => e.type === "session_end");
+          if (!startEvent) continue;
+
+          const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
+          let turns: Array<{ role: string; content: string; startedAt: string; endedAt: string }> = [];
+          if (existsSync(turnsPath)) {
+            try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns; } catch { /* ignore */ }
+          }
+          const userTurns = turns.filter((t) => t.role === "user");
+          const assistantTurns = turns.filter((t) => t.role === "assistant");
+
+          const lastTimestamp = endEvent?.timestamp ?? events[events.length - 1]?.timestamp;
+          summaries.push({
+            sessionId,
+            tentacleId: startEvent.tentacleId ?? sessionId,
+            startedAt: startEvent.timestamp,
+            endedAt: endEvent?.timestamp ?? null,
+            lastEventAt: lastTimestamp ?? null,
+            eventCount: events.length,
+            turnCount: turns.length,
+            userTurnCount: userTurns.length,
+            assistantTurnCount: assistantTurns.length,
+            firstUserTurnPreview: userTurns[0]?.content?.slice(0, 200) ?? null,
+            lastUserTurnPreview: userTurns[userTurns.length - 1]?.content?.slice(0, 200) ?? null,
+            lastAssistantTurnPreview: assistantTurns[assistantTurns.length - 1]?.content?.slice(0, 200) ?? null,
+          });
+        }
+      } catch { /* ignore */ }
+      return summaries;
+    },
+
+    readConversationSession(sessionId: string) {
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      const transcriptPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.jsonl`);
+      if (!existsSync(transcriptPath)) return null;
+      const raw = readFileSync(transcriptPath, "utf8").trim();
+      if (!raw) return null;
+      const events = raw.split("\n").map((l) => {
+        try { return JSON.parse(l) as Record<string, unknown>; } catch { return null; }
+      }).filter(Boolean);
+
+      const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
+      let turns: unknown[] = [];
+      if (existsSync(turnsPath)) {
+        try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as unknown[]; } catch { /* ignore */ }
+      }
+
+      const startEvent = (events as Record<string, unknown>[]).find((e) => e.type === "session_start");
+      return {
+        sessionId,
+        tentacleId: startEvent?.tentacleId ?? sessionId,
+        turnCount: turns.length,
+        events,
+        turns,
+      };
+    },
+
+    exportConversationSession(sessionId: string, format: "md" | "json") {
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
+      if (!existsSync(turnsPath)) return null;
+      let turns: Array<{ role: string; content: string }> = [];
+      try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns; } catch { return null; }
+
+      if (format === "json") {
+        return JSON.stringify({ sessionId, turnCount: turns.length, turns });
+      }
+
+      const lines: string[] = [];
+      for (const turn of turns) {
+        lines.push(`## ${turn.role === "user" ? "User" : "Assistant"}`);
+        lines.push("");
+        lines.push(turn.content);
+        lines.push("");
+      }
+      return lines.join("\n");
+    },
+
+    deleteConversationSession(sessionId: string) {
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      const base = join(transcriptDir, encodeURIComponent(sessionId));
+      for (const ext of [".jsonl", ".claude-turns.json"]) {
+        const path = `${base}${ext}`;
+        if (existsSync(path)) { try { rmSync(path); } catch { /* ignore */ } }
+      }
+    },
+
+    deleteAllConversationSessions() {
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      if (!existsSync(transcriptDir)) return;
+      try {
+        const files = readdirSync(transcriptDir);
+        for (const file of files) {
+          try { rmSync(join(transcriptDir, file)); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    },
+
+    searchConversations(query: string) {
+      const q = query.toLowerCase();
+      const transcriptDir = join(stateDir, "state", "transcripts");
+      if (!existsSync(transcriptDir)) return [];
+      const results: unknown[] = [];
+      try {
+        const files = readdirSync(transcriptDir).filter((f) => f.endsWith(".claude-turns.json"));
+        for (const file of files) {
+          const sessionId = decodeURIComponent(file.slice(0, -".claude-turns.json".length));
+          let turns: Array<{ role: string; content: string }> = [];
+          try { turns = JSON.parse(readFileSync(join(transcriptDir, file), "utf8")) as typeof turns; } catch { continue; }
+          if (turns.some((t) => t.content.toLowerCase().includes(q))) {
+            results.push({ sessionId });
+          }
+        }
+      } catch { /* ignore */ }
+      return results;
+    },
+
+    renameTerminalBySession(sessionId: string, name: string) {
+      const terminal = terminals.get(sessionId);
+      if (!terminal) return null;
+      terminal.tentacleName = name;
+      terminal.nameOrigin = "prompt";
+      terminal.autoRenamePromptContext = undefined;
+      persistRegistry();
+      broadcastTerminalEvent({ type: "terminal-updated", snapshot: toTerminalSnapshot(terminal) });
+      return toTerminalSnapshot(terminal);
+    },
+
+    renameTerminalBySessionAuto(sessionId: string, promptFallback: string) {
+      const terminal = terminals.get(sessionId);
+      if (!terminal) return null;
+
+      let newName: string;
+      if (terminal.autoRenamePromptContext) {
+        newName = terminal.autoRenamePromptContext;
+      } else if (
+        terminal.nameOrigin !== "user" &&
+        terminal.nameOrigin !== "prompt" &&
+        GENERATED_NAME_PATTERN.test(terminal.tentacleName)
+      ) {
+        newName = promptFallback;
+      } else {
+        return null;
+      }
+
+      terminal.tentacleName = newName;
+      terminal.nameOrigin = "prompt";
+      terminal.autoRenamePromptContext = undefined;
+      persistRegistry();
+      broadcastTerminalEvent({ type: "terminal-updated", snapshot: toTerminalSnapshot(terminal) });
+      return toTerminalSnapshot(terminal);
     },
 
     async close() {

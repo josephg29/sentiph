@@ -32,12 +32,13 @@ The dev script (`scripts/dev.mjs`) auto-discovers a free port starting at 8787, 
 
 ## Architecture
 
-Octogent is a **pnpm monorepo** with three packages:
+Octogent is a **pnpm monorepo** with four packages:
 
 ```
 packages/core       — shared domain types and application logic (no runtime deps)
 apps/api            — Node.js HTTP + WebSocket server (node-pty, ws)
 apps/web            — React 19 SPA (Vite, xterm.js, d3-force)
+apps/mobile         — Expo (React Native) iOS companion app (expo-router, expo-camera, zustand)
 ```
 
 ### Core (`@octogent/core`)
@@ -66,6 +67,12 @@ Entry: `src/server.ts` → `createApiServer()` in `src/createApiServer.ts`.
 - Project-local: `.octogent/` (tentacles, worktrees, project.json)
 - Global: `~/.octogent/projects/<project-id>/state/` (tentacles.json registry, transcripts, monitor cache)
 
+**Mobile pairing & auth** (`src/pairing.ts`, `src/createApiServer/pairingRoutes.ts`):
+- A 256-bit hex token is auto-generated on first start and persisted to `<projectStateDir>/state/pairing.json`.
+- When `OCTOGENT_ALLOW_REMOTE_ACCESS=1`, the server binds to `0.0.0.0` and requires `Authorization: Bearer <token>` (or `?token=<token>` query param for WebSocket upgrades) on any non-loopback request.
+- Loopback requests are never auth-gated — the web UI keeps working.
+- `GET /api/pair/info` (loopback-only) returns `{token, port, lanCandidates, createdAt, remoteAccessEnabled}`. `POST /api/pair/rotate` (loopback-only) regenerates the token.
+
 ### Web (`apps/web`)
 
 Entry: `src/main.tsx` → `<App />`.
@@ -89,6 +96,29 @@ Entry: `src/main.tsx` → `<App />`.
 
 **Canvas view** (`CanvasPrimaryView`) renders an interactive d3-force graph where nodes are tentacles (OctopusNode) and sessions (SessionNode), with xterm.js terminal columns on the side.
 
+**Pair Mobile panel** (`PairMobilePanel.tsx`) lives inside `SettingsPrimaryView` and shows a QR code (`qrcode` npm package, rendered on canvas) with `octogent://pair?host=…:…&token=…&name=Octogent`. The mobile app scans it to bootstrap a paired connection.
+
+### Mobile (`@octogent/mobile`)
+
+Expo SDK 54 + React Native 0.81 + React 19.1. Uses `expo-router` v6 for file-based routing, `react-native-svg` for the octopus and sparkline.
+
+The mobile app is a full Octogent companion (not just a terminal viewer). Six bottom tabs map to the desktop's primary views: Canvas, Deck, Terminals, GitHub, Monitor, More (Activity / Code Intel / Settings).
+
+Entry: `app/_layout.tsx` loads Monocraft via `expo-font` and hydrates the connection store, then `app/index.tsx` redirects to `(tabs)/canvas` if paired or `/pair` if not.
+
+- **Visual identity** (`src/theme.ts`): ports the desktop's foundation tokens — light surfaces, `--term-green` `#25a244` accent, hairline borders, Monocraft mono, uppercase chrome. Terminal output area keeps the dark `--terminal-bg` `#111`.
+- **Octopus** (`src/components/octopus/`): pixel-perfect port of `EmptyOctopus.tsx`. Sprite grids (`octopusSprites.ts`) are copied verbatim; `Octopus.tsx` renders them via `react-native-svg` `<Rect>` cells with `setInterval`-driven frame swaps. All five expressions, six animations (idle/sway/walk/jog/swim-up/bounce/float), five accessories (none/long/mohawk/side-sweep/curly), and the ZZZ overlay are supported. `deriveOctopusVisuals.ts` mirrors the web's seeded RNG so a given `tentacleId` always renders the same octopus on web and mobile.
+- **State** (`src/state/`): `useConnectionStore` persists `{host, port, token, name, pairedAt}` in `expo-secure-store`. `useTerminalsStore` keeps snapshots + per-terminal runtime state. `useActivityStore` records terminal lifecycle events for the Activity tab. `useUsageStore` + `useUsagePolling()` poll `/api/claude/usage`, `/api/codex/usage`, `/api/github/summary` on intervals.
+- **API** (`src/api/`): `client.ts` (terminals REST), `deck.ts` (tentacles + todos + vault), `misc.ts` (usage, github, monitor, code-intel, tentacle git), `eventsSocket.ts` (`/api/terminal-events/ws`), `ptySocket.ts` (per-terminal PTY). Bearer-token auth on REST, `?token=` on WS.
+- **Terminal rendering** (`src/components/terminal-webview/`): xterm.js inside `react-native-webview`. `scripts/vendor-xterm.mjs` reads xterm.js + xterm.css + addon-fit out of the workspace's `node_modules` and inlines them as escaped strings into `xtermVendor.ts`. `xtermHost.ts` builds the bootstrap HTML; `TerminalWebView.tsx` exposes a ref API (`write`, `history`, `clear`, `fit`, `scrollToBottom`). PTY output flows in via `injectJavaScript`; no ANSI parsing on the RN side, so cursor moves / alt-screen / sticky footers / boxes render correctly. The fallback ANSI parser in `src/utils/ansi.ts` is unused by screens but retained for tests and potential reuse.
+- **Shared components** (`src/components/`): `Card`, `Button`, `StatusBadge` + `AgentStateBadge`, `ConnectionBanner`, `Octopus`, `OctopusTile`, `TentaclePodCard`, `TerminalRow`, `TerminalInputBar`, `Sparkline`, `MarkdownLite` (small markdown renderer for vault file previews), `RuntimeStatusStrip`, `TabsTopBar`, `ActiveAgentsSheet` (bottom-sheet modal with quick replies for every running terminal).
+
+The `(tabs)/_layout.tsx` mounts `useUsagePolling()` and renders a persistent `<TabsTopBar />` above the tab content with the runtime status strip and the "ACTIVE AGENTS" sheet trigger.
+
+The tentacle detail screen (`app/tentacle/[id].tsx`) is the heart of the deck experience: vault file picker with `MarkdownLite` preview, todos (toggle/edit/delete/add), suggested-skill chips, attached terminals list, and a worktree git lifecycle section (commit message → commit → push → open PR via the `/api/tentacles/{id}/git/*` endpoints).
+
+Targets iOS only via Expo. Install on a real device with Expo Go (Metro QR) for dev or EAS Build for a standalone `.ipa`.
+
 ## Environment Variables
 
 | Variable | Default | Purpose |
@@ -98,8 +128,10 @@ Entry: `src/main.tsx` → `<App />`.
 | `OCTOGENT_PROJECT_STATE_DIR` | `<cwd>/.octogent` | Where runtime state is persisted |
 | `OCTOGENT_MAX_TERMINAL_SESSIONS` | 32 | PTY session cap |
 | `OCTOGENT_ALLOW_REMOTE_ACCESS` | `0` | Set to `1` to allow non-localhost connections |
+| `OCTOGENT_BYPASS_PERMISSIONS` | `1` | Set to `0` to launch Claude Code without `--dangerously-skip-permissions` (Claude will prompt for each tool call) |
 | `OCTOGENT_DEBUG_PTY_LOGS` | `0` | Set to `1` to write raw PTY output to files |
 | `OCTOGENT_NO_OPEN` | unset | Set to `1` to suppress auto-opening the browser |
+| `HOST` | `127.0.0.1` (or `0.0.0.0` when `OCTOGENT_ALLOW_REMOTE_ACCESS=1`) | Listen interface override |
 
 ## Tooling
 

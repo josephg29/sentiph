@@ -352,8 +352,19 @@ export const loadTerminalRegistry = (registryPath: string) => {
     };
   }
 
-  const raw = readFileSync(registryPath, "utf8");
-  return parseRegistryDocument(raw, registryPath);
+  try {
+    const raw = readFileSync(registryPath, "utf8");
+    return parseRegistryDocument(raw, registryPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[terminal-registry] Could not load registry at ${registryPath}, starting fresh: ${message}`,
+    );
+    return {
+      terminals: new Map<string, PersistedTerminal>(),
+      uiState: {} as PersistedUiState,
+    };
+  }
 };
 
 const serializeTerminalRegistry = (state: TerminalRegistryState) => {

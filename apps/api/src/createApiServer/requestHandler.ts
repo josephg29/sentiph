@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { extname, join } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
@@ -10,7 +10,14 @@ import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
 import type { MonitorService } from "../monitor";
+import type { PairingService } from "../pairing";
 import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
+import {
+  handleConversationExportRoute,
+  handleConversationItemRoute,
+  handleConversationSearchRoute,
+  handleConversationsCollectionRoute,
+} from "./conversationRoutes";
 import {
   handleDeckSkillsRoute,
   handleDeckTentacleItemRoute,
@@ -25,12 +32,19 @@ import {
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
+import {
+  handleHookSessionStartRoute,
+  handleHookUserPromptSubmitRoute,
+} from "./hooksRoutes";
 import { handleUiStateRoute } from "./miscRoutes";
 import {
   handleMonitorConfigRoute,
   handleMonitorFeedRoute,
   handleMonitorRefreshRoute,
 } from "./monitorRoutes";
+import { createPairingRoutes } from "./pairingRoutes";
+import { handlePromptItemRoute } from "./promptRoutes";
+import { handleSetupRoute, handleSetupStepRoute } from "./setupRoutes";
 import type {
   ApiRouteHandler,
   RouteHandlerContext,
@@ -39,9 +53,11 @@ import type {
 } from "./routeHelpers";
 import { writeJson, writeNoContent } from "./routeHelpers";
 import {
+  extractBearerToken,
   getRequestCorsOrigin,
   isAllowedHostHeader,
   isAllowedOriginHeader,
+  isLoopbackHostHeader,
   readHeaderValue,
 } from "./security";
 import {
@@ -78,6 +94,7 @@ type CreateApiRequestHandlerOptions = {
   workspaceCwd: string;
   projectStateDir: string;
   webDistDir?: string | undefined;
+  promptsDir?: string | undefined;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
@@ -89,6 +106,7 @@ type CreateApiRequestHandlerOptions = {
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
   codeIntelStore: CodeIntelStore;
+  pairingService: PairingService;
   allowRemoteAccess: boolean;
 };
 
@@ -128,6 +146,15 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ],
   ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
   ["code-intel", [handleCodeIntelEventsRoute]],
+  ["hooks", [handleHookSessionStartRoute, handleHookUserPromptSubmitRoute]],
+  ["conversations", [
+    handleConversationsCollectionRoute,
+    handleConversationSearchRoute,
+    handleConversationItemRoute,
+    handleConversationExportRoute,
+  ]],
+  ["setup", [handleSetupRoute, handleSetupStepRoute]],
+  ["prompts", [handlePromptItemRoute]],
 ]);
 
 const extractRoutePrefix = (pathname: string): string | null => {
@@ -147,9 +174,13 @@ const serveStaticFile = async (
   webDistDir: string,
   pathname: string,
 ): Promise<boolean> => {
-  // Prevent path traversal.
-  const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
-  const filePath = join(webDistDir, safePath === "/" ? "index.html" : safePath);
+  // Prevent path traversal: resolve absolutely then assert containment.
+  const root = resolve(webDistDir);
+  const requested = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const filePath = resolve(root, requested);
+  if (filePath !== root && !filePath.startsWith(root + sep)) {
+    return false;
+  }
 
   try {
     const content = await readFile(filePath);
@@ -170,11 +201,40 @@ const serveStaticFile = async (
   }
 };
 
+const isAuthorizedRequest = (
+  request: IncomingMessage,
+  pairingService: PairingService,
+): boolean => {
+  const hostHeader = readHeaderValue(request.headers.host);
+  if (isLoopbackHostHeader(hostHeader)) {
+    return true;
+  }
+
+  const authHeader = readHeaderValue(request.headers.authorization);
+  const bearer = extractBearerToken(authHeader);
+  if (bearer && pairingService.verifyToken(bearer)) {
+    return true;
+  }
+
+  try {
+    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    const tokenQuery = requestUrl.searchParams.get("token");
+    if (tokenQuery && pairingService.verifyToken(tokenQuery)) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
+};
+
 export const createApiRequestHandler = ({
   runtime,
   workspaceCwd,
   projectStateDir,
   webDistDir,
+  promptsDir,
   getApiBaseUrl,
   getApiPort,
   readClaudeUsageSnapshot,
@@ -186,6 +246,7 @@ export const createApiRequestHandler = ({
   monitorService,
   invalidateClaudeUsageCache,
   codeIntelStore,
+  pairingService,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
   const resolvedWebDistDir = webDistDir && existsSync(webDistDir) ? webDistDir : null;
@@ -194,6 +255,7 @@ export const createApiRequestHandler = ({
     runtime,
     workspaceCwd,
     projectStateDir,
+    promptsDir,
     getApiBaseUrl,
     getApiPort,
     readClaudeUsageSnapshot,
@@ -206,6 +268,8 @@ export const createApiRequestHandler = ({
     invalidateClaudeUsageCache,
     codeIntelStore,
   };
+
+  const pairingRoutes = createPairingRoutes(pairingService, allowRemoteAccess);
 
   return async (request: IncomingMessage, response: ServerResponse) => {
     const startTime = Date.now();
@@ -241,12 +305,25 @@ export const createApiRequestHandler = ({
         return;
       }
 
+      if (allowRemoteAccess && !isAuthorizedRequest(request, pairingService)) {
+        writeJson(response, 401, { error: "Unauthorized" }, corsOrigin);
+        logRequest(request.method ?? "?", requestUrl.pathname, 401, startTime);
+        return;
+      }
+
       const routeContext: RouteHandlerContext = {
         request,
         response,
         requestUrl,
         corsOrigin,
       };
+
+      for (const handlePairRoute of pairingRoutes) {
+        if (await handlePairRoute(routeContext, routeDependencies)) {
+          logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
+          return;
+        }
+      }
 
       const prefix = extractRoutePrefix(requestUrl.pathname);
       const handlers = prefix !== null ? API_ROUTE_MAP.get(prefix) : undefined;

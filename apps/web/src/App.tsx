@@ -175,9 +175,44 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    const socket = new WebSocket(buildTerminalEventsSocketUrl());
+    let socket: WebSocket | null = null;
+    let reconnectTimer: number | null = null;
+    let isUnmounted = false;
 
-    socket.addEventListener("message", (event) => {
+    const scheduleReconnect = () => {
+      if (isUnmounted || reconnectTimer !== null) {
+        return;
+      }
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, 1000);
+    };
+
+    const connect = () => {
+      if (isUnmounted) {
+        return;
+      }
+      socket = new WebSocket(buildTerminalEventsSocketUrl());
+      socket.addEventListener("close", () => {
+        if (!isUnmounted) {
+          // Refresh once on reconnect so we don't miss events that happened while disconnected.
+          void refreshColumns();
+          scheduleReconnect();
+        }
+      });
+      socket.addEventListener("error", () => {
+        try {
+          socket?.close();
+        } catch {
+          // Ignore — close listener will reconnect.
+        }
+      });
+      attachMessageHandler(socket);
+    };
+
+    const attachMessageHandler = (ws: WebSocket) => {
+      ws.addEventListener("message", (event) => {
       if (typeof event.data !== "string") {
         return;
       }
@@ -254,13 +289,25 @@ export const App = () => {
         void refreshColumns();
       }, 100);
     });
+    };
+
+    connect();
 
     return () => {
+      isUnmounted = true;
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       if (terminalEventsRefreshTimerRef.current !== null) {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
         terminalEventsRefreshTimerRef.current = null;
       }
-      socket.close();
+      try {
+        socket?.close();
+      } catch {
+        // Ignore — socket may already be closing.
+      }
     };
   }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 

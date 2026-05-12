@@ -4,7 +4,7 @@ export const withCors = (headers: Record<string, string>, corsOrigin: string | n
   const nextHeaders: Record<string, string> = {
     ...headers,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 
   if (corsOrigin) {
@@ -27,7 +27,14 @@ const parseHostname = (value: string, withScheme: boolean): string | null => {
 };
 
 export const isAllowedOriginHeader = (origin: string | undefined, allowRemoteAccess: boolean) => {
-  if (allowRemoteAccess || origin === undefined) {
+  if (allowRemoteAccess) {
+    return true;
+  }
+
+  // Non-browser clients (curl, CLI tools, MCP subprocess) omit Origin entirely.
+  // In loopback-only mode the Host header check already gates network access,
+  // so we allow no-Origin requests but never accept a non-loopback Origin.
+  if (origin === undefined) {
     return true;
   }
 
@@ -44,6 +51,14 @@ export const isAllowedHostHeader = (host: string | undefined, allowRemoteAccess:
     return false;
   }
 
+  const hostname = parseHostname(host, false);
+  return hostname !== null && isLoopbackHostname(hostname);
+};
+
+export const isLoopbackHostHeader = (host: string | undefined): boolean => {
+  if (!host) {
+    return false;
+  }
   const hostname = parseHostname(host, false);
   return hostname !== null && isLoopbackHostname(hostname);
 };
@@ -67,4 +82,17 @@ export const getRequestCorsOrigin = (origin: string | undefined, allowRemoteAcce
   }
 
   return origin;
+};
+
+const BEARER_PREFIX = "Bearer ";
+
+export const extractBearerToken = (authHeader: string | undefined): string | undefined => {
+  if (!authHeader) {
+    return undefined;
+  }
+  if (!authHeader.startsWith(BEARER_PREFIX)) {
+    return undefined;
+  }
+  const value = authHeader.slice(BEARER_PREFIX.length).trim();
+  return value.length > 0 ? value : undefined;
 };

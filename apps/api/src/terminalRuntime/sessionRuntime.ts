@@ -1,4 +1,4 @@
-import { type WriteStream, createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { appendFileSync, createWriteStream, existsSync, mkdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
@@ -37,6 +37,7 @@ type CreateSessionRuntimeOptions = {
   getTentacleWorkspaceCwd: (tentacleId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
+  transcriptDirectoryPath?: string;
   sessionIdleGraceMs?: number;
   scrollbackMaxBytes?: number;
   maxConcurrentSessions?: number;
@@ -60,6 +61,7 @@ export const createSessionRuntime = ({
   getTentacleWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
+  transcriptDirectoryPath,
   sessionIdleGraceMs = TERMINAL_SESSION_IDLE_GRACE_MS,
   scrollbackMaxBytes = TERMINAL_SCROLLBACK_MAX_BYTES,
   maxConcurrentSessions = TERMINAL_MAX_CONCURRENT_SESSIONS,
@@ -107,6 +109,29 @@ export const createSessionRuntime = ({
       flags: "a",
       encoding: "utf8",
     });
+  };
+
+  let transcriptEventSequence = 0;
+
+  const openTranscriptLog = (sessionId: string): string | undefined => {
+    if (!transcriptDirectoryPath) return undefined;
+    try {
+      mkdirSync(transcriptDirectoryPath, { recursive: true });
+      const filename = `${encodeURIComponent(sessionId)}.jsonl`;
+      return join(transcriptDirectoryPath, filename);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const appendTranscriptEvent = (session: TerminalSession, event: Record<string, unknown>) => {
+    if (!session.transcriptLog) return;
+    session.transcriptEventCount = (session.transcriptEventCount ?? 0) + 1;
+    try {
+      appendFileSync(session.transcriptLog, `${JSON.stringify(event)}\n`, "utf8");
+    } catch {
+      // Non-fatal: temp dir may have been cleaned up or disk full
+    }
   };
 
   const appendDebugLog = (session: TerminalSession, line: string) => {
@@ -321,6 +346,26 @@ export const createSessionRuntime = ({
     session.debugLog?.end();
     session.debugLog = undefined;
 
+    const endedAt = typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString();
+    const resolvedReason =
+      event.reason === "pty_exit" ||
+      event.reason === "operator_stop" ||
+      event.reason === "operator_kill"
+        ? event.reason
+        : "session_close";
+    appendTranscriptEvent(session, {
+      type: "session_end",
+      eventId: `${sessionId}:${++transcriptEventSequence}`,
+      sessionId,
+      reason: resolvedReason,
+      timestamp: endedAt,
+      ...(typeof event.exitCode === "number" ? { exitCode: event.exitCode } : {}),
+      ...(typeof event.signal === "number" || typeof event.signal === "string"
+        ? { signal: event.signal }
+        : {}),
+    });
+    session.transcriptLog = undefined;
+
     if (sessions.get(sessionId) === session) {
       sessions.delete(sessionId);
     }
@@ -422,16 +467,16 @@ export const createSessionRuntime = ({
     const terminal = terminals.get(session.terminalId);
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
+    const claudeBase =
+      TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
     let bootstrapCommand: string;
     if (session.tentacleId === OCTOBOSS_TENTACLE_ID) {
       bootstrapCommand = octobossMcpConfigPath
-        ? `claude --dangerously-skip-permissions --mcp-config "${octobossMcpConfigPath}"`
-        : "claude --dangerously-skip-permissions";
+        ? `${claudeBase} --mcp-config "${octobossMcpConfigPath}"`
+        : claudeBase;
     } else {
       bootstrapCommand =
-        TERMINAL_BOOTSTRAP_COMMANDS[provider] ??
-        TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ??
-        "claude --dangerously-skip-permissions";
+        TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
     }
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
@@ -540,11 +585,27 @@ export const createSessionRuntime = ({
       session.debugLog = debugLog;
     }
 
+    const transcriptLog = openTranscriptLog(sessionId);
+    if (transcriptLog) {
+      session.transcriptLog = transcriptLog;
+      session.transcriptEventCount = 0;
+    }
+
     appendDebugLog(session, `session-start session=${sessionId} tentacle=${tentacleId}`);
+    const startedAt = new Date().toISOString();
     const processId =
       typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
+
+    appendTranscriptEvent(session, {
+      type: "session_start",
+      eventId: `${sessionId}:${++transcriptEventSequence}`,
+      sessionId,
+      tentacleId,
+      timestamp: startedAt,
+    });
+
     onSessionStart?.(sessionId, {
-      startedAt: new Date().toISOString(),
+      startedAt,
       ...(processId ? { processId } : {}),
     });
     session.statePollTimer = setInterval(() => {

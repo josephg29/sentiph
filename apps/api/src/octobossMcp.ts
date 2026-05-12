@@ -1,6 +1,8 @@
 import { createInterface } from "node:readline";
 
 const apiOrigin = process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787";
+const parentTerminalId = process.env.OCTOGENT_SESSION_ID ?? null;
+const MAX_PROMPT_LENGTH = 8192;
 
 const TOOLS = [
   {
@@ -59,11 +61,19 @@ const handleToolCall = async (
   if (name === "spawn_terminal") {
     const prompt = String(args.prompt ?? "").trim();
     if (!prompt) throw new Error("prompt is required");
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      throw new Error(
+        `prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`,
+      );
+    }
 
     const body: Record<string, unknown> = {
       workspaceMode: "shared",
       initialPrompt: prompt,
     };
+    if (parentTerminalId) {
+      body.parentTerminalId = parentTerminalId;
+    }
     if (args.name && typeof args.name === "string" && args.name.trim()) {
       body.tentacleName = args.name.trim();
     }
