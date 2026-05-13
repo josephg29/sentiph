@@ -5,6 +5,7 @@ import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
+import type { AgentMetricsStore } from "../agentMetricsStore";
 import type { MonitorService } from "../monitor";
 import { RequestBodyTooLargeError, readJsonBody } from "./requestParsers";
 import { withCors } from "./security";
@@ -15,6 +16,7 @@ export type RouteHandlerDependencies = {
   runtime: TerminalRuntime;
   workspaceCwd: string;
   projectStateDir: string;
+  promptsDir?: string | undefined;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
   readClaudeUsageSnapshot: () => Promise<ClaudeUsageSnapshot>;
@@ -26,6 +28,7 @@ export type RouteHandlerDependencies = {
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
   codeIntelStore: CodeIntelStore;
+  metricsStore: AgentMetricsStore;
 };
 
 export type RouteHandlerContext = {

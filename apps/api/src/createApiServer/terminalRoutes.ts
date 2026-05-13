@@ -276,6 +276,43 @@ export const handleTerminalActionRoute: ApiRouteHandler = async (
   return true;
 };
 
+const TERMINAL_INPUT_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/input$/;
+
+export const handleTerminalInputRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_INPUT_PATH_PATTERN);
+  if (!match) return false;
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const terminalId = decodeURIComponent(match[1] ?? "");
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
+  const inputData = bodyPayload && typeof bodyPayload.data === "string" ? bodyPayload.data : null;
+  if (!inputData || !inputData.trim()) {
+    writeJson(response, 400, { error: "data is required" }, corsOrigin);
+    return true;
+  }
+
+  const ok = runtime.writeInput(terminalId, inputData);
+  if (!ok) {
+    writeJson(response, 404, { error: "Terminal not found or not active." }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, { ok: true }, corsOrigin);
+  return true;
+};
+
 export const handleTerminalPruneRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },

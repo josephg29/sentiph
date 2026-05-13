@@ -1,0 +1,405 @@
+/* ── Observability view ─────────────────────────── */
+
+.obs-view {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.obs-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.52rem 0.72rem;
+  background: var(--sidebar-header);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.obs-heading {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── Summary cards ─────────────────────────────── */
+
+.obs-summary-cards {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.obs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.26rem 0.6rem;
+  background: var(--sidebar-card);
+  min-width: 72px;
+}
+
+.obs-card dt {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.obs-card dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.obs-card-dd--error {
+  color: var(--term-red);
+}
+
+/* ── Body layout ────────────────────────────────── */
+
+.obs-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.58rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.58rem;
+}
+
+.obs-row {
+  display: flex;
+  gap: 0.58rem;
+  min-height: 0;
+}
+
+.obs-row--heatmap {
+  flex-shrink: 0;
+}
+
+.obs-row--charts {
+  flex-shrink: 0;
+}
+
+.obs-row--table {
+  flex-shrink: 0;
+}
+
+.obs-row--trail {
+  flex-shrink: 0;
+}
+
+/* ── Panel shell ────────────────────────────────── */
+
+.obs-chart-panel,
+.obs-table-panel,
+.obs-heatmap-panel,
+.obs-trail-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--sidebar-panel);
+  border: 1px solid var(--border-subtle);
+  padding: 0.52rem 0.62rem;
+}
+
+.obs-chart-title {
+  margin: 0 0 0.42rem;
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.28rem;
+}
+
+/* ── Empty state ─────────────────────────────────── */
+
+.obs-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+/* ── Chart SVG primitives ─────────────────────────── */
+
+.obs-chart-svg {
+  display: block;
+  overflow: visible;
+}
+
+.obs-bar-label {
+  fill: var(--text-secondary);
+  font-size: 9px;
+  font-family: var(--font-main);
+}
+
+.obs-bar-pct {
+  fill: var(--text-secondary);
+  font-size: 9px;
+  font-family: var(--font-main);
+}
+
+.obs-bar-bg {
+  fill: var(--bg-surface-2);
+  stroke: none;
+}
+
+.obs-bar-success {
+  fill: var(--term-green);
+}
+
+.obs-bar-error {
+  fill: var(--term-red);
+}
+
+.obs-bar-proc {
+  fill: var(--term-blue);
+}
+
+.obs-bar-idle {
+  fill: #b87000;
+}
+
+.obs-bar-other {
+  fill: var(--bg-surface-2);
+}
+
+/* ── Legend ────────────────────────────────────────── */
+
+.obs-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+  margin-top: 0.42rem;
+}
+
+.obs-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.obs-legend-label {
+  color: var(--text-secondary);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.obs-legend-dot--success { background: var(--term-green); }
+.obs-legend-dot--error   { background: var(--term-red); }
+.obs-legend-dot--proc    { background: var(--term-blue); }
+.obs-legend-dot--idle    { background: #b87000; }
+.obs-legend-dot--other   { background: var(--bg-surface-2); border: 1px solid var(--border-subtle); }
+
+/* ── Token usage table ─────────────────────────────── */
+
+.obs-table-scroll {
+  overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.obs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+
+.obs-table th {
+  position: sticky;
+  top: 0;
+  background: var(--sidebar-header);
+  color: var(--text-secondary);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.obs-table-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.obs-table-row td {
+  padding: 0.2rem 0.4rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.obs-table-row:hover td {
+  background: var(--sidebar-row-hover);
+}
+
+.obs-table-row.is-selected td {
+  background: var(--sidebar-row-active);
+}
+
+.obs-table-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.obs-table-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.obs-table-cost {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Outcome badges ────────────────────────────────── */
+
+.obs-outcome {
+  display: inline-block;
+  padding: 0.06rem 0.28rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+.obs-outcome--success  { background: #d4f5d4; color: var(--term-green); }
+.obs-outcome--error    { background: #ffd6d6; color: var(--term-red); }
+.obs-outcome--stopped  { background: #e8e8e8; color: #555; }
+.obs-outcome--killed   { background: #fff0d0; color: var(--term-warning); }
+.obs-outcome--unknown  { background: #f0f0f0; color: var(--text-secondary); }
+
+/* ── Heatmap ───────────────────────────────────────── */
+
+.obs-heatmap-scroll {
+  overflow-x: auto;
+}
+
+.obs-heatmap-x-label {
+  fill: var(--text-secondary);
+  font-size: 8px;
+  font-family: var(--font-main);
+}
+
+.obs-heatmap-y-label {
+  fill: var(--text-secondary);
+  font-size: 8px;
+  font-family: var(--font-main);
+}
+
+.obs-heatmap-tooltip {
+  position: fixed;
+  background: var(--sidebar-card);
+  border: 1px solid var(--border-subtle);
+  padding: 0.32rem 0.52rem;
+  font-size: 0.68rem;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.obs-tooltip-time {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  font-size: 0.7rem;
+}
+
+.obs-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.obs-tooltip-row strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Audit trail ──────────────────────────────────── */
+
+.obs-trail-agent-name {
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.obs-trail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.obs-trail-item {
+  display: grid;
+  grid-template-columns: 1rem 5rem 6rem 1fr;
+  gap: 0.42rem;
+  align-items: baseline;
+  padding: 0.14rem 0.22rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.66rem;
+}
+
+.obs-trail-item:last-child {
+  border-bottom: none;
+}
+
+.obs-trail-icon {
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.obs-trail-time {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.obs-trail-type {
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.obs-trail-detail {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-trail-state .obs-trail-icon  { color: var(--term-blue); }
+.obs-trail-token .obs-trail-icon  { color: var(--term-green); }
+.obs-trail-tool .obs-trail-icon   { color: var(--text-secondary); }
+.obs-trail-error .obs-trail-icon  { color: var(--term-red); }
+.obs-trail-error .obs-trail-type  { color: var(--term-red); }

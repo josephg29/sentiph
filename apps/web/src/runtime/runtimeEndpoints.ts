@@ -375,6 +375,51 @@ export const buildDeckTodoSolveUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildMetricsAggregateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+  if (!runtimeBaseUrl) {
+    return "/api/metrics/aggregate";
+  }
+  return buildAbsoluteUrl(runtimeBaseUrl, "/api/metrics/aggregate");
+};
+
+export const buildMetricsHeatmapUrl = (
+  days = 7,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/metrics/heatmap?days=${days}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildMetricsSummariesUrl = (
+  opts?: { provider?: string; tentacleId?: string; since?: string },
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const params = new URLSearchParams();
+  if (opts?.provider) params.set("provider", opts.provider);
+  if (opts?.tentacleId) params.set("tentacleId", opts.tentacleId);
+  if (opts?.since) params.set("since", opts.since);
+  const qs = params.toString();
+  const path = `/api/metrics/summaries${qs ? `?${qs}` : ""}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildMetricsEventsUrl = (
+  terminalId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/metrics/events/${encodeURIComponent(terminalId)}`;
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/prompts";

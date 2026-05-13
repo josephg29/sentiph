@@ -1,5 +1,3 @@
-import type { WriteStream } from "node:fs";
-
 import type {
   ChannelMessage,
   PersistedUiState,
@@ -70,8 +68,8 @@ export type TerminalSession = {
   statePollTimer?: ReturnType<typeof setInterval> | undefined;
   idleCloseTimer?: ReturnType<typeof setTimeout> | undefined;
   promptTimers?: Set<ReturnType<typeof setTimeout>>;
-  debugLog?: WriteStream | undefined;
-  transcriptLog?: WriteStream | undefined;
+  debugLog?: import("node:fs").WriteStream | undefined;
+  transcriptLog?: string | undefined;
   transcriptEventCount?: number;
   pendingInput?: string;
   hasTranscriptEnded?: boolean;

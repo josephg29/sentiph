@@ -5,11 +5,13 @@ import { extname, join, resolve, sep } from "node:path";
 
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
+import type { AgentMetricsStore } from "../agentMetricsStore";
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
 import type { MonitorService } from "../monitor";
+import { createPairingService as createDefaultPairingService } from "../pairing";
 import type { PairingService } from "../pairing";
 import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
@@ -18,6 +20,12 @@ import {
   handleConversationSearchRoute,
   handleConversationsCollectionRoute,
 } from "./conversationRoutes";
+import {
+  handleMetricsAggregateRoute,
+  handleMetricsEventsRoute,
+  handleMetricsHeatmapRoute,
+  handleMetricsSummariesRoute,
+} from "./metricsRoutes";
 import {
   handleDeckSkillsRoute,
   handleDeckTentacleItemRoute,
@@ -62,6 +70,7 @@ import {
 } from "./security";
 import {
   handleTerminalActionRoute,
+  handleTerminalInputRoute,
   handleTerminalItemRoute,
   handleTerminalPruneRoute,
   handleTerminalScrollbackRoute,
@@ -106,7 +115,8 @@ type CreateApiRequestHandlerOptions = {
   monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
   codeIntelStore: CodeIntelStore;
-  pairingService: PairingService;
+  metricsStore: AgentMetricsStore;
+  pairingService?: PairingService | undefined;
   allowRemoteAccess: boolean;
 };
 
@@ -132,6 +142,15 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["claude", [handleClaudeUsageRoute]],
   ["analytics", [handleUsageHeatmapRoute]],
   ["github", [handleGithubSummaryRoute]],
+  [
+    "metrics",
+    [
+      handleMetricsAggregateRoute,
+      handleMetricsHeatmapRoute,
+      handleMetricsSummariesRoute,
+      handleMetricsEventsRoute,
+    ],
+  ],
   ["ui-state", [handleUiStateRoute]],
   ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
   [
@@ -140,6 +159,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleTerminalsCollectionRoute,
       handleTerminalPruneRoute,
       handleTerminalScrollbackRoute,
+      handleTerminalInputRoute,
       handleTerminalActionRoute,
       handleTerminalItemRoute,
     ],
@@ -246,6 +266,7 @@ export const createApiRequestHandler = ({
   monitorService,
   invalidateClaudeUsageCache,
   codeIntelStore,
+  metricsStore,
   pairingService,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
@@ -267,9 +288,11 @@ export const createApiRequestHandler = ({
     monitorService,
     invalidateClaudeUsageCache,
     codeIntelStore,
+    metricsStore,
   };
 
-  const pairingRoutes = createPairingRoutes(pairingService, allowRemoteAccess);
+  const resolvedPairingService = pairingService ?? createDefaultPairingService();
+  const pairingRoutes = createPairingRoutes(resolvedPairingService, allowRemoteAccess);
 
   return async (request: IncomingMessage, response: ServerResponse) => {
     const startTime = Date.now();
@@ -305,7 +328,7 @@ export const createApiRequestHandler = ({
         return;
       }
 
-      if (allowRemoteAccess && !isAuthorizedRequest(request, pairingService)) {
+      if (allowRemoteAccess && !isAuthorizedRequest(request, resolvedPairingService)) {
         writeJson(response, 401, { error: "Unauthorized" }, corsOrigin);
         logRequest(request.method ?? "?", requestUrl.pathname, 401, startTime);
         return;

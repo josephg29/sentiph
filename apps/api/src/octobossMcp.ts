@@ -6,9 +6,19 @@ const MAX_PROMPT_LENGTH = 8192;
 
 const TOOLS = [
   {
+    name: "list_terminals",
+    description:
+      "List all terminal sessions that belong to this Octoboss instance, along with their current state. Always call this before spawn_terminal to check whether an idle terminal is already available for the task.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
     name: "spawn_terminal",
     description:
-      "Spawn a new terminal session with an initial prompt. The terminal runs Claude Code and is attached to the Octoboss context. Returns the terminal ID so you can check its output later.",
+      "Spawn a NEW terminal session with an initial prompt. Only use this when list_terminals shows no idle terminals are available. If an idle terminal already exists, use send_prompt instead to reuse it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -25,15 +35,34 @@ const TOOLS = [
     },
   },
   {
-    name: "get_terminal_output",
+    name: "send_prompt",
     description:
-      "Read the current output of a terminal by its ID. Returns all text the terminal has produced so far. Use this to check if a spawned terminal has finished its task.",
+      "Send a prompt to an existing idle terminal. Use this instead of spawn_terminal when list_terminals shows a terminal with agentRuntimeState \"idle\".",
     inputSchema: {
       type: "object",
       properties: {
         terminal_id: {
           type: "string",
-          description: "The terminal ID returned by spawn_terminal",
+          description: "The terminal ID to send the prompt to (must be idle)",
+        },
+        prompt: {
+          type: "string",
+          description: "The prompt to send to the terminal",
+        },
+      },
+      required: ["terminal_id", "prompt"],
+    },
+  },
+  {
+    name: "get_terminal_output",
+    description:
+      "Read the current output of a terminal by its ID. Returns all text the terminal has produced so far. Use this to check if a terminal has finished its task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        terminal_id: {
+          type: "string",
+          description: "The terminal ID",
         },
       },
       required: ["terminal_id"],
@@ -58,6 +87,70 @@ const handleToolCall = async (
   name: string,
   args: Record<string, unknown>,
 ): Promise<string> => {
+  if (name === "list_terminals") {
+    const res = await fetch(`${apiOrigin}/api/terminal-snapshots`);
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}`);
+    }
+    const snapshots = (await res.json()) as Array<Record<string, unknown>>;
+
+    const children = parentTerminalId
+      ? snapshots.filter((s) => s.parentTerminalId === parentTerminalId)
+      : snapshots.filter(
+          (s) => s.parentTerminalId !== undefined && s.parentTerminalId !== null,
+        );
+
+    if (children.length === 0) {
+      return "No terminals yet. Use spawn_terminal to create one.";
+    }
+
+    const lines = children.map((s) => {
+      const agentState = s.agentRuntimeState as string | undefined;
+      const lifecycle = s.lifecycleState as string | undefined;
+      const displayState = agentState ?? lifecycle ?? String(s.state ?? "unknown");
+      const termName = s.tentacleName ?? s.terminalId;
+      return `- ${s.terminalId} (${termName}): ${displayState}`;
+    });
+
+    const idleCount = children.filter((s) => s.agentRuntimeState === "idle").length;
+    const hint =
+      idleCount > 0
+        ? `\n\n${idleCount} terminal(s) are idle and ready to accept a new prompt via send_prompt.`
+        : "\n\nNo idle terminals. Use spawn_terminal to create a new one.";
+
+    return `Terminals:\n${lines.join("\n")}${hint}`;
+  }
+
+  if (name === "send_prompt") {
+    const terminalId = String(args.terminal_id ?? "").trim();
+    const prompt = String(args.prompt ?? "").trim();
+    if (!terminalId) throw new Error("terminal_id is required");
+    if (!prompt) throw new Error("prompt is required");
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      throw new Error(`prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`);
+    }
+
+    const data = prompt.endsWith("\n") ? prompt : `${prompt}\n`;
+    const res = await fetch(
+      `${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/input`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data }),
+      },
+    );
+
+    if (res.status === 404) {
+      return `Terminal "${terminalId}" not found or not active. Use list_terminals to see available terminals, or spawn_terminal to create a new one.`;
+    }
+    if (!res.ok) {
+      const errData = (await res.json()) as Record<string, unknown>;
+      throw new Error(String(errData.error ?? `API error ${res.status}`));
+    }
+
+    return `Sent prompt to terminal "${terminalId}". Use get_terminal_output("${terminalId}") to read its output.`;
+  }
+
   if (name === "spawn_terminal") {
     const prompt = String(args.prompt ?? "").trim();
     if (!prompt) throw new Error("prompt is required");

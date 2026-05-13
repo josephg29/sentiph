@@ -9,6 +9,7 @@ import {
   readClaudeOauthUsageSnapshot as readClaudeOauthUsageSnapshotDefault,
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
 } from "./claudeUsage";
+import { createAgentMetricsStore } from "./agentMetricsStore";
 import { createCodeIntelStore } from "./codeIntelStore";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
@@ -22,6 +23,7 @@ export const createApiServer = ({
   workspaceCwd,
   projectStateDir,
   webDistDir,
+  promptsDir,
   apiBaseUrl,
   gitClient,
   readClaudeUsageSnapshot,
@@ -92,12 +94,14 @@ export const createApiServer = ({
     ((scope: "all" | "project") => scanClaudeUsageChart(scope, resolvedWorkspaceCwd));
 
   const codeIntelStore = createCodeIntelStore(resolvedStateDir);
+  const metricsStore = createAgentMetricsStore(join(resolvedStateDir, "state", "metrics"));
 
   const requestHandler = createApiRequestHandler({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
     projectStateDir: resolvedStateDir,
     webDistDir,
+    promptsDir,
     getApiBaseUrl,
     getApiPort,
     readClaudeUsageSnapshot: readClaudeUsageSnapshotWithDefault,
@@ -109,6 +113,7 @@ export const createApiServer = ({
     monitorService: monitorServiceWithDefault,
     invalidateClaudeUsageCache,
     codeIntelStore,
+    metricsStore,
     allowRemoteAccess,
   });
 

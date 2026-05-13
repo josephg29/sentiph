@@ -3312,4 +3312,86 @@ describe("createApiServer", () => {
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
   });
+
+  it("returns 405 for non-POST on /api/terminals/:id/input", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/terminals/terminal-1/input`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    expect(response.status).toBe(405);
+  });
+
+  it("returns 400 for POST /api/terminals/:id/input with missing data field", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const response = await fetch(`${baseUrl}/api/terminals/terminal-1/input`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: expect.any(String) });
+  });
+
+  it("returns 404 for POST /api/terminals/:id/input when terminal has no active session", async () => {
+    const baseUrl = await startServer();
+
+    const createResponse = await fetch(`${baseUrl}/api/terminals`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    expect(createResponse.status).toBe(201);
+
+    const response = await fetch(`${baseUrl}/api/terminals/terminal-1/input`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "hello\n" }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({ error: expect.any(String) });
+  });
+
+  it("returns 404 for POST /api/terminals/:id/input when terminal does not exist", async () => {
+    const baseUrl = await startServer();
+
+    const response = await fetch(`${baseUrl}/api/terminals/nonexistent/input`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ data: "hello\n" }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({ error: expect.any(String) });
+  });
+
+  it("writes octoboss MCP config on first run before stateDir exists", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+
+    // stateDir (.octogent) does NOT exist yet when the server starts
+    const stateDir = join(workspaceCwd, ".octogent");
+    expect(existsSync(stateDir)).toBe(false);
+
+    await startServer({ workspaceCwd });
+
+    const configPath = join(stateDir, "octoboss-mcp-config.json");
+    expect(existsSync(configPath)).toBe(true);
+
+    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+      mcpServers: { octogent: { command: string; env: Record<string, string> } };
+    };
+    expect(config.mcpServers.octogent.command).toBeTruthy();
+    expect(config.mcpServers.octogent.env.OCTOGENT_API_ORIGIN).toBeTruthy();
+  });
 });

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentiph — From Tool to Teammate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --surface: #111113;
+      --border: #1f1f23;
+      --border-subtle: #18181b;
+      --text: #fafafa;
+      --muted: #71717a;
+      --accent: #6366f1;
+      --accent-dim: rgba(99,102,241,0.12);
+      --accent-border: rgba(99,102,241,0.3);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.1);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245,158,11,0.1);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.08);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { padding: 80px 0; }
+    section + section { border-top: 1px solid var(--border-subtle); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(9,9,11,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .nav-logo span { color: var(--accent); }
+    .badge-nav {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 120px 0 96px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 28px;
+    }
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 1px;
+      background: var(--accent-border);
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+      margin-bottom: 24px;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    /* ── Section headings ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 3.5vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .section-intro {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    /* ── Before / After ── */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+
+    .compare-card {
+      border-radius: 14px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .compare-card.before { border-color: #27272a; }
+    .compare-card.after  { border-color: var(--accent-border); background: linear-gradient(145deg, #0f0f13 0%, #111118 100%); }
+    .compare-card.after::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .compare-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    .before .compare-tag { background: rgba(39,39,42,0.8); color: var(--muted); border: 1px solid #27272a; }
+    .after  .compare-tag { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+
+    .compare-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .compare-desc {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.65;
+    }
+
+    .compare-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .compare-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.875rem;
+      color: #a1a1aa;
+      line-height: 1.5;
+    }
+    .compare-list li .icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    .before .icon { background: var(--red-dim); color: var(--red); }
+    .after  .icon { background: var(--green-dim); color: var(--green); }
+
+    /* ── Arrow divider ── */
+    .arrow-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      position: relative;
+    }
+    .arrow-divider::before,
+    .arrow-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border));
+    }
+    .arrow-divider::after { background: linear-gradient(to left, transparent, var(--border)); }
+    .arrow-pill {
+      margin: 32px 16px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── How it works diagram ── */
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .diagram::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .diagram-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      row-gap: 16px;
+    }
+
+    .node {
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 120px;
+      position: relative;
+    }
+    .node-human {
+      background: rgba(39,39,42,0.6);
+      border: 1px solid #3f3f46;
+    }
+    .node-boss {
+      background: linear-gradient(145deg, rgba(99,102,241,0.2), rgba(79,70,229,0.15));
+      border: 1px solid var(--accent-border);
+      box-shadow: 0 0 32px rgba(99,102,241,0.15);
+    }
+    .node-worker {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+    .node-icon { font-size: 22px; margin-bottom: 6px; }
+    .node-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .node-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .connector {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      color: var(--muted);
+    }
+    .connector svg { width: 20px; height: 20px; }
+
+    .worker-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .diagram-caption {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .diagram-caption strong { color: var(--text); }
+
+    /* ── Stats row ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 0;
+    }
+    @media (max-width: 560px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-number.accent { color: var(--accent); }
+    .stat-number.green  { color: var(--green);  }
+    .stat-number.amber  { color: var(--amber);  }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* ── Vision card ── */
+    .vision-card {
+      background: linear-gradient(145deg, #0f0f18 0%, #0d0d14 100%);
+      border: 1px solid var(--accent-border);
+      border-radius: 16px;
+      padding: 48px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .vision-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .vision-card blockquote {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.55;
+      color: #e4e4e7;
+      max-width: 620px;
+      margin: 0 auto 28px;
+      position: relative;
+    }
+    .vision-card blockquote em { font-style: italic; color: #a5b4fc; }
+    .vision-author {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .vision-author strong { color: var(--text); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* ── Utilities ── */
+    .text-muted { color: var(--muted); }
+    .mb-0 { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-logo">sentiph<span>.</span></div>
+    <span class="badge-nav">Investor Preview</span>
+  </nav>
+
+  <!-- Hero -->
+  <div class="container">
+    <div class="hero">
+      <div class="hero-eyebrow">The Iteration</div>
+      <h1>We taught AI agents<br/>to <em>manage each other.</em></h1>
+      <p class="hero-sub">
+        The original tool required a human to coordinate every AI worker.
+        We removed that bottleneck — one AI now runs the whole team.
+      </p>
+    </div>
+  </div>
+
+  <!-- Before / After -->
+  <div class="container">
+    <section>
+      <div class="section-label">The Problem We Solved</div>
+      <h2>Everyone has AI workers.<br/>Nobody solved the manager.</h2>
+      <p class="section-intro">
+        AI coding tools are everywhere. But someone still has to sit between them — assigning tasks,
+        checking progress, coordinating handoffs. That someone was always a human.
+        Until now.
+      </p>
+
+      <div class="compare-grid">
+
+        <!-- Before -->
+        <div class="compare-card before">
+          <span class="compare-tag">Before — Octogent v1</span>
+          <div class="compare-title">The Human-in-the-Loop Problem</div>
+          <p class="compare-desc">
+            A useful toolkit for organizing AI agents — but every coordination decision
+            still went through you.
+          </p>
+          <ul class="compare-list">
+            <li>
+              <span class="icon">✕</span>
+              You had to manually create and assign each AI agent
+            </li>
+            <li>
+              <span class="icon">✕</span>
+              You had to send messages between agents yourself
+            </li>
+            <li>
+              <span class="icon">✕</span>
+              You had to check if work was done and trigger the next step
+            </li>
+            <li>
+              <span class="icon">✕</span>
+              Coordinating 5 agents meant 5× the management overhead
+            </li>
+          </ul>
+        </div>
+
+        <!-- After -->
+        <div class="compare-card after">
+          <span class="compare-tag">After — Sentiph</span>
+          <div class="compare-title">The Self-Managing AI Team</div>
+          <p class="compare-desc">
+            One AI agent — Octoboss — acts as the manager. It hires workers,
+            delegates tasks, and monitors completion. Automatically.
+          </p>
+          <ul class="compare-list">
+            <li>
+              <span class="icon">✓</span>
+              Octoboss decides which agents to spin up and what to assign them
+            </li>
+            <li>
+              <span class="icon">✓</span>
+              Workers report back autonomously — no human handoffs
+            </li>
+            <li>
+              <span class="icon">✓</span>
+              Octoboss reads output, decides if work is done, triggers next steps
+            </li>
+            <li>
+              <span class="icon">✓</span>
+              Scale from 1 agent to 9 parallel workers with zero extra effort
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+    </section>
+  </div>
+
+  <!-- Arrow -->
+  <div class="container">
+    <div class="arrow-divider">
+      <span class="arrow-pill">↓ Here's how it works</span>
+    </div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="container">
+    <section style="padding-top: 48px;">
+      <div class="section-label">The Architecture</div>
+      <h2>One boss. Many workers.<br/>Zero human coordination.</h2>
+      <p class="section-intro">
+        You give Octoboss a goal. It figures out how to break it into pieces,
+        spins up specialist AI workers, delegates the pieces, and stitches the results together.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-row">
+          <!-- Human -->
+          <div class="node node-human">
+            <div class="node-icon">🧑‍💼</div>
+            <div class="node-label">You</div>
+            <div class="node-sub">Set the goal</div>
+          </div>
+
+          <div class="connector">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 10h12M12 6l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- Octoboss -->
+          <div class="node node-boss">
+            <div class="node-icon">🐙</div>
+            <div class="node-label" style="color: #a5b4fc;">Octoboss</div>
+            <div class="node-sub">AI Orchestrator</div>
+          </div>
+
+          <div class="connector">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 10h12M12 6l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- Workers -->
+          <div class="worker-group">
+            <div class="node node-worker">
+              <div class="node-icon">🤖</div>
+              <div class="node-label" style="color:#86efac;">Worker A</div>
+              <div class="node-sub">Write code</div>
+            </div>
+            <div class="node node-worker">
+              <div class="node-icon">🤖</div>
+              <div class="node-label" style="color:#86efac;">Worker B</div>
+              <div class="node-sub">Run tests</div>
+            </div>
+            <div class="node node-worker">
+              <div class="node-icon">🤖</div>
+              <div class="node-label" style="color:#86efac;">Worker C</div>
+              <div class="node-sub">Review PR</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="diagram-caption">
+          <strong>Octoboss is the only AI that can hire and monitor other AIs.</strong><br/>
+          Workers are intentionally isolated — they can't spin up more agents,
+          preventing runaway costs and keeping you in control.
+        </p>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- Stats -->
+  <div class="container">
+    <section>
+      <div class="section-label">Why It Matters</div>
+      <h2>The numbers are simple.</h2>
+      <p class="section-intro">
+        This isn't incremental improvement. It's a category shift in how software gets built.
+      </p>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number accent">9×</div>
+          <div class="stat-label">More parallel work<br/>from a single prompt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number green">0</div>
+          <div class="stat-label">Manual agent coordination<br/>steps required</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number amber">1</div>
+          <div class="stat-label">Instruction to Octoboss<br/>to kick off a full team</div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- Vision -->
+  <div class="container">
+    <section>
+      <div class="vision-card">
+        <blockquote>
+          "The original tool was a <em>filing cabinet for AI agents</em>.
+          What we built is an <em>AI that runs the whole office</em> —
+          and it never needs to be told twice."
+        </blockquote>
+        <div class="vision-author">
+          — The core insight behind <strong>Sentiph</strong>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      Sentiph &nbsp;·&nbsp; Built on Octogent &nbsp;·&nbsp; Confidential — Not for distribution
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -7,6 +7,7 @@ import { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { MonitorPrimaryView } from "./MonitorPrimaryView";
+import { ObservabilityPrimaryView } from "./ObservabilityPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
 type PrimaryViewRouterProps = {
@@ -65,6 +66,10 @@ export const PrimaryViewRouter = ({
 
   if (activePrimaryNav === 8) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 9) {
+    return <ObservabilityPrimaryView enabled />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

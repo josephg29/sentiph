@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────
+   Monocraft — the Octogent type voice (apps/web/public/fonts/Monocraft.otf)
+   ─────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Monocraft";
+  src: url("/fonts/Monocraft.otf") format("opentype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Tokens — mirrored from apps/web/src/styles/foundation.css
+   so the landing reads as the same product.
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg-canvas: #fafafa;
+  --bg-surface-1: #f2f2f2;
+  --bg-surface-2: #e8e8e8;
+  --bg-surface-3: #ddd;
+
+  --border-subtle: #ddd;
+  --border-strong: #111;
+
+  --text-primary: #111;
+  --text-secondary: #666;
+  --text-muted: #888;
+
+  --accent-primary: #111;
+
+  --term-red: #880f1e;
+  --term-red-soft: #f9eaec;
+  --term-green: #25a244;
+  --term-green-soft: #e6f4eb;
+  --term-blue: #1e59a3;
+  --term-blue-soft: #eaf0f9;
+  --term-warning: #b87000;
+  --term-warning-soft: #f9f1e3;
+
+  --terminal-bg: #111;
+  --terminal-text: #fafafa;
+  --terminal-muted: #888;
+
+  --font-main: "Monocraft", "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  --control-letter-spacing: 0.06em;
+}
+
+@theme inline {
+  --color-canvas: var(--bg-canvas);
+  --color-surface-1: var(--bg-surface-1);
+  --color-surface-2: var(--bg-surface-2);
+  --color-surface-3: var(--bg-surface-3);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  --color-foreground: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+
+  --color-accent: var(--accent-primary);
+
+  --color-term-red: var(--term-red);
+  --color-term-red-soft: var(--term-red-soft);
+  --color-term-green: var(--term-green);
+  --color-term-green-soft: var(--term-green-soft);
+  --color-term-blue: var(--term-blue);
+  --color-term-blue-soft: var(--term-blue-soft);
+  --color-term-warning: var(--term-warning);
+  --color-term-warning-soft: var(--term-warning-soft);
+
+  --color-terminal-bg: var(--terminal-bg);
+  --color-terminal-text: var(--terminal-text);
+  --color-terminal-muted: var(--terminal-muted);
+
+  --font-mono: var(--font-main);
+  --font-sans: var(--font-main);
+
+  --tracking-control: 0.06em;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.12em;
+
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-blink-cursor: blink-cursor 1.05s steps(1, end) infinite;
+  --animate-tape: tape 14s linear infinite;
+  --animate-sway: sway 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes blink-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes tape {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(1px); }
+  75% { transform: translateX(-1px); }
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border-subtle);
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 15px;
+    background: var(--bg-canvas);
+  }
+
+  body {
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+      var(--bg-canvas);
+    background-size: 28px 28px, 28px 28px, auto;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    text-rendering: geometricPrecision;
+  }
+
+  ::selection {
+    background: #111;
+    color: #fafafa;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg-surface-2); }
+  ::-webkit-scrollbar-thumb { background: #bbb; }
+  ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+  img,
+  svg.pixelated,
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Utilities
+   ─────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .chip-label {
+    text-transform: uppercase;
+    letter-spacing: var(--control-letter-spacing);
+    font-weight: 700;
+  }
+
+  .scanline {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.02) 2px,
+      rgba(255, 255, 255, 0.02) 3px
+    );
+  }
+
+  .grid-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+}

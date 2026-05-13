@@ -11,5 +11,6 @@ export * from "./domain/monitor";
 export * from "./domain/setup";
 export * from "./domain/uiState";
 export * from "./domain/usage";
+export * from "./domain/agentMetrics";
 export * from "./ports/TerminalSnapshotReader";
 export * from "./util/typeCoercion";

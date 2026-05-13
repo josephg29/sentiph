@@ -5,6 +5,8 @@ import { dirname, join } from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
+import { createAgentMetricsCollector } from "./agentMetricsCollector";
+
 import type { TerminalSnapshot } from "@octogent/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
@@ -84,15 +86,17 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
   };
 
   try {
-    if (existsSync(stateDir)) {
-      mkdirSync(join(stateDir, "state"), { recursive: true });
-      // mode 0o600: only the owner can read this config, since it leaks the
-      // local API origin to any user with read access on the state directory.
-      writeFileSync(configPath, JSON.stringify(config, null, 2), {
-        encoding: "utf-8",
-        mode: 0o600,
-      });
-    }
+    // Create stateDir and its state/ subdirectory unconditionally — on first
+    // run the dir may not yet exist when this is called (the registry creates
+    // it later), which would silently skip writing and leave Octoboss without
+    // MCP tools until the next server restart.
+    mkdirSync(join(stateDir, "state"), { recursive: true });
+    // mode 0o600: only the owner can read this config, since it leaks the
+    // local API origin to any user with read access on the state directory.
+    writeFileSync(configPath, JSON.stringify(config, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(
@@ -110,6 +114,8 @@ export const createTerminalRuntime = ({
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
   const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
+  const metricsDir = join(stateDir, "state", "metrics");
+  const metricsCollector = createAgentMetricsCollector(metricsDir);
   const octobossMcpConfigPath = writeOctobossMcpConfig(stateDir);
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
@@ -195,6 +201,7 @@ export const createTerminalRuntime = ({
       terminal.processId = undefined;
     }
     persistRegistry();
+    metricsCollector.onSessionStart(terminal);
     broadcastTerminalEvent({
       type: "terminal-updated",
       snapshot: toTerminalSnapshot(terminal),
@@ -223,6 +230,7 @@ export const createTerminalRuntime = ({
       terminal.exitSignal = undefined;
     }
     persistRegistry();
+    metricsCollector.onSessionEnd(terminalId, details.exitCode, details.signal, details.reason);
     broadcastTerminalEvent({
       type: "terminal-updated",
       snapshot: toTerminalSnapshot(terminal),
@@ -315,6 +323,7 @@ export const createTerminalRuntime = ({
     agentRuntimeState: string,
     toolName?: string,
   ) => {
+    metricsCollector.onStateChange(terminalId, agentRuntimeState);
     broadcastTerminalEvent({
       type: "terminal-state-changed",
       terminalId,
@@ -338,6 +347,7 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
     onSessionStart: markTerminalRunning,
     onSessionEnd: markTerminalEnded,
+    onOutputChunk: metricsCollector.onOutputChunk,
     octobossMcpConfigPath,
   });
 

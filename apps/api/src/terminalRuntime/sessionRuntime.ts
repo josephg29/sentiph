@@ -44,6 +44,7 @@ type CreateSessionRuntimeOptions = {
   onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
   onSessionStart?: (terminalId: string, details: TerminalSessionStartDetails) => void;
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
+  onOutputChunk?: (terminalId: string, chunk: string) => void;
   octobossMcpConfigPath?: string;
 };
 
@@ -68,6 +69,7 @@ export const createSessionRuntime = ({
   onStateChange,
   onSessionStart,
   onSessionEnd,
+  onOutputChunk,
   octobossMcpConfigPath,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
@@ -619,6 +621,7 @@ export const createSessionRuntime = ({
 
       appendDebugLog(session, `pty-output session=${sessionId} chunk=${JSON.stringify(chunk)}`);
       appendScrollback(session, chunk);
+      onOutputChunk?.(sessionId, chunk);
       const nextState = session.stateTracker.observeChunk(chunk, Date.now());
       broadcastMessage(session, {
         type: "output",
