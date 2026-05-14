@@ -392,6 +392,45 @@ export const useCanvasGraphData = ({
     edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });
   }
 
+  // Orphan terminals — spawned by Octoboss (or created standalone) with no deck
+  // tentacle entry. They're already in `columns` but were never drawn above.
+  for (const terminal of columns) {
+    const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
+    if (currentNodesById.has(sessionNodeId)) continue;
+
+    const parentNodeId = terminal.parentTerminalId
+      ? buildActiveSessionNodeId(terminal.parentTerminalId)
+      : OCTOBOSS_NODE_ID;
+    const parentNode = currentNodesById.get(parentNodeId) ?? octobossNode;
+    const jitter = () => (Math.random() - 0.5) * 60;
+    const prevSession = prevNodes.get(sessionNodeId);
+    const runtimeInfo = agentRuntimeStates?.get(terminal.terminalId);
+
+    const sessionNode: GraphNode = {
+      id: sessionNodeId,
+      type: "active-session",
+      x: prevSession?.x ?? parentNode.x + jitter(),
+      y: prevSession?.y ?? parentNode.y + jitter(),
+      vx: prevSession?.vx ?? 0,
+      vy: prevSession?.vy ?? 0,
+      pinned: prevSession?.pinned ?? false,
+      radius: ACTIVE_SESSION_RADIUS,
+      tentacleId: terminal.tentacleId,
+      label: terminal.tentacleName || terminal.terminalId,
+      color: octobossColor,
+      sessionId: terminal.terminalId,
+      agentState: terminal.state,
+      hasUserPrompt: terminal.hasUserPrompt ?? false,
+      ...(terminal.workspaceMode ? { workspaceMode: terminal.workspaceMode } : {}),
+      ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
+      ...(runtimeInfo ? { agentRuntimeState: runtimeInfo.state } : {}),
+      ...(runtimeInfo?.toolName ? { waitingToolName: runtimeInfo.toolName } : {}),
+    };
+    nodes.push(sessionNode);
+    currentNodesById.set(sessionNodeId, sessionNode);
+    edges.push({ source: parentNodeId, target: sessionNodeId });
+  }
+
   // Inactive sessions from conversations
   for (const session of inactiveSessions) {
     if (!session.tentacleId || !seenTentacleIds.has(session.tentacleId)) continue;
