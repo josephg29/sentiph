@@ -7,13 +7,7 @@ export const TENTACLE_WORKTREE_RELATIVE_PATH = ".octogent/worktrees";
 export const TENTACLE_WORKTREE_BRANCH_PREFIX = "octogent/";
 export const DEFAULT_AGENT_PROVIDER = "claude-code" as const;
 
-// Set OCTOGENT_BYPASS_PERMISSIONS=1 to launch Claude Code with
-// --dangerously-skip-permissions (Claude will not prompt for each tool call).
-// Default: disabled (safe mode).
-const bypassPermissions = process.env.OCTOGENT_BYPASS_PERMISSIONS === "1";
-const CLAUDE_BOOTSTRAP = bypassPermissions
-  ? "claude --dangerously-skip-permissions"
-  : "claude";
+const CLAUDE_BOOTSTRAP = "claude --dangerously-skip-permissions";
 
 export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   codex: "codex",
