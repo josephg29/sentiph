@@ -6,6 +6,10 @@ import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 import { createAgentMetricsCollector } from "./agentMetricsCollector";
+import {
+  OCTOBOSS_SYSTEM_PROMPT,
+  assertOctobossSystemPromptIsShellSafe,
+} from "./octobossSystemPrompt";
 
 import type { TerminalSnapshot } from "@octogent/core";
 import type { WebSocket } from "ws";
@@ -106,6 +110,25 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
   return configPath;
 };
 
+const writeOctobossSystemPrompt = (stateDir: string): string | undefined => {
+  const promptPath = join(stateDir, "octoboss-system-prompt.md");
+  try {
+    assertOctobossSystemPromptIsShellSafe(OCTOBOSS_SYSTEM_PROMPT);
+    mkdirSync(stateDir, { recursive: true });
+    writeFileSync(promptPath, OCTOBOSS_SYSTEM_PROMPT, {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    return promptPath;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[octoboss-system-prompt] Failed to write system prompt at ${promptPath}: ${message}. Octoboss will start without orchestration guidance.`,
+    );
+    return undefined;
+  }
+};
+
 export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
@@ -117,6 +140,7 @@ export const createTerminalRuntime = ({
   const metricsDir = join(stateDir, "state", "metrics");
   const metricsCollector = createAgentMetricsCollector(metricsDir);
   const octobossMcpConfigPath = writeOctobossMcpConfig(stateDir);
+  const octobossSystemPromptPath = writeOctobossSystemPrompt(stateDir);
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
   const terminalEventsWebsocketServer = new WebSocketServer({ noServer: true });
@@ -349,6 +373,7 @@ export const createTerminalRuntime = ({
     onSessionEnd: markTerminalEnded,
     onOutputChunk: metricsCollector.onOutputChunk,
     octobossMcpConfigPath,
+    ...(octobossSystemPromptPath ? { octobossSystemPromptPath } : {}),
   });
 
   const findWorktreeTerminal = (tentacleId: string) =>

@@ -3394,4 +3394,26 @@ describe("createApiServer", () => {
     expect(config.mcpServers.octogent.command).toBeTruthy();
     expect(config.mcpServers.octogent.env.OCTOGENT_API_ORIGIN).toBeTruthy();
   });
+
+  it("writes octoboss system prompt on first run with shell-safe content", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+
+    const stateDir = join(workspaceCwd, ".octogent");
+    expect(existsSync(stateDir)).toBe(false);
+
+    await startServer({ workspaceCwd });
+
+    const promptPath = join(stateDir, "octoboss-system-prompt.md");
+    expect(existsSync(promptPath)).toBe(true);
+
+    const prompt = readFileSync(promptPath, "utf8");
+    expect(prompt.length).toBeGreaterThan(0);
+    // Bootstrap loads this file via shell substitution inside double quotes,
+    // so the content must avoid bash's four double-quoted special characters.
+    expect(prompt).not.toMatch(/[$`"\\]/);
+    // Sanity-check the orchestration guidance is actually present.
+    expect(prompt).toMatch(/Octoboss/);
+    expect(prompt).toMatch(/Claude Code/);
+  });
 });

@@ -8,7 +8,7 @@ const TOOLS = [
   {
     name: "list_terminals",
     description:
-      "List all terminal sessions that belong to this Octoboss instance, along with their current state. Always call this before spawn_terminal to check whether an idle terminal is already available for the task.",
+      "List the child Claude Code agents you are orchestrating, with their current runtime state. Each entry is a full Claude Code session running in its own terminal. State \"idle\" means the agent has finished its previous turn and is ready to accept a new prompt. Always call this before spawn_terminal so you can reuse an idle agent via send_prompt instead of paying the spawn cost.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -18,17 +18,18 @@ const TOOLS = [
   {
     name: "spawn_terminal",
     description:
-      "Spawn a NEW terminal session with an initial prompt. Only use this when list_terminals shows no idle terminals are available. If an idle terminal already exists, use send_prompt instead to reuse it.",
+      "Spawn a NEW child Claude Code agent in its own terminal and give it an initial task. The child is a full Claude Code session with the standard toolset: Bash, Read, Write, Edit, Glob, Grep, WebFetch, and more. It can run shell commands, read and write files, hit HTTP endpoints, and operate independently. Phrase the prompt as a natural-language task describing the goal and any constraints, the way you would brief a competent engineer. Do NOT paste raw shell commands as the prompt: the child reads the prompt as conversational input, not as a shell, and will choose its own tools to satisfy the task. Good prompt: Build the project, run the test suite, and report any failures with file and line. Bad prompt: cd repo and run npm test. Use spawn_terminal only when list_terminals shows no idle child you can reuse.",
     inputSchema: {
       type: "object",
       properties: {
         prompt: {
           type: "string",
-          description: "The initial prompt to send to the new terminal",
+          description:
+            "Natural-language task for the new child agent. Describe the goal, constraints, and what to report back. The child will pick its own tools (Bash, Write, etc.) to do the work.",
         },
         name: {
           type: "string",
-          description: "Optional short name for the terminal (shown on the canvas)",
+          description: "Optional short name for the agent (shown on the canvas).",
         },
       },
       required: ["prompt"],
@@ -37,17 +38,18 @@ const TOOLS = [
   {
     name: "send_prompt",
     description:
-      "Send a prompt to an existing idle terminal. Use this instead of spawn_terminal when list_terminals shows a terminal with agentRuntimeState \"idle\".",
+      "Send a follow-up task to an existing idle child agent (one whose agentRuntimeState is idle). Same prompting rules as spawn_terminal: phrase as a natural-language task, not as raw shell. The child will use its own Bash, Read, Write, Edit, etc. to carry out the work. Prefer send_prompt over spawn_terminal whenever an idle child is available, so context and history are preserved.",
     inputSchema: {
       type: "object",
       properties: {
         terminal_id: {
           type: "string",
-          description: "The terminal ID to send the prompt to (must be idle)",
+          description: "Terminal ID of the idle child agent to send the task to.",
         },
         prompt: {
           type: "string",
-          description: "The prompt to send to the terminal",
+          description:
+            "Natural-language task for the child agent. The child reads this as a conversational prompt and will pick its own tools to satisfy it.",
         },
       },
       required: ["terminal_id", "prompt"],
@@ -56,13 +58,13 @@ const TOOLS = [
   {
     name: "get_terminal_output",
     description:
-      "Read the current output of a terminal by its ID. Returns all text the terminal has produced so far. Use this to check if a terminal has finished its task.",
+      "Read the current scrollback of a child agent by its terminal ID. Returns the rendered text the agent has produced so far (assistant messages and tool output). Child agents work asynchronously, so a single read may show work in progress; call again later to check for completion. Cross-reference with list_terminals to see whether the child is still busy or has returned to idle.",
     inputSchema: {
       type: "object",
       properties: {
         terminal_id: {
           type: "string",
-          description: "The terminal ID",
+          description: "Terminal ID of the child agent whose output you want to read.",
         },
       },
       required: ["terminal_id"],

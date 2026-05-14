@@ -46,6 +46,7 @@ type CreateSessionRuntimeOptions = {
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
   onOutputChunk?: (terminalId: string, chunk: string) => void;
   octobossMcpConfigPath?: string;
+  octobossSystemPromptPath?: string;
 };
 
 const ANSI_BEL = String.fromCharCode(0x07);
@@ -71,6 +72,7 @@ export const createSessionRuntime = ({
   onSessionEnd,
   onOutputChunk,
   octobossMcpConfigPath,
+  octobossSystemPromptPath,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -473,9 +475,18 @@ export const createSessionRuntime = ({
       TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
     let bootstrapCommand: string;
     if (session.tentacleId === OCTOBOSS_TENTACLE_ID) {
-      bootstrapCommand = octobossMcpConfigPath
-        ? `${claudeBase} --mcp-config "${octobossMcpConfigPath}"`
-        : claudeBase;
+      const flags: string[] = [];
+      if (octobossMcpConfigPath) {
+        flags.push(`--mcp-config "${octobossMcpConfigPath}"`);
+      }
+      if (octobossSystemPromptPath) {
+        // The prompt file is authored to avoid bash double-quoted special
+        // characters (verified at write time), so the substitution is safe.
+        // The inner quotes around the path tolerate spaces in stateDir.
+        flags.push(`--append-system-prompt "$(cat "${octobossSystemPromptPath}")"`);
+      }
+      bootstrapCommand =
+        flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
     } else {
       bootstrapCommand =
         TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
