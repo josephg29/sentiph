@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
-import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
+import { OCTOBOSS_ID, useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
@@ -1339,18 +1339,13 @@ export const CanvasPrimaryView = ({
                 className="canvas-context-menu-item"
                 onClick={() => {
                   setContextMenu(null);
-                  const result = onCreateTerminal?.();
-                  if (result && typeof result.then === "function") {
-                    void result.then((agentId) => {
-                      if (agentId) setPendingOpenAgentId(agentId);
-                    });
-                  }
+                  handleCreateAgent(OCTOBOSS_ID);
                 }}
               >
                 <span className="canvas-context-menu-icon">
                   <TerminalIcon size={14} />
                 </span>
-                New Terminal
+                Open Octoboss
               </button>
             )}
             {contextMenu.kind === "active-session" && (
