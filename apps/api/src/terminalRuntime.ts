@@ -262,7 +262,7 @@ export const createTerminalRuntime = ({
   const worktreesDir = join(stateDir, "worktrees");
   const gitClientOpt = gitClient;
 
-  const GENERATED_NAME_PATTERN = /^Octogent Terminal \d+$/;
+  const GENERATED_NAME_PATTERN = /^Agent \d+$/;
 
   const worktreeManager = {
     getTentacleWorkspaceCwd: (tentacleId: string) => {
@@ -496,14 +496,14 @@ export const createTerminalRuntime = ({
 
   const allocateDefaultTerminalName = (): string => {
     const usedNumbers = new Set<number>();
-    const pattern = /^Octogent Terminal (\d+)$/;
+    const pattern = /^Agent (\d+)$/;
     for (const t of terminals.values()) {
       const match = pattern.exec(t.tentacleName);
       if (match) usedNumbers.add(Number(match[1]));
     }
     let n = 1;
     while (usedNumbers.has(n)) n++;
-    return `Octogent Terminal ${n}`;
+    return `Agent ${n}`;
   };
 
   const isTerminalRecentlyActive = (terminal: PersistedTerminal): boolean => {
@@ -630,7 +630,8 @@ export const createTerminalRuntime = ({
 
     // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
     const tentacleId = requestedTentacleId ?? terminalId;
-    const effectiveName = tentacleName ?? allocateDefaultTerminalName();
+    const effectiveName =
+      tentacleName ?? (tentacleId === OCTOBOSS_TENTACLE_ID ? "Octoboss" : allocateDefaultTerminalName());
 
     // Auto-allocate a unique worktreeId when creating a worktree terminal
     // so multiple worktree terminals can coexist (each gets its own directory).
