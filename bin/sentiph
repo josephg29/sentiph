@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const userCwd = process.cwd();
+const distCli = resolve(packageRoot, "dist", "api", "cli.js");
+const devScript = resolve(packageRoot, "scripts", "dev.mjs");
+
+const env = {
+  ...process.env,
+  OCTOGENT_WORKSPACE_CWD: process.env.OCTOGENT_WORKSPACE_CWD ?? userCwd,
+};
+
+const child = existsSync(distCli)
+  ? spawn(process.execPath, [distCli, ...process.argv.slice(2)], {
+      stdio: "inherit",
+      env,
+      cwd: userCwd,
+    })
+  : spawn(process.execPath, [devScript, ...process.argv.slice(2)], {
+      stdio: "inherit",
+      env,
+      cwd: packageRoot,
+    });
+
+const forward = (sig) => { if (!child.killed) child.kill(sig); };
+process.on("SIGINT", () => forward("SIGINT"));
+process.on("SIGTERM", () => forward("SIGTERM"));
+child.on("exit", (code, sig) => {
+  if (sig) { process.kill(process.pid, sig); return; }
+  process.exit(code ?? 0);
+});

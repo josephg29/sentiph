@@ -9,7 +9,8 @@
     "node": ">=22.0.0"
   },
   "bin": {
-    "octogent": "./bin/octogent"
+    "octogent": "./bin/octogent",
+    "sentiph": "./bin/sentiph"
   },
   "files": ["bin", "dist", "README.md"],
   "scripts": {
