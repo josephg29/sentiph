@@ -302,6 +302,9 @@ const parseV3Terminals = (
     ) {
       terminal.exitSignal = entry.exitSignal;
     }
+    if (typeof entry.claudeSessionId === "string" && entry.claudeSessionId.length > 0) {
+      terminal.claudeSessionId = entry.claudeSessionId;
+    }
     terminals.set(terminalId, terminal);
   }
 

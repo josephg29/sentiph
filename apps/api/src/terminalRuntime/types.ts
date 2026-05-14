@@ -81,6 +81,8 @@ export type TerminalSession = {
   isClosed?: boolean;
   hasSeenProcessing?: boolean;
   lastToolName?: string | undefined;
+  claudeBootstrapFlags?: string[];
+  claudeResumeBanner?: string;
 };
 
 export type TerminalNameOrigin = "generated" | "user" | "prompt";
@@ -137,6 +139,7 @@ export type PersistedTerminal = {
   endedAt?: string | undefined;
   exitCode?: number | undefined;
   exitSignal?: number | string | undefined;
+  claudeSessionId?: string | undefined;
 };
 
 export type GitClientPullRequestSnapshot = Omit<

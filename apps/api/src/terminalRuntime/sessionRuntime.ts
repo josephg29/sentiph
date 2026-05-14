@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { appendFileSync, createWriteStream, existsSync, mkdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
@@ -113,6 +115,73 @@ export const createSessionRuntime = ({
       flags: "a",
       encoding: "utf8",
     });
+  };
+
+  const claudeProjectsDir = (): string => {
+    const override = process.env.CLAUDE_CONFIG_DIR?.trim();
+    if (override && override.length > 0) {
+      return join(override, "projects");
+    }
+    return join(homedir(), ".claude", "projects");
+  };
+
+  const encodeClaudeProjectDirectoryName = (cwd: string): string => cwd.replace(/\//g, "-");
+
+  const claudeSessionFileExists = (cwd: string, sessionId: string): boolean => {
+    try {
+      const path = join(
+        claudeProjectsDir(),
+        encodeClaudeProjectDirectoryName(cwd),
+        `${sessionId}.jsonl`,
+      );
+      return existsSync(path);
+    } catch {
+      return false;
+    }
+  };
+
+  const planClaudeBootstrap = (
+    terminalRecord: PersistedTerminal | undefined,
+    cwd: string,
+  ): { flags: string[]; banner?: string; sessionIdToPersist?: string } => {
+    if (!terminalRecord || terminalRecord.tentacleId === OCTOBOSS_TENTACLE_ID) {
+      return { flags: [] };
+    }
+
+    const provider = terminalRecord.agentProvider ?? DEFAULT_AGENT_PROVIDER;
+    if (provider !== "claude-code") {
+      return { flags: [] };
+    }
+
+    const existingSessionId = terminalRecord.claudeSessionId;
+    if (existingSessionId) {
+      if (claudeSessionFileExists(cwd, existingSessionId)) {
+        return {
+          flags: ["--resume", existingSessionId],
+          banner: "[Octogent: resuming previous Claude session…]",
+        };
+      }
+      return { flags: ["--session-id", existingSessionId] };
+    }
+
+    const priorLifecycle = terminalRecord.lifecycleState;
+    const hadPriorSession =
+      priorLifecycle === "stopped" ||
+      priorLifecycle === "exited" ||
+      priorLifecycle === "stale";
+
+    if (hadPriorSession) {
+      return {
+        flags: ["--continue"],
+        banner: "[Octogent: resuming previous Claude session…]",
+      };
+    }
+
+    const newSessionId = randomUUID();
+    return {
+      flags: ["--session-id", newSessionId],
+      sessionIdToPersist: newSessionId,
+    };
   };
 
   let transcriptEventSequence = 0;
@@ -487,9 +556,20 @@ export const createSessionRuntime = ({
       }
       bootstrapCommand =
         flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
+    } else if (provider === "claude-code") {
+      const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
+      const head = baseTokens[0] ?? "claude";
+      const tail = baseTokens.slice(1);
+      const resumeFlags = session.claudeBootstrapFlags ?? [];
+      bootstrapCommand = [head, ...resumeFlags, ...tail].join(" ");
     } else {
       bootstrapCommand =
         TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
+    }
+    if (session.claudeResumeBanner) {
+      const banner = `\r\n${session.claudeResumeBanner}\r\n`;
+      appendScrollback(session, banner);
+      broadcastMessage(session, { type: "output", data: banner });
     }
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
@@ -558,6 +638,11 @@ export const createSessionRuntime = ({
       throw new Error(`Terminal working directory does not exist: ${tentacleCwd}`);
     }
 
+    const claudePlan = planClaudeBootstrap(terminalRecord, tentacleCwd);
+    if (terminalRecord && claudePlan.sessionIdToPersist) {
+      terminalRecord.claudeSessionId = claudePlan.sessionIdToPersist;
+    }
+
     ensureNodePtySpawnHelperExecutable();
     const shellLaunch = getShellLaunch();
 
@@ -596,6 +681,12 @@ export const createSessionRuntime = ({
     };
     if (debugLog) {
       session.debugLog = debugLog;
+    }
+    if (claudePlan.flags.length > 0) {
+      session.claudeBootstrapFlags = claudePlan.flags;
+    }
+    if (claudePlan.banner) {
+      session.claudeResumeBanner = claudePlan.banner;
     }
 
     const transcriptLog = openTranscriptLog(sessionId);

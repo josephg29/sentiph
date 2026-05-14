@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -319,7 +319,12 @@ describe("createSessionRuntime", () => {
     });
 
     expect(runtime.startSession(tentacleId)).toBe(true);
-    expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
+    expect(pty.write).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(
+        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
+      ),
+    );
 
     expect(runtime.closeSession(tentacleId)).toBe(true);
     vi.advanceTimersByTime(10_000);
@@ -732,7 +737,12 @@ describe("createSessionRuntime", () => {
 
     expect(runtime.startSession(tentacleId)).toBe(true);
     expect(sessions.has(tentacleId)).toBe(true);
-    expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
+    expect(pty.write).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(
+        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
+      ),
+    );
 
     vi.advanceTimersByTime(4_000);
     expect(pty.write).toHaveBeenNthCalledWith(
@@ -790,7 +800,12 @@ describe("createSessionRuntime", () => {
       runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
-    expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
+    expect(pty.write).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(
+        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
+      ),
+    );
 
     vi.advanceTimersByTime(4_000);
     expect(pty.write).toHaveBeenNthCalledWith(2, "\u001b[200~You are working on docs.\u001b[201~");
@@ -913,5 +928,351 @@ describe("createSessionRuntime", () => {
     expect(sessions.has(tentacleId)).toBe(false);
 
     runtime.close();
+  });
+
+  describe("Claude session resume", () => {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let originalClaudeConfigDir: string | undefined;
+    let claudeConfigDir: string;
+    let workspaceCwd: string;
+
+    beforeEach(() => {
+      originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
+      claudeConfigDir = createTemporaryDirectory();
+      workspaceCwd = createTemporaryDirectory();
+      process.env.CLAUDE_CONFIG_DIR = claudeConfigDir;
+    });
+
+    afterEach(() => {
+      if (originalClaudeConfigDir === undefined) {
+        delete process.env.CLAUDE_CONFIG_DIR;
+      } else {
+        process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
+      }
+    });
+
+    const claudeProjectDirForCwd = (cwd: string) =>
+      join(claudeConfigDir, "projects", cwd.replace(/\//g, "-"));
+
+    const writeFakeClaudeSessionFile = (cwd: string, sessionId: string) => {
+      const dir = claudeProjectDirForCwd(cwd);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, `${sessionId}.jsonl`), "{}\n", "utf8");
+    };
+
+    const makeRuntime = (
+      terminals: Map<string, PersistedTerminal>,
+      sessions: Map<string, TerminalSession>,
+      pty: FakePty,
+    ) => {
+      spawnMock.mockReturnValue(pty);
+      const websocketServer = new FakeWebSocketServer();
+      const transcriptDirectoryPath = createTemporaryDirectory();
+      return {
+        websocketServer,
+        runtime: createSessionRuntime({
+          websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+          terminals,
+          sessions,
+          getTentacleWorkspaceCwd: () => workspaceCwd,
+          isDebugPtyLogsEnabled: false,
+          ptyLogDir: process.cwd(),
+          transcriptDirectoryPath,
+          sessionIdleGraceMs: 60_000,
+          scrollbackMaxBytes: 1024,
+        }),
+      };
+    };
+
+    it("fresh terminal: generates a UUID, sends --session-id, persists the UUID, no banner", () => {
+      const tentacleId = "tentacle-fresh";
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toMatch(
+        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
+      );
+
+      const uuidMatch = firstCall.match(/--session-id ([0-9a-f-]+)/);
+      const generatedUuid = uuidMatch?.[1] ?? "";
+      expect(generatedUuid).toMatch(UUID_REGEX);
+      expect(terminals.get(tentacleId)?.claudeSessionId).toBe(generatedUuid);
+
+      runtime.close();
+    });
+
+    it("reopened terminal with stored UUID and session file: --resume + banner", () => {
+      const tentacleId = "tentacle-resume";
+      const storedUuid = "00000000-0000-4000-8000-000000000001";
+      writeFakeClaudeSessionFile(workspaceCwd, storedUuid);
+
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+            claudeSessionId: storedUuid,
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      const socket = new FakeWebSocket();
+      const fakeServer = (runtime as unknown as {
+        // surface the websocketServer for inspection via separate path
+      });
+      // We use handleUpgrade via the runtime to get a connected socket.
+      void fakeServer;
+      // Use the runtime's websocketServer for upgrade:
+      const websocketServer = (
+        runtime as unknown as { __test_ws?: FakeWebSocketServer }
+      ).__test_ws;
+      void websocketServer;
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toBe(
+        `claude --resume ${storedUuid} --dangerously-skip-permissions\r`,
+      );
+
+      // Banner is preserved in scrollback so newly connecting clients see it.
+      const scrollback = runtime.getScrollback(tentacleId) ?? "";
+      expect(scrollback).toContain("[Octogent: resuming previous Claude session");
+
+      // Reopen via WebSocket — banner should also be re-broadcast in history.
+      runtime.close();
+    });
+
+    it("stored UUID but session file missing: --session-id reuses UUID, no banner", () => {
+      const tentacleId = "tentacle-missing-file";
+      const storedUuid = "00000000-0000-4000-8000-000000000002";
+
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+            claudeSessionId: storedUuid,
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toBe(
+        `claude --session-id ${storedUuid} --dangerously-skip-permissions\r`,
+      );
+
+      const scrollback = runtime.getScrollback(tentacleId) ?? "";
+      expect(scrollback).not.toContain("resuming previous Claude session");
+
+      runtime.close();
+    });
+
+    it("legacy stopped terminal without UUID: --continue + banner", () => {
+      const tentacleId = "tentacle-legacy";
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toBe(
+        "claude --continue --dangerously-skip-permissions\r",
+      );
+
+      const scrollback = runtime.getScrollback(tentacleId) ?? "";
+      expect(scrollback).toContain("[Octogent: resuming previous Claude session");
+
+      // We intentionally do NOT stamp a new UUID for legacy resumes — that
+      // identity belongs to whichever session --continue picks up.
+      expect(terminals.get(tentacleId)?.claudeSessionId).toBeUndefined();
+
+      runtime.close();
+    });
+
+    it("legacy exited/stale terminals also resume via --continue", () => {
+      for (const lifecycleState of ["exited", "stale"] as const) {
+        const tentacleId = `tentacle-${lifecycleState}`;
+        const terminals = new Map<string, PersistedTerminal>([
+          [
+            tentacleId,
+            {
+              terminalId: tentacleId,
+              tentacleId,
+              tentacleName: tentacleId,
+              createdAt: new Date().toISOString(),
+              workspaceMode: "shared",
+              agentProvider: "claude-code",
+              lifecycleState,
+            },
+          ],
+        ]);
+        const sessions = new Map<string, TerminalSession>();
+        const pty = new FakePty();
+        const { runtime } = makeRuntime(terminals, sessions, pty);
+
+        expect(runtime.startSession(tentacleId)).toBe(true);
+        const firstCall = pty.write.mock.calls[0]?.[0] as string;
+        expect(firstCall).toBe(
+          "claude --continue --dangerously-skip-permissions\r",
+        );
+
+        runtime.close();
+      }
+    });
+
+    it("Octoboss tentacle skips resume injection (keeps its own flag handling)", () => {
+      const terminalId = "octoboss-terminal";
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          terminalId,
+          {
+            terminalId,
+            tentacleId: "__octoboss__",
+            tentacleName: "Octoboss",
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(terminalId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      // No --session-id / --resume / --continue for Octoboss — it keeps its
+      // existing bootstrap (just `claude --dangerously-skip-permissions` when
+      // no octoboss-specific paths are configured).
+      expect(firstCall).toBe("claude --dangerously-skip-permissions\r");
+      expect(firstCall).not.toContain("--session-id");
+      expect(firstCall).not.toContain("--resume");
+      expect(firstCall).not.toContain("--continue");
+
+      runtime.close();
+    });
+
+    it("Codex provider skips resume injection (only claude-code is affected)", () => {
+      const tentacleId = "tentacle-codex";
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "codex",
+            lifecycleState: "stopped",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toBe("codex\r");
+      expect(terminals.get(tentacleId)?.claudeSessionId).toBeUndefined();
+
+      runtime.close();
+    });
+
+    it("WebSocket history replays the resume banner to late-joining clients", () => {
+      const tentacleId = "tentacle-banner-replay";
+      const storedUuid = "00000000-0000-4000-8000-000000000003";
+      writeFakeClaudeSessionFile(workspaceCwd, storedUuid);
+
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+            claudeSessionId: storedUuid,
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { websocketServer, runtime } = makeRuntime(terminals, sessions, pty);
+
+      const socket = new FakeWebSocket();
+      websocketServer.nextSocket = socket;
+      expect(
+        runtime.handleUpgrade(createUpgradeRequest(tentacleId), {} as Duplex, Buffer.alloc(0)),
+      ).toBe(true);
+
+      const messages = parseSentMessages(socket);
+      const outputMessage = messages.find(
+        (msg) => msg.type === "output" && msg.data?.includes("resuming previous Claude session"),
+      );
+      expect(outputMessage).toBeDefined();
+
+      runtime.close();
+    });
   });
 });
