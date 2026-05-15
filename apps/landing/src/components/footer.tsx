@@ -1,10 +1,9 @@
 import { OctogentMark } from "@/components/octogent-mark";
 
 const LINKS: Array<{ label: string; href: string; external?: boolean }> = [
-  { label: "github", href: "https://github.com/hesamsheikh/octogent", external: true },
-  { label: "discord", href: "https://discord.gg/vtJykN3t", external: true },
-  { label: "docs", href: "https://github.com/hesamsheikh/octogent#docs", external: true },
-  { label: "mit", href: "https://github.com/hesamsheikh/octogent/blob/main/LICENSE", external: true },
+  { label: "github", href: "https://github.com/josephg29/octogent-sentiph", external: true },
+  { label: "docs", href: "https://github.com/josephg29/octogent-sentiph#docs", external: true },
+  { label: "mit", href: "https://github.com/josephg29/octogent-sentiph/blob/main/LICENSE", external: true },
 ];
 
 export function Footer() {
@@ -14,7 +13,7 @@ export function Footer() {
         <div className="flex items-center gap-2.5">
           <OctogentMark scale={1.5} />
           <span className="text-[11px] font-bold uppercase tracking-control text-foreground">
-            octogent
+            sentiph
           </span>
           <span className="hidden text-[11px] uppercase tracking-control text-muted sm:inline">
             · too many terminals, not enough tentacles

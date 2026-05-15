@@ -1,24 +1,20 @@
 <div align="center">
 
-<img width="1500" height="500" alt="Octogent header" src="./static/images/octogent-header.png" />
-<br/>
-<br/>
-
 <strong>too many terminals, not enough tentacles</strong>
 <br />
 <br />
 
-![Last Update](https://img.shields.io/github/last-commit/hesamsheikh/octogent?label=Last%20Update&style=flat-square)
+![Last Update](https://img.shields.io/github/last-commit/josephg29/octogent-sentiph?label=Last%20Update&style=flat-square)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Follow on X](https://img.shields.io/badge/Follow%20on-X-000000?style=flat-square&logo=x)](https://x.com/Hesamation)
-[![Discord](https://img.shields.io/badge/Discord-Open%20Source%20AI%20Builders-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/vtJykN3t)
 
 </div>
 
-# Octogent
+# Sentiph
 
-It's really not fun to have **ten Claude Code sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Octogent** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for Claude Code to **spawn other Claude Code agents**, assign them work, and communicate with them.
+> **Sentiph is a standalone project, not a fork.** It was built independently from scratch and shares no git history with [octogent](https://github.com/hesamsheikh/octogent). The ideas are similar — scoped agent context, multi-terminal orchestration — but the codebase, architecture, and roadmap are entirely separate.
+
+It's really not fun to have **ten Claude Code sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Sentiph** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for Claude Code to **spawn other Claude Code agents**, assign them work, and communicate with them.
 
 ## The Vision
 
@@ -43,7 +39,7 @@ This repo is a personal exploration of what an AI coding environment might look 
 </table>
 </div>
 
-## What Octogent Does for You
+## What Sentiph Does for You
 
 - **Creates tentacles as context layers** so agents can work with scoped markdown files instead of broad, messy chat context
 - **Uses `todo.md` as an execution surface** so tasks stay visible, trackable, and ready for delegation
@@ -53,7 +49,7 @@ This repo is a personal exploration of what an AI coding environment might look 
 - **Keeps agent-facing context in files** so the system is more durable than a single prompt thread
 - **Provides a local API and UI** for terminal lifecycle, persistence, websocket transport, and orchestration
 
-A **tentacle** is a folder under `.octogent/tentacles/<tentacle-id>/` that holds agent-readable markdown such as `CONTEXT.md`, `todo.md`, and any extra notes needed for that slice of the codebase.
+A **tentacle** is a folder under `.sentiph/tentacles/<tentacle-id>/` that holds agent-readable markdown such as `CONTEXT.md`, `todo.md`, and any extra notes needed for that slice of the codebase.
 
 The octopus metaphor is literal: *one octopus, many tentacles, different work happening at the same time*.
 
@@ -71,7 +67,7 @@ For the full model, see [Tentacles](docs/concepts/tentacles.md) and [Working Wit
 
 ## Context, Notes, and Task Lists
 
-In Octogent, a tentacle is not only a task bucket. It is also where the job keeps its local context. That can include notes about one part of the codebase, implementation details, handoff files, and a `todo.md` that tracks what still needs to happen. A Claude Code agent can read and update those files as the work moves forward.
+In Sentiph, a tentacle is not only a task bucket. It is also where the job keeps its local context. That can include notes about one part of the codebase, implementation details, handoff files, and a `todo.md` that tracks what still needs to happen. A Claude Code agent can read and update those files as the work moves forward.
 
 That means you can:
 
@@ -86,21 +82,21 @@ For the full model, see [Tentacles](docs/concepts/tentacles.md) and [Working Wit
 
 ## Claude Code Managing Claude Code
 
-One of the main ideas here is that **Claude Code** should not only be treated as a single terminal session waiting for a human prompt. In Octogent, one Claude Code agent can coordinate other Claude Code agents, assign them specific jobs, and exchange short messages with them while the human stays at the orchestration layer.
+One of the main ideas here is that **Claude Code** should not only be treated as a single terminal session waiting for a human prompt. In Sentiph, one Claude Code agent can coordinate other Claude Code agents, assign them specific jobs, and exchange short messages with them while the human stays at the orchestration layer.
 
 This is different from Claude Code's subagent spawning, since it allows you to directly see and control what each worker agent is doing.
 
-That means Octogent is not just a dashboard for multiple terminals. It is also a way to structure parent-worker behavior around scoped tasks and shared context files.
+That means Sentiph is not just a dashboard for multiple terminals. It is also a way to structure parent-worker behavior around scoped tasks and shared context files.
 
 For the current model, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
 
 ## How It Works
 
-Octogent separates three concerns that usually get mixed together in a pile of terminals:
+Sentiph separates three concerns that usually get mixed together in a pile of terminals:
 
-1. **Context** lives in `.octogent/tentacles/<tentacle-id>/`. `CONTEXT.md` explains the area, `todo.md` supplies executable work items, and extra markdown files hold notes or handoffs.
+1. **Context** lives in `.sentiph/tentacles/<tentacle-id>/`. `CONTEXT.md` explains the area, `todo.md` supplies executable work items, and extra markdown files hold notes or handoffs.
 2. **Execution** lives in terminal records and PTY sessions managed by the local API. A terminal can attach to an existing tentacle, and several terminals can share one tentacle during swarm work.
-3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.octogent/worktrees/<worktree-id>/` on `octogent/<worktree-id>` branches.
+3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.sentiph/worktrees/<worktree-id>/` on `sentiph/<worktree-id>` branches.
 
 Deck reads the tentacle files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Claude hooks feed the API with agent state, transcript, and idle events so the UI can show more than raw terminal output.
 
@@ -122,7 +118,7 @@ This starts the API and web app for local development.
 <summary><strong>Current install status</strong></summary>
 
 ```bash
-Octogent is not published to the npm registry yet.
+Sentiph is not published to the npm registry yet.
 ```
 
 For local development:
@@ -135,17 +131,17 @@ pnpm dev
 For a local global CLI install from a clone:
 
 ```bash
-pnpm install
-pnpm build
+git clone https://github.com/josephg29/octogent-sentiph
+cd octogent-sentiph && pnpm install && pnpm build
 npm install -g .
-octogent
+sentiph
 ```
 
-The registry install flow `npm install -g octogent` will only work after the package is published.
+The registry install flow `npm install -g sentiph` will only work after the package is published.
 
 </details>
 
-On first run, **Octogent** creates the local `.octogent/` scaffold automatically, assigns a stable project ID, picks an available local API port starting at `8787`, and opens the UI unless `OCTOGENT_NO_OPEN=1` is set.
+On first run, **Sentiph** creates the local `.sentiph/` scaffold automatically, assigns a stable project ID, picks an available local API port starting at `8787`, and opens the UI unless `SENTIPH_NO_OPEN=1` is set.
 
 ## Requirements
 
@@ -159,11 +155,11 @@ Startup fails if neither `claude` nor another supported provider binary is insta
 
 ## What persists
 
-- `.octogent/` keeps project-local scaffold and worktrees
-- `~/.octogent/projects/<project-id>/state/` keeps runtime state, transcripts, monitor cache, and metadata
-- `.octogent/tentacles/<tentacle-id>/` keeps the context files and todos that agents read
+- `.sentiph/` keeps project-local scaffold and worktrees
+- `~/.sentiph/projects/<project-id>/state/` keeps runtime state, transcripts, monitor cache, and metadata
+- `.sentiph/tentacles/<tentacle-id>/` keeps the context files and todos that agents read
 
-PTY sessions survive browser reloads during the idle grace period, but they do **not** survive an API restart. Octogent marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session; use `octogent terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up. Octogent caps live PTY sessions at 32 by default to protect the host; set `OCTOGENT_MAX_TERMINAL_SESSIONS` to a positive integer to tune that limit for larger orchestration runs.
+PTY sessions survive browser reloads during the idle grace period, but they do **not** survive an API restart. Sentiph marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session; use `sentiph terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up. Sentiph caps live PTY sessions at 32 by default to protect the host; set `SENTIPH_MAX_TERMINAL_SESSIONS` to a positive integer to tune that limit for larger orchestration runs.
 
 ## Docs
 
@@ -184,4 +180,4 @@ PTY sessions survive browser reloads during the idle grace period, but they do *
 - [Contributing](CONTRIBUTING.md)
 
 ## Contributor setup
-Octogent is not actively reviewing pull requests right now. If you still open one and any code was written with AI, disclose which coding agent and model were used. For contributor workflow and expectations, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Sentiph is not actively reviewing pull requests right now. If you still open one and any code was written with AI, disclose which coding agent and model were used. For contributor workflow and expectations, see [CONTRIBUTING.md](CONTRIBUTING.md).

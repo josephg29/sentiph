@@ -1,9 +1,9 @@
 import { CopyButton } from "@/components/copy-button";
 
 const LINES = [
-  "git clone https://github.com/hesamsheikh/octogent",
-  "cd octogent && pnpm install && pnpm build",
-  "npm install -g . && octogent",
+  "git clone https://github.com/josephg29/octogent-sentiph",
+  "cd octogent-sentiph && pnpm install && pnpm build",
+  "npm install -g . && sentiph",
 ];
 
 const COMMAND = LINES.join("\n");
@@ -45,7 +45,7 @@ export function Install() {
 
         <p className="mt-6 text-center text-[11px] uppercase tracking-control text-muted">
           <a
-            href="https://github.com/hesamsheikh/octogent#docs"
+            href="https://github.com/josephg29/octogent-sentiph#docs"
             target="_blank"
             rel="noreferrer"
             className="border-b border-transparent transition-colors hover:border-foreground/40 hover:text-foreground"

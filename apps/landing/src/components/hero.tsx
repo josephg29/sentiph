@@ -48,11 +48,11 @@ export function Hero() {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
           <a href="#install" className={buttonClassName({ variant: "primary", size: "md" })}>
-            install octogent
+            install sentiph
             <ArrowRight />
           </a>
           <a
-            href="https://github.com/hesamsheikh/octogent"
+            href="https://github.com/josephg29/octogent-sentiph"
             target="_blank"
             rel="noreferrer"
             className={buttonClassName({ variant: "ghost", size: "md" })}
