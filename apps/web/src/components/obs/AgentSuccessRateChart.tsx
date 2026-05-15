@@ -1,4 +1,4 @@
-import type { AgentProviderStats } from "@octogent/core";
+import type { AgentProviderStats } from "@sentiph/core";
 
 type AgentSuccessRateChartProps = {
   byTentacleName: Record<string, AgentProviderStats>;

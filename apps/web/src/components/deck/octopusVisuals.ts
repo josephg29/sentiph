@@ -1,4 +1,4 @@
-import type { DeckTentacleSummary } from "@octogent/core";
+import type { DeckTentacleSummary } from "@sentiph/core";
 import type { OctopusAccessory, OctopusAnimation, OctopusExpression } from "../EmptyOctopus";
 
 // ─── Octopus visual derivation (seeded from tentacle id) ────────────────────

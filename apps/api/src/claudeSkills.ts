@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import type { DeckAvailableSkill } from "@octogent/core";
+import type { DeckAvailableSkill } from "@sentiph/core";
 
 const SKILL_MARKER_START = "<!-- octogent:suggested-skills:start -->";
 const SKILL_MARKER_END = "<!-- octogent:suggested-skills:end -->";

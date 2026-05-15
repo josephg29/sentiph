@@ -3,7 +3,7 @@ import type {
   AgentState,
   DeckOctopusAppearance,
   TentacleWorkspaceMode,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 export type GraphNode = {
   id: string;

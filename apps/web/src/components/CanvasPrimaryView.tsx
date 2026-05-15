@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@octogent/core";
+import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@sentiph/core";
 import {
   Check as CheckIcon,
   Maximize,

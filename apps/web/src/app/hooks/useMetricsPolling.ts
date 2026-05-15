@@ -5,7 +5,7 @@ import type {
   AgentMetricsEvent,
   AgentMetricsHeatmapBucket,
   AgentRunSummary,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 import {
   buildMetricsAggregateUrl,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { DeckAvailableSkill, DeckTentacleSummary } from "@octogent/core";
+import type { DeckAvailableSkill, DeckTentacleSummary } from "@sentiph/core";
 import { OctopusGlyph } from "../EmptyOctopus";
 import type { OctopusVisuals } from "./octopusVisuals";
 

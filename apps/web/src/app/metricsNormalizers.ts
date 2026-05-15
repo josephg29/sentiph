@@ -3,7 +3,7 @@ import type {
   AgentMetricsEvent,
   AgentMetricsHeatmapBucket,
   AgentRunSummary,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v);

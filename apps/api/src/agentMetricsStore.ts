@@ -7,7 +7,7 @@ import type {
   AgentMetricsHeatmapBucket,
   AgentProviderStats,
   AgentRunSummary,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 const tryParseJsonl = <T>(filePath: string): T[] => {
   if (!existsSync(filePath)) {

@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline";
 
-const apiOrigin = process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787";
-const parentTerminalId = process.env.OCTOGENT_SESSION_ID ?? null;
+const apiOrigin = process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787";
+const parentTerminalId = process.env.SENTIPH_SESSION_ID ?? null;
 const MAX_PROMPT_LENGTH = 8192;
 
 const TOOLS = [

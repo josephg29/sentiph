@@ -3,14 +3,14 @@ import type {
   MonitorFeedSnapshot,
   MonitorPost,
   MonitorUsageSnapshot,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 export type {
   MonitorCredentialSummary,
   MonitorFeedSnapshot,
   MonitorPost,
   MonitorUsageSnapshot,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 export type MonitorProviderId = "x";
 

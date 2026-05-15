@@ -516,8 +516,8 @@ const fetchXUsage = async ({
 
 export const createXMonitorProvider = ({
   fetchFn = globalThis.fetch,
-  apiBaseUrl = process.env.OCTOGENT_X_API_BASE_URL ?? DEFAULT_X_API_BASE_URL,
-  usageEndpointPath = process.env.OCTOGENT_X_USAGE_ENDPOINT_PATH ?? DEFAULT_X_USAGE_ENDPOINT_PATH,
+  apiBaseUrl = process.env.SENTIPH_X_API_BASE_URL ?? DEFAULT_X_API_BASE_URL,
+  usageEndpointPath = process.env.SENTIPH_X_USAGE_ENDPOINT_PATH ?? DEFAULT_X_USAGE_ENDPOINT_PATH,
 }: {
   fetchFn?: typeof fetch;
   apiBaseUrl?: string;

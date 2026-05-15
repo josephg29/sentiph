@@ -5,7 +5,7 @@ import type {
   DeckTentacleSummary,
   WorkspaceSetupSnapshot,
   WorkspaceSetupStepId,
-} from "@octogent/core";
+} from "@sentiph/core";
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
@@ -538,7 +538,7 @@ export const DeckPrimaryView = ({
             <div className="deck-detail-main-content deck-vault-browser">
               <pre className="deck-vault-tree">
                 <span className="deck-vault-tree-dir">
-                  .octogent/tentacles/{focusedTentacle.tentacleId}/
+                  .sentiph/tentacles/{focusedTentacle.tentacleId}/
                 </span>
                 {(() => {
                   const files = [...focusedTentacle.vaultFiles, "CONTEXT.md"];

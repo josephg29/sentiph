@@ -1,4 +1,4 @@
-import type { GitHubCommitPoint, buildTerminalList } from "@octogent/core";
+import type { GitHubCommitPoint, buildTerminalList } from "@sentiph/core";
 
 export type TerminalView = Awaited<ReturnType<typeof buildTerminalList>>;
 
@@ -20,10 +20,10 @@ export type {
   ConversationSessionSummary,
   ConversationSessionDetail,
   ConversationSearchHit,
-} from "@octogent/core";
+} from "@sentiph/core";
 
-export type { PersistedUiState as FrontendUiStateSnapshot } from "@octogent/core";
-export type { TentacleWorkspaceMode as TerminalWorkspaceMode } from "@octogent/core";
+export type { PersistedUiState as FrontendUiStateSnapshot } from "@sentiph/core";
+export type { TentacleWorkspaceMode as TerminalWorkspaceMode } from "@sentiph/core";
 
 export type GitHubCommitSparkPoint = GitHubCommitPoint & {
   x: number;

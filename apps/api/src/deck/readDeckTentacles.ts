@@ -6,7 +6,7 @@ import type {
   DeckOctopusAppearance,
   DeckTentacleStatus,
   DeckTentacleSummary,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 import { readAvailableClaudeSkills } from "../claudeSkills";
 

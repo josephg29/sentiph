@@ -11,7 +11,7 @@ import {
   assertOctobossSystemPromptIsShellSafe,
 } from "./octobossSystemPrompt";
 
-import type { TerminalSnapshot } from "@octogent/core";
+import type { TerminalSnapshot } from "@sentiph/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
@@ -82,8 +82,8 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
         command: nodeCommand,
         args: nodeArgs,
         env: {
-          OCTOGENT_API_ORIGIN:
-            process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+          SENTIPH_API_ORIGIN:
+            process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787",
         },
       },
     },
@@ -133,10 +133,10 @@ export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
   gitClient,
-  getApiBaseUrl = () => process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+  getApiBaseUrl = () => process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787",
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
-  const stateDir = projectStateDir ?? join(workspaceCwd, ".octogent");
+  const stateDir = projectStateDir ?? join(workspaceCwd, ".sentiph");
   const metricsDir = join(stateDir, "state", "metrics");
   const metricsCollector = createAgentMetricsCollector(metricsDir);
   const octobossMcpConfigPath = writeOctobossMcpConfig(stateDir);
@@ -150,14 +150,14 @@ export const createTerminalRuntime = ({
   const registryPersistence = createTerminalRegistryPersistence(registryPath);
   const terminals = registryState.terminals;
   let uiState = registryState.uiState;
-  const isDebugPtyLogsEnabled = process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
-  const ptyLogDir = process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
+  const isDebugPtyLogsEnabled = process.env.SENTIPH_DEBUG_PTY_LOGS === "1";
+  const ptyLogDir = process.env.SENTIPH_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
   const configuredMaxConcurrentSessions = (() => {
     if (maxConcurrentSessions !== undefined) {
       return maxConcurrentSessions;
     }
 
-    const raw = process.env.OCTOGENT_MAX_TERMINAL_SESSIONS?.trim();
+    const raw = process.env.SENTIPH_MAX_TERMINAL_SESSIONS?.trim();
     if (!raw) {
       return TERMINAL_MAX_CONCURRENT_SESSIONS;
     }
@@ -648,7 +648,7 @@ export const createTerminalRuntime = ({
       const capacity = sessionRuntime.getSessionCapacity();
       if (capacity.active >= capacity.max) {
         throw new RuntimeInputError(
-          `Terminal session limit reached (${capacity.max}). Close an existing terminal session or increase OCTOGENT_MAX_TERMINAL_SESSIONS.`,
+          `Terminal session limit reached (${capacity.max}). Close an existing terminal session or increase SENTIPH_MAX_TERMINAL_SESSIONS.`,
         );
       }
     }

@@ -1,4 +1,4 @@
-import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@octogent/core";
+import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@sentiph/core";
 import { OctopusGlyph } from "../EmptyOctopus";
 
 type WorkspaceSetupCardProps = {

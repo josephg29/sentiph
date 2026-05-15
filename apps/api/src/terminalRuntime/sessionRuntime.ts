@@ -627,7 +627,7 @@ export const createSessionRuntime = ({
 
     if (sessions.size >= sessionLimit) {
       throw new Error(
-        `Terminal session limit reached (${sessionLimit}). Close an existing terminal session or increase OCTOGENT_MAX_TERMINAL_SESSIONS.`,
+        `Terminal session limit reached (${sessionLimit}). Close an existing terminal session or increase SENTIPH_MAX_TERMINAL_SESSIONS.`,
       );
     }
 

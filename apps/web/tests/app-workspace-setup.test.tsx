@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { WorkspaceSetupSnapshot } from "@octogent/core";
+import type { WorkspaceSetupSnapshot } from "@sentiph/core";
 
 import { App } from "../src/App";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
@@ -21,21 +21,21 @@ const buildSetupSnapshot = (
       complete: false,
       required: true,
       actionLabel: "Initialize workspace",
-      statusText: "Create .octogent project files before continuing.",
+      statusText: "Create .sentiph project files before continuing.",
       guidance: "Workspace initialization failed. Run the Octogent initializer in this repository.",
       command: "octogent init",
     },
     {
       id: "ensure-gitignore",
-      title: "Ignore .octogent",
-      description: "Add .octogent to .gitignore, or create .gitignore when it is missing.",
+      title: "Ignore .sentiph",
+      description: "Add .sentiph to .gitignore, or create .gitignore when it is missing.",
       complete: false,
       required: true,
       actionLabel: "Update .gitignore",
-      statusText: "Add .octogent to .gitignore before creating tentacles.",
+      statusText: "Add .sentiph to .gitignore before creating tentacles.",
       guidance:
         "Git ignore entry is missing. Create or update .gitignore with the Octogent workspace path.",
-      command: "printf '.octogent\\n' >> .gitignore",
+      command: "printf '.sentiph\\n' >> .gitignore",
     },
     {
       id: "check-claude",
@@ -192,7 +192,7 @@ describe("App workspace setup", () => {
               ? {
                   ...step,
                   complete: true,
-                  statusText: ".gitignore covers .octogent.",
+                  statusText: ".gitignore covers .sentiph.",
                   guidance: null,
                   command: null,
                 }
@@ -209,7 +209,7 @@ describe("App workspace setup", () => {
     fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));
 
     await waitFor(() => {
-      const gitignoreStep = screen.getByText("Ignore .octogent").closest(".workspace-setup-step");
+      const gitignoreStep = screen.getByText("Ignore .sentiph").closest(".workspace-setup-step");
       expect(gitignoreStep).not.toBeNull();
       expect(within(gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
     });

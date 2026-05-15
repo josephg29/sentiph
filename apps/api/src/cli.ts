@@ -23,7 +23,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 const resolvePackageRoot = () => {
-  const envRoot = process.env.OCTOGENT_PACKAGE_ROOT?.trim();
+  const envRoot = process.env.SENTIPH_PACKAGE_ROOT?.trim();
   if (envRoot) {
     return resolve(envRoot);
   }
@@ -60,7 +60,7 @@ const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;
 
 const initializeProject = (workspaceCwd: string, preferredName?: string) => {
-  const projectName = preferredName?.trim() || basename(workspaceCwd) || "octogent-project";
+  const projectName = preferredName?.trim() || basename(workspaceCwd) || "sentiph-project";
   const hadConfig = loadProjectConfig(workspaceCwd) !== null;
   const projectConfig = ensureProjectScaffold(workspaceCwd, projectName);
   ensureOctogentGitignoreEntry(workspaceCwd);
@@ -87,7 +87,7 @@ const resolveStartupProjectContext = (workspaceCwd: string) => {
     };
   }
 
-  const projectDisplayName = basename(workspaceCwd) || "octogent-project";
+  const projectDisplayName = basename(workspaceCwd) || "sentiph-project";
   const projectStateDir = resolveEphemeralProjectStateDir(workspaceCwd);
   return {
     isInitialized: false,
@@ -103,7 +103,7 @@ const initProject = (name?: string) => {
   console.log(
     `${created ? "Initialized" : "Updated"} Octogent project "${projectConfig.displayName}" at ${projectPath}`,
   );
-  console.log("  .octogent/ directory ready (project metadata, tentacles, worktrees)");
+  console.log("  .sentiph/ directory ready (project metadata, tentacles, worktrees)");
   console.log(`  Global state: ${projectStateDir}`);
   console.log("  .gitignore updated");
   console.log("\nRun `octogent` to start the dashboard.");
@@ -136,7 +136,7 @@ const findOpenPort = async (startPort: number): Promise<number> => {
 };
 
 const readPreferredStartPort = () => {
-  const rawPort = process.env.OCTOGENT_API_PORT ?? process.env.PORT;
+  const rawPort = process.env.SENTIPH_API_PORT ?? process.env.PORT;
   if (!rawPort) {
     return DEFAULT_START_PORT;
   }
@@ -151,7 +151,7 @@ const readPreferredStartPort = () => {
 
 const resolveRuntimeApiBase = () => {
   const explicitBase =
-    process.env.OCTOGENT_API_ORIGIN?.trim() || process.env.OCTOGENT_API_BASE?.trim();
+    process.env.SENTIPH_API_ORIGIN?.trim() || process.env.SENTIPH_API_BASE?.trim();
   if (explicitBase) {
     return explicitBase;
   }
@@ -176,7 +176,7 @@ const apiError = () => {
 };
 
 const maybeOpenBrowser = (url: string) => {
-  if (process.env.OCTOGENT_NO_OPEN === "1" || process.env.CI === "1") {
+  if (process.env.SENTIPH_NO_OPEN === "1" || process.env.CI === "1") {
     return;
   }
 
@@ -226,7 +226,7 @@ const startServer = async () => {
     workspaceCwd,
     projectStateDir,
     webDistDir: existsSync(webDistDir) ? webDistDir : undefined,
-    allowRemoteAccess: process.env.OCTOGENT_ALLOW_REMOTE_ACCESS === "1",
+    allowRemoteAccess: process.env.SENTIPH_ALLOW_REMOTE_ACCESS === "1",
   });
 
   const shutdown = async () => {

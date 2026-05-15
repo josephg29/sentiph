@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { DeckTentacleSummary } from "@octogent/core";
+import type { DeckTentacleSummary } from "@sentiph/core";
 import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../conversationNormalizers";

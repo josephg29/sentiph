@@ -1,4 +1,4 @@
-import type { AgentMetricsEvent } from "@octogent/core";
+import type { AgentMetricsEvent } from "@sentiph/core";
 
 type AgentAuditTrailProps = {
   terminalId: string | null;

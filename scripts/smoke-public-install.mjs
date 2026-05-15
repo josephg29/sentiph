@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
-const tempRoot = mkdtempSync(join(tmpdir(), "octogent-public-install-"));
+const tempRoot = mkdtempSync(join(tmpdir(), "sentiph-public-install-"));
 const packDir = join(tempRoot, "pack");
 const installDir = join(tempRoot, "install");
 const workspaceDir = join(tempRoot, "workspace");
@@ -137,7 +137,7 @@ const main = async () => {
       cwd: workspaceDir,
       env: {
         ...runtimeEnv,
-        OCTOGENT_NO_OPEN: "1",
+        SENTIPH_NO_OPEN: "1",
         PATH: `${binDir}${delimiter}${runtimeEnv.PATH ?? ""}`,
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -150,14 +150,14 @@ const main = async () => {
       stderr += chunk.toString();
     });
 
-    const runtimeMetadataPath = join(homeDir, ".octogent", "projects");
+    const runtimeMetadataPath = join(homeDir, ".sentiph", "projects");
 
     for (let attempt = 0; attempt < 80; attempt += 1) {
       if (serverProcess.exitCode !== null) {
         break;
       }
 
-      const projectConfigPath = join(workspaceDir, ".octogent", "project.json");
+      const projectConfigPath = join(workspaceDir, ".sentiph", "project.json");
       if (existsSync(projectConfigPath)) {
         const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf8"));
         const candidateRuntimePath = join(
@@ -199,9 +199,9 @@ const main = async () => {
       );
     }
 
-    const projectConfigPath = join(workspaceDir, ".octogent", "project.json");
+    const projectConfigPath = join(workspaceDir, ".sentiph", "project.json");
     const gitignorePath = join(workspaceDir, ".gitignore");
-    const projectsRegistryPath = join(homeDir, ".octogent", "projects.json");
+    const projectsRegistryPath = join(homeDir, ".sentiph", "projects.json");
 
     assertFile(projectConfigPath, "local project config");
     assertFile(gitignorePath, "workspace .gitignore");
@@ -219,7 +219,7 @@ const main = async () => {
 
     const runtimePath = join(
       homeDir,
-      ".octogent",
+      ".sentiph",
       "projects",
       projectConfig.projectId,
       "state",
@@ -235,8 +235,8 @@ const main = async () => {
     }
 
     const gitignoreContent = readFileSync(gitignorePath, "utf8");
-    if (!gitignoreContent.split(/\r?\n/).includes(".octogent")) {
-      throw new Error("Workspace .gitignore did not include the .octogent entry.");
+    if (!gitignoreContent.split(/\r?\n/).includes(".sentiph")) {
+      throw new Error("Workspace .gitignore did not include the .sentiph entry.");
     }
 
     console.log("Public install smoke test passed.");

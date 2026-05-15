@@ -37,8 +37,8 @@ export const createApiServer = ({
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
-  // State lives in ~/.octogent/projects/<name>/ when provided, else falls back to <project>/.octogent/
-  const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".octogent");
+  // State lives in ~/.sentiph/projects/<name>/ when provided, else falls back to <project>/.sentiph/
+  const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, ".sentiph");
   let resolvedApiBaseUrl = apiBaseUrl ?? "http://127.0.0.1:8787";
   const getApiBaseUrl = () => resolvedApiBaseUrl;
   const getApiPort = () => {

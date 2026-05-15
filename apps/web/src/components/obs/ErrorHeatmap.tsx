@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { AgentMetricsHeatmapBucket } from "@octogent/core";
+import type { AgentMetricsHeatmapBucket } from "@sentiph/core";
 
 type ErrorHeatmapProps = {
   buckets: AgentMetricsHeatmapBucket[];

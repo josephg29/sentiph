@@ -6,8 +6,8 @@ import type {
   TentacleWorkspaceMode,
   TerminalAgentProvider,
   TerminalLifecycleState,
-} from "@octogent/core";
-import { isTerminalAgentProvider, isTerminalCompletionSoundId } from "@octogent/core";
+} from "@sentiph/core";
+import { isTerminalAgentProvider, isTerminalCompletionSoundId } from "@sentiph/core";
 import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 

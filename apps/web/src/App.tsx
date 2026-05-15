@@ -1,4 +1,4 @@
-import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@octogent/core";
+import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@sentiph/core";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";

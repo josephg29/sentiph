@@ -6,7 +6,7 @@ import type {
   AgentMetricsEventType,
   AgentRunOutcome,
   AgentRunSummary,
-} from "@octogent/core";
+} from "@sentiph/core";
 
 import type { AgentRuntimeState } from "./agentStateDetection";
 import type { PersistedTerminal, TerminalSessionEndReason } from "./terminalRuntime/types";

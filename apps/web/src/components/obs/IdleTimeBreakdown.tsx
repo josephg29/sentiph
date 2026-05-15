@@ -1,4 +1,4 @@
-import type { AgentRunSummary } from "@octogent/core";
+import type { AgentRunSummary } from "@sentiph/core";
 
 type IdleTimeBreakdownProps = {
   summaries: AgentRunSummary[];
