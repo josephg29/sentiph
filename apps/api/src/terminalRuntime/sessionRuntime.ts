@@ -556,6 +556,12 @@ export const createSessionRuntime = ({
       }
       bootstrapCommand =
         flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
+    } else if (provider === "claude-code" && terminal?.isGroupLeader && octobossMcpConfigPath) {
+      const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
+      const head = baseTokens[0] ?? "claude";
+      const tail = baseTokens.slice(1);
+      const resumeFlags = session.claudeBootstrapFlags ?? [];
+      bootstrapCommand = [head, ...resumeFlags, `--mcp-config "${octobossMcpConfigPath}"`, ...tail].join(" ");
     } else if (provider === "claude-code") {
       const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
       const head = baseTokens[0] ?? "claude";

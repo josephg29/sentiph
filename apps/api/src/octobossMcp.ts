@@ -37,6 +37,11 @@ const TOOLS = [
           description:
             "Hex color for the agent node on the canvas. Pick based on the agent's primary role:\n- Parser (parsing, extracting, transforming, codegen from spec): #00c8ff\n- Tester (unit, integration, E2E, snapshot, coverage): #39ff14\n- Builder (compile, bundle, deploy, migrate DB, seed, cache-warm, git ops): #ff6b2b\n- Linter (lint, format, type-check, schema validation): #ffee00\n- Fetcher (HTTP requests, scraping, downloading, API calls): #00fff7\n- Analyzer (profiling, debugging, auditing, benchmarking, coordinating sub-agents): #bf5fff\n- Writer (file writing, doc generation, report generation, boilerplate codegen): #ff4df0\n- Watcher (filesystem watching, log tailing, polling, monitoring): #00ffaa\n- Researcher (web research, library docs, knowledge gathering): #ff9500\n- Reviewer (code review, PR review, quality checks): #ff2d6b\nWhen a task spans multiple roles, use the color of the role that describes the agent's primary output.",
         },
+        group_leader: {
+          type: "boolean",
+          description:
+            "Set to true to spawn this agent as a group leader. Group leaders have orchestration tools (spawn_terminal, list_terminals, send_prompt, get_terminal_output, close_terminal) so they can spawn and coordinate their own batch of worker agents. Use this when you need more than 9 total workers: spawn up to 9 group leaders, each of which manages its own sub-batch. Group leaders should be prompted to act as sub-orchestrators for their assigned subtask.",
+        },
       },
       required: ["prompt", "name", "color"],
     },
@@ -196,10 +201,13 @@ const handleToolCall = async (
       body.parentTerminalId = parentTerminalId;
     }
     if (args.name && typeof args.name === "string" && args.name.trim()) {
-      body.tentacleName = args.name.trim();
+      body.name = args.name.trim();
     }
     if (args.color && typeof args.color === "string" && /^#[0-9a-fA-F]{6}$/.test(args.color)) {
       body.color = args.color;
+    }
+    if (args.group_leader === true) {
+      body.isGroupLeader = true;
     }
 
     const res = await fetch(`${apiOrigin}/api/terminals`, {

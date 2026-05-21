@@ -72,7 +72,7 @@ process.on("SIGTERM", () => {
 apiServer
   .start(port, host)
   .then(({ port: activePort }) => {
-    console.log(`Octogent API listening on http://${host}:${activePort}`);
+    console.log(`Sentiph API listening on http://${host}:${activePort}`);
   })
   .catch((error: unknown) => {
     console.error(error);

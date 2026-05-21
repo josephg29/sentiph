@@ -30,7 +30,7 @@ export const DEFAULT_FORCE_PARAMS: ForceParams = {
   linkDistance: 100,
   linkStrength: 0.25,
   positionStrength: 0.04,
-  collisionPadding: 50,
+  collisionPadding: 8,
   velocityDecay: 0.4,
   alphaDecay: 0.0228,
 };
@@ -60,6 +60,65 @@ type UseForceSimulationResult = {
   unpinNode: (id: string) => void;
   moveNode: (id: string, x: number, y: number) => void;
   reheat: () => void;
+};
+
+const buildClusterForce = (simNodes: SimNode[], simLinks: SimLink[]) => {
+  const octobossNode = simNodes.find((n) => n._gn.type === "octoboss");
+  if (!octobossNode) return null;
+  const octobossId = octobossNode._gn.id;
+
+  // Build child→parent map from resolved links
+  const parentMap = new Map<string, string>();
+  for (const link of simLinks) {
+    const src = (link.source as SimNode)._gn.id;
+    const tgt = (link.target as SimNode)._gn.id;
+    parentMap.set(tgt, src);
+  }
+
+  // For each non-octoboss node, walk up to find its root ancestor (direct child of octoboss)
+  const nodeToGroup = new Map<string, string>();
+  for (const sn of simNodes) {
+    const id = sn._gn.id;
+    if (id === octobossId) continue;
+    let cur = id;
+    let par = parentMap.get(cur);
+    while (par && par !== octobossId) {
+      cur = par;
+      par = parentMap.get(cur);
+    }
+    if (par === octobossId) nodeToGroup.set(id, cur);
+  }
+
+  const groupLeaderIds = [...new Set(nodeToGroup.values())];
+  if (groupLeaderIds.length === 0) return null;
+
+  const nodeById = new Map<string, SimNode>();
+  for (const sn of simNodes) nodeById.set(sn._gn.id, sn);
+
+  const CHILD_ORBIT_MAX = 150;
+  const CLUSTER_STRENGTH = 0.08;
+
+  return () => {
+    for (const sn of simNodes) {
+      const id = sn._gn.id;
+      const groupId = nodeToGroup.get(id);
+      // Only apply to children (not the leader itself)
+      if (!groupId || id === groupId) continue;
+
+      const leader = nodeById.get(groupId);
+      if (!leader) continue;
+      const lx = leader.x ?? 0;
+      const ly = leader.y ?? 0;
+      const dx = lx - (sn.x ?? 0);
+      const dy = ly - (sn.y ?? 0);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > CHILD_ORBIT_MAX) {
+        const overshoot = dist - CHILD_ORBIT_MAX;
+        sn.vx = (sn.vx ?? 0) + (dx / dist) * overshoot * CLUSTER_STRENGTH;
+        sn.vy = (sn.vy ?? 0) + (dy / dist) * overshoot * CLUSTER_STRENGTH;
+      }
+    }
+  };
 };
 
 export const useForceSimulation = ({
@@ -148,20 +207,28 @@ export const useForceSimulation = ({
       })
       .filter((l): l is SimLink => l !== null);
 
+    const clusterForce = buildClusterForce(simNodes, simLinks);
+
     const applyForces = (sim: Simulation<SimNode, SimLink>) => {
       sim
         .force(
           "link",
           forceLink<SimNode, SimLink>(simLinks)
             .distance((link: SimLink) => {
+              const source = link.source as SimNode;
               const target = link.target as SimNode;
-              return target._gn.type === "inactive-session"
-                ? p.linkDistance * 0.35
-                : p.linkDistance;
+              // Spread group leaders further from octoboss so each group has room
+              if (source._gn.type === "octoboss") return p.linkDistance * 2.5;
+              if (target._gn.type === "inactive-session") return p.linkDistance * 0.35;
+              return p.linkDistance;
             })
             .strength((link: SimLink) => {
+              const source = link.source as SimNode;
               const target = link.target as SimNode;
-              return target._gn.type === "inactive-session" ? p.linkStrength * 1.5 : p.linkStrength;
+              if (target._gn.type === "inactive-session") return p.linkStrength * 1.5;
+              // Pull children tightly toward their group leader
+              if (source._gn.type !== "octoboss") return p.linkStrength * 2;
+              return p.linkStrength;
             }),
         )
         .force(
@@ -170,7 +237,8 @@ export const useForceSimulation = ({
         )
         .force("x", forceX<SimNode>(centerX).strength(p.positionStrength))
         .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
-        .force("collide", forceCollide<SimNode>(p.collisionPadding));
+        .force("collide", forceCollide<SimNode>((node: SimNode) => node._gn.radius + p.collisionPadding))
+        .force("cluster", clusterForce);
     };
 
     if (simRef.current) {
@@ -242,16 +310,18 @@ export const useForceSimulation = ({
     if (linkForce) {
       linkForce
         .distance((link: SimLink) => {
+          const source = link.source as SimNode;
           const target = link.target as SimNode;
-          return target._gn.type === "inactive-session"
-            ? params.linkDistance * 0.35
-            : params.linkDistance;
+          if (source._gn.type === "octoboss") return params.linkDistance * 2.5;
+          if (target._gn.type === "inactive-session") return params.linkDistance * 0.35;
+          return params.linkDistance;
         })
         .strength((link: SimLink) => {
+          const source = link.source as SimNode;
           const target = link.target as SimNode;
-          return target._gn.type === "inactive-session"
-            ? params.linkStrength * 1.5
-            : params.linkStrength;
+          if (target._gn.type === "inactive-session") return params.linkStrength * 1.5;
+          if (source._gn.type !== "octoboss") return params.linkStrength * 2;
+          return params.linkStrength;
         });
     }
 
@@ -268,7 +338,7 @@ export const useForceSimulation = ({
 
     const collideForce = sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
     if (collideForce) {
-      collideForce.radius(params.collisionPadding);
+      collideForce.radius((node: SimNode) => node._gn.radius + params.collisionPadding);
     }
 
     sim.alpha(REHEAT_ALPHA).restart();

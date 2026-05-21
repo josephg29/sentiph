@@ -57,7 +57,7 @@ export type {
 export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
-export const MAX_CHILDREN_PER_PARENT = 9;
+export const MAX_CHILDREN_PER_PARENT = 32;
 
 const writeOctobossMcpConfig = (stateDir: string): string => {
   const configPath = join(stateDir, "octoboss-mcp-config.json");
@@ -615,6 +615,7 @@ export const createTerminalRuntime = ({
     parentTerminalId,
     nameOrigin,
     autoRenamePromptContext,
+    isGroupLeader,
   }: {
     terminalId?: string;
     tentacleId?: string;
@@ -629,6 +630,7 @@ export const createTerminalRuntime = ({
     parentTerminalId?: string;
     nameOrigin?: TerminalNameOrigin;
     autoRenamePromptContext?: string;
+    isGroupLeader?: boolean;
   }): TerminalSnapshot => {
     // Enforce max children per parent.
     if (parentTerminalId) {
@@ -683,6 +685,7 @@ export const createTerminalRuntime = ({
       ...(initialInputDraft ? { initialInputDraft } : {}),
       ...(initialPrompt ? { lastActiveAt: new Date().toISOString() } : {}),
       ...(parentTerminalId ? { parentTerminalId } : {}),
+      ...(isGroupLeader ? { isGroupLeader: true } : {}),
     };
 
     const effectiveWorktreeId = worktreeId ?? tentacleId;

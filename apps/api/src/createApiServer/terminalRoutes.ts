@@ -100,6 +100,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       initialInputDraft?: string;
       autoRenamePromptContext?: string;
       parentTerminalId?: string;
+      isGroupLeader?: boolean;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
@@ -158,6 +159,10 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.initialPrompt.trim().length > 0
     ) {
       createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
+    }
+
+    if (bodyPayload && bodyPayload.isGroupLeader === true) {
+      createTerminalInput.isGroupLeader = true;
     }
 
     const snapshot = runtime.createTerminal(createTerminalInput);

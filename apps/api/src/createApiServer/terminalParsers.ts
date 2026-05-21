@@ -25,7 +25,8 @@ export const parseTerminalName = (payload: unknown) => {
     };
   }
 
-  const rawName = (payload as Record<string, unknown>).name;
+  const record = payload as Record<string, unknown>;
+  const rawName = record.name ?? record.tentacleName;
   if (rawName === undefined) {
     return {
       provided: false,

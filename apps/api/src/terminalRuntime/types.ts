@@ -132,6 +132,7 @@ export type PersistedTerminal = {
   initialInputDraft?: string;
   lastActiveAt?: string;
   parentTerminalId?: string;
+  isGroupLeader?: boolean;
   lifecycleState?: TerminalLifecycleState | undefined;
   lifecycleReason?: string | undefined;
   lifecycleUpdatedAt?: string | undefined;
