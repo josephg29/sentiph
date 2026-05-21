@@ -29,10 +29,16 @@ const TOOLS = [
         },
         name: {
           type: "string",
-          description: "Optional short name for the agent (shown on the canvas).",
+          description:
+            "Short, plain-English name shown on the canvas. Reflect what the agent does. Single instance: use the role word ('Parser', 'Tester', 'Builder'). Multiple agents of the same role: add a number ('Parser 1', 'Parser 2'). Use a more specific word when only one agent of that kind exists ('Migrator', 'Deployer', 'Linter', 'Scraper'). Keep it under 20 characters, no jargon.",
+        },
+        color: {
+          type: "string",
+          description:
+            "Hex color for the agent node on the canvas. Pick based on the agent's primary role:\n- Parser (parsing, extracting, transforming, codegen from spec): #00c8ff\n- Tester (unit, integration, E2E, snapshot, coverage): #39ff14\n- Builder (compile, bundle, deploy, migrate DB, seed, cache-warm, git ops): #ff6b2b\n- Linter (lint, format, type-check, schema validation): #ffee00\n- Fetcher (HTTP requests, scraping, downloading, API calls): #00fff7\n- Analyzer (profiling, debugging, auditing, benchmarking, coordinating sub-agents): #bf5fff\n- Writer (file writing, doc generation, report generation, boilerplate codegen): #ff4df0\n- Watcher (filesystem watching, log tailing, polling, monitoring): #00ffaa\n- Researcher (web research, library docs, knowledge gathering): #ff9500\n- Reviewer (code review, PR review, quality checks): #ff2d6b\nWhen a task spans multiple roles, use the color of the role that describes the agent's primary output.",
         },
       },
-      required: ["prompt"],
+      required: ["prompt", "name", "color"],
     },
   },
   {
@@ -191,6 +197,9 @@ const handleToolCall = async (
     }
     if (args.name && typeof args.name === "string" && args.name.trim()) {
       body.tentacleName = args.name.trim();
+    }
+    if (args.color && typeof args.color === "string" && /^#[0-9a-fA-F]{6}$/.test(args.color)) {
+      body.color = args.color;
     }
 
     const res = await fetch(`${apiOrigin}/api/terminals`, {

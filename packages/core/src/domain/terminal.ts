@@ -10,6 +10,7 @@ export type TerminalSnapshot = {
   state: AgentState;
   tentacleId: string;
   tentacleName?: string;
+  color?: string;
   workspaceMode?: TentacleWorkspaceMode;
   createdAt: string;
   hasUserPrompt?: boolean;

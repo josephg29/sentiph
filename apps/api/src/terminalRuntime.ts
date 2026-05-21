@@ -549,6 +549,7 @@ export const createTerminalRuntime = ({
       state: lifecycleStateToAgentState(lifecycleState),
       tentacleId: terminal.tentacleId,
       tentacleName: terminal.tentacleName,
+      ...(terminal.color ? { color: terminal.color } : {}),
       workspaceMode: terminal.workspaceMode,
       createdAt: terminal.createdAt,
       hasUserPrompt: isTerminalRecentlyActive(terminal),
@@ -605,6 +606,7 @@ export const createTerminalRuntime = ({
     tentacleId: requestedTentacleId,
     worktreeId: requestedWorktreeId,
     tentacleName,
+    color,
     workspaceMode = "shared",
     agentProvider,
     initialPrompt,
@@ -618,6 +620,7 @@ export const createTerminalRuntime = ({
     tentacleId?: string;
     worktreeId?: string;
     tentacleName?: string;
+    color?: string;
     workspaceMode?: TentacleWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
     initialPrompt?: string;
@@ -668,6 +671,7 @@ export const createTerminalRuntime = ({
       tentacleId,
       ...(worktreeId ? { worktreeId } : {}),
       tentacleName: effectiveName,
+      ...(color ? { color } : {}),
       nameOrigin: nameOrigin ?? (tentacleName ? "user" : "generated"),
       ...(autoRenamePromptContext ? { autoRenamePromptContext } : {}),
       createdAt: new Date().toISOString(),

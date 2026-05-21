@@ -130,6 +130,26 @@ export const parseTerminalAgentProvider = (payload: unknown) => {
   };
 };
 
+export const parseTerminalColor = (payload: unknown) => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return { color: undefined as string | undefined, error: null as string | null };
+  }
+
+  const rawColor = (payload as Record<string, unknown>).color;
+  if (rawColor === undefined) {
+    return { color: undefined as string | undefined, error: null as string | null };
+  }
+
+  if (typeof rawColor !== "string" || !/^#[0-9a-fA-F]{6}$/.test(rawColor)) {
+    return {
+      color: undefined as string | undefined,
+      error: "Terminal color must be a hex color string (e.g. '#ff6b2b').",
+    };
+  }
+
+  return { color: rawColor, error: null as string | null };
+};
+
 export const parseTerminalNameOrigin = (payload: unknown) => {
   if (payload === null || payload === undefined) {
     return {

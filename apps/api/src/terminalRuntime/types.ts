@@ -122,6 +122,7 @@ export type PersistedTerminal = {
   tentacleId: string;
   worktreeId?: string;
   tentacleName: string;
+  color?: string;
   nameOrigin?: TerminalNameOrigin;
   autoRenamePromptContext?: string | undefined;
   createdAt: string;

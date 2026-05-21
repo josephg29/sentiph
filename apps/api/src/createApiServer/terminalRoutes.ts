@@ -14,6 +14,7 @@ import {
 } from "./routeHelpers";
 import {
   parseTerminalAgentProvider,
+  parseTerminalColor,
   parseTerminalName,
   parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
@@ -79,12 +80,19 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const colorResult = parseTerminalColor(bodyReadResult.payload);
+  if (colorResult.error) {
+    writeJson(response, 400, { error: colorResult.error }, corsOrigin);
+    return true;
+  }
+
   try {
     const createTerminalInput: {
       terminalId?: string;
       tentacleId?: string;
       worktreeId?: string;
       tentacleName?: string;
+      color?: string;
       workspaceMode: TentacleWorkspaceMode;
       agentProvider?: TerminalAgentProvider;
       nameOrigin?: TerminalNameOrigin;
@@ -103,6 +111,9 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     }
     if (nameOriginResult.nameOrigin !== undefined) {
       createTerminalInput.nameOrigin = nameOriginResult.nameOrigin;
+    }
+    if (colorResult.color !== undefined) {
+      createTerminalInput.color = colorResult.color;
     }
     const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
     if (
