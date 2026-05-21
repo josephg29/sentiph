@@ -70,6 +70,26 @@ const TOOLS = [
       required: ["terminal_id"],
     },
   },
+  {
+    name: "close_terminal",
+    description:
+      "Stop a child agent terminal. By default sends SIGTERM for a graceful shutdown; set force=true to send SIGKILL for an immediate hard stop. Use this to clean up idle or stuck agents you no longer need.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        terminal_id: {
+          type: "string",
+          description: "Terminal ID of the child agent to close.",
+        },
+        force: {
+          type: "boolean",
+          description:
+            "If true, send SIGKILL for an immediate hard stop instead of SIGTERM. Default false.",
+        },
+      },
+      required: ["terminal_id"],
+    },
+  },
 ];
 
 const stripAnsi = (text: string): string =>
@@ -204,6 +224,28 @@ const handleToolCall = async (
     const raw = await res.text();
     const clean = stripAnsi(raw).trim();
     return clean || "No output yet.";
+  }
+
+  if (name === "close_terminal") {
+    const terminalId = String(args.terminal_id ?? "").trim();
+    if (!terminalId) throw new Error("terminal_id is required");
+    const force = args.force === true;
+    const action = force ? "kill" : "stop";
+
+    const res = await fetch(
+      `${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/${action}`,
+      { method: "POST" },
+    );
+
+    if (res.status === 404) {
+      return `Terminal "${terminalId}" not found.`;
+    }
+    if (!res.ok) {
+      const errData = (await res.json()) as Record<string, unknown>;
+      throw new Error(String(errData.error ?? `API error ${res.status}`));
+    }
+
+    return `Terminal "${terminalId}" ${force ? "killed (SIGKILL)" : "stopped (SIGTERM)"}.`;
   }
 
   throw new Error(`Unknown tool: ${name}`);
