@@ -158,7 +158,7 @@ const handleToolCall = async (
       throw new Error(`prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`);
     }
 
-    const data = prompt.endsWith("\n") ? prompt : `${prompt}\n`;
+    const data = `\x1b[200~${prompt}\x1b[201~\r`;
     const res = await fetch(
       `${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/input`,
       {
@@ -291,7 +291,7 @@ rl.on("line", (line) => {
     respond({
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "octogent", version: "1.0.0" },
+      serverInfo: { name: "sentiph", version: "1.0.0" },
     });
     return;
   }

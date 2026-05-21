@@ -411,7 +411,7 @@ describe("createApiServer", () => {
     const workspaceCwd =
       options.workspaceCwd ??
       (() => {
-        const directory = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+        const directory = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
         temporaryDirectories.push(directory);
         return directory;
       })();
@@ -501,7 +501,7 @@ describe("createApiServer", () => {
   });
 
   it("returns session summaries for GET /api/conversations", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-1", [
       {
@@ -570,7 +570,7 @@ describe("createApiServer", () => {
   });
 
   it("returns assembled conversation details and export payloads", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-2-agent-1", [
       {
@@ -655,7 +655,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 for unsupported conversation export format", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-3-agent-1", [
       {
@@ -1083,7 +1083,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1093,7 +1093,7 @@ describe("createApiServer", () => {
     expect(hookResponse.status).toBe(200);
 
     const secondHookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1133,7 +1133,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1160,7 +1160,7 @@ describe("createApiServer", () => {
   });
 
   it("infers generated terminal names from older registry entries", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".sentiph", "state", "tentacles.json");
     mkdirSync(join(workspaceCwd, ".sentiph", "state"), { recursive: true });
@@ -1173,7 +1173,7 @@ describe("createApiServer", () => {
             {
               terminalId: "terminal-1",
               tentacleId: "terminal-1",
-              tentacleName: "Octogent Terminal 1",
+              tentacleName: "Sentiph Terminal 1",
               createdAt: "2026-04-10T10:00:00.000Z",
               workspaceMode: "shared",
             },
@@ -1189,7 +1189,7 @@ describe("createApiServer", () => {
     const baseUrl = await startServer({ workspaceCwd });
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1243,7 +1243,7 @@ describe("createApiServer", () => {
   });
 
   it("reports file-backed workspace setup status and updates it through setup actions", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1363,7 +1363,7 @@ describe("createApiServer", () => {
   });
 
   it("lists Claude skills from the project skills folder", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const projectSkillDir = join(workspaceCwd, ".claude", "skills", "docs-writer");
     mkdirSync(projectSkillDir, { recursive: true });
@@ -1401,7 +1401,7 @@ describe("createApiServer", () => {
   });
 
   it("ignores a root project skills SKILL.md file and only lists folder-based skills", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const skillsDir = join(workspaceCwd, ".claude", "skills");
     mkdirSync(skillsDir, { recursive: true });
@@ -1447,7 +1447,7 @@ describe("createApiServer", () => {
   });
 
   it("creates tentacles with suggested skills and appends the managed context block", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1496,7 +1496,7 @@ describe("createApiServer", () => {
   });
 
   it("updates tentacle suggested skills and removes the managed context block when cleared", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1554,7 +1554,7 @@ describe("createApiServer", () => {
       }),
     );
     expect(readFileSync(contextPath, "utf8")).not.toContain("## Suggested Skills");
-    expect(readFileSync(contextPath, "utf8")).not.toContain("octogent:suggested-skills:start");
+    expect(readFileSync(contextPath, "utf8")).not.toContain("sentiph:suggested-skills:start");
   });
 
   it("returns 400 for unsupported tentacle completion sound values", async () => {
@@ -1578,7 +1578,7 @@ describe("createApiServer", () => {
   });
 
   it("restores ui state across API restarts using persisted registry", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     const firstBaseUrl = await startServer({
@@ -1710,7 +1710,7 @@ describe("createApiServer", () => {
         label: "terminal-2",
         state: "live",
         tentacleId: "terminal-2",
-        tentacleName: "Octogent Terminal 1",
+        tentacleName: "Sentiph Terminal 1",
         workspaceMode: "shared",
       }),
     );
@@ -1800,7 +1800,7 @@ describe("createApiServer", () => {
   });
 
   it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".sentiph", "state", "tentacles.json");
     mkdirSync(join(workspaceCwd, ".sentiph", "state"), { recursive: true });
@@ -1837,7 +1837,7 @@ describe("createApiServer", () => {
   });
 
   it("skips tentacle ids that already have an existing worktree directory", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".sentiph", "worktrees", "terminal-1"), {
       recursive: true,
@@ -1862,7 +1862,7 @@ describe("createApiServer", () => {
   });
 
   it("persists tentacle metadata without runtime bootstrap flags", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({
       workspaceCwd,
@@ -1904,7 +1904,7 @@ describe("createApiServer", () => {
   });
 
   it("marks auto-started prompted terminals as active immediately", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({
       workspaceCwd,
@@ -1935,7 +1935,7 @@ describe("createApiServer", () => {
   });
 
   it("injects a default tentacle context prompt for tentacle terminals", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const tentacleDir = join(workspaceCwd, ".sentiph", "tentacles", "docs");
     const relativeTentacleDir = ".sentiph/tentacles/docs";
@@ -2001,7 +2001,7 @@ describe("createApiServer", () => {
   });
 
   it("creates isolated worktree terminals with dedicated cwd", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2033,7 +2033,7 @@ describe("createApiServer", () => {
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/terminal-1",
+        branchName: "sentiph/terminal-1",
         baseRef: "HEAD",
       }),
     );
@@ -2064,7 +2064,7 @@ describe("createApiServer", () => {
   });
 
   it("returns git status for worktree tentacles", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2086,8 +2086,8 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
@@ -2108,8 +2108,8 @@ describe("createApiServer", () => {
     await expect(statusResponse.json()).resolves.toEqual({
       tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: true,
       aheadCount: 2,
       behindCount: 1,
@@ -2145,7 +2145,7 @@ describe("createApiServer", () => {
   });
 
   it("commits pending worktree changes with a required message", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2167,8 +2167,8 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: true,
       aheadCount: 0,
       behindCount: 0,
@@ -2194,8 +2194,8 @@ describe("createApiServer", () => {
     await expect(commitResponse.json()).resolves.toEqual({
       tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 1,
       behindCount: 0,
@@ -2208,7 +2208,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 for commit when message is empty", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2247,7 +2247,7 @@ describe("createApiServer", () => {
   });
 
   it("pushes worktree branch and updates ahead count", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2269,7 +2269,7 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
       upstreamBranchName: null,
       isDirty: false,
       aheadCount: 3,
@@ -2292,8 +2292,8 @@ describe("createApiServer", () => {
     await expect(pushResponse.json()).resolves.toEqual({
       tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -2306,7 +2306,7 @@ describe("createApiServer", () => {
   });
 
   it("syncs worktree branch with base ref", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2328,8 +2328,8 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 4,
@@ -2355,8 +2355,8 @@ describe("createApiServer", () => {
     await expect(syncResponse.json()).resolves.toEqual({
       tentacleId: "terminal-1",
       workspaceMode: "worktree",
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -2369,7 +2369,7 @@ describe("createApiServer", () => {
   });
 
   it("returns PR status for worktree tentacles", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2395,7 +2395,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
@@ -2417,7 +2417,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
@@ -2425,7 +2425,7 @@ describe("createApiServer", () => {
   });
 
   it("creates PR for worktree tentacles and returns PR snapshot", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2447,8 +2447,8 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -2480,7 +2480,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/101",
       title: "feat: expose worktree lifecycle actions",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       isDraft: false,
       mergeable: "MERGEABLE",
       mergeStateStatus: "CLEAN",
@@ -2488,7 +2488,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 409 when creating a PR and an open PR already exists for the branch", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2510,8 +2510,8 @@ describe("createApiServer", () => {
 
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreeStatus(worktreePath, {
-      branchName: "octogent/terminal-1",
-      upstreamBranchName: "origin/octogent/terminal-1",
+      branchName: "sentiph/terminal-1",
+      upstreamBranchName: "origin/sentiph/terminal-1",
       isDirty: false,
       aheadCount: 0,
       behindCount: 0,
@@ -2526,7 +2526,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/142",
       title: "feat: existing worktree lifecycle PR",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
@@ -2554,7 +2554,7 @@ describe("createApiServer", () => {
   });
 
   it("merges the current branch PR for worktree tentacles", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2580,7 +2580,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       state: "OPEN",
       isDraft: false,
       mergeable: "MERGEABLE",
@@ -2603,7 +2603,7 @@ describe("createApiServer", () => {
       url: "https://github.com/hesamsheikh/octogent/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
-      headRef: "octogent/terminal-1",
+      headRef: "sentiph/terminal-1",
       isDraft: false,
       mergeable: "UNKNOWN",
       mergeStateStatus: "MERGED",
@@ -2634,7 +2634,7 @@ describe("createApiServer", () => {
   });
 
   it("removes isolated worktree metadata when deleting a worktree tentacle", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2658,7 +2658,7 @@ describe("createApiServer", () => {
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/terminal-1",
+        branchName: "sentiph/terminal-1",
       }),
     );
 
@@ -2670,11 +2670,11 @@ describe("createApiServer", () => {
     });
     expect(deleteResponse.status).toBe(204);
     expect(gitClient.getWorktree(expectedWorktreePath)).toBeNull();
-    expect(gitClient.hasBranch("octogent/terminal-1")).toBe(false);
+    expect(gitClient.hasBranch("sentiph/terminal-1")).toBe(false);
   });
 
   it("returns 409 and keeps tentacle state when worktree deletion fails", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2710,7 +2710,7 @@ describe("createApiServer", () => {
     expect(gitClient.getWorktree(expectedWorktreePath)).toEqual(
       expect.objectContaining({
         cwd: workspaceCwd,
-        branchName: "octogent/terminal-1",
+        branchName: "sentiph/terminal-1",
       }),
     );
 
@@ -2752,9 +2752,9 @@ describe("createApiServer", () => {
   });
 
   it("refreshes builtin prompts from promptsDir on server start", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
-    const projectStateDir = mkdtempSync(join(tmpdir(), "octogent-state-test-"));
-    const promptsDir = mkdtempSync(join(tmpdir(), "octogent-prompts-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "sentiph-state-test-"));
+    const promptsDir = mkdtempSync(join(tmpdir(), "sentiph-prompts-test-"));
     temporaryDirectories.push(workspaceCwd, projectStateDir, promptsDir);
 
     mkdirSync(join(projectStateDir, "prompts", "core"), { recursive: true });
@@ -2791,9 +2791,9 @@ describe("createApiServer", () => {
   });
 
   it("reads builtin prompts from the live promptsDir after server start", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
-    const projectStateDir = mkdtempSync(join(tmpdir(), "octogent-state-test-"));
-    const promptsDir = mkdtempSync(join(tmpdir(), "octogent-prompts-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "sentiph-state-test-"));
+    const promptsDir = mkdtempSync(join(tmpdir(), "sentiph-prompts-test-"));
     temporaryDirectories.push(workspaceCwd, projectStateDir, promptsDir);
 
     writeFileSync(join(promptsDir, "tentacle-update-tentacle.md"), "version one\n", "utf8");
@@ -2822,7 +2822,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 when creating worktree tentacle outside a git repository", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     gitClient.setRepositoryAvailable(false);
@@ -2891,7 +2891,7 @@ describe("createApiServer", () => {
   });
 
   it("spawns a shared-workspace todo agent for an individual item", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
       recursive: true,
@@ -2945,7 +2945,7 @@ describe("createApiServer", () => {
   });
 
   it("auto-renames todo agents from the todo item context on first prompt submit", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
       recursive: true,
@@ -2974,7 +2974,7 @@ describe("createApiServer", () => {
     expect(solveResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=docs-knowledge-todo-0`,
+      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=docs-knowledge-todo-0`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3002,7 +3002,7 @@ describe("createApiServer", () => {
   });
 
   it("limits swarm prompts to the top-priority items that fit under the child cap", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
       recursive: true,
@@ -3160,7 +3160,7 @@ describe("createApiServer", () => {
   });
 
   it("restores tentacles across API restarts using persisted registry", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     const firstBaseUrl = await startServer({
@@ -3206,7 +3206,7 @@ describe("createApiServer", () => {
   });
 
   it("marks persisted running terminals as stale when the API starts without their session", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".sentiph", "state", "tentacles.json");
     mkdirSync(join(workspaceCwd, ".sentiph", "state"), { recursive: true });
@@ -3254,7 +3254,7 @@ describe("createApiServer", () => {
   });
 
   it("stops and prunes stale terminal records through lifecycle endpoints", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".sentiph", "state", "tentacles.json");
     mkdirSync(join(workspaceCwd, ".sentiph", "state"), { recursive: true });
@@ -3376,7 +3376,7 @@ describe("createApiServer", () => {
   });
 
   it("writes octoboss MCP config on first run before stateDir exists", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     // stateDir (.sentiph) does NOT exist yet when the server starts
@@ -3389,14 +3389,14 @@ describe("createApiServer", () => {
     expect(existsSync(configPath)).toBe(true);
 
     const config = JSON.parse(readFileSync(configPath, "utf8")) as {
-      mcpServers: { octogent: { command: string; env: Record<string, string> } };
+      mcpServers: { sentiph: { command: string; env: Record<string, string> } };
     };
     expect(config.mcpServers.sentiph.command).toBeTruthy();
     expect(config.mcpServers.sentiph.env.SENTIPH_API_ORIGIN).toBeTruthy();
   });
 
   it("writes octoboss system prompt on first run with shell-safe content", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     const stateDir = join(workspaceCwd, ".sentiph");

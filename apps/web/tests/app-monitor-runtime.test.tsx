@@ -148,10 +148,10 @@ describe("App Monitor runtime", () => {
               source: "x",
               id: "1",
               text: "Codex is shipping faster loops",
-              author: "octogent",
+              author: "sentiph",
               createdAt: "2026-02-28T10:00:00.000Z",
               likeCount: 123,
-              permalink: "https://x.com/octogent/status/1",
+              permalink: "https://x.com/sentiph/status/1",
               matchedQueryTerm: "Codex",
             },
           ],
@@ -209,12 +209,12 @@ describe("App Monitor runtime", () => {
 
     const telemetryTape = screen.getByLabelText("Telemetry ticker tape");
     await waitFor(() => {
-      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
+      expect(within(telemetryTape).getAllByText("@sentiph")).toHaveLength(2);
       expect(within(telemetryTape).getAllByText("♥ 123")).toHaveLength(2);
       expect(within(telemetryTape).getAllByText("𝕏")).toHaveLength(2);
       const resourceLinks = within(telemetryTape).getAllByRole("link");
       expect(resourceLinks.length).toBeGreaterThan(0);
-      expect(resourceLinks[0]).toHaveAttribute("href", "https://x.com/octogent/status/1");
+      expect(resourceLinks[0]).toHaveAttribute("href", "https://x.com/sentiph/status/1");
     });
 
     const monitorView = await screen.findByLabelText("Monitor primary view");
@@ -543,10 +543,10 @@ describe("App Monitor runtime", () => {
               source: "x",
               id: "1",
               text: "Telemetry should hydrate without visiting monitor",
-              author: "octogent",
+              author: "sentiph",
               createdAt: "2026-02-28T10:00:00.000Z",
               likeCount: 123,
-              permalink: "https://x.com/octogent/status/1",
+              permalink: "https://x.com/sentiph/status/1",
               matchedQueryTerm: "Codex",
             },
           ],
@@ -560,7 +560,7 @@ describe("App Monitor runtime", () => {
 
     const telemetryTape = await screen.findByLabelText("Telemetry ticker tape");
     await waitFor(() => {
-      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
+      expect(within(telemetryTape).getAllByText("@sentiph")).toHaveLength(2);
       expect(
         within(telemetryTape).queryByText("Waiting for X resources..."),
       ).not.toBeInTheDocument();

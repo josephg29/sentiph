@@ -17,12 +17,12 @@ For a local global CLI install from a clone:
 pnpm install
 pnpm build
 npm install -g .
-octogent
+sentiph
 ```
 
-Octogent is not published to npm yet, so `npm install -g octogent` is not currently a valid quick start path.
+Sentiph is not published to npm yet, so `npm install -g sentiph` is not currently a valid quick start path.
 
-On a fresh workspace, Octogent opens the Deck setup flow first. The setup card verifies the
+On a fresh workspace, Sentiph opens the Deck setup flow first. The setup card verifies the
 workspace files, `.gitignore`, and local prerequisites before you create tentacles.
 
 ## 2. Create or inspect a tentacle
@@ -30,12 +30,12 @@ workspace files, `.gitignore`, and local prerequisites before you create tentacl
 If the app is already running, you can create a tentacle from the CLI:
 
 ```bash
-octogent tentacle create api-backend --description "API runtime and request handling"
+sentiph tentacle create api-backend --description "API runtime and request handling"
 ```
 
 Or use the Deck view in the UI.
 
-Each tentacle becomes a folder under `.octogent/tentacles/<tentacle-id>/`.
+Each tentacle becomes a folder under `.sentiph/tentacles/<tentacle-id>/`.
 
 ## 3. Let the agent build the local context
 
@@ -45,12 +45,12 @@ The tentacle files are where the job keeps its local context:
 - `todo.md` for concrete tasks
 - extra markdown files for notes, architecture, handoff, or examples
 
-You do not need to treat these as manual setup that the developer always writes by hand. One of the points of Octogent is that **Claude Code** can help create, update, and maintain these files from inside the app as the work becomes clearer.
+You do not need to treat these as manual setup that the developer always writes by hand. One of the points of Sentiph is that **Claude Code** can help create, update, and maintain these files from inside the app as the work becomes clearer.
 
 ## 4. Create a terminal
 
 ```bash
-octogent terminal create --name "API worker" --tentacle-id api-backend
+sentiph terminal create --name "API worker" --tentacle-id api-backend
 ```
 
 Use `--workspace-mode worktree` if you want an isolated git worktree.
@@ -62,7 +62,7 @@ The runtime can parse incomplete items in `todo.md` and use them as inputs when 
 ## 6. Send a message
 
 ```bash
-octogent channel send terminal-2 "Need review on the request parser changes"
+sentiph channel send terminal-2 "Need review on the request parser changes"
 ```
 
 ## What to verify

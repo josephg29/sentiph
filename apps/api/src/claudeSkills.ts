@@ -3,8 +3,8 @@ import { basename, dirname, join } from "node:path";
 
 import type { DeckAvailableSkill } from "@sentiph/core";
 
-const SKILL_MARKER_START = "<!-- octogent:suggested-skills:start -->";
-const SKILL_MARKER_END = "<!-- octogent:suggested-skills:end -->";
+const SKILL_MARKER_START = "<!-- sentiph:suggested-skills:start -->";
+const SKILL_MARKER_END = "<!-- sentiph:suggested-skills:end -->";
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const H1_PATTERN = /^#\s+(.+)$/m;
 

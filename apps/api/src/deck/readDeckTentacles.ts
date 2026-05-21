@@ -113,8 +113,8 @@ const parseTentacleState = (raw: unknown, tentacleId: string): DeckTentacleState
 
 // ─── CONTEXT.md managed block helpers ───────────────────────────────────────
 
-const SKILLS_START = "<!-- octogent:suggested-skills:start -->";
-const SKILLS_END = "<!-- octogent:suggested-skills:end -->";
+const SKILLS_START = "<!-- sentiph:suggested-skills:start -->";
+const SKILLS_END = "<!-- sentiph:suggested-skills:end -->";
 
 const buildSkillsBlock = (skills: string[]): string => {
   const lines = [

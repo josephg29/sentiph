@@ -196,7 +196,7 @@ export const RuntimeStatusStrip = ({
           expression="normal"
           scale={2}
         />
-        <span className="console-status-brand">octogent/sentiph</span>
+        <span className="console-status-brand">sentiph</span>
         <span className="console-status-sub">a paradime.tech production</span>
       </div>
       <div className="console-status-charts">

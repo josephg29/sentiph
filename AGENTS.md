@@ -19,7 +19,7 @@
   - Node HTTP/WebSocket server, PTY session runtime, worktree lifecycle, transcript persistence, monitor service.
 - Web app: `apps/web`
   - Vite + React operator UI, modular CSS, UI orchestration over API/runtime contracts.
-- Runtime state: `.octogent/`
+- Runtime state: `.sentiph/`
   - `state/tentacles.json`
   - `state/transcripts/*.jsonl`
   - `worktrees/<tentacleId>`

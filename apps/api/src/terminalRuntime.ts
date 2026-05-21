@@ -78,7 +78,7 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
 
   const config = {
     mcpServers: {
-      octogent: {
+      sentiph: {
         command: nodeCommand,
         args: nodeArgs,
         env: {
@@ -306,7 +306,7 @@ export const createTerminalRuntime = ({
       gitClientOpt.addWorktree({
         cwd: workspaceCwd,
         path,
-        branchName: `octogent/${tentacleId}`,
+        branchName: `sentiph/${tentacleId}`,
         baseRef: baseRef ?? "HEAD",
       });
     },
@@ -321,7 +321,7 @@ export const createTerminalRuntime = ({
         );
       }
       try {
-        gitClientOpt.removeBranch({ cwd: workspaceCwd, branchName: `octogent/${tentacleId}` });
+        gitClientOpt.removeBranch({ cwd: workspaceCwd, branchName: `sentiph/${tentacleId}` });
       } catch {
         // Branch removal is best-effort
       }

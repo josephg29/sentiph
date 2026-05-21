@@ -30,7 +30,7 @@
 - Prefer in-app confirmation and action-panel flows over browser-native dialogs for destructive actions.
 
 ## State
-- Persist layout and UI preferences through the runtime-backed `.octogent` state model, not browser-only storage, unless the feature is explicitly local-only.
+- Persist layout and UI preferences through the runtime-backed `.sentiph` state model, not browser-only storage, unless the feature is explicitly local-only.
 - Keep tentacle IDs stable for routing and runtime identity; user-facing names remain presentation data.
 
 ## Testing

@@ -1,4 +1,3 @@
-import { existsSync as fsExistsSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 

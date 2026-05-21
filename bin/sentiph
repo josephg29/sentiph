@@ -12,7 +12,7 @@ const devScript = resolve(packageRoot, "scripts", "dev.mjs");
 
 const env = {
   ...process.env,
-  OCTOGENT_WORKSPACE_CWD: process.env.OCTOGENT_WORKSPACE_CWD ?? userCwd,
+  SENTIPH_WORKSPACE_CWD: process.env.SENTIPH_WORKSPACE_CWD ?? userCwd,
 };
 
 const child = existsSync(distCli)

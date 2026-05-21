@@ -1,12 +1,12 @@
 import { Github } from "lucide-react";
-import { OctogentMark } from "@/components/octogent-mark";
+import { SentiphMark } from "@/components/sentiph-mark";
 
 export function Nav() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border-subtle bg-canvas/80 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-3xl items-center justify-between px-5 sm:px-6">
         <a href="#top" className="flex items-center gap-2.5" aria-label="Sentiph home">
-          <OctogentMark scale={1.5} />
+          <SentiphMark scale={1.5} />
           <span className="text-[11px] font-bold uppercase tracking-control text-foreground">
             sentiph
           </span>

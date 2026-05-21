@@ -1,10 +1,10 @@
 # Tentacles
 
-Tentacles are the core abstraction in Octogent.
+Tentacles are the core abstraction in Sentiph.
 
 ## What a tentacle is
 
-A tentacle is a folder under `.octogent/tentacles/<tentacle-id>/` that stores agent-readable markdown files.
+A tentacle is a folder under `.sentiph/tentacles/<tentacle-id>/` that stores agent-readable markdown files.
 
 The minimum useful files are:
 
@@ -17,7 +17,7 @@ The important part is that the folder is agent-facing. It is the durable context
 
 ## How Deck reads a tentacle
 
-Deck does not maintain a separate database copy of the tentacle context. It scans `.octogent/tentacles/` and derives most of the view from files:
+Deck does not maintain a separate database copy of the tentacle context. It scans `.sentiph/tentacles/` and derives most of the view from files:
 
 - a folder is considered a tentacle only when it contains `CONTEXT.md`
 - the first `# Heading` in `CONTEXT.md` becomes the display name
@@ -52,16 +52,16 @@ Examples:
 
 The first heading and first non-empty paragraph are runtime-significant. Keep them stable and useful because they become the name and description shown in Deck, Canvas, prompt summaries, and terminal creation flows.
 
-When a tentacle has suggested Claude Code skills, Octogent appends a managed block at the bottom of `CONTEXT.md`:
+When a tentacle has suggested Claude Code skills, Sentiph appends a managed block at the bottom of `CONTEXT.md`:
 
 ```md
-<!-- octogent:suggested-skills:start -->
+<!-- sentiph:suggested-skills:start -->
 ## Suggested Skills
 
 You can use these skills if you need to.
 
 - `skill-name`
-<!-- octogent:suggested-skills:end -->
+<!-- sentiph:suggested-skills:end -->
 ```
 
 The managed block is rewritten by the API when suggested skills change. Put human-authored architecture notes outside that block.
@@ -95,7 +95,7 @@ A worker attached to a tentacle can:
 - use the todo list as a work queue
 - hand work to child agents without rebuilding context from scratch
 
-When a todo item is solved from Deck, Octogent reads the item text, resolves a worker prompt template, and creates a terminal attached to the same tentacle. For swarm runs, incomplete todo items become workers, and larger swarms get a parent coordinator terminal that supervises completion.
+When a todo item is solved from Deck, Sentiph reads the item text, resolves a worker prompt template, and creates a terminal attached to the same tentacle. For swarm runs, incomplete todo items become workers, and larger swarms get a parent coordinator terminal that supervises completion.
 
 ## Tentacles and worktrees
 
@@ -106,7 +106,7 @@ Tentacles are not the same thing as worktrees.
 
 You can use a tentacle with shared workspace terminals or worktree terminals.
 
-In shared mode, all terminals operate in the main workspace, so the context boundary is social and procedural. In worktree mode, each terminal can get a separate checkout under `.octogent/worktrees/`, but it still reads the same tentacle folder for instructions and todos.
+In shared mode, all terminals operate in the main workspace, so the context boundary is social and procedural. In worktree mode, each terminal can get a separate checkout under `.sentiph/worktrees/`, but it still reads the same tentacle folder for instructions and todos.
 
 ## Failure boundaries
 

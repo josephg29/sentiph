@@ -47,7 +47,7 @@ export const WorkspaceSetupCard = ({
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>
         <p className="workspace-setup-card-desc">
-          Run each step explicitly. octogent/sentiph only marks it done after the workspace is
+          Run each step explicitly. sentiph only marks it done after the workspace is
           checked again.
         </p>
       </div>

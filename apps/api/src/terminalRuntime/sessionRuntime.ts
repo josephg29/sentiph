@@ -158,7 +158,7 @@ export const createSessionRuntime = ({
       if (claudeSessionFileExists(cwd, existingSessionId)) {
         return {
           flags: ["--resume", existingSessionId],
-          banner: "[Octogent: resuming previous Claude session…]",
+          banner: "[Sentiph: resuming previous Claude session…]",
         };
       }
       return { flags: ["--session-id", existingSessionId] };
@@ -652,7 +652,7 @@ export const createSessionRuntime = ({
         cols: DEFAULT_PTY_COLS,
         rows: DEFAULT_PTY_ROWS,
         cwd: tentacleCwd,
-        env: createShellEnvironment({ octogentSessionId: sessionId }),
+        env: createShellEnvironment({ sentiphSessionId: sessionId }),
         name: "xterm-256color",
       });
     } catch (error) {

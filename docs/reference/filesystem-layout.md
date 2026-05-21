@@ -1,23 +1,23 @@
 # Filesystem Layout
 
-Octogent splits files by ownership. Agent-facing project context stays in the workspace. Runtime-owned state stays in the per-project global state directory.
+Sentiph splits files by ownership. Agent-facing project context stays in the workspace. Runtime-owned state stays in the per-project global state directory.
 
 ## Project-local files
 
-`.octogent/` is created in the workspace.
+`.sentiph/` is created in the workspace.
 
 Main paths:
 
-- `.octogent/project.json`
-- `.octogent/tentacles/`
-- `.octogent/worktrees/`
+- `.sentiph/project.json`
+- `.sentiph/tentacles/`
+- `.sentiph/worktrees/`
 
 `project.json` holds the stable project ID used to find global state. The tentacles folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as context storage.
 
 Tentacle example:
 
 ```text
-.octogent/
+.sentiph/
   tentacles/
     api-backend/
       CONTEXT.md
@@ -43,7 +43,7 @@ Project-local Claude Code skills, when present, live under:
 Per-project runtime state is stored under:
 
 ```text
-~/.octogent/projects/<project-id>/state/
+~/.sentiph/projects/<project-id>/state/
 ```
 
 Notable files:
@@ -64,8 +64,8 @@ Notable files:
 ## Prompt storage
 
 - core prompts are synced from `prompts/`
-- synced copies live in `.octogent/prompts/core/`
-- user prompts live in `.octogent/prompts/`
+- synced copies live in `.sentiph/prompts/core/`
+- user prompts live in `.sentiph/prompts/`
 
 ## Practical rule
 
@@ -73,4 +73,4 @@ If something is agent-facing context, keep it in the tentacle folder.
 
 If something is runtime-owned state, expect it under the global project state directory.
 
-If something is an isolated execution checkout, expect it under `.octogent/worktrees/` and treat its branch lifecycle as part of the terminal that created it.
+If something is an isolated execution checkout, expect it under `.sentiph/worktrees/` and treat its branch lifecycle as part of the terminal that created it.

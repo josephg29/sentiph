@@ -1,6 +1,6 @@
 # API Reference
 
-Octogent exposes a local HTTP and WebSocket API.
+Sentiph exposes a local HTTP and WebSocket API.
 
 The API has two different kinds of state:
 
@@ -20,7 +20,7 @@ Most HTTP routes either read/write persisted files or create runtime records. We
 - `POST /api/terminals/:terminalId/kill` - kills an active session or recorded stale process
 - `WS /api/terminals/:terminalId/ws` - streams live terminal IO over WebSocket
 
-Terminal snapshots include `lifecycleState` when known. Supported lifecycle states are `registered`, `running`, `stopped`, `exited`, and `stale`. Stale terminals are records that were persisted as running but could not be reattached to a live Octogent PTY session after startup.
+Terminal snapshots include `lifecycleState` when known. Supported lifecycle states are `registered`, `running`, `stopped`, `exited`, and `stale`. Stale terminals are records that were persisted as running but could not be reattached to a live Sentiph PTY session after startup.
 
 Creating a terminal registers metadata first. A PTY starts immediately only when an initial prompt is provided, a WebSocket attaches, or an internal direct listener starts the session. Worktree terminals also create their worktree before the terminal record is exposed.
 
@@ -47,7 +47,7 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 - `GET /api/deck/tentacles/:tentacleId/files/:filename` - reads one markdown file from the tentacle vault
 - `POST /api/deck/tentacles/:tentacleId/swarm` - spawns worker terminals from incomplete todo items
 
-Deck routes treat `.octogent/tentacles/<tentacle-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
+Deck routes treat `.sentiph/tentacles/<tentacle-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
 
 ## Prompts
 

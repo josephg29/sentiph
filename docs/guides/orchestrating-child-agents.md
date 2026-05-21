@@ -1,12 +1,12 @@
 # Orchestrating Child Agents
 
-Octogent uses child terminals to split work into parallel streams.
+Sentiph uses child terminals to split work into parallel streams.
 
 ## How spawning works
 
 A child agent is a normal terminal record with `parentTerminalId` set. The relationship is stored in the terminal registry and shown in the UI; the child still has its own terminal ID, lifecycle state, transcript, workspace mode, and optional worktree.
 
-Deck creates child agents from todo items by resolving prompt templates. The prompt receives the tentacle name, tentacle ID, path to `.octogent/tentacles/<tentacle-id>/`, todo text, terminal ID, API port, workspace guidance, and parent terminal ID when a parent exists.
+Deck creates child agents from todo items by resolving prompt templates. The prompt receives the tentacle name, tentacle ID, path to `.sentiph/tentacles/<tentacle-id>/`, todo text, terminal ID, API port, workspace guidance, and parent terminal ID when a parent exists.
 
 ## When to use child agents
 
@@ -45,15 +45,15 @@ Use `worktree` when:
 
 In shared mode, workers all run in the main workspace and are told not to commit. This is faster but relies on careful scoping and review.
 
-In worktree mode, each worker gets a branch named `octogent/<worker-terminal-id>` under `.octogent/worktrees/<worker-terminal-id>/` and is told to commit its work. The parent coordinator is responsible for merging branches, running tests, and updating tentacle state.
+In worktree mode, each worker gets a branch named `sentiph/<worker-terminal-id>` under `.sentiph/worktrees/<worker-terminal-id>/` and is told to commit its work. The parent coordinator is responsible for merging branches, running tests, and updating tentacle state.
 
 ## Parent coordinator behavior
 
-When a swarm has more than one target item, Octogent creates a parent terminal like `<tentacle-id>-swarm-parent`. The parent prompt contains:
+When a swarm has more than one target item, Sentiph creates a parent terminal like `<tentacle-id>-swarm-parent`. The parent prompt contains:
 
 - the list of worker terminal IDs and assigned todo indices
 - commands for creating each worker terminal
-- communication instructions for `octogent channel send`
+- communication instructions for `sentiph channel send`
 - a completion strategy for shared mode or worktree mode
 - the final requirement to review, test, and update tentacle docs/todos
 
@@ -61,9 +61,9 @@ The parent is intentionally not a magic scheduler. It is an agent session with e
 
 ## Worker limits and identity
 
-Each parent can have up to 9 child terminals. If a swarm has more incomplete todo items than that, Octogent uses todo order as priority order and defers the overflow.
+Each parent can have up to 9 child terminals. If a swarm has more incomplete todo items than that, Sentiph uses todo order as priority order and defers the overflow.
 
-Worker terminal IDs are derived from the tentacle ID and todo index. That makes duplicate detection simple: Octogent refuses to start a second active solve or swarm for the same item pattern.
+Worker terminal IDs are derived from the tentacle ID and todo index. That makes duplicate detection simple: Sentiph refuses to start a second active solve or swarm for the same item pattern.
 
 ## Limits
 

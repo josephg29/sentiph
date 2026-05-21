@@ -106,7 +106,7 @@ describe("createSessionRuntime", () => {
   const temporaryDirectories: string[] = [];
 
   const createTemporaryDirectory = () => {
-    const directory = mkdtempSync(join(tmpdir(), "octogent-session-runtime-test-"));
+    const directory = mkdtempSync(join(tmpdir(), "sentiph-session-runtime-test-"));
     temporaryDirectories.push(directory);
     return directory;
   };
@@ -1063,7 +1063,7 @@ describe("createSessionRuntime", () => {
 
       // Banner is preserved in scrollback so newly connecting clients see it.
       const scrollback = runtime.getScrollback(tentacleId) ?? "";
-      expect(scrollback).toContain("[Octogent: resuming previous Claude session");
+      expect(scrollback).toContain("[Sentiph: resuming previous Claude session");
 
       // Reopen via WebSocket — banner should also be re-broadcast in history.
       runtime.close();
@@ -1133,7 +1133,7 @@ describe("createSessionRuntime", () => {
       );
 
       const scrollback = runtime.getScrollback(tentacleId) ?? "";
-      expect(scrollback).toContain("[Octogent: resuming previous Claude session");
+      expect(scrollback).toContain("[Sentiph: resuming previous Claude session");
 
       // We intentionally do NOT stamp a new UUID for legacy resumes — that
       // identity belongs to whichever session --continue picks up.

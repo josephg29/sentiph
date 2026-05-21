@@ -124,16 +124,16 @@ const main = async () => {
       env: npmEnv,
     });
 
-    console.log("Launching packaged Octogent in a fresh workspace...");
-    const octogentBin =
+    console.log("Launching packaged Sentiph in a fresh workspace...");
+    const sentiphBin =
       process.platform === "win32"
-        ? join(installDir, "node_modules", ".bin", "octogent.cmd")
-        : join(installDir, "node_modules", ".bin", "octogent");
+        ? join(installDir, "node_modules", ".bin", "sentiph.cmd")
+        : join(installDir, "node_modules", ".bin", "sentiph");
 
     let stdout = "";
     let stderr = "";
 
-    serverProcess = spawn(octogentBin, [], {
+    serverProcess = spawn(sentiphBin, [], {
       cwd: workspaceDir,
       env: {
         ...runtimeEnv,
@@ -173,8 +173,8 @@ const main = async () => {
             const response = await fetch(runtimeMetadata.apiBaseUrl);
             if (response.ok) {
               const html = await response.text();
-              if (!html.includes("<title>Octogent</title>")) {
-                throw new Error("Packaged UI responded, but the returned HTML was not Octogent.");
+              if (!html.includes("<title>Sentiph</title>")) {
+                throw new Error("Packaged UI responded, but the returned HTML was not Sentiph.");
               }
               break;
             }

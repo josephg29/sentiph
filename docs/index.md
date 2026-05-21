@@ -1,11 +1,11 @@
-# Octogent Docs
+# Sentiph Docs
 
-These docs are written for contributors and future coding agents. They explain how Octogent is put together, where state lives, and how local terminal agents are coordinated.
+These docs are written for contributors and future coding agents. They explain how Sentiph is put together, where state lives, and how local terminal agents are coordinated.
 
-Octogent has three main layers:
+Sentiph has three main layers:
 
-- **agent-facing files** in `.octogent/tentacles/<tentacle-id>/`, which hold context, todos, and handoff notes
-- **runtime state** under `~/.octogent/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
+- **agent-facing files** in `.sentiph/tentacles/<tentacle-id>/`, which hold context, todos, and handoff notes
+- **runtime state** under `~/.sentiph/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
 - **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Claude Code terminals
 
 ## Start here

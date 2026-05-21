@@ -17,13 +17,13 @@ const buildSetupSnapshot = (
     {
       id: "initialize-workspace",
       title: "Initialize workspace",
-      description: "Create Octogent project files and runtime directories.",
+      description: "Create Sentiph project files and runtime directories.",
       complete: false,
       required: true,
       actionLabel: "Initialize workspace",
       statusText: "Create .sentiph project files before continuing.",
-      guidance: "Workspace initialization failed. Run the Octogent initializer in this repository.",
-      command: "octogent init",
+      guidance: "Workspace initialization failed. Run the Sentiph initializer in this repository.",
+      command: "sentiph init",
     },
     {
       id: "ensure-gitignore",
@@ -34,7 +34,7 @@ const buildSetupSnapshot = (
       actionLabel: "Update .gitignore",
       statusText: "Add .sentiph to .gitignore before creating tentacles.",
       guidance:
-        "Git ignore entry is missing. Create or update .gitignore with the Octogent workspace path.",
+        "Git ignore entry is missing. Create or update .gitignore with the Sentiph workspace path.",
       command: "printf '.sentiph\\n' >> .gitignore",
     },
     {

@@ -1,6 +1,6 @@
 # Runtime And API
 
-Octogent runs as a local API with a local web UI on top.
+Sentiph runs as a local API with a local web UI on top.
 
 ## Runtime shape
 
@@ -26,7 +26,7 @@ The API process owns the moving parts that cannot live in markdown:
 - worktree creation and cleanup for isolated terminals
 - transcript capture and conversation export
 - in-memory channel queues
-- Deck file operations over `.octogent/tentacles/`
+- Deck file operations over `.sentiph/tentacles/`
 - UI state persistence
 
 ## Transport model
@@ -42,15 +42,15 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 
 - binds to `127.0.0.1` by default
 - enforces loopback `Host` and `Origin` checks by default
-- remote access must be enabled explicitly with `OCTOGENT_ALLOW_REMOTE_ACCESS=1`
+- remote access must be enabled explicitly with `SENTIPH_ALLOW_REMOTE_ACCESS=1`
 
 ## Persistence model
 
-- project-local scaffold lives under `.octogent/`
-- runtime state lives under `~/.octogent/projects/<project-id>/state/`
+- project-local scaffold lives under `.sentiph/`
+- runtime state lives under `~/.sentiph/projects/<project-id>/state/`
 - transcript events persist independently from PTY scrollback
 - PTY sessions do not survive API restarts
-- terminal records persisted as `running` are reconciled to `stale` on startup when no live Octogent session owns them
+- terminal records persisted as `running` are reconciled to `stale` on startup when no live Sentiph session owns them
 
 The terminal registry is `tentacles.json` for historical reasons. Current records are terminals, not tentacles. A terminal record stores identity, tentacle ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
@@ -60,7 +60,7 @@ Deck metadata is separate from tentacle markdown. `deck.json` stores display/sta
 
 Creating a terminal writes a registry record first. If an initial prompt is provided, the runtime immediately starts a PTY session. Otherwise, the PTY starts when a WebSocket or direct listener attaches.
 
-When a PTY starts, Octogent:
+When a PTY starts, Sentiph:
 
 1. resolves the working directory from the terminal workspace mode
 2. spawns the user's shell through `node-pty`
@@ -73,7 +73,7 @@ Stopping or killing a terminal tears down the active PTY and updates lifecycle m
 
 ## Hook mechanism
 
-For Claude-backed terminals, Octogent writes hooks into the target `.claude/settings.json`. The hooks call back into the local API and provide state transitions that terminal output alone cannot reliably express.
+For Claude-backed terminals, Sentiph writes hooks into the target `.claude/settings.json`. The hooks call back into the local API and provide state transitions that terminal output alone cannot reliably express.
 
 Hooks currently feed these mechanisms:
 

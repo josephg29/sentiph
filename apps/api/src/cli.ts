@@ -4,7 +4,7 @@ import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
 
 import {
-  ensureOctogentGitignoreEntry,
+  ensureSentiphGitignoreEntry,
   ensureProjectScaffold,
   loadProjectConfig,
   loadProjectsRegistry,
@@ -63,7 +63,7 @@ const initializeProject = (workspaceCwd: string, preferredName?: string) => {
   const projectName = preferredName?.trim() || basename(workspaceCwd) || "sentiph-project";
   const hadConfig = loadProjectConfig(workspaceCwd) !== null;
   const projectConfig = ensureProjectScaffold(workspaceCwd, projectName);
-  ensureOctogentGitignoreEntry(workspaceCwd);
+  ensureSentiphGitignoreEntry(workspaceCwd);
   registerProject(workspaceCwd, projectConfig.displayName);
   const projectStateDir = resolveProjectStateDir(workspaceCwd, projectConfig.displayName);
   migrateStateToGlobal(workspaceCwd, projectStateDir);
@@ -101,12 +101,12 @@ const initProject = (name?: string) => {
   const { created, projectConfig, projectStateDir } = initializeProject(projectPath, name);
 
   console.log(
-    `${created ? "Initialized" : "Updated"} Octogent project "${projectConfig.displayName}" at ${projectPath}`,
+    `${created ? "Initialized" : "Updated"} Sentiph project "${projectConfig.displayName}" at ${projectPath}`,
   );
   console.log("  .sentiph/ directory ready (project metadata, tentacles, worktrees)");
   console.log(`  Global state: ${projectStateDir}`);
   console.log("  .gitignore updated");
-  console.log("\nRun `octogent` to start the dashboard.");
+  console.log("\nRun `sentiph` to start the dashboard.");
 };
 
 const canListenOnPort = (port: number): Promise<boolean> =>
@@ -170,7 +170,7 @@ const resolveRuntimeApiBase = () => {
 
 const apiError = () => {
   console.error(
-    `Error: Could not reach API at ${resolveRuntimeApiBase()}. Start Octogent in this project first.`,
+    `Error: Could not reach API at ${resolveRuntimeApiBase()}. Start Sentiph in this project first.`,
   );
   process.exit(1);
 };
@@ -255,7 +255,7 @@ const startServer = async () => {
   }
 
   console.log();
-  console.log("  Octogent is running");
+  console.log("  Sentiph is running");
   console.log(`  Project: ${workspaceCwd}`);
   console.log(`  Name:    ${projectDisplayName}`);
   console.log(`  API:     ${apiBaseUrl}`);
@@ -414,7 +414,7 @@ const main = async () => {
     const projects = loadProjectsRegistry().projects;
     if (projects.length === 0) {
       console.log(
-        "No projects registered yet. Run `octogent` or `octogent init` in a project directory.",
+        "No projects registered yet. Run `sentiph` or `sentiph init` in a project directory.",
       );
       return;
     }
@@ -444,20 +444,20 @@ const main = async () => {
   }
 
   console.log(`Usage:
-  octogent                             Start the dashboard in the current project
-  octogent init [project-name]         Initialize the current directory explicitly
-  octogent projects                    List registered projects
+  sentiph                             Start the dashboard in the current project
+  sentiph init [project-name]         Initialize the current directory explicitly
+  sentiph projects                    List registered projects
 
-  octogent terminal create [options]   Create a terminal
+  sentiph terminal create [options]   Create a terminal
     --name, -n                         Terminal display name
     --workspace-mode, -w               shared | worktree
     --initial-prompt, -p               Raw initial prompt text
     --terminal-id                      Explicit terminal ID
     --tentacle-id                      Existing tentacle ID to attach to
-  octogent terminal list               List terminal lifecycle state
-  octogent terminal stop <id>          Stop a terminal session
-  octogent terminal kill <id>          Kill a terminal session or recorded process
-  octogent terminal prune              Remove stale, stopped, and exited terminal records`);
+  sentiph terminal list               List terminal lifecycle state
+  sentiph terminal stop <id>          Stop a terminal session
+  sentiph terminal kill <id>          Kill a terminal session or recorded process
+  sentiph terminal prune              Remove stale, stopped, and exited terminal records`);
   process.exit(1);
 };
 

@@ -1,6 +1,6 @@
 # Inter-Agent Messaging
 
-Octogent has a simple local channel system for messages between terminals.
+Sentiph has a simple local channel system for messages between terminals.
 
 ## What channels are
 
@@ -17,7 +17,7 @@ It is not a replacement for proper context files.
 
 ## Delivery model
 
-When a message is sent, Octogent:
+When a message is sent, Sentiph:
 
 1. verifies the target terminal record exists
 2. appends the message to that terminal's in-memory queue
@@ -37,21 +37,21 @@ If the target terminal is not running, the message waits in memory until that se
 Send a message:
 
 ```bash
-octogent channel send <terminal-id> "Need review on the parser change"
+sentiph channel send <terminal-id> "Need review on the parser change"
 ```
 
 When one terminal is messaging another, pass the sender explicitly:
 
 ```bash
-octogent channel send <target-terminal-id> "DONE: parser change is ready" --from <sender-terminal-id>
+sentiph channel send <target-terminal-id> "DONE: parser change is ready" --from <sender-terminal-id>
 ```
 
-If `--from` is omitted, the CLI uses `OCTOGENT_SESSION_ID` when it is available.
+If `--from` is omitted, the CLI uses `SENTIPH_SESSION_ID` when it is available.
 
 List messages:
 
 ```bash
-octogent channel list <terminal-id>
+sentiph channel list <terminal-id>
 ```
 
 ## API usage

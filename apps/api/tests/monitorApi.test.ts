@@ -67,7 +67,7 @@ class FakeGitClient implements GitClient {
     defaultBaseBranchName: string | null;
   } {
     return {
-      branchName: "octogent/tentacle-1",
+      branchName: "sentiph/tentacle-1",
       upstreamBranchName: null,
       isDirty: false,
       aheadCount: 0,
@@ -137,7 +137,7 @@ describe("monitor API routes", () => {
     const workspaceCwd =
       options.workspaceCwd ??
       (() => {
-        const directory = mkdtempSync(join(tmpdir(), "octogent-monitor-api-test-"));
+        const directory = mkdtempSync(join(tmpdir(), "sentiph-monitor-api-test-"));
         temporaryDirectories.push(directory);
         return directory;
       })();

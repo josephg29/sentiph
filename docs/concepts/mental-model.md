@@ -1,17 +1,17 @@
 # Mental Model
 
-This page is for the exact model behind Octogent. The README is the pitch. This page is the boundary map.
+This page is for the exact model behind Sentiph. The README is the pitch. This page is the boundary map.
 
 ## Architectural layers
 
-Octogent separates durable work context from live terminal execution.
+Sentiph separates durable work context from live terminal execution.
 
 ```mermaid
 flowchart TD
   Human[Developer] --> Deck[Deck and Canvas UI]
   Deck --> API[Local API]
-  API --> Files[".octogent/tentacles/*"]
-  API --> State["~/.octogent/projects/<id>/state/*"]
+  API --> Files[".sentiph/tentacles/*"]
+  API --> State["~/.sentiph/projects/<id>/state/*"]
   API --> PTY[PTY-backed agent sessions]
   PTY --> Hooks[Claude hooks]
   Hooks --> API
@@ -49,7 +49,7 @@ A tentacle can be used with:
 
 The tentacle decides *what the job is about*. The worktree decides *where the code changes happen*.
 
-In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.octogent/worktrees/<worktree-id>/` on branch `octogent/<worktree-id>` and starts the PTY there. The agent-facing context still stays in `.octogent/tentacles/<tentacle-id>/`.
+In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.sentiph/worktrees/<worktree-id>/` on branch `sentiph/<worktree-id>` and starts the PTY there. The agent-facing context still stays in `.sentiph/tentacles/<tentacle-id>/`.
 
 ## What belongs in files
 
@@ -78,7 +78,7 @@ The runtime owns:
 
 That data helps the app run, but it is not the same thing as the durable job context. Terminal records survive API restarts. PTY sessions, WebSocket clients, and channel queues do not.
 
-On startup, Octogent reloads terminal records from `tentacles.json`. If a record says it was running, Octogent cannot reattach to the old in-memory PTY, so the record is reconciled to `stale` with a lifecycle reason.
+On startup, Sentiph reloads terminal records from `tentacles.json`. If a record says it was running, Sentiph cannot reattach to the old in-memory PTY, so the record is reconciled to `stale` with a lifecycle reason.
 
 ## How delegation is supposed to work
 
@@ -92,7 +92,7 @@ The expected flow is:
 6. workers report status through short channel messages and by leaving durable notes in files
 7. the parent or human reviews the result and updates `todo.md`
 
-If the boundary is vague, the orchestration gets worse. Octogent helps organize work, but it does not rescue a poorly defined job.
+If the boundary is vague, the orchestration gets worse. Sentiph helps organize work, but it does not rescue a poorly defined job.
 
 ## What the project is actually trying to prove
 

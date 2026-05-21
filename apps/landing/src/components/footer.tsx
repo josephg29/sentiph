@@ -1,4 +1,4 @@
-import { OctogentMark } from "@/components/octogent-mark";
+import { SentiphMark } from "@/components/sentiph-mark";
 
 const LINKS: Array<{ label: string; href: string; external?: boolean }> = [
   { label: "github", href: "https://github.com/josephg29/octogent-sentiph", external: true },
@@ -11,7 +11,7 @@ export function Footer() {
     <footer className="border-t border-border-subtle">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-5 py-8 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <OctogentMark scale={1.5} />
+          <SentiphMark scale={1.5} />
           <span className="text-[11px] font-bold uppercase tracking-control text-foreground">
             sentiph
           </span>

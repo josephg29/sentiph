@@ -121,14 +121,14 @@ const readJsonFile = (filePath: string): unknown | null => {
   }
 };
 
-export const ensureGlobalOctogentDir = () => {
+export const ensureGlobalSentiphDir = () => {
   if (!existsSync(GLOBAL_SENTIPH_DIR)) {
     mkdirSync(GLOBAL_SENTIPH_DIR, { recursive: true });
   }
 };
 
 export const loadProjectsRegistry = (): ProjectsRegistry => {
-  ensureGlobalOctogentDir();
+  ensureGlobalSentiphDir();
 
   if (!existsSync(PROJECTS_FILE)) {
     return { projects: [] };
@@ -147,7 +147,7 @@ export const loadProjectsRegistry = (): ProjectsRegistry => {
 };
 
 export const saveProjectsRegistry = (registry: ProjectsRegistry) => {
-  ensureGlobalOctogentDir();
+  ensureGlobalSentiphDir();
   writeFileSync(PROJECTS_FILE, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
 };
 
@@ -260,15 +260,15 @@ export const ensureProjectScaffold = (
   preferredName?: string,
   preferredProjectId?: string,
 ) => {
-  const octogentDir = join(workspaceCwd, ".sentiph");
+  const sentiphDir = join(workspaceCwd, ".sentiph");
   for (const subdirectory of ["tentacles", "worktrees"]) {
-    mkdirSync(join(octogentDir, subdirectory), { recursive: true });
+    mkdirSync(join(sentiphDir, subdirectory), { recursive: true });
   }
 
   return ensureProjectConfig(workspaceCwd, preferredName, preferredProjectId);
 };
 
-export const hasOctogentGitignoreEntry = (workspaceCwd: string) => {
+export const hasSentiphGitignoreEntry = (workspaceCwd: string) => {
   const gitignorePath = join(workspaceCwd, ".gitignore");
   if (!existsSync(gitignorePath)) {
     return false;
@@ -281,7 +281,7 @@ export const hasOctogentGitignoreEntry = (workspaceCwd: string) => {
     .includes(".sentiph");
 };
 
-export const ensureOctogentGitignoreEntry = (workspaceCwd: string) => {
+export const ensureSentiphGitignoreEntry = (workspaceCwd: string) => {
   const gitignorePath = join(workspaceCwd, ".gitignore");
   const entry = ".sentiph";
 

@@ -20,12 +20,6 @@ const parseStartPort = (value) => {
   return parsed;
 };
 
-const isPortInUseError = (error) =>
-  Boolean(error) &&
-  typeof error === "object" &&
-  "code" in error &&
-  (error.code === "EADDRINUSE" || error.code === "EACCES");
-
 const canListenOnPort = (port) =>
   new Promise((resolve) => {
     const probeServer = createServer();
@@ -37,12 +31,7 @@ const canListenOnPort = (port) =>
       });
     };
 
-    probeServer.once("error", (error) => {
-      if (isPortInUseError(error)) {
-        resolve(false);
-        return;
-      }
-
+    probeServer.once("error", () => {
       resolve(false);
     });
 
