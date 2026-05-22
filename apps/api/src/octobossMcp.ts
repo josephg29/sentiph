@@ -142,7 +142,22 @@ const handleToolCall = async (
       const lifecycle = s.lifecycleState as string | undefined;
       const displayState = agentState ?? lifecycle ?? String(s.state ?? "unknown");
       const termName = s.tentacleName ?? s.terminalId;
-      return `- ${s.terminalId} (${termName}): ${displayState}`;
+
+      let durationNote = "";
+      const changedAt = s.agentStateChangedAt as string | undefined;
+      if (changedAt && agentState) {
+        const elapsedMs = Date.now() - new Date(changedAt).getTime();
+        const elapsedSec = Math.floor(elapsedMs / 1000);
+        if (elapsedSec >= 60) {
+          const mins = Math.floor(elapsedSec / 60);
+          const secs = elapsedSec % 60;
+          durationNote = ` [${mins}m${secs}s in this state]`;
+        } else if (elapsedSec >= 5) {
+          durationNote = ` [${elapsedSec}s in this state]`;
+        }
+      }
+
+      return `- ${s.terminalId} (${termName}): ${displayState}${durationNote}`;
     });
 
     const idleCount = children.filter((s) => s.agentRuntimeState === "idle").length;
@@ -161,6 +176,20 @@ const handleToolCall = async (
     if (!prompt) throw new Error("prompt is required");
     if (prompt.length > MAX_PROMPT_LENGTH) {
       throw new Error(`prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`);
+    }
+
+    const guardRes = await fetch(`${apiOrigin}/api/terminal-snapshots`).catch(() => null);
+    if (guardRes?.ok) {
+      const snapshots = (await guardRes.json()) as Array<Record<string, unknown>>;
+      const snapshot = snapshots.find((s) => s.terminalId === terminalId);
+      if (snapshot?.agentRuntimeState === "processing") {
+        const changedAt = snapshot.agentStateChangedAt as string | undefined;
+        const elapsedSec = changedAt
+          ? Math.floor((Date.now() - new Date(changedAt).getTime()) / 1000)
+          : null;
+        const durationNote = elapsedSec !== null ? ` (has been processing for ${elapsedSec}s)` : "";
+        return `Blocked: terminal "${terminalId}" is currently processing${durationNote}. Sending a prompt now would interrupt the active task and corrupt the session. Wait until list_terminals shows idle for this terminal, then retry send_prompt.`;
+      }
     }
 
     const data = `\x1b[200~${prompt}\x1b[201~\r`;
@@ -228,19 +257,49 @@ const handleToolCall = async (
     const terminalId = String(args.terminal_id ?? "").trim();
     if (!terminalId) throw new Error("terminal_id is required");
 
-    const res = await fetch(
-      `${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/scrollback`,
-    );
-    if (res.status === 404) {
+    const [scrollbackRes, snapshotsRes] = await Promise.all([
+      fetch(`${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/scrollback`),
+      fetch(`${apiOrigin}/api/terminal-snapshots`),
+    ]);
+
+    if (scrollbackRes.status === 404) {
       return "Terminal not found or has no output yet.";
     }
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}`);
+    if (!scrollbackRes.ok) {
+      throw new Error(`API error ${scrollbackRes.status}`);
     }
 
-    const raw = await res.text();
+    let agentState = "unknown";
+    if (snapshotsRes.ok) {
+      const snapshots = (await snapshotsRes.json()) as Array<Record<string, unknown>>;
+      const snapshot = snapshots.find((s) => s.terminalId === terminalId);
+      if (snapshot) {
+        agentState = String(snapshot.agentRuntimeState ?? snapshot.lifecycleState ?? "unknown");
+      }
+    }
+
+    const stateHeader =
+      agentState === "processing"
+        ? `[agent: processing — output below is in-progress; wait for idle before evaluating results]`
+        : agentState === "idle"
+          ? `[agent: idle — output below is the completed result]`
+          : `[agent: ${agentState}]`;
+
+    const raw = await scrollbackRes.text();
     const clean = stripAnsi(raw).trim();
-    return clean || "No output yet.";
+
+    if (agentState === "processing") {
+      const allLines = clean.split("\n");
+      const TAIL_LINES = 30;
+      const tailLines = allLines.slice(-TAIL_LINES);
+      const omitted = allLines.length - tailLines.length;
+      const omittedNote =
+        omitted > 0 ? `[... ${omitted} earlier lines hidden — agent is actively working ...]\n` : "";
+      const tail = tailLines.join("\n") || "No output yet.";
+      return `${stateHeader}\n\n${omittedNote}${tail}\n\n[Stop here. Do not interpret this as a result. Call list_terminals and wait for idle, then call get_terminal_output again to read the completed output.]`;
+    }
+
+    return `${stateHeader}\n\n${clean || "No output yet."}`;
   }
 
   if (name === "close_terminal") {

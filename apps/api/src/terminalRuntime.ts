@@ -555,6 +555,7 @@ export const createTerminalRuntime = ({
       hasUserPrompt: isTerminalRecentlyActive(terminal),
       ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
       ...(session ? { agentRuntimeState: session.agentState } : {}),
+      ...(session ? { agentStateChangedAt: new Date(session.agentStateChangedAt).toISOString() } : {}),
       lifecycleState,
       ...(terminal.lifecycleReason ? { lifecycleReason: terminal.lifecycleReason } : {}),
       ...(terminal.lifecycleUpdatedAt ? { lifecycleUpdatedAt: terminal.lifecycleUpdatedAt } : {}),

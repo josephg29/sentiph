@@ -221,6 +221,7 @@ export const createSessionRuntime = ({
     }
 
     session.agentState = nextState;
+    session.agentStateChangedAt = Date.now();
     appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
     onStateChange?.(sessionId, nextState, session.lastToolName);
     broadcastMessage(session, {
@@ -678,6 +679,7 @@ export const createSessionRuntime = ({
       cols: DEFAULT_PTY_COLS,
       rows: DEFAULT_PTY_ROWS,
       agentState: stateTracker.currentState,
+      agentStateChangedAt: Date.now(),
       stateTracker,
       isBootstrapCommandSent: false,
       scrollbackChunks: [],

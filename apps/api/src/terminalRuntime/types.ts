@@ -61,6 +61,7 @@ export type TerminalSession = {
   cols: number;
   rows: number;
   agentState: AgentRuntimeState;
+  agentStateChangedAt: number;
   stateTracker: AgentStateTracker;
   isBootstrapCommandSent: boolean;
   scrollbackChunks: string[];
