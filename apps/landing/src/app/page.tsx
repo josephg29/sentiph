@@ -1,19 +1,17 @@
-import { Nav } from "@/components/nav";
 import { Hero } from "@/components/hero";
 import { Features } from "@/components/features";
+import { Screenshots } from "@/components/screenshots";
 import { Install } from "@/components/install";
-import { Footer } from "@/components/footer";
+import { StarCta } from "@/components/star-cta";
 
 export default function HomePage() {
   return (
-    <>
-      <Nav />
-      <main>
-        <Hero />
-        <Features />
-        <Install />
-      </main>
-      <Footer />
-    </>
+    <main>
+      <Hero />
+      <Features />
+      <Screenshots />
+      <Install />
+      <StarCta />
+    </main>
   );
 }
