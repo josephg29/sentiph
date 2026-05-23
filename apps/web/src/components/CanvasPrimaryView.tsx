@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@sentiph/core";
 import {
   Check as CheckIcon,
+  Hexagon,
+  ListTodo,
   Maximize,
   Pause,
   Play,
@@ -1322,16 +1324,42 @@ export const CanvasPrimaryView = ({
               </button>
             )}
             {contextMenu.kind === "tentacle" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item"
-                onClick={() => handleCreateAgent(contextMenu.tentacleId)}
-              >
-                <span className="canvas-context-menu-icon">
-                  <TerminalIcon size={14} />
-                </span>
-                New Terminal
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() => handleCreateAgent(contextMenu.tentacleId)}
+                >
+                  <span className="canvas-context-menu-icon">
+                    <TerminalIcon size={14} />
+                  </span>
+                  New Terminal
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() =>
+                    handleTentacleAction(contextMenu.tentacleId, "tentacle-reorganize-todos")
+                  }
+                >
+                  <span className="canvas-context-menu-icon">
+                    <ListTodo size={14} />
+                  </span>
+                  Update To-Do List
+                </button>
+                <button
+                  type="button"
+                  className="canvas-context-menu-item"
+                  onClick={() =>
+                    handleTentacleAction(contextMenu.tentacleId, "tentacle-update-tentacle")
+                  }
+                >
+                  <span className="canvas-context-menu-icon">
+                    <Hexagon size={14} />
+                  </span>
+                  Update Tentacle
+                </button>
+              </>
             )}
             {contextMenu.kind === "sentiph" && (
               <button

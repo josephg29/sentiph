@@ -12,21 +12,21 @@ type SidebarActionPanelProps = {
   isDeletingTerminalId: string | null;
   clearPendingDeleteTerminal: () => void;
   confirmDeleteTerminal: () => Promise<void>;
-  openGitTentacleId: string | null;
+  openGitAgentId: string | null;
   columns: TerminalView;
-  openGitTentacleStatus: TentacleGitStatusSnapshot | null;
-  openGitTentaclePullRequest: TentaclePullRequestSnapshot | null;
+  openGitAgentStatus: TentacleGitStatusSnapshot | null;
+  openGitAgentPullRequest: TentaclePullRequestSnapshot | null;
   gitCommitMessageDraft: string;
   gitDialogError: string | null;
   isGitDialogLoading: boolean;
   isGitDialogMutating: boolean;
   setGitCommitMessageDraft: (value: string) => void;
-  closeTentacleGitActions: () => void;
-  commitTentacleChanges: () => Promise<void>;
-  commitAndPushTentacleBranch: () => Promise<void>;
-  pushTentacleBranch: () => Promise<void>;
-  syncTentacleBranch: () => Promise<void>;
-  mergeTentaclePullRequest: () => Promise<void>;
+  closeAgentGitActions: () => void;
+  commitAgentChanges: () => Promise<void>;
+  commitAndPushAgentBranch: () => Promise<void>;
+  pushAgentBranch: () => Promise<void>;
+  syncAgentBranch: () => Promise<void>;
+  mergeAgentPullRequest: () => Promise<void>;
   requestDeleteTerminal: (
     tentacleId: string,
     tentacleName: string,
@@ -42,26 +42,26 @@ export const SidebarActionPanel = ({
   isDeletingTerminalId,
   clearPendingDeleteTerminal,
   confirmDeleteTerminal,
-  openGitTentacleId,
+  openGitAgentId,
   columns,
-  openGitTentacleStatus,
-  openGitTentaclePullRequest,
+  openGitAgentStatus,
+  openGitAgentPullRequest,
   gitCommitMessageDraft,
   gitDialogError,
   isGitDialogLoading,
   isGitDialogMutating,
   setGitCommitMessageDraft,
-  closeTentacleGitActions,
-  commitTentacleChanges,
-  commitAndPushTentacleBranch,
-  pushTentacleBranch,
-  syncTentacleBranch,
-  mergeTentaclePullRequest,
+  closeAgentGitActions,
+  commitAgentChanges,
+  commitAndPushAgentBranch,
+  pushAgentBranch,
+  syncAgentBranch,
+  mergeAgentPullRequest,
   requestDeleteTerminal,
 }: SidebarActionPanelProps) => {
-  const openGitTentacleTerminal =
-    openGitTentacleId !== null
-      ? columns.find((terminal) => terminal.tentacleId === openGitTentacleId)
+  const openGitAgentTerminal =
+    openGitAgentId !== null
+      ? columns.find((terminal) => terminal.tentacleId === openGitAgentId)
       : null;
 
   if (pendingDeleteTerminal) {
@@ -77,45 +77,45 @@ export const SidebarActionPanel = ({
     );
   }
 
-  if (openGitTentacleTerminal && openGitTentacleTerminal.workspaceMode === "worktree") {
+  if (openGitAgentTerminal && openGitAgentTerminal.workspaceMode === "worktree") {
     return (
       <TentacleGitActionsDialog
         errorMessage={gitDialogError}
         gitCommitMessage={gitCommitMessageDraft}
-        gitPullRequest={openGitTentaclePullRequest}
-        gitStatus={openGitTentacleStatus}
+        gitPullRequest={openGitAgentPullRequest}
+        gitStatus={openGitAgentStatus}
         isLoading={isGitDialogLoading}
         isMutating={isGitDialogMutating}
-        onClose={closeTentacleGitActions}
+        onClose={closeAgentGitActions}
         onCommit={() => {
-          void commitTentacleChanges();
+          void commitAgentChanges();
         }}
         onCommitAndPush={() => {
-          void commitAndPushTentacleBranch();
+          void commitAndPushAgentBranch();
         }}
         onCommitMessageChange={setGitCommitMessageDraft}
         onMergePullRequest={() => {
-          void mergeTentaclePullRequest();
+          void mergeAgentPullRequest();
         }}
         onPush={() => {
-          void pushTentacleBranch();
+          void pushAgentBranch();
         }}
         onSync={() => {
-          void syncTentacleBranch();
+          void syncAgentBranch();
         }}
         onCleanupWorktree={() => {
           requestDeleteTerminal(
-            openGitTentacleTerminal.terminalId,
-            openGitTentacleTerminal.tentacleName ?? openGitTentacleTerminal.tentacleId,
+            openGitAgentTerminal.terminalId,
+            openGitAgentTerminal.tentacleName ?? openGitAgentTerminal.tentacleId,
             {
-              workspaceMode: openGitTentacleTerminal.workspaceMode ?? "shared",
+              workspaceMode: openGitAgentTerminal.workspaceMode ?? "shared",
               intent: "cleanup-worktree",
             },
           );
-          closeTentacleGitActions();
+          closeAgentGitActions();
         }}
-        tentacleId={openGitTentacleTerminal.tentacleId}
-        tentacleName={openGitTentacleTerminal.tentacleName ?? openGitTentacleTerminal.tentacleId}
+        tentacleId={openGitAgentTerminal.tentacleId}
+        tentacleName={openGitAgentTerminal.tentacleName ?? openGitAgentTerminal.tentacleId}
       />
     );
   }

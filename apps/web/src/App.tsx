@@ -11,7 +11,8 @@ import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
-import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
+import { useAgentGitLifecycle } from "./app/hooks/useAgentGitLifecycle";
+import { useWorkspaceSetup } from "./app/hooks/useWorkspaceSetup";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
@@ -94,6 +95,23 @@ export const App = () => {
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
 
+  const {
+    workspaceSetup,
+    isWorkspaceSetupLoading,
+    workspaceSetupError,
+    refreshWorkspaceSetup,
+    runWorkspaceSetupStep,
+  } = useWorkspaceSetup();
+  const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState<
+    | "initialize-workspace"
+    | "ensure-gitignore"
+    | "check-claude"
+    | "check-git"
+    | "check-curl"
+    | "create-tentacles"
+    | null
+  >(null);
+
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
       const readerOptions: { endpoint: string; signal?: AbortSignal } = {
@@ -132,26 +150,26 @@ export const App = () => {
   });
 
   const {
-    gitStatusByTentacleId,
-    gitStatusLoadingByTentacleId,
-    pullRequestByTentacleId,
-    pullRequestLoadingByTentacleId,
-    openGitTentacleId,
-    openGitTentacleStatus,
-    openGitTentaclePullRequest,
+    gitStatusByAgentId,
+    gitStatusLoadingByAgentId,
+    pullRequestByAgentId,
+    pullRequestLoadingByAgentId,
+    openGitAgentId,
+    openGitAgentStatus,
+    openGitAgentPullRequest,
     gitCommitMessageDraft,
     gitDialogError,
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
-    openTentacleGitActions,
-    closeTentacleGitActions,
-    commitTentacleChanges,
-    commitAndPushTentacleBranch,
-    pushTentacleBranch,
-    syncTentacleBranch,
-    mergeTentaclePullRequest,
-  } = useTentacleGitLifecycle({
+    openAgentGitActions,
+    closeAgentGitActions,
+    commitAgentChanges,
+    commitAndPushAgentBranch,
+    pushAgentBranch,
+    syncAgentBranch,
+    mergeAgentPullRequest,
+  } = useAgentGitLifecycle({
     columns: terminals,
   });
 
@@ -369,8 +387,8 @@ export const App = () => {
   });
   const hasSidebarActionPanel =
     pendingDeleteTerminal !== null ||
-    (openGitTentacleId !== null &&
-      terminals.find((terminal) => terminal.tentacleId === openGitTentacleId)?.workspaceMode ===
+    (openGitAgentId !== null &&
+      terminals.find((terminal) => terminal.tentacleId === openGitAgentId)?.workspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
@@ -379,21 +397,21 @@ export const App = () => {
       isDeletingTerminalId={isDeletingTerminalId}
       clearPendingDeleteTerminal={clearPendingDeleteTerminal}
       confirmDeleteTerminal={confirmDeleteTerminal}
-      openGitTentacleId={openGitTentacleId}
+      openGitAgentId={openGitAgentId}
       columns={terminals}
-      openGitTentacleStatus={openGitTentacleStatus}
-      openGitTentaclePullRequest={openGitTentaclePullRequest}
+      openGitAgentStatus={openGitAgentStatus}
+      openGitAgentPullRequest={openGitAgentPullRequest}
       gitCommitMessageDraft={gitCommitMessageDraft}
       gitDialogError={gitDialogError}
       isGitDialogLoading={isGitDialogLoading}
       isGitDialogMutating={isGitDialogMutating}
       setGitCommitMessageDraft={setGitCommitMessageDraft}
-      closeTentacleGitActions={closeTentacleGitActions}
-      commitTentacleChanges={commitTentacleChanges}
-      commitAndPushTentacleBranch={commitAndPushTentacleBranch}
-      pushTentacleBranch={pushTentacleBranch}
-      syncTentacleBranch={syncTentacleBranch}
-      mergeTentaclePullRequest={mergeTentaclePullRequest}
+      closeAgentGitActions={closeAgentGitActions}
+      commitAgentChanges={commitAgentChanges}
+      commitAndPushAgentBranch={commitAndPushAgentBranch}
+      pushAgentBranch={pushAgentBranch}
+      syncAgentBranch={syncAgentBranch}
+      mergeAgentPullRequest={mergeAgentPullRequest}
       requestDeleteTerminal={requestDeleteTerminal}
     />
   ) : null;
@@ -418,6 +436,26 @@ export const App = () => {
       current.map((t) => (t.terminalId === terminalId ? { ...t, hasUserPrompt: true } : t)),
     );
   }, []);
+
+  const handleRunWorkspaceSetupStep = useCallback(
+    async (
+      stepId:
+        | "initialize-workspace"
+        | "ensure-gitignore"
+        | "check-claude"
+        | "check-git"
+        | "check-curl"
+        | "create-tentacles",
+    ) => {
+      setRunningWorkspaceSetupStepId(stepId);
+      try {
+        await runWorkspaceSetupStep(stepId);
+      } finally {
+        setRunningWorkspaceSetupStepId(null);
+      }
+    },
+    [runWorkspaceSetupStep],
+  );
 
   return (
     <div className="page console-shell">
@@ -507,6 +545,11 @@ export const App = () => {
               canvasOpenTerminalIds,
               canvasOpenTentacleIds,
               canvasTerminalsPanelWidth,
+              workspaceSetup,
+              isWorkspaceSetupLoading,
+              workspaceSetupError,
+              runningWorkspaceSetupStepId,
+              onRunWorkspaceSetupStep: handleRunWorkspaceSetupStep,
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenTentacleIdsChange: setCanvasOpenTentacleIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
@@ -527,6 +570,17 @@ export const App = () => {
                 });
                 if (!response.ok) return;
                 await refreshColumns();
+              },
+              onSpawnSwarm: async (tentacleId, workspaceMode) => {
+                const response = await fetch(
+                  `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ workspaceMode }),
+                  },
+                );
+                if (!response.ok) return;
               },
               onCloseActiveSession: (terminalId, terminalName, workspaceMode) => {
                 requestDeleteTerminal(terminalId, terminalName, {
