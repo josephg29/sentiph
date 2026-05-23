@@ -7,8 +7,8 @@ const TABS = [
   {
     n: 1,
     label: "agents",
-    src: "/preview_1.jpg",
-    alt: "Sentiph agents canvas — dot-grid workspace with the sentiph mascot at center",
+    src: "/preview_agents.jpg",
+    alt: "Sentiph agents canvas — 8 active sessions fanned out from the central mascot in a force-directed graph",
   },
   {
     n: 3,
