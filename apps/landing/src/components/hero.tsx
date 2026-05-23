@@ -17,14 +17,16 @@ export function Hero() {
           </div>
 
           <h1 className="mt-6 text-[40px] font-bold leading-[1.1] tracking-control text-foreground sm:text-[52px] lg:text-[58px]">
-            <span className="block">all your Claude Code</span>
-            <span className="block">sessions, one place.</span>
+            <span className="block">orchestrate</span>
+            <span className="block">Claude Code agents</span>
+            <span className="block">from one workspace.</span>
           </h1>
 
           <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-secondary">
-            Sentiph lets you run as many full Claude Code terminals as you need and manage
-            them all from a single local app. Each session gets its own scoped context,
-            notes, and task list so nothing bleeds into anything else.
+            Sentiph runs multiple full Claude Code sessions at once and keeps each one on
+            track. Every session gets its own scoped context in files — not buried in a
+            conversation thread — so agents stay focused, a parent session can spawn and
+            direct workers, and you can see what every agent is actually doing.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
