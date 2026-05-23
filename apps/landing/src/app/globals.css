@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ───────────────────────────────────────────────────────────────────────
-   Monocraft — the Sentiph type voice (apps/web/public/fonts/Monocraft.otf)
+   Monocraft — terminal/code voice, retained for brand identity
    ─────────────────────────────────────────────────────────────────────── */
 @font-face {
   font-family: "Monocraft";
@@ -12,61 +12,84 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────
-   Tokens — mirrored from apps/web/src/styles/foundation.css
-   so the landing reads as the same product.
+   Design tokens — dark SaaS/AI aesthetic
    ─────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-canvas: #fafafa;
-  --bg-surface-1: #f2f2f2;
-  --bg-surface-2: #e8e8e8;
+  --bg-canvas:    #0c0c0c;
+  --bg-surface-1: #131313;
+  --bg-surface-2: #1a1a1a;
+  --bg-surface-3: #222222;
 
-  --border-subtle: #ddd;
-  --border-strong: #111;
+  --border-subtle: #1e1e1e;
+  --border-mid:    #2a2a2a;
+  --border-strong: #3a3a3a;
 
-  --text-primary: #111;
-  --text-secondary: #666;
-  --text-muted: #888;
+  --text-primary:   #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-muted:     #555555;
 
-  --term-red: #880f1e;
-  --term-green: #25a244;
-  --term-blue: #1e59a3;
-  --term-blue-soft: #eaf0f9;
+  --accent:       #2fce68;
+  --accent-dim:   #1a7a3f;
+  --accent-glow:  rgba(47, 206, 104, 0.12);
 
-  --terminal-bg: #111;
+  --term-green:   #2fce68;
+  --term-red:     #e05c5c;
+  --term-amber:   #d4a017;
 
-  --font-main: "Monocraft", "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  --font-display:  var(--font-space-grotesk, "Space Grotesk", system-ui, sans-serif);
+  --font-mono:     "Monocraft", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --tracking-control: 0.06em;
+  --tracking-display: -0.03em;
+
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @theme inline {
-  --color-canvas: var(--bg-canvas);
-  --color-surface-1: var(--bg-surface-1);
-  --color-surface-2: var(--bg-surface-2);
+  --color-canvas:         var(--bg-canvas);
+  --color-surface-1:      var(--bg-surface-1);
+  --color-surface-2:      var(--bg-surface-2);
+  --color-surface-3:      var(--bg-surface-3);
 
-  --color-border-subtle: var(--border-subtle);
-  --color-border-strong: var(--border-strong);
+  --color-border-subtle:  var(--border-subtle);
+  --color-border-mid:     var(--border-mid);
+  --color-border-strong:  var(--border-strong);
 
-  --color-foreground: var(--text-primary);
-  --color-secondary: var(--text-secondary);
-  --color-muted: var(--text-muted);
+  --color-foreground:     var(--text-primary);
+  --color-secondary:      var(--text-secondary);
+  --color-muted:          var(--text-muted);
 
-  --color-term-red: var(--term-red);
-  --color-term-green: var(--term-green);
-  --color-term-blue: var(--term-blue);
-  --color-term-blue-soft: var(--term-blue-soft);
+  --color-accent:         var(--accent);
+  --color-accent-dim:     var(--accent-dim);
 
-  --color-terminal-bg: var(--terminal-bg);
+  --color-term-green:     var(--term-green);
+  --color-term-red:       var(--term-red);
+  --color-term-amber:     var(--term-amber);
 
-  --font-mono: var(--font-main);
-  --font-sans: var(--font-main);
+  --font-display: var(--font-display);
+  --font-mono:    var(--font-mono);
+  --font-sans:    var(--font-mono);
 
-  --tracking-control: 0.06em;
+  --tracking-control: var(--tracking-control);
+  --tracking-display: var(--tracking-display);
 
-  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-pulse-soft: var(--animate-pulse-soft);
 }
 
 @keyframes pulse-soft {
   0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+  50%       { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
 }
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -81,26 +104,22 @@
   }
 
   html {
-    font-size: 15px;
+    font-size: 16px;
     background: var(--bg-canvas);
+    color-scheme: dark;
   }
 
   body {
-    background:
-      linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
-      var(--bg-canvas);
-    background-size: 28px 28px, 28px 28px, auto;
+    background: var(--bg-canvas);
     color: var(--text-primary);
-    font-family: var(--font-main);
-    -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: unset;
-    text-rendering: geometricPrecision;
+    font-family: var(--font-mono);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background: #111;
-    color: #fafafa;
+    background: var(--accent);
+    color: #0c0c0c;
   }
 
   a {
@@ -108,27 +127,21 @@
     text-decoration: none;
   }
 
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: var(--bg-surface-2); }
-  ::-webkit-scrollbar-thumb { background: #bbb; }
-  ::-webkit-scrollbar-thumb:hover { background: #999; }
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--bg-surface-1); }
+  ::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 3px; }
 
-  img,
-  svg.pixelated,
-  .pixelated {
+  img, svg.pixelated, .pixelated {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *,
-    ::before,
-    ::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
+    *, ::before, ::after {
+      animation-duration:       0.01ms !important;
+      animation-iteration-count: 1     !important;
+      transition-duration:      0.01ms !important;
+      scroll-behavior:          auto   !important;
     }
   }
 }
-

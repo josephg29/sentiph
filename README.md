@@ -1,6 +1,6 @@
 <div align="center">
 
-<strong>too many terminals, not enough tentacles</strong>
+<strong>multi-agent orchestration for Claude Code</strong>
 <br />
 <br />
 
@@ -49,7 +49,7 @@ This repo is a personal exploration of what an AI coding environment might look 
 
 A **tentacle** is a folder under `.sentiph/tentacles/<tentacle-id>/` that holds agent-readable markdown such as `CONTEXT.md`, `todo.md`, and any extra notes needed for that slice of the codebase.
 
-The octopus metaphor is literal: *one octopus, many tentacles, different work happening at the same time*.
+A **tentacle** is a named job scope. Each one keeps its own context and todos independent of every other running session.
 
 ## Tentacles
 
