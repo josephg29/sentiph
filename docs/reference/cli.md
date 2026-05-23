@@ -26,7 +26,7 @@ Use this when you want to initialize the project explicitly or set the project d
 sentiph projects
 ```
 
-## Create a tentacle
+## Create a session
 
 ```bash
 sentiph tentacle create <name> --description "API runtime and routes"
@@ -34,7 +34,7 @@ sentiph tentacle create <name> --description "API runtime and routes"
 
 Sentiph must already be running for this command.
 
-## List tentacles
+## List sessions
 
 ```bash
 sentiph tentacle list
@@ -52,7 +52,7 @@ Options:
 - `--workspace-mode`, `-w`: `shared` or `worktree`
 - `--initial-prompt`, `-p`: raw initial prompt text
 - `--terminal-id`: explicit terminal ID
-- `--tentacle-id`: existing tentacle ID to attach to
+- `--tentacle-id`: existing session ID to attach to
 - `--worktree-id`: explicit worktree ID
 - `--parent-terminal-id`: parent terminal ID for child terminals
 - `--prompt-template`: prompt template name
@@ -89,7 +89,7 @@ Removes terminal records whose lifecycle state is `stale`, `stopped`, or `exited
 sentiph channel send <terminal-id> "message"
 ```
 
-Use `--from <terminal-id>` when sending on behalf of a worker or parent terminal. If `--from` is omitted, the CLI falls back to `SENTIPH_SESSION_ID` when the command is running inside an Sentiph-managed terminal.
+Use `--from <terminal-id>` when sending on behalf of a worker or parent terminal. If `--from` is omitted, the CLI falls back to `SENTIPH_SESSION_ID` when the command is running inside a Sentiph-managed terminal.
 
 ## List messages
 

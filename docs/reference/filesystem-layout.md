@@ -9,25 +9,25 @@ Sentiph splits files by ownership. Agent-facing project context stays in the wor
 Main paths:
 
 - `.sentiph/project.json`
-- `.sentiph/tentacles/`
+- `.sentiph/sessions/`
 - `.sentiph/worktrees/`
 
-`project.json` holds the stable project ID used to find global state. The tentacles folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as context storage.
+`project.json` holds the stable project ID used to find global state. The sessions folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as context storage.
 
-Tentacle example:
+Session example:
 
 ```text
 .sentiph/
-  tentacles/
+  sessions/
     api-backend/
       CONTEXT.md
       todo.md
       routes.md
 ```
 
-`CONTEXT.md` may end with a managed `Suggested Skills` block when the operator or planner attaches Claude Code skills to that tentacle.
+`CONTEXT.md` may end with a managed `Suggested Skills` block when the operator or planner attaches Claude Code skills to that session.
 
-Deck also writes UI metadata for tentacles, but not into these markdown files. Color, status, appearance, paths, and tags are stored in global deck state.
+Deck also writes UI metadata for sessions, but not into these markdown files. Color, status, appearance, paths, and tags are stored in global deck state.
 
 Project-local Claude Code skills, when present, live under:
 
@@ -48,16 +48,16 @@ Per-project runtime state is stored under:
 
 Notable files:
 
-- `tentacles.json`
+- `sessions.json`
 - `deck.json`
 - `transcripts/<sessionId>.jsonl`
 - `monitor-config.json`
 - `monitor-cache.json`
 - `code-intel.jsonl`
 
-`tentacles.json` is the terminal registry despite the historical name. It stores terminal records, lifecycle state, UI state, parent-child links, workspace mode, worktree IDs, and display names.
+`sessions.json` is the terminal registry despite the historical name. It stores terminal records, lifecycle state, UI state, parent-child links, workspace mode, worktree IDs, and display names.
 
-`deck.json` stores Deck presentation metadata that is not part of the agent-facing tentacle files.
+`deck.json` stores Deck presentation metadata that is not part of the agent-facing session files.
 
 `transcripts/*.jsonl` stores conversation transcript events separately from PTY scrollback. Scrollback is in memory and bounded; transcripts are persisted.
 
@@ -69,7 +69,7 @@ Notable files:
 
 ## Practical rule
 
-If something is agent-facing context, keep it in the tentacle folder.
+If something is agent-facing context, keep it in the session folder.
 
 If something is runtime-owned state, expect it under the global project state directory.
 

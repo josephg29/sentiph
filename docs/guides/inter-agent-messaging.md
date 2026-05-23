@@ -4,7 +4,7 @@ Sentiph has a simple local channel system for messages between terminals.
 
 ## What channels are
 
-Channels are in-memory queues keyed by target terminal ID. Sending a message does not write to the target tentacle files and does not create a persistent notification record.
+Channels are in-memory queues keyed by target terminal ID. Sending a message does not write to the target session files and does not create a persistent notification record.
 
 Use them for short coordination:
 
@@ -69,4 +69,4 @@ sentiph channel list <terminal-id>
 
 ## Practical rule
 
-If a message needs to survive, write it into the tentacle files. Use the channel for short-lived coordination only.
+If a message needs to survive, write it into the session files. Use the channel for short-lived coordination only.

@@ -15,7 +15,7 @@ These features exist in the repo, but they are not the center of the current pro
 
 The main project claim is about:
 
-- tentacles
+- sessions
 - todos
 - Claude Code terminals
 - child-agent orchestration

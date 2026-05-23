@@ -20,34 +20,34 @@ Most HTTP routes either read/write persisted files or create runtime records. We
 - `POST /api/terminals/:terminalId/kill` - kills an active session or recorded stale process
 - `WS /api/terminals/:terminalId/ws` - streams live terminal IO over WebSocket
 
-Terminal snapshots include `lifecycleState` when known. Supported lifecycle states are `registered`, `running`, `stopped`, `exited`, and `stale`. Stale terminals are records that were persisted as running but could not be reattached to a live Sentiph PTY session after startup.
+Terminal snapshots include `lifecycleState` when known. Supported lifecycle states are `registered`, `running`, `stopped`, `exited`, and `stale`. Stale terminals are records that were persisted as running but could not be reattached to a live Sentiph PTY agent session after startup.
 
 Creating a terminal registers metadata first. A PTY starts immediately only when an initial prompt is provided, a WebSocket attaches, or an internal direct listener starts the session. Worktree terminals also create their worktree before the terminal record is exposed.
 
 ## Git and worktrees
 
-- `GET /api/tentacles/:tentacleId/git/status` - reads git status for a worktree-backed tentacle
-- `POST /api/tentacles/:tentacleId/git/commit` - creates a commit from the tentacle worktree
-- `POST /api/tentacles/:tentacleId/git/push` - pushes the tentacle branch
-- `POST /api/tentacles/:tentacleId/git/sync` - syncs the tentacle worktree with its base branch
-- `GET /api/tentacles/:tentacleId/git/pr` - reads pull request information for the tentacle branch
-- `POST /api/tentacles/:tentacleId/git/pr/merge` - merges the tentacle pull request
+- `GET /api/sessions/:sessionId/git/status` - reads git status for a worktree-backed session
+- `POST /api/sessions/:sessionId/git/commit` - creates a commit from the session worktree
+- `POST /api/sessions/:sessionId/git/push` - pushes the session branch
+- `POST /api/sessions/:sessionId/git/sync` - syncs the session worktree with its base branch
+- `GET /api/sessions/:sessionId/git/pr` - reads pull request information for the session branch
+- `POST /api/sessions/:sessionId/git/pr/merge` - merges the session pull request
 
-## Deck and tentacles
+## Deck and sessions
 
 - `GET /api/deck/skills` - lists available Claude Code skills discovered from project-local `.claude/skills/<skill>/SKILL.md` entries
-- `GET /api/deck/tentacles` - lists tentacles with metadata, vault files, and todo progress
-- `POST /api/deck/tentacles` - creates a new tentacle
-- `DELETE /api/deck/tentacles/:tentacleId` - deletes a tentacle and its stored files
-- `PATCH /api/deck/tentacles/:tentacleId/skills` - updates the tentacle's suggested Claude Code skills and rewrites the managed block in `CONTEXT.md`
-- `POST /api/deck/tentacles/:tentacleId/todo` - adds a todo item to `todo.md`
-- `PATCH /api/deck/tentacles/:tentacleId/todo/toggle` - marks a todo item done or undone
-- `PATCH /api/deck/tentacles/:tentacleId/todo/edit` - edits the text of a todo item
-- `POST /api/deck/tentacles/:tentacleId/todo/delete` - deletes a todo item
-- `GET /api/deck/tentacles/:tentacleId/files/:filename` - reads one markdown file from the tentacle vault
-- `POST /api/deck/tentacles/:tentacleId/swarm` - spawns worker terminals from incomplete todo items
+- `GET /api/deck/sessions` - lists sessions with metadata, vault files, and todo progress
+- `POST /api/deck/sessions` - creates a new session
+- `DELETE /api/deck/sessions/:sessionId` - deletes a session and its stored files
+- `PATCH /api/deck/sessions/:sessionId/skills` - updates the session's suggested Claude Code skills and rewrites the managed block in `CONTEXT.md`
+- `POST /api/deck/sessions/:sessionId/todo` - adds a todo item to `todo.md`
+- `PATCH /api/deck/sessions/:sessionId/todo/toggle` - marks a todo item done or undone
+- `PATCH /api/deck/sessions/:sessionId/todo/edit` - edits the text of a todo item
+- `POST /api/deck/sessions/:sessionId/todo/delete` - deletes a todo item
+- `GET /api/deck/sessions/:sessionId/files/:filename` - reads one markdown file from the session vault
+- `POST /api/deck/sessions/:sessionId/spawn_agent` - spawns worker terminals from incomplete todo items
 
-Deck routes treat `.sentiph/tentacles/<tentacle-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
+Deck routes treat `.sentiph/sessions/<session-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
 
 ## Prompts
 

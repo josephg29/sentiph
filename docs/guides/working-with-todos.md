@@ -1,6 +1,6 @@
 # Working With Todos
 
-Todos are the operational center of a tentacle.
+Todos are the operational center of a session.
 
 ## How todo parsing works
 
@@ -38,8 +38,8 @@ Because worker prompts are generated from todo text, each item should carry enou
 
 ## Authoring pattern
 
-- keep one tentacle per work area
-- keep one `todo.md` per tentacle
+- keep one session per work area
+- keep one `todo.md` per session
 - write tasks at the level of one child-agent assignment
 - keep order meaningful because swarm overflow is truncated by todo order
 - mark items done in the file or through the UI, which rewrites the file
@@ -48,13 +48,13 @@ Because worker prompts are generated from todo text, each item should carry enou
 
 The Deck runtime uses the same parsed list for three different workflows:
 
-- progress display in the tentacle card
+- progress display in the session card
 - single-item solve, where one todo item becomes one worker terminal
 - swarm creation, where incomplete items become worker assignments
 
-For a single-item solve, Sentiph creates a terminal ID like `<tentacle-id>-todo-<item-index>` and starts a shared-workspace worker prompt for that item.
+For a single-item solve, Sentiph creates a terminal ID like `<session-id>-todo-<item-index>` and starts a shared-workspace worker prompt for that item.
 
-For a swarm, Sentiph filters incomplete items, optionally narrows them to requested indices, caps the batch at the parent-child limit, then creates worker IDs like `<tentacle-id>-swarm-<item-index>`. If there is more than one worker, it creates a parent coordinator terminal instead of starting all workers directly from the API. The parent prompt contains the worker creation commands and completion strategy.
+For a swarm, Sentiph filters incomplete items, optionally narrows them to requested indices, caps the batch at the parent-child limit, then creates worker IDs like `<session-id>-swarm-<item-index>`. If there is more than one worker, it creates a parent coordinator terminal instead of starting all workers directly from the API. The parent prompt contains the worker creation commands and completion strategy.
 
 ## Editing and drift
 

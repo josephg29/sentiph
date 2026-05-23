@@ -4,7 +4,7 @@ These docs are written for contributors and future coding agents. They explain h
 
 Sentiph has three main layers:
 
-- **agent-facing files** in `.sentiph/tentacles/<tentacle-id>/`, which hold context, todos, and handoff notes
+- **agent-facing files** in `.sentiph/sessions/<session-id>/`, which hold context, todos, and handoff notes
 - **runtime state** under `~/.sentiph/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
 - **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Claude Code terminals
 
@@ -12,11 +12,11 @@ Sentiph has three main layers:
 
 - [Installation](getting-started/installation.md)
 - [Quickstart](getting-started/quickstart.md)
-- [Mental Model](concepts/mental-model.md) explains the boundaries between tentacles, terminals, worktrees, and runtime state
+- [Mental Model](concepts/mental-model.md) explains the boundaries between sessions, terminals, worktrees, and runtime state
 
 ## Concepts
 
-- [Tentacles](concepts/tentacles.md) explains the file-backed context model and how Deck reads it
+- [Sessions](concepts/sessions.md) explains the file-backed context model and how Deck reads it
 - [Runtime and API](concepts/runtime-and-api.md) explains terminal lifecycle, WebSockets, hooks, persistence, and restart behavior
 
 ## Guides

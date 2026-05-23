@@ -23,11 +23,11 @@ sentiph
 Sentiph is not published to npm yet, so `npm install -g sentiph` is not currently a valid quick start path.
 
 On a fresh workspace, Sentiph opens the Deck setup flow first. The setup card verifies the
-workspace files, `.gitignore`, and local prerequisites before you create tentacles.
+workspace files, `.gitignore`, and local prerequisites before you create sessions.
 
-## 2. Create or inspect a tentacle
+## 2. Create or inspect a session
 
-If the app is already running, you can create a tentacle from the CLI:
+If the app is already running, you can create a session from the CLI:
 
 ```bash
 sentiph tentacle create api-backend --description "API runtime and request handling"
@@ -35,11 +35,11 @@ sentiph tentacle create api-backend --description "API runtime and request handl
 
 Or use the Deck view in the UI.
 
-Each tentacle becomes a folder under `.sentiph/tentacles/<tentacle-id>/`.
+Each session becomes a folder under `.sentiph/sessions/<session-id>/`.
 
 ## 3. Let the agent build the local context
 
-The tentacle files are where the job keeps its local context:
+The session files are where the job keeps its local context:
 
 - `CONTEXT.md` for the local model of that area
 - `todo.md` for concrete tasks
@@ -50,7 +50,7 @@ You do not need to treat these as manual setup that the developer always writes 
 ## 4. Create a terminal
 
 ```bash
-sentiph terminal create --name "API worker" --tentacle-id api-backend
+sentiph terminal create --name "API worker" --session-id api-backend
 ```
 
 Use `--workspace-mode worktree` if you want an isolated git worktree.
@@ -67,13 +67,13 @@ sentiph channel send terminal-2 "Need review on the request parser changes"
 
 ## What to verify
 
-- the tentacle folder exists
+- the session folder exists
 - the terminal appears in the UI
-- `CONTEXT.md` and `todo.md` exist for that tentacle
+- `CONTEXT.md` and `todo.md` exist for that session
 - todo progress is visible
 - messages show up in the target terminal channel
 
 ## Next reading
 
 - [Mental Model](../concepts/mental-model.md)
-- [Tentacles](../concepts/tentacles.md)
+- [Sessions](../concepts/sessions.md)

@@ -10,7 +10,7 @@ Sentiph separates durable work context from live terminal execution.
 flowchart TD
   Human[Developer] --> Deck[Deck and Canvas UI]
   Deck --> API[Local API]
-  API --> Files[".sentiph/tentacles/*"]
+  API --> Files[".sentiph/sessions/*"]
   API --> State["~/.sentiph/projects/<id>/state/*"]
   API --> PTY[PTY-backed agent sessions]
   PTY --> Hooks[Claude hooks]
@@ -18,42 +18,42 @@ flowchart TD
 ```
 
 - the **developer** defines boundaries, reviews output, and decides what lands
-- a **tentacle** is the durable job context: markdown files, todos, notes, and handoff state
+- a **session** is the durable job context: markdown files, todos, notes, and handoff state
 - a **terminal** is the runtime record plus, when active, one PTY-backed agent session
 - a **worker** is a terminal assigned to one narrower task, usually a todo item
 - a **parent** is a terminal that coordinates workers and performs final review or merge work
 - a **channel** is an in-memory queue used to inject short messages into live terminals
 
-## Tentacle vs terminal
+## Session vs terminal
 
 These are different things.
 
-- a **tentacle** is a folder with agent-readable files
-- a **terminal** is a runtime object that can attach to one tentacle
+- a **session** is a folder with agent-readable files
+- a **terminal** is a runtime object that can attach to one session
 
-Multiple terminals can point at the same tentacle. Swarm workers use that property: each worker gets the same context files, but each terminal has its own identity, transcript, lifecycle state, and optional worktree.
+Multiple terminals can point at the same session. Swarm workers use that property: each worker gets the same context files, but each terminal has its own identity, transcript, lifecycle state, and optional worktree.
 
-This is why terminal IDs and tentacle IDs are not interchangeable. A terminal can be named `api-runtime-swarm-2` while still using the `api-runtime` tentacle context.
+This is why terminal IDs and session IDs are not interchangeable. A terminal can be named `api-runtime-swarm-2` while still using the `api-runtime` session context.
 
-## Tentacle vs worktree
+## Session vs worktree
 
 These are also different things.
 
-- a **tentacle** is the context layer
+- a **session** is the context layer
 - a **worktree** is the git isolation layer
 
-A tentacle can be used with:
+A session can be used with:
 
 - a shared-workspace terminal
 - a worktree-backed terminal
 
-The tentacle decides *what the job is about*. The worktree decides *where the code changes happen*.
+The session decides *what the job is about*. The worktree decides *where the code changes happen*.
 
-In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.sentiph/worktrees/<worktree-id>/` on branch `sentiph/<worktree-id>` and starts the PTY there. The agent-facing context still stays in `.sentiph/tentacles/<tentacle-id>/`.
+In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.sentiph/worktrees/<worktree-id>/` on branch `sentiph/<worktree-id>` and starts the PTY there. The agent-facing context still stays in `.sentiph/sessions/<session-id>/`.
 
 ## What belongs in files
 
-The durable source of truth should live in files inside the tentacle.
+The durable source of truth should live in files inside the session.
 
 That includes:
 
@@ -78,17 +78,17 @@ The runtime owns:
 
 That data helps the app run, but it is not the same thing as the durable job context. Terminal records survive API restarts. PTY sessions, WebSocket clients, and channel queues do not.
 
-On startup, Sentiph reloads terminal records from `tentacles.json`. If a record says it was running, Sentiph cannot reattach to the old in-memory PTY, so the record is reconciled to `stale` with a lifecycle reason.
+On startup, Sentiph reloads terminal records from `sessions.json`. If a record says it was running, Sentiph cannot reattach to the old in-memory PTY, so the record is reconciled to `stale` with a lifecycle reason.
 
 ## How delegation is supposed to work
 
 The expected flow is:
 
 1. the developer or a parent agent defines a job boundary
-2. the tentacle files capture the local context
+2. the session files capture the local context
 3. `todo.md` breaks the job into executable checkbox items
 4. Deck or the CLI creates terminals from those items
-5. each worker receives a prompt generated from the tentacle context path, todo text, workspace mode, and parent terminal ID when present
+5. each worker receives a prompt generated from the session context path, todo text, workspace mode, and parent terminal ID when present
 6. workers report status through short channel messages and by leaving durable notes in files
 7. the parent or human reviews the result and updates `todo.md`
 

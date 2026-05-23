@@ -26,7 +26,7 @@ The API process owns the moving parts that cannot live in markdown:
 - worktree creation and cleanup for isolated terminals
 - transcript capture and conversation export
 - in-memory channel queues
-- Deck file operations over `.sentiph/tentacles/`
+- Deck file operations over `.sentiph/sessions/`
 - UI state persistence
 
 ## Transport model
@@ -52,9 +52,9 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 - PTY sessions do not survive API restarts
 - terminal records persisted as `running` are reconciled to `stale` on startup when no live Sentiph session owns them
 
-The terminal registry is `tentacles.json` for historical reasons. Current records are terminals, not tentacles. A terminal record stores identity, tentacle ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
+The terminal registry is `sessions.json` for historical reasons. Current records are terminals, not sessions. A terminal record stores identity, session ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
-Deck metadata is separate from tentacle markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todo.md`.
+Deck metadata is separate from session markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todo.md`.
 
 ## Terminal lifecycle
 
@@ -88,7 +88,7 @@ Channel delivery is also tied to hooks. Messages are queued in memory and inject
 ## Main API groups
 
 - terminals and snapshots
-- deck tentacles and todo operations
+- deck sessions and todo operations
 - prompts
 - channels
 - code intel

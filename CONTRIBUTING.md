@@ -52,7 +52,7 @@ Use `pnpm format` if you need to rewrite formatting.
 ## Docs policy
 
 - `docs/` is for contributor and future-agent understanding
-- if you change tentacles, todos, terminals, orchestration, or messaging, update the matching docs page
+- if you change sessions, todos, terminals, orchestration, or messaging, update the matching docs page
 
 ## Pull request expectations
 
@@ -66,7 +66,7 @@ Use `pnpm format` if you need to rewrite formatting.
 
 ## Areas that matter most right now
 
-- tentacle model and agent-facing context files
+- session model and agent-facing context files
 - todo parsing and delegation flow
 - Claude Code terminal lifecycle
 - child-agent orchestration

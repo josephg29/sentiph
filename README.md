@@ -12,93 +12,48 @@
 
 # Sentiph
 
-It's really not fun to have **ten Claude Code sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Sentiph** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for Claude Code to **spawn other Claude Code agents**, assign them work, and communicate with them.
+Running ten Claude Code sessions at once gets chaotic fast — constantly switching windows, losing track of what each one was doing, and having no shared source of truth between them. **Sentiph** fixes that by giving each job its own scoped context, notes, and task list, while making it possible for one Claude Code session to **spawn and coordinate other Claude Code sessions**.
 
-## The Vision
+## What it does
 
-This repo is a personal exploration of what an AI coding environment might look like when terminal coding agents are treated as parts of a bigger orchestration layer, not the final interface by themselves. The point is not to hide **Claude Code** behind abstractions. The point is to make *multi-agent work less chaotic for the developer* on a real codebase.
+- **Runs multiple full Claude Code terminals** so one developer can manage several sessions at once from a single view
+- **Scopes each job** with its own `CONTEXT.md`, `todo.md`, and notes so agents don't need to reconstruct context from chat history
+- **Lets one agent coordinate others** — a parent session can spawn workers, assign them todo items, and receive status back
+- **Tracks token usage, cost, and run time** across every session and project
+- **Provides a canvas view** showing all running sessions as nodes, plus a deck view, activity view, and observability dashboard
+- **Supports inter-agent messaging** so workers can report completion, blockers, and handoffs back to a coordinator
 
-## Screenshots
+## How it works
 
-<div align="center">
-<table>
-<tr>
-<td><img src="./static/images/preview_1.jpg" alt="Screenshot 1" width="100%"/></td>
-<td><img src="./static/images/preview_2.jpg" alt="Screenshot 2" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_3.jpg" alt="Screenshot 3" width="100%"/></td>
-<td><img src="./static/images/preview_4.jpg" alt="Screenshot 4" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_5.jpg" alt="Screenshot 5" width="100%"/></td>
-<td><img src="./static/images/preview_6.jpg" alt="Screenshot 6" width="100%"/></td>
-</tr>
-</table>
-</div>
+Sentiph separates three concerns that usually get tangled together across a pile of terminals:
 
-## What Sentiph Does for You
+1. **Context** lives in `.sentiph/sessions/<session-id>/`. `CONTEXT.md` explains the area of the codebase, `todo.md` holds executable work items, and extra markdown files store notes or handoffs.
+2. **Execution** is managed by a local API that runs PTY sessions, handles terminal lifecycle, and streams state to the UI over WebSocket.
+3. **Isolation** is optional. Sessions can share the main workspace or run in a dedicated worktree under `.sentiph/worktrees/<worktree-id>/`.
 
-- **Creates tentacles as context layers** so agents can work with scoped markdown files instead of broad, messy chat context
-- **Uses `todo.md` as an execution surface** so tasks stay visible, trackable, and ready for delegation
-- **Runs multiple Claude Code terminals** so one developer can coordinate several coding sessions at once
-- **Spawns child agents from todo items** so parallel work has a concrete source of truth
-- **Supports inter-agent messaging** so workers and coordinators can report completion, blockers, and handoff notes
-- **Keeps agent-facing context in files** so the system is more durable than a single prompt thread
-- **Provides a local API and UI** for terminal lifecycle, persistence, websocket transport, and orchestration
+The deck reads session files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Claude hooks feed the API with agent state, transcript, and idle events so the UI can show more than raw terminal output.
 
-A **tentacle** is a folder under `.sentiph/tentacles/<tentacle-id>/` that holds agent-readable markdown such as `CONTEXT.md`, `todo.md`, and any extra notes needed for that slice of the codebase.
+## Claude Code coordinating Claude Code
 
-A **tentacle** is a named job scope. Each one keeps its own context and todos independent of every other running session.
+One of the core ideas is that Claude Code should not just be a single terminal waiting on a human. In Sentiph, one Claude Code session can act as a coordinator — spawning worker sessions, giving each one a scoped job, and collecting status back while you stay at the orchestration layer.
 
-## Tentacles
+This is different from Claude Code's built-in subagent spawning because you can directly see, intervene in, and track what each worker is doing.
 
-A **tentacle** is a scoped job container. It gives one slice of work its own files, notes, and `todo.md` so the agent is not forced to reconstruct the entire codebase context from chat history.
-
-What it does:
-
-- keeps context local to one area such as documentation, database work, API changes, or frontend work
-- gives agents durable files they can read and update
-- provides a natural source for delegation through todo items
-
-For the full model, see [Tentacles](docs/concepts/tentacles.md) and [Working With Todos](docs/guides/working-with-todos.md).
-
-## Context, Notes, and Task Lists
-
-In Sentiph, a tentacle is not only a task bucket. It is also where the job keeps its local context. That can include notes about one part of the codebase, implementation details, handoff files, and a `todo.md` that tracks what still needs to happen. A Claude Code agent can read and update those files as the work moves forward.
-
-That means you can:
-
-- keep documentation, database, API, or frontend work separated into different job contexts
-- store the notes that help an agent understand that part of the codebase
-- spawn one agent for one specific item
-- break a larger job into multiple items
-- launch a swarm so several agents work through the list in parallel
-- use the files inside the tentacle as the shared source of truth for what is done and what is left
-
-For the full model, see [Tentacles](docs/concepts/tentacles.md) and [Working With Todos](docs/guides/working-with-todos.md).
-
-## Claude Code Managing Claude Code
-
-One of the main ideas here is that **Claude Code** should not only be treated as a single terminal session waiting for a human prompt. In Sentiph, one Claude Code agent can coordinate other Claude Code agents, assign them specific jobs, and exchange short messages with them while the human stays at the orchestration layer.
-
-This is different from Claude Code's subagent spawning, since it allows you to directly see and control what each worker agent is doing.
-
-That means Sentiph is not just a dashboard for multiple terminals. It is also a way to structure parent-worker behavior around scoped tasks and shared context files.
-
-For the current model, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
-
-## How It Works
-
-Sentiph separates three concerns that usually get mixed together in a pile of terminals:
-
-1. **Context** lives in `.sentiph/tentacles/<tentacle-id>/`. `CONTEXT.md` explains the area, `todo.md` supplies executable work items, and extra markdown files hold notes or handoffs.
-2. **Execution** lives in terminal records and PTY sessions managed by the local API. A terminal can attach to an existing tentacle, and several terminals can share one tentacle during swarm work.
-3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.sentiph/worktrees/<worktree-id>/` on `sentiph/<worktree-id>` branches.
-
-Deck reads the tentacle files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Claude hooks feed the API with agent state, transcript, and idle events so the UI can show more than raw terminal output.
+For more, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
 
 ## Quick start
+
+<details open>
+<summary><strong>Install from source</strong></summary>
+
+```bash
+git clone https://github.com/josephg29/sentiph
+cd sentiph && pnpm install && pnpm build
+npm install -g .
+sentiph
+```
+
+</details>
 
 <details>
 <summary><strong>Local development</strong></summary>
@@ -108,56 +63,24 @@ pnpm install
 pnpm dev
 ```
 
-This starts the API and web app for local development.
-
 </details>
 
-<details open>
-<summary><strong>Current install status</strong></summary>
-
-```bash
-Sentiph is not published to the npm registry yet.
-```
-
-For local development:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-For a local global CLI install from a clone:
-
-```bash
-git clone https://github.com/josephg29/sentiph
-cd sentiph && pnpm install && pnpm build
-npm install -g .
-sentiph
-```
-
-The registry install flow `npm install -g sentiph` will only work after the package is published.
-
-</details>
-
-On first run, **Sentiph** creates the local `.sentiph/` scaffold automatically, assigns a stable project ID, picks an available local API port starting at `8787`, and opens the UI unless `SENTIPH_NO_OPEN=1` is set.
+On first run, Sentiph creates the `.sentiph/` scaffold, assigns a stable project ID, picks an available port starting at `8787`, and opens the UI.
 
 ## Requirements
 
 - Node.js `22+`
-- `claude` installed for the supported agent workflow
-- `git` for worktree terminals
-- `gh` for GitHub pull request features
-- `curl` for the current Claude hook callback flow
-
-Startup fails if neither `claude` nor another supported provider binary is installed. The current docs only cover **Claude Code**.
+- `claude` CLI installed
+- `git` (for worktree sessions)
+- `gh` (for GitHub pull request features)
+- `curl` (for Claude hook callbacks)
 
 ## What persists
 
-- `.sentiph/` keeps project-local scaffold and worktrees
-- `~/.sentiph/projects/<project-id>/state/` keeps runtime state, transcripts, monitor cache, and metadata
-- `.sentiph/tentacles/<tentacle-id>/` keeps the context files and todos that agents read
+- `.sentiph/` — project scaffold, worktrees, and session context files
+- `~/.sentiph/projects/<project-id>/state/` — runtime state, transcripts, and metadata
 
-PTY sessions survive browser reloads during the idle grace period, but they do **not** survive an API restart. Sentiph marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session; use `sentiph terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up. Sentiph caps live PTY sessions at 32 by default to protect the host; set `SENTIPH_MAX_TERMINAL_SESSIONS` to a positive integer to tune that limit for larger orchestration runs.
+PTY sessions survive browser reloads during the idle grace period but do not survive an API restart. Use `sentiph terminal list`, `stop`, `kill`, and `prune` to inspect and clean up stale records. Sentiph caps live PTY sessions at 32 by default; set `SENTIPH_MAX_TERMINAL_SESSIONS` to tune that limit.
 
 ## Docs
 
@@ -165,7 +88,7 @@ PTY sessions survive browser reloads during the idle grace period, but they do *
 - [Installation](docs/getting-started/installation.md)
 - [Quickstart](docs/getting-started/quickstart.md)
 - [Mental Model](docs/concepts/mental-model.md)
-- [Tentacles](docs/concepts/tentacles.md)
+- [Sessions](docs/concepts/sessions.md)
 - [Runtime and API](docs/concepts/runtime-and-api.md)
 - [Working With Todos](docs/guides/working-with-todos.md)
 - [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md)
@@ -179,7 +102,7 @@ PTY sessions survive browser reloads during the idle grace period, but they do *
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a PR, please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, required checks, and PR expectations. If any code was written with an AI coding agent, please disclose which agent and model in the PR description.
+Issues and pull requests are welcome. Before opening a PR, please read [CONTRIBUTING.md](CONTRIBUTING.md). If any code was written with an AI coding agent, please disclose which agent and model in the PR description.
 
 ## License
 
