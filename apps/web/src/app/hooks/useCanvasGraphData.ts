@@ -11,9 +11,9 @@ const TENTACLE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
 const INACTIVE_SESSION_RADIUS = 10;
 
-const OCTOBOSS_RADIUS = 52;
-export const OCTOBOSS_ID = "__octoboss__";
-const OCTOBOSS_NODE_ID = `t:${OCTOBOSS_ID}`;
+const SENTIPH_RADIUS = 52;
+export const SENTIPH_ID = "__sentiph__";
+const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
 
 const getAccentPrimary = (): string =>
   (typeof document !== "undefined"
@@ -335,33 +335,33 @@ export const useCanvasGraphData = ({
     }
   }
 
-  // Octoboss — synthetic always-present node
-  const prevBoss = prevNodes.get(OCTOBOSS_NODE_ID);
-  const octobossColor = getAccentPrimary();
-  const octobossNode: GraphNode = {
-    id: OCTOBOSS_NODE_ID,
-    type: "octoboss",
+  // Sentiph — synthetic always-present node
+  const prevBoss = prevNodes.get(SENTIPH_NODE_ID);
+  const sentiphColor = getAccentPrimary();
+  const sentiphNode: GraphNode = {
+    id: SENTIPH_NODE_ID,
+    type: "sentiph",
     x: prevBoss?.x ?? 0,
     y: prevBoss?.y ?? 0,
     vx: prevBoss?.vx ?? 0,
     vy: prevBoss?.vy ?? 0,
     pinned: prevBoss?.pinned ?? false,
-    radius: OCTOBOSS_RADIUS,
-    tentacleId: OCTOBOSS_ID,
-    label: "Octoboss",
-    color: octobossColor,
+    radius: SENTIPH_RADIUS,
+    tentacleId: SENTIPH_ID,
+    label: "Sentiph",
+    color: sentiphColor,
   };
-  nodes.push(octobossNode);
-  currentNodesById.set(OCTOBOSS_NODE_ID, octobossNode);
+  nodes.push(sentiphNode);
+  currentNodesById.set(SENTIPH_NODE_ID, sentiphNode);
 
-  // Connect octoboss to every tentacle node
+  // Connect sentiph to every tentacle node
   for (const tentacleId of allTentacleIds) {
-    edges.push({ source: OCTOBOSS_NODE_ID, target: buildTentacleNodeId(tentacleId) });
+    edges.push({ source: SENTIPH_NODE_ID, target: buildTentacleNodeId(tentacleId) });
   }
 
-  // Link active terminals belonging to octoboss
+  // Link active terminals belonging to sentiph
   for (const terminal of columns) {
-    if (terminal.tentacleId !== OCTOBOSS_ID) continue;
+    if (terminal.tentacleId !== SENTIPH_ID) continue;
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
     const prevSession = prevNodes.get(sessionNodeId);
     const jitter = () => (Math.random() - 0.5) * 60;
@@ -370,15 +370,15 @@ export const useCanvasGraphData = ({
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "active-session",
-      x: prevSession?.x ?? octobossNode.x + jitter(),
-      y: prevSession?.y ?? octobossNode.y + jitter(),
+      x: prevSession?.x ?? sentiphNode.x + jitter(),
+      y: prevSession?.y ?? sentiphNode.y + jitter(),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
       radius: ACTIVE_SESSION_RADIUS,
-      tentacleId: OCTOBOSS_ID,
+      tentacleId: SENTIPH_ID,
       label: terminal.tentacleName || terminal.terminalId,
-      color: terminal.color ?? octobossColor,
+      color: terminal.color ?? sentiphColor,
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,
@@ -389,10 +389,10 @@ export const useCanvasGraphData = ({
     };
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
-    edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });
+    edges.push({ source: SENTIPH_NODE_ID, target: sessionNodeId });
   }
 
-  // Orphan terminals — spawned by Octoboss (or created standalone) with no deck
+  // Orphan terminals — spawned by Sentiph (or created standalone) with no deck
   // tentacle entry. They're already in `columns` but were never drawn above.
   for (const terminal of columns) {
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
@@ -400,8 +400,8 @@ export const useCanvasGraphData = ({
 
     const parentNodeId = terminal.parentTerminalId
       ? buildActiveSessionNodeId(terminal.parentTerminalId)
-      : OCTOBOSS_NODE_ID;
-    const parentNode = currentNodesById.get(parentNodeId) ?? octobossNode;
+      : SENTIPH_NODE_ID;
+    const parentNode = currentNodesById.get(parentNodeId) ?? sentiphNode;
     const jitter = () => (Math.random() - 0.5) * 60;
     const prevSession = prevNodes.get(sessionNodeId);
     const runtimeInfo = agentRuntimeStates?.get(terminal.terminalId);
@@ -417,7 +417,7 @@ export const useCanvasGraphData = ({
       radius: ACTIVE_SESSION_RADIUS,
       tentacleId: terminal.tentacleId,
       label: terminal.tentacleName || terminal.terminalId,
-      color: terminal.color ?? octobossColor,
+      color: terminal.color ?? sentiphColor,
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,

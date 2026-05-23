@@ -11,7 +11,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import {
   DEFAULT_AGENT_PROVIDER,
-  OCTOBOSS_TENTACLE_ID,
+  SENTIPH_TENTACLE_ID,
   TERMINAL_BOOTSTRAP_COMMANDS,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
@@ -47,8 +47,8 @@ type CreateSessionRuntimeOptions = {
   onSessionStart?: (terminalId: string, details: TerminalSessionStartDetails) => void;
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
   onOutputChunk?: (terminalId: string, chunk: string) => void;
-  octobossMcpConfigPath?: string;
-  octobossSystemPromptPath?: string;
+  sentiphMcpConfigPath?: string;
+  sentiphSystemPromptPath?: string;
 };
 
 const ANSI_BEL = String.fromCharCode(0x07);
@@ -73,8 +73,8 @@ export const createSessionRuntime = ({
   onSessionStart,
   onSessionEnd,
   onOutputChunk,
-  octobossMcpConfigPath,
-  octobossSystemPromptPath,
+  sentiphMcpConfigPath,
+  sentiphSystemPromptPath,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -144,7 +144,7 @@ export const createSessionRuntime = ({
     terminalRecord: PersistedTerminal | undefined,
     cwd: string,
   ): { flags: string[]; banner?: string; sessionIdToPersist?: string } => {
-    if (!terminalRecord || terminalRecord.tentacleId === OCTOBOSS_TENTACLE_ID) {
+    if (!terminalRecord || terminalRecord.tentacleId === SENTIPH_TENTACLE_ID) {
       return { flags: [] };
     }
 
@@ -173,7 +173,7 @@ export const createSessionRuntime = ({
     if (hadPriorSession) {
       return {
         flags: ["--continue"],
-        banner: "[Octogent: resuming previous Claude session…]",
+        banner: "[Sentiph: resuming previous Claude session…]",
       };
     }
 
@@ -544,25 +544,25 @@ export const createSessionRuntime = ({
     const claudeBase =
       TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
     let bootstrapCommand: string;
-    if (session.tentacleId === OCTOBOSS_TENTACLE_ID) {
+    if (session.tentacleId === SENTIPH_TENTACLE_ID) {
       const flags: string[] = [];
-      if (octobossMcpConfigPath) {
-        flags.push(`--mcp-config "${octobossMcpConfigPath}"`);
+      if (sentiphMcpConfigPath) {
+        flags.push(`--mcp-config "${sentiphMcpConfigPath}"`);
       }
-      if (octobossSystemPromptPath) {
+      if (sentiphSystemPromptPath) {
         // The prompt file is authored to avoid bash double-quoted special
         // characters (verified at write time), so the substitution is safe.
         // The inner quotes around the path tolerate spaces in stateDir.
-        flags.push(`--append-system-prompt "$(cat "${octobossSystemPromptPath}")"`);
+        flags.push(`--append-system-prompt "$(cat "${sentiphSystemPromptPath}")"`);
       }
       bootstrapCommand =
         flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
-    } else if (provider === "claude-code" && terminal?.isGroupLeader && octobossMcpConfigPath) {
+    } else if (provider === "claude-code" && terminal?.isGroupLeader && sentiphMcpConfigPath) {
       const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
       const head = baseTokens[0] ?? "claude";
       const tail = baseTokens.slice(1);
       const resumeFlags = session.claudeBootstrapFlags ?? [];
-      bootstrapCommand = [head, ...resumeFlags, `--mcp-config "${octobossMcpConfigPath}"`, ...tail].join(" ");
+      bootstrapCommand = [head, ...resumeFlags, `--mcp-config "${sentiphMcpConfigPath}"`, ...tail].join(" ");
     } else if (provider === "claude-code") {
       const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
       const head = baseTokens[0] ?? "claude";
@@ -685,7 +685,7 @@ export const createSessionRuntime = ({
       scrollbackChunks: [],
       scrollbackBytes: 0,
       pendingInput: "",
-      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt) || tentacleId === OCTOBOSS_TENTACLE_ID,
+      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt) || tentacleId === SENTIPH_TENTACLE_ID,
     };
     if (debugLog) {
       session.debugLog = debugLog;

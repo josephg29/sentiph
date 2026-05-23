@@ -15,9 +15,11 @@ export default defineConfig({
     outDir: resolve(__dirname, "../../dist/api"),
     emptyOutDir: false,
     lib: {
-      entry: resolve(__dirname, "../api/src/cli.ts"),
+      entry: {
+        cli: resolve(__dirname, "../api/src/cli.ts"),
+        "sentiph-mcp": resolve(__dirname, "../api/src/sentiphMcp.ts"),
+      },
       formats: ["es"],
-      fileName: () => "cli.js",
     },
     minify: false,
     sourcemap: true,
@@ -25,7 +27,8 @@ export default defineConfig({
     rollupOptions: {
       external: externals,
       output: {
-        entryFileNames: "cli.js",
+        entryFileNames: "[name].js",
+        chunkFileNames: "createApiServer-[hash].js",
       },
     },
   },

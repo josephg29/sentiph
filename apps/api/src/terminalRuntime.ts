@@ -5,11 +5,15 @@ import { dirname, join } from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
+const resolveCurrentDir = (): string =>
+  // import.meta.dirname is Node 22+ and Vite-bundle safe; fall back for older runtimes.
+  (import.meta.dirname as string | undefined) ?? dirname(fileURLToPath(import.meta.url));
+
 import { createAgentMetricsCollector } from "./agentMetricsCollector";
 import {
-  OCTOBOSS_SYSTEM_PROMPT,
-  assertOctobossSystemPromptIsShellSafe,
-} from "./octobossSystemPrompt";
+  SENTIPH_SYSTEM_PROMPT,
+  assertSentiphSystemPromptIsShellSafe,
+} from "./sentiphSystemPrompt";
 
 import type { TerminalSnapshot } from "@sentiph/core";
 import type { WebSocket } from "ws";
@@ -22,7 +26,7 @@ const WS_READYSTATE_OPEN = 1;
 import {
   DEFAULT_AGENT_PROVIDER,
   DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
-  OCTOBOSS_TENTACLE_ID,
+  SENTIPH_TENTACLE_ID,
   TERMINAL_ID_PREFIX,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
@@ -59,21 +63,36 @@ export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const MAX_CHILDREN_PER_PARENT = 32;
 
-const writeOctobossMcpConfig = (stateDir: string): string => {
-  const configPath = join(stateDir, "octoboss-mcp-config.json");
-  const mcpServerPath = fileURLToPath(new URL("./octobossMcp.ts", import.meta.url));
+const resolveSentiphMcpServerPath = (): { mcpServerPath: string; useTsx: boolean } => {
+  const currentDir = resolveCurrentDir();
+  // In a production bundle, sentiphMcp.ts is emitted as a standalone sentiph-mcp.js.
+  // In dev (tsx), the TypeScript source file is run directly.
+  const jsPath = join(currentDir, "sentiph-mcp.js");
+  if (existsSync(jsPath)) {
+    return { mcpServerPath: jsPath, useTsx: false };
+  }
+  return { mcpServerPath: join(currentDir, "sentiphMcp.ts"), useTsx: true };
+};
+
+const writeSentiphMcpConfig = (stateDir: string): string => {
+  const configPath = join(stateDir, "sentiph-mcp-config.json");
+  const { mcpServerPath, useTsx } = resolveSentiphMcpServerPath();
 
   const nodeCommand = process.execPath;
   let nodeArgs: string[];
-  const _require = createRequire(import.meta.url);
-  try {
-    const tsxPkgPath = _require.resolve("tsx/package.json");
-    const tsxCliPath = join(dirname(tsxPkgPath), "dist", "cli.mjs");
-    nodeArgs = existsSync(tsxCliPath)
-      ? [tsxCliPath, mcpServerPath]
-      : ["--import", "tsx/esm", mcpServerPath];
-  } catch {
-    nodeArgs = ["--import", "tsx/esm", mcpServerPath];
+  if (!useTsx) {
+    nodeArgs = [mcpServerPath];
+  } else {
+    const _require = createRequire(import.meta.url);
+    try {
+      const tsxPkgPath = _require.resolve("tsx/package.json");
+      const tsxCliPath = join(dirname(tsxPkgPath), "dist", "cli.mjs");
+      nodeArgs = existsSync(tsxCliPath)
+        ? [tsxCliPath, mcpServerPath]
+        : ["--import", "tsx/esm", mcpServerPath];
+    } catch {
+      nodeArgs = ["--import", "tsx/esm", mcpServerPath];
+    }
   }
 
   const config = {
@@ -92,7 +111,7 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
   try {
     // Create stateDir and its state/ subdirectory unconditionally — on first
     // run the dir may not yet exist when this is called (the registry creates
-    // it later), which would silently skip writing and leave Octoboss without
+    // it later), which would silently skip writing and leave Sentiph without
     // MCP tools until the next server restart.
     mkdirSync(join(stateDir, "state"), { recursive: true });
     // mode 0o600: only the owner can read this config, since it leaks the
@@ -104,18 +123,18 @@ const writeOctobossMcpConfig = (stateDir: string): string => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(
-      `[octoboss-mcp] Failed to write MCP config at ${configPath}: ${message}. Octoboss will start without MCP tools.`,
+      `[sentiph-mcp] Failed to write MCP config at ${configPath}: ${message}. Sentiph will start without MCP tools.`,
     );
   }
   return configPath;
 };
 
-const writeOctobossSystemPrompt = (stateDir: string): string | undefined => {
-  const promptPath = join(stateDir, "octoboss-system-prompt.md");
+const writeSentiphSystemPrompt = (stateDir: string): string | undefined => {
+  const promptPath = join(stateDir, "sentiph-system-prompt.md");
   try {
-    assertOctobossSystemPromptIsShellSafe(OCTOBOSS_SYSTEM_PROMPT);
+    assertSentiphSystemPromptIsShellSafe(SENTIPH_SYSTEM_PROMPT);
     mkdirSync(stateDir, { recursive: true });
-    writeFileSync(promptPath, OCTOBOSS_SYSTEM_PROMPT, {
+    writeFileSync(promptPath, SENTIPH_SYSTEM_PROMPT, {
       encoding: "utf-8",
       mode: 0o600,
     });
@@ -123,7 +142,7 @@ const writeOctobossSystemPrompt = (stateDir: string): string | undefined => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(
-      `[octoboss-system-prompt] Failed to write system prompt at ${promptPath}: ${message}. Octoboss will start without orchestration guidance.`,
+      `[sentiph-system-prompt] Failed to write system prompt at ${promptPath}: ${message}. Sentiph will start without orchestration guidance.`,
     );
     return undefined;
   }
@@ -139,8 +158,8 @@ export const createTerminalRuntime = ({
   const stateDir = projectStateDir ?? join(workspaceCwd, ".sentiph");
   const metricsDir = join(stateDir, "state", "metrics");
   const metricsCollector = createAgentMetricsCollector(metricsDir);
-  const octobossMcpConfigPath = writeOctobossMcpConfig(stateDir);
-  const octobossSystemPromptPath = writeOctobossSystemPrompt(stateDir);
+  const sentiphMcpConfigPath = writeSentiphMcpConfig(stateDir);
+  const sentiphSystemPromptPath = writeSentiphSystemPrompt(stateDir);
   const sessions = new Map<string, TerminalSession>();
   const websocketServer = new WebSocketServer({ noServer: true });
   const terminalEventsWebsocketServer = new WebSocketServer({ noServer: true });
@@ -372,8 +391,8 @@ export const createTerminalRuntime = ({
     onSessionStart: markTerminalRunning,
     onSessionEnd: markTerminalEnded,
     onOutputChunk: metricsCollector.onOutputChunk,
-    octobossMcpConfigPath,
-    ...(octobossSystemPromptPath ? { octobossSystemPromptPath } : {}),
+    sentiphMcpConfigPath,
+    ...(sentiphSystemPromptPath ? { sentiphSystemPromptPath } : {}),
   });
 
   const findWorktreeTerminal = (tentacleId: string) =>
@@ -633,16 +652,16 @@ export const createTerminalRuntime = ({
     autoRenamePromptContext?: string;
     isGroupLeader?: boolean;
   }): TerminalSnapshot => {
-    // Octoboss is a singleton: if a terminal with that tentacleId already exists,
+    // Sentiph is a singleton: if a terminal with that tentacleId already exists,
     // ensure its session is running and return the existing snapshot instead of
     // creating a duplicate that would orphan the live session.
-    if (requestedTentacleId === OCTOBOSS_TENTACLE_ID) {
-      const existingOctoboss = [...terminals.values()].find(
-        (t) => t.tentacleId === OCTOBOSS_TENTACLE_ID,
+    if (requestedTentacleId === SENTIPH_TENTACLE_ID) {
+      const existingSentiph = [...terminals.values()].find(
+        (t) => t.tentacleId === SENTIPH_TENTACLE_ID,
       );
-      if (existingOctoboss) {
-        sessionRuntime.startSession(existingOctoboss.terminalId);
-        return toTerminalSnapshot(existingOctoboss);
+      if (existingSentiph) {
+        sessionRuntime.startSession(existingSentiph.terminalId);
+        return toTerminalSnapshot(existingSentiph);
       }
     }
 
@@ -675,7 +694,7 @@ export const createTerminalRuntime = ({
     // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
     const tentacleId = requestedTentacleId ?? terminalId;
     const effectiveName =
-      tentacleName ?? (tentacleId === OCTOBOSS_TENTACLE_ID ? "Octoboss" : allocateDefaultTerminalName());
+      tentacleName ?? (tentacleId === SENTIPH_TENTACLE_ID ? "Sentiph" : allocateDefaultTerminalName());
 
     // Auto-allocate a unique worktreeId when creating a worktree terminal
     // so multiple worktree terminals can coexist (each gets its own directory).
@@ -715,7 +734,7 @@ export const createTerminalRuntime = ({
       snapshot: toTerminalSnapshot(terminal),
     });
 
-    if (initialPrompt || tentacleId === OCTOBOSS_TENTACLE_ID) {
+    if (initialPrompt || tentacleId === SENTIPH_TENTACLE_ID) {
       sessionRuntime.startSession(terminalId);
     }
 

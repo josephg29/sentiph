@@ -7,7 +7,7 @@ import type {
 
 export type GraphNode = {
   id: string;
-  type: "tentacle" | "octoboss" | "active-session" | "inactive-session";
+  type: "tentacle" | "sentiph" | "active-session" | "inactive-session";
   x: number;
   y: number;
   vx: number;

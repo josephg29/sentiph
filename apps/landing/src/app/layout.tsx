@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "sentiph — too many terminals, not enough tentacles",
   description:
     "Sentiph gives every Claude Code session its own scoped context, todo list, and notes — so one developer can orchestrate a swarm of agents without losing track.",
-  metadataBase: new URL("https://github.com/josephg29/octogent-sentiph"),
+  metadataBase: new URL("https://github.com/josephg29/sentiph"),
   icons: {
     icon: "/favicon.svg",
   },

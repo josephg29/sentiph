@@ -1,20 +1,33 @@
+# OS / editor
 .DS_Store
+.idea/
+.vscode/
+
+# Dependencies and build output
+/node_modules
+**/node_modules/
+/dist
+**/dist/
+/coverage
+**/coverage/
+**/.vite/
+
+# Local agent / runtime state
 /.claude
 /.codex
-/context
 /.octogent
-/node_modules
-/dist
-/coverage
-**/node_modules/
-**/dist/
-**/.vite/
-**/coverage/
-
-.octogent
+/.sentiph
+/context
 
 # Playwright MCP test artifacts
 .playwright-mcp/
 
 # Root-level debug screenshots
 /[0-9][0-9]-*.png
+/sentiph-*.png
+/mantis-*.png
+
+# Local env files
+.env
+.env.local
+.env.*.local

@@ -3,13 +3,29 @@
   "version": "0.1.0",
   "description": "Web-first command surface for running multiple coding agents in parallel",
   "license": "MIT",
+  "author": "Joseph Gannon (https://github.com/josephg29)",
+  "homepage": "https://github.com/josephg29/sentiph#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josephg29/sentiph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/josephg29/sentiph/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "ai-agents",
+    "multi-agent",
+    "orchestration",
+    "terminal",
+    "developer-tools"
+  ],
   "type": "module",
   "packageManager": "pnpm@10.4.1",
   "engines": {
     "node": ">=22.0.0"
   },
   "bin": {
-    "octogent": "./bin/octogent",
     "sentiph": "./bin/sentiph"
   },
   "files": ["bin", "dist", "README.md"],

@@ -2,7 +2,7 @@ import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
-import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
+import { SENTIPH_ID } from "./app/hooks/useCanvasGraphData";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
@@ -514,10 +514,10 @@ export const App = () => {
                 return await createTerminal("shared", undefined, tentacleId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", undefined, OCTOBOSS_ID);
+                return await createTerminal("shared", undefined, SENTIPH_ID);
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", undefined, OCTOBOSS_ID);
+                return await createTerminal("worktree", undefined, SENTIPH_ID);
               },
               onCreateTentacle: async () => {
                 const response = await fetch("/api/deck/tentacles", {

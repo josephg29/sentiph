@@ -4,15 +4,13 @@
 <br />
 <br />
 
-![Last Update](https://img.shields.io/github/last-commit/josephg29/octogent-sentiph?label=Last%20Update&style=flat-square)
+![Last Update](https://img.shields.io/github/last-commit/josephg29/sentiph?label=Last%20Update&style=flat-square)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 
 </div>
 
 # Sentiph
-
-> **Sentiph is a standalone project, not a fork.** It was built independently from scratch and shares no git history with [octogent](https://github.com/hesamsheikh/octogent). The ideas are similar — scoped agent context, multi-terminal orchestration — but the codebase, architecture, and roadmap are entirely separate.
 
 It's really not fun to have **ten Claude Code sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Sentiph** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for Claude Code to **spawn other Claude Code agents**, assign them work, and communicate with them.
 
@@ -131,8 +129,8 @@ pnpm dev
 For a local global CLI install from a clone:
 
 ```bash
-git clone https://github.com/josephg29/octogent-sentiph
-cd octogent-sentiph && pnpm install && pnpm build
+git clone https://github.com/josephg29/sentiph
+cd sentiph && pnpm install && pnpm build
 npm install -g .
 sentiph
 ```
@@ -179,5 +177,10 @@ PTY sessions survive browser reloads during the idle grace period, but they do *
 - [Troubleshooting](docs/reference/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md)
 
-## Contributor setup
-Sentiph is not actively reviewing pull requests right now. If you still open one and any code was written with AI, disclose which coding agent and model were used. For contributor workflow and expectations, see [CONTRIBUTING.md](CONTRIBUTING.md).
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, required checks, and PR expectations. If any code was written with an AI coding agent, please disclose which agent and model in the PR description.
+
+## License
+
+Sentiph is released under the [MIT License](LICENSE).

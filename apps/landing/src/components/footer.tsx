@@ -1,9 +1,9 @@
 import { SentiphMark } from "@/components/sentiph-mark";
 
 const LINKS: Array<{ label: string; href: string; external?: boolean }> = [
-  { label: "github", href: "https://github.com/josephg29/octogent-sentiph", external: true },
-  { label: "docs", href: "https://github.com/josephg29/octogent-sentiph#docs", external: true },
-  { label: "mit", href: "https://github.com/josephg29/octogent-sentiph/blob/main/LICENSE", external: true },
+  { label: "github", href: "https://github.com/josephg29/sentiph", external: true },
+  { label: "docs", href: "https://github.com/josephg29/sentiph#docs", external: true },
+  { label: "mit", href: "https://github.com/josephg29/sentiph/blob/main/LICENSE", external: true },
 ];
 
 export function Footer() {

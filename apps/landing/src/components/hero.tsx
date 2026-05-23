@@ -52,7 +52,7 @@ export function Hero() {
             <ArrowRight />
           </a>
           <a
-            href="https://github.com/josephg29/octogent-sentiph"
+            href="https://github.com/josephg29/sentiph"
             target="_blank"
             rel="noreferrer"
             className={buttonClassName({ variant: "ghost", size: "md" })}

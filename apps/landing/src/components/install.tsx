@@ -1,8 +1,8 @@
 import { CopyButton } from "@/components/copy-button";
 
 const LINES = [
-  "git clone https://github.com/josephg29/octogent-sentiph",
-  "cd octogent-sentiph && pnpm install && pnpm build",
+  "git clone https://github.com/josephg29/sentiph",
+  "cd sentiph && pnpm install && pnpm build",
   "npm install -g . && sentiph",
 ];
 
@@ -45,7 +45,7 @@ export function Install() {
 
         <p className="mt-6 text-center text-[11px] uppercase tracking-control text-muted">
           <a
-            href="https://github.com/josephg29/octogent-sentiph#docs"
+            href="https://github.com/josephg29/sentiph#docs"
             target="_blank"
             rel="noreferrer"
             className="border-b border-transparent transition-colors hover:border-foreground/40 hover:text-foreground"

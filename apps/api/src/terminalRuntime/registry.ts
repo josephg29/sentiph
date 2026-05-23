@@ -36,7 +36,7 @@ const isTerminalLifecycleState = (value: unknown): value is TerminalLifecycleSta
   value === "stale";
 
 const inferTerminalNameOrigin = (terminalId: string, tentacleName: string): TerminalNameOrigin => {
-  if (tentacleName === terminalId || /^Octogent Terminal \d+$/.test(tentacleName)) {
+  if (tentacleName === terminalId || /^(?:Sentiph|Octogent) Terminal \d+$/.test(tentacleName)) {
     return "generated";
   }
 

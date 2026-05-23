@@ -190,16 +190,16 @@ export const OctopusNode = ({
   onClick,
 }: OctopusNodeProps) => {
   const showFocus = isSelected;
-  const isOctoboss = node.type === "octoboss";
+  const isSentiph = node.type === "sentiph";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
   const visuals = useMemo(
     () =>
-      isOctoboss
+      isSentiph
         ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
         : deriveOctopusVisuals(node),
-    [node, isOctoboss],
+    [node, isSentiph],
   );
-  const glyphScale = isOctoboss ? 6 : GLYPH_SCALE;
+  const glyphScale = isSentiph ? 6 : GLYPH_SCALE;
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
   const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
   const color = node.color;
@@ -276,7 +276,7 @@ export const OctopusNode = ({
           }}
         >
           <OctopusGlyph
-            {...(isOctoboss ? { color: "#cc0000" } : { color })}
+            {...(isSentiph ? { color: "#cc0000" } : { color })}
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}

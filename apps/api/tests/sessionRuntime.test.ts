@@ -1173,15 +1173,15 @@ describe("createSessionRuntime", () => {
       }
     });
 
-    it("Octoboss tentacle skips resume injection (keeps its own flag handling)", () => {
-      const terminalId = "octoboss-terminal";
+    it("Sentiph tentacle skips resume injection (keeps its own flag handling)", () => {
+      const terminalId = "sentiph-terminal";
       const terminals = new Map<string, PersistedTerminal>([
         [
           terminalId,
           {
             terminalId,
-            tentacleId: "__octoboss__",
-            tentacleName: "Octoboss",
+            tentacleId: "__sentiph__",
+            tentacleName: "Sentiph",
             createdAt: new Date().toISOString(),
             workspaceMode: "shared",
             agentProvider: "claude-code",
@@ -1196,9 +1196,9 @@ describe("createSessionRuntime", () => {
       expect(runtime.startSession(terminalId)).toBe(true);
 
       const firstCall = pty.write.mock.calls[0]?.[0] as string;
-      // No --session-id / --resume / --continue for Octoboss — it keeps its
+      // No --session-id / --resume / --continue for Sentiph — it keeps its
       // existing bootstrap (just `claude --dangerously-skip-permissions` when
-      // no octoboss-specific paths are configured).
+      // no sentiph-specific paths are configured).
       expect(firstCall).toBe("claude --dangerously-skip-permissions\r");
       expect(firstCall).not.toContain("--session-id");
       expect(firstCall).not.toContain("--resume");

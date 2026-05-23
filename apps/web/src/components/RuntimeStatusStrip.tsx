@@ -197,7 +197,7 @@ export const RuntimeStatusStrip = ({
           scale={2}
         />
         <span className="console-status-brand">sentiph</span>
-        <span className="console-status-sub">a paradime.tech production</span>
+        <span className="console-status-sub">open source · MIT</span>
       </div>
       <div className="console-status-charts">
         <div className="console-status-sparkline" aria-label="Commits per day over last 30 days">

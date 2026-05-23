@@ -1,5 +1,5 @@
 export const TERMINAL_ID_PREFIX = "terminal-";
-export const OCTOBOSS_TENTACLE_ID = "__octoboss__";
+export const SENTIPH_TENTACLE_ID = "__sentiph__";
 export const TERMINAL_REGISTRY_VERSION = 3;
 export const TERMINAL_REGISTRY_RELATIVE_PATH = ".sentiph/state/tentacles.json";
 export const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".sentiph/state/transcripts";

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
-import { OCTOBOSS_ID, useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
+import { SENTIPH_ID, useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
@@ -32,7 +32,7 @@ import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
   | { kind: "tentacle"; x: number; y: number; tentacleId: string }
-  | { kind: "octoboss"; x: number; y: number }
+  | { kind: "sentiph"; x: number; y: number }
   | {
       kind: "active-session";
       x: number;
@@ -67,7 +67,7 @@ type CanvasPrimaryViewProps = {
   onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSolveTodoItem?: (tentacleId: string, itemIndex: number) => Promise<void> | void;
-  onOctobossAction?: (action: string) => Promise<string | undefined> | undefined;
+  onSentiphAction?: (action: string) => Promise<string | undefined> | undefined;
   onTentacleAction?: (
     tentacleId: string,
     action: string,
@@ -205,7 +205,7 @@ export const CanvasPrimaryView = ({
   onCreateTentacle,
   onSpawnSwarm,
   onSolveTodoItem,
-  onOctobossAction,
+  onSentiphAction,
   onTentacleAction,
   onNavigateToConversation,
   onCloseActiveSession,
@@ -442,7 +442,7 @@ export const CanvasPrimaryView = ({
       const restoredMap = new Map<string, GraphNode>();
       for (const nodeId of canvasOpenTentacleIds) {
         const node = nodesById.get(nodeId);
-        if (node && (node.type === "tentacle" || node.type === "octoboss")) {
+        if (node && (node.type === "tentacle" || node.type === "sentiph")) {
           restoredMap.set(nodeId, { ...node });
         }
       }
@@ -509,7 +509,7 @@ export const CanvasPrimaryView = ({
           }
           return next;
         });
-      } else if (node.type === "tentacle" || node.type === "octoboss") {
+      } else if (node.type === "tentacle" || node.type === "sentiph") {
         setOpenTentacles((prev) => {
           const next = new Map(prev);
           if (next.has(nodeId)) {
@@ -686,10 +686,10 @@ export const CanvasPrimaryView = ({
       const node = nodesByIdRef.current.get(nodeId);
       if (!node) return;
 
-      if (node.type === "octoboss") {
+      if (node.type === "sentiph") {
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({ kind: "octoboss", x: e.clientX, y: e.clientY });
+        setContextMenu({ kind: "sentiph", x: e.clientX, y: e.clientY });
         return;
       }
 
@@ -754,17 +754,17 @@ export const CanvasPrimaryView = ({
     [onSpawnSwarm],
   );
 
-  const handleOctobossAction = useCallback(
+  const handleSentiphAction = useCallback(
     (action: string) => {
       setContextMenu(null);
-      const result = onOctobossAction?.(action);
+      const result = onSentiphAction?.(action);
       if (result && typeof result.then === "function") {
         void result.then((agentId) => {
           if (agentId) setPendingOpenAgentId(agentId);
         });
       }
     },
-    [onOctobossAction],
+    [onSentiphAction],
   );
 
   const handleTentacleAction = useCallback(
@@ -863,10 +863,10 @@ export const CanvasPrimaryView = ({
 
   // Separate tentacle and session nodes for render order
   const tentacleNodes = simulatedNodes.filter(
-    (n) => n.type === "tentacle" || n.type === "octoboss",
+    (n) => n.type === "tentacle" || n.type === "sentiph",
   );
   const sessionNodes = simulatedNodes.filter((n) => {
-    if (n.type === "tentacle" || n.type === "octoboss") return false;
+    if (n.type === "tentacle" || n.type === "sentiph") return false;
     if (hideIdleTerminals && n.type === "inactive-session") return false;
     if (
       hideIdleTerminals &&
@@ -1333,19 +1333,19 @@ export const CanvasPrimaryView = ({
                 New Terminal
               </button>
             )}
-            {contextMenu.kind === "octoboss" && (
+            {contextMenu.kind === "sentiph" && (
               <button
                 type="button"
                 className="canvas-context-menu-item"
                 onClick={() => {
                   setContextMenu(null);
-                  handleCreateAgent(OCTOBOSS_ID);
+                  handleCreateAgent(SENTIPH_ID);
                 }}
               >
                 <span className="canvas-context-menu-icon">
                   <TerminalIcon size={14} />
                 </span>
-                Open Octoboss
+                Open Sentiph
               </button>
             )}
             {contextMenu.kind === "active-session" && (

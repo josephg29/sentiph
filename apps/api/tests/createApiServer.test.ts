@@ -326,7 +326,7 @@ class FakeGitClient implements GitClient {
     const nextNumber = (this.pullRequestByCwd.get(cwd)?.number ?? 100) + 1;
     const pullRequest = {
       number: nextNumber,
-      url: `https://github.com/hesamsheikh/octogent/pull/${nextNumber}`,
+      url: `https://github.com/josephg29/sentiph/pull/${nextNumber}`,
       title,
       baseRef,
       headRef,
@@ -913,7 +913,7 @@ describe("createApiServer", () => {
       status: "ok",
       fetchedAt: "2026-02-27T12:00:00.000Z",
       source: "gh-cli",
-      repo: "hesamsheikh/octogent",
+      repo: "josephg29/sentiph",
       stargazerCount: 42,
       openIssueCount: 7,
       openPullRequestCount: 3,
@@ -2392,7 +2392,7 @@ describe("createApiServer", () => {
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreePullRequest(worktreePath, {
       number: 142,
-      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      url: "https://github.com/josephg29/sentiph/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -2414,7 +2414,7 @@ describe("createApiServer", () => {
       workspaceMode: "worktree",
       status: "open",
       number: 142,
-      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      url: "https://github.com/josephg29/sentiph/pull/142",
       title: "feat: worktree git lifecycle menu",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -2477,7 +2477,7 @@ describe("createApiServer", () => {
       workspaceMode: "worktree",
       status: "open",
       number: 101,
-      url: "https://github.com/hesamsheikh/octogent/pull/101",
+      url: "https://github.com/josephg29/sentiph/pull/101",
       title: "feat: expose worktree lifecycle actions",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -2523,7 +2523,7 @@ describe("createApiServer", () => {
     });
     gitClient.setWorktreePullRequest(worktreePath, {
       number: 142,
-      url: "https://github.com/hesamsheikh/octogent/pull/142",
+      url: "https://github.com/josephg29/sentiph/pull/142",
       title: "feat: existing worktree lifecycle PR",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -2577,7 +2577,7 @@ describe("createApiServer", () => {
     const worktreePath = join(workspaceCwd, ".sentiph", "worktrees", "terminal-1");
     gitClient.setWorktreePullRequest(worktreePath, {
       number: 190,
-      url: "https://github.com/hesamsheikh/octogent/pull/190",
+      url: "https://github.com/josephg29/sentiph/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -2600,7 +2600,7 @@ describe("createApiServer", () => {
       workspaceMode: "worktree",
       status: "merged",
       number: 190,
-      url: "https://github.com/hesamsheikh/octogent/pull/190",
+      url: "https://github.com/josephg29/sentiph/pull/190",
       title: "feat: ship worktree lifecycle",
       baseRef: "main",
       headRef: "sentiph/terminal-1",
@@ -3375,7 +3375,7 @@ describe("createApiServer", () => {
     await expect(response.json()).resolves.toMatchObject({ error: expect.any(String) });
   });
 
-  it("writes octoboss MCP config on first run before stateDir exists", async () => {
+  it("writes sentiph MCP config on first run before stateDir exists", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
@@ -3385,7 +3385,7 @@ describe("createApiServer", () => {
 
     await startServer({ workspaceCwd });
 
-    const configPath = join(stateDir, "octoboss-mcp-config.json");
+    const configPath = join(stateDir, "sentiph-mcp-config.json");
     expect(existsSync(configPath)).toBe(true);
 
     const config = JSON.parse(readFileSync(configPath, "utf8")) as {
@@ -3395,7 +3395,7 @@ describe("createApiServer", () => {
     expect(config.mcpServers.sentiph.env.SENTIPH_API_ORIGIN).toBeTruthy();
   });
 
-  it("writes octoboss system prompt on first run with shell-safe content", async () => {
+  it("writes sentiph system prompt on first run with shell-safe content", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
@@ -3404,7 +3404,7 @@ describe("createApiServer", () => {
 
     await startServer({ workspaceCwd });
 
-    const promptPath = join(stateDir, "octoboss-system-prompt.md");
+    const promptPath = join(stateDir, "sentiph-system-prompt.md");
     expect(existsSync(promptPath)).toBe(true);
 
     const prompt = readFileSync(promptPath, "utf8");
@@ -3413,7 +3413,7 @@ describe("createApiServer", () => {
     // so the content must avoid bash's four double-quoted special characters.
     expect(prompt).not.toMatch(/[$`"\\]/);
     // Sanity-check the orchestration guidance is actually present.
-    expect(prompt).toMatch(/Octoboss/);
+    expect(prompt).toMatch(/Sentiph/);
     expect(prompt).toMatch(/Claude Code/);
   });
 });

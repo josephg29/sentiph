@@ -293,9 +293,9 @@ export const CanvasTentaclePanel = ({
               className="detail-action-btn"
               onClick={() => onCreateAgent?.(node.tentacleId)}
             >
-              {node.type === "octoboss" ? ">_ Open Octoboss" : ">_ Create Agent"}
+              {node.type === "sentiph" ? ">_ Open Sentiph" : ">_ Create Agent"}
             </button>
-            {node.type !== "octoboss" && (
+            {node.type !== "sentiph" && (
               <>
                 <button
                   type="button"

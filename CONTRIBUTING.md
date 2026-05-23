@@ -1,6 +1,6 @@
 # Contributing
 
-Octogent is an experimental personal project and is not actively reviewing pull requests right now. If you still open one, keep changes small, test-backed, and easy to review.
+Thanks for your interest in Sentiph. Issues and pull requests are welcome. Keep changes small, test-backed, and easy to review — large refactors are best discussed in an issue first.
 
 ## Before you change anything
 
@@ -56,7 +56,7 @@ Use `pnpm format` if you need to rewrite formatting.
 
 ## Pull request expectations
 
-- understand that pull requests are not actively reviewed right now
+- open an issue first for large changes so we can align on scope
 - explain the problem in one short paragraph
 - explain the behavior change in concrete terms
 - mention any persistence, API, or workflow impact

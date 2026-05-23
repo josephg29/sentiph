@@ -4,7 +4,7 @@ Todos are the operational center of a tentacle.
 
 ## How todo parsing works
 
-Octogent reads `todo.md` directly. It does not copy todo state into a separate store.
+Sentiph reads `todo.md` directly. It does not copy todo state into a separate store.
 
 Only markdown checkbox lines are parsed:
 
@@ -52,9 +52,9 @@ The Deck runtime uses the same parsed list for three different workflows:
 - single-item solve, where one todo item becomes one worker terminal
 - swarm creation, where incomplete items become worker assignments
 
-For a single-item solve, Octogent creates a terminal ID like `<tentacle-id>-todo-<item-index>` and starts a shared-workspace worker prompt for that item.
+For a single-item solve, Sentiph creates a terminal ID like `<tentacle-id>-todo-<item-index>` and starts a shared-workspace worker prompt for that item.
 
-For a swarm, Octogent filters incomplete items, optionally narrows them to requested indices, caps the batch at the parent-child limit, then creates worker IDs like `<tentacle-id>-swarm-<item-index>`. If there is more than one worker, it creates a parent coordinator terminal instead of starting all workers directly from the API. The parent prompt contains the worker creation commands and completion strategy.
+For a swarm, Sentiph filters incomplete items, optionally narrows them to requested indices, caps the batch at the parent-child limit, then creates worker IDs like `<tentacle-id>-swarm-<item-index>`. If there is more than one worker, it creates a parent coordinator terminal instead of starting all workers directly from the API. The parent prompt contains the worker creation commands and completion strategy.
 
 ## Editing and drift
 

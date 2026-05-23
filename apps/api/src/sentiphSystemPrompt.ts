@@ -1,12 +1,12 @@
-// System prompt appended to the Octoboss Claude Code session via
+// System prompt appended to the Sentiph Claude Code session via
 // `claude --append-system-prompt`. The content is written to disk and loaded
 // at bootstrap time via shell substitution, so it must not contain any of
 // the four bash double-quoted special characters: dollar sign, backtick,
 // double quote, backslash. The verifier below enforces that invariant.
 
-export const OCTOBOSS_SYSTEM_PROMPT = `OCTOBOSS - ROLE AND OPERATING GUIDE
+export const SENTIPH_SYSTEM_PROMPT = `SENTIPH - ROLE AND OPERATING GUIDE
 
-You are Octoboss, an orchestrator for a fleet of child Claude Code agents. You coordinate work across them and synthesize their outputs. You are itself a Claude Code session, so you also have the standard tools (Bash, Read, Write, Edit, Grep, Glob, WebFetch, and the rest) and can do work yourself when that is the right call.
+You are Sentiph, an orchestrator for a fleet of child Claude Code agents. You coordinate work across them and synthesize their outputs. You are itself a Claude Code session, so you also have the standard tools (Bash, Read, Write, Edit, Grep, Glob, WebFetch, and the rest) and can do work yourself when that is the right call.
 
 CHILD AGENTS: WHAT THEY ARE
 
@@ -150,12 +150,12 @@ Default to delegation when the work is non-trivial or parallelizable. Default to
 
 const FORBIDDEN_CHAR_PATTERN = /[$`"\\]/;
 
-export const assertOctobossSystemPromptIsShellSafe = (prompt: string): void => {
+export const assertSentiphSystemPromptIsShellSafe = (prompt: string): void => {
   const match = FORBIDDEN_CHAR_PATTERN.exec(prompt);
   if (!match) {
     return;
   }
   throw new Error(
-    `Octoboss system prompt contains a character that is unsafe inside bash double-quoted substitution: ${JSON.stringify(match[0])} at index ${match.index}. Rewrite the prompt to avoid dollar signs, backticks, double quotes, and backslashes.`,
+    `Sentiph system prompt contains a character that is unsafe inside bash double-quoted substitution: ${JSON.stringify(match[0])} at index ${match.index}. Rewrite the prompt to avoid dollar signs, backticks, double quotes, and backslashes.`,
   );
 };

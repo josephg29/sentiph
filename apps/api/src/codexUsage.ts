@@ -246,7 +246,7 @@ export const readCodexUsageSnapshot = async (
     const headers = new Headers({
       Authorization: `Bearer ${nextCredentials.accessToken}`,
       Accept: "application/json",
-      "User-Agent": "Octogent",
+      "User-Agent": "Sentiph",
     });
 
     if (nextCredentials.accountId) {

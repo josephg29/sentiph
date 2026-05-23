@@ -63,9 +63,9 @@ type UseForceSimulationResult = {
 };
 
 const buildClusterForce = (simNodes: SimNode[], simLinks: SimLink[]) => {
-  const octobossNode = simNodes.find((n) => n._gn.type === "octoboss");
-  if (!octobossNode) return null;
-  const octobossId = octobossNode._gn.id;
+  const sentiphNode = simNodes.find((n) => n._gn.type === "sentiph");
+  if (!sentiphNode) return null;
+  const sentiphId = sentiphNode._gn.id;
 
   // Build child→parent map from resolved links
   const parentMap = new Map<string, string>();
@@ -75,18 +75,18 @@ const buildClusterForce = (simNodes: SimNode[], simLinks: SimLink[]) => {
     parentMap.set(tgt, src);
   }
 
-  // For each non-octoboss node, walk up to find its root ancestor (direct child of octoboss)
+  // For each non-sentiph node, walk up to find its root ancestor (direct child of sentiph)
   const nodeToGroup = new Map<string, string>();
   for (const sn of simNodes) {
     const id = sn._gn.id;
-    if (id === octobossId) continue;
+    if (id === sentiphId) continue;
     let cur = id;
     let par = parentMap.get(cur);
-    while (par && par !== octobossId) {
+    while (par && par !== sentiphId) {
       cur = par;
       par = parentMap.get(cur);
     }
-    if (par === octobossId) nodeToGroup.set(id, cur);
+    if (par === sentiphId) nodeToGroup.set(id, cur);
   }
 
   const groupLeaderIds = [...new Set(nodeToGroup.values())];
@@ -217,8 +217,8 @@ export const useForceSimulation = ({
             .distance((link: SimLink) => {
               const source = link.source as SimNode;
               const target = link.target as SimNode;
-              // Spread group leaders further from octoboss so each group has room
-              if (source._gn.type === "octoboss") return p.linkDistance * 2.5;
+              // Spread group leaders further from sentiph so each group has room
+              if (source._gn.type === "sentiph") return p.linkDistance * 2.5;
               if (target._gn.type === "inactive-session") return p.linkDistance * 0.35;
               return p.linkDistance;
             })
@@ -227,7 +227,7 @@ export const useForceSimulation = ({
               const target = link.target as SimNode;
               if (target._gn.type === "inactive-session") return p.linkStrength * 1.5;
               // Pull children tightly toward their group leader
-              if (source._gn.type !== "octoboss") return p.linkStrength * 2;
+              if (source._gn.type !== "sentiph") return p.linkStrength * 2;
               return p.linkStrength;
             }),
         )
@@ -312,7 +312,7 @@ export const useForceSimulation = ({
         .distance((link: SimLink) => {
           const source = link.source as SimNode;
           const target = link.target as SimNode;
-          if (source._gn.type === "octoboss") return params.linkDistance * 2.5;
+          if (source._gn.type === "sentiph") return params.linkDistance * 2.5;
           if (target._gn.type === "inactive-session") return params.linkDistance * 0.35;
           return params.linkDistance;
         })
@@ -320,7 +320,7 @@ export const useForceSimulation = ({
           const source = link.source as SimNode;
           const target = link.target as SimNode;
           if (target._gn.type === "inactive-session") return params.linkStrength * 1.5;
-          if (source._gn.type !== "octoboss") return params.linkStrength * 2;
+          if (source._gn.type !== "sentiph") return params.linkStrength * 2;
           return params.linkStrength;
         });
     }
