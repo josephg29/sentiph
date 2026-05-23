@@ -1,61 +1,60 @@
 const ITEMS = [
   {
-    label: "01 · tentacles",
-    title: "Scoped context per job.",
-    body: "A tentacle is a job container: CONTEXT.md, todo.md, notes. Agents stop reconstructing your codebase from chat history every session.",
+    label: "01 · agents",
+    title: "All your sessions in one canvas.",
+    body: "The agents view shows every running Claude Code session as a node. See what's active, what's idle, and what's connected to which tentacle — without switching tabs.",
     terminal: [
-      ".sentiph/tentacles/",
-      "  ├─ api-refactor/",
-      "  │   ├─ CONTEXT.md",
-      "  │   ├─ todo.md",
-      "  │   └─ notes.md",
-      "  └─ frontend-redesign/",
-      "      ├─ CONTEXT.md",
-      "      └─ todo.md",
+      "[1] agents  canvas",
+      "  ● api-refactor    running",
+      "  ● frontend        running",
+      "  ○ db-migration    idle",
+      "  ○ tests           idle",
+      "",
+      "press 1-9 to switch views",
     ],
     span: "lg:col-span-2",
   },
   {
-    label: "02 · swarms",
-    title: "Agents spawn agents.",
-    body: "Spawn child Claude Code sessions from todo.md checkbox items. Isolated git worktrees, no context pasted between tabs.",
+    label: "02 · deck",
+    title: "Create tentacles. Launch agents.",
+    body: "A tentacle is a scoped job container: context, notes, and a task list for one slice of work. Create one, then launch a Claude Code agent directly into it.",
     terminal: [
-      "# todo.md",
-      "- [x] update schema",
-      "- [ ] refactor auth",
-      "- [ ] write tests",
+      "create first tentacle",
+      "  start the deck by creating",
+      "  a tentacle for your codebase",
       "",
-      "> spawning 2 agents...",
-      "  ✓ terminal-a ready",
-      "  ✓ terminal-b ready",
+      "open agent",
+      "  provider: claude code",
+      "  [launch]",
     ],
     span: "lg:col-span-1",
   },
   {
-    label: "03 · messaging",
-    title: "Workers talk back.",
-    body: "Workers report completion, blockers, and handoffs to the orchestrator. No human relay for routine status updates.",
+    label: "03 · activity",
+    title: "Token usage across every project.",
+    body: "See how many tokens and dollars your agents are spending — per session, per project, per model. GitHub commits are pulled in alongside so you can connect cost to output.",
     terminal: [
-      "[worker-1 → sentiph]",
-      "  ✓ auth refactor done",
-      "  3 files changed",
-      "",
-      "[worker-2 → sentiph]",
-      "  ✗ test failing:",
-      "    src/auth.test.ts:47",
+      "claude token usage",
+      "  873.4m tokens · 164 sessions",
+      "  peak day  apr 23  847.4m",
+      "  avg/session      5.3m",
+      "  top model        opus-4-7",
+      "  best streak      18d",
     ],
     span: "lg:col-span-1",
   },
   {
-    label: "04 · canvas",
-    title: "One view for everything.",
-    body: "A force-directed canvas shows all running agents, their tentacle assignments, and live status. Switch to deck view for side-by-side terminal columns.",
+    label: "04 · observe",
+    title: "Agent observability built in.",
+    body: "Every agent run is recorded. Success rate, duration, token cost, and errors — per agent, across all sessions. Error heatmaps show when and where things go wrong.",
     terminal: [
-      "canvas view",
-      "  ○ sentiph (orchestrator)",
-      "  ├─ ○ api-refactor  [idle]",
-      "  ├─ ● frontend      [running]",
-      "  └─ ● tests         [running]",
+      "observability",
+      "  total runs    80",
+      "  success rate  0%",
+      "  total cost    $0.00",
+      "  avg duration  90.6m",
+      "",
+      "  time distribution by agent →",
     ],
     span: "lg:col-span-2",
   },
@@ -67,10 +66,10 @@ export function Features() {
       <div className="mx-auto max-w-5xl px-5 py-16 sm:px-6 sm:py-24">
         <div className="mb-12">
           <div className="text-[10px] font-bold uppercase tracking-control text-muted">
-            how it works
+            what it does
           </div>
           <h2 className="mt-2 text-2xl font-bold tracking-control text-foreground sm:text-3xl">
-            Three ideas. One coherent system.
+            Orchestrate. Track. Observe.
           </h2>
         </div>
 

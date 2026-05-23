@@ -8,7 +8,6 @@ export function StarCta() {
     >
       <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-28">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-          {/* Headline */}
           <div>
             <div
               className="text-[10px] font-bold uppercase tracking-control"
@@ -27,23 +26,18 @@ export function StarCta() {
               className="mt-5 max-w-sm text-[13.5px] leading-relaxed"
               style={{ color: "#888" }}
             >
-              Sentiph is free, MIT licensed, and built in the open. No accounts, no
-              telemetry, no paywalls.
+              Free, MIT licensed, and built in the open. No cloud, no accounts, no
+              telemetry. Runs entirely on your machine.
             </p>
           </div>
 
-          {/* CTA + stats */}
           <div className="flex flex-col items-start gap-8 lg:items-end">
             <a
               href="https://github.com/josephg29/sentiph"
               target="_blank"
               rel="noreferrer"
               className="inline-flex h-11 items-center gap-2.5 px-6 text-[11px] font-bold uppercase tracking-control transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{
-                background: "#fafafa",
-                color: "#111",
-                border: "1px solid #fafafa",
-              }}
+              style={{ background: "#fafafa", color: "#111", border: "1px solid #fafafa" }}
             >
               <Star className="size-3.5 fill-current" aria-hidden />
               star on github

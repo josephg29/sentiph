@@ -2,34 +2,34 @@ import Image from "next/image";
 
 const SHOTS = [
   {
+    src: "/preview_1.jpg",
+    alt: "Sentiph agents canvas — empty state showing the Sentiph mascot at the center",
+    label: "agents",
+    detail: "canvas overview",
+  },
+  {
     src: "/preview_2.jpg",
-    alt: "Sentiph deck view showing terminal columns with active Claude Code sessions",
+    alt: "Sentiph deck view — create tentacles and launch Claude Code agents",
     label: "deck",
-    detail: "active terminals side by side",
-  },
-  {
-    src: "/preview_3.jpg",
-    alt: "Sentiph activity view showing agent history and events",
-    label: "activity",
-    detail: "agent history and events",
-  },
-  {
-    src: "/preview_4.jpg",
-    alt: "Sentiph code intel view",
-    label: "code intel",
-    detail: "codebase intelligence",
-  },
-  {
-    src: "/preview_5.jpg",
-    alt: "Sentiph monitor view showing agent output streams",
-    label: "monitor",
-    detail: "live output streams",
+    detail: "create tentacles · launch agents",
   },
   {
     src: "/preview_6.jpg",
-    alt: "Sentiph observe view",
+    alt: "Sentiph observe view — agent observability dashboard with success rates and time distribution",
     label: "observe",
-    detail: "observability panel",
+    detail: "runs · costs · success rates",
+  },
+  {
+    src: "/preview_4.jpg",
+    alt: "Sentiph code intel view — tracks files edited by agents",
+    label: "code intel",
+    detail: "file edit tracking",
+  },
+  {
+    src: "/preview_5.jpg",
+    alt: "Sentiph monitor view — external integrations",
+    label: "monitor",
+    detail: "external integrations",
   },
 ];
 
@@ -61,13 +61,13 @@ export function Screenshots() {
           </h2>
         </div>
 
-        {/* Featured */}
+        {/* Featured — activity view (most data) */}
         <div className="overflow-hidden border border-border-strong shadow-sm">
           <TerminalChrome label={`sentiph · ${featured.label} — ${featured.detail}`} />
           <div className="relative w-full" style={{ aspectRatio: "16/10" }}>
             <Image
-              src={featured.src}
-              alt={featured.alt}
+              src="/preview_3.jpg"
+              alt="Sentiph activity view showing Claude token usage charts and GitHub commits"
               fill
               className="object-cover object-top"
               sizes="(max-width: 1280px) 100vw, 1024px"

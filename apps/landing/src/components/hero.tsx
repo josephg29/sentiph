@@ -17,13 +17,14 @@ export function Hero() {
           </div>
 
           <h1 className="mt-6 text-[40px] font-bold leading-[1.1] tracking-control text-foreground sm:text-[52px] lg:text-[58px]">
-            <span className="block">ten agents.</span>
-            <span className="block">one workspace.</span>
+            <span className="block">run many agents.</span>
+            <span className="block">see everything.</span>
           </h1>
 
           <p className="mt-5 max-w-[400px] text-[14px] leading-[1.7] text-secondary">
-            Sentiph gives every Claude Code session its own scoped context, todo list, and
-            notes. Spawn, monitor, and coordinate a swarm of agents from a single view.
+            Sentiph is a local orchestration layer for Claude Code. Manage multiple agent
+            sessions, track token usage and costs across every project, and observe what
+            your agents are actually doing.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -50,7 +51,7 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Right: product screenshot */}
+        {/* Right: activity screenshot — most data-rich view */}
         <div className="relative">
           <div className="overflow-hidden border border-border-strong bg-surface-2 shadow-sm">
             <div className="flex items-center gap-2 border-b border-border-strong bg-surface-2 px-3.5 py-2.5">
@@ -58,13 +59,13 @@ export function Hero() {
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" aria-hidden />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" aria-hidden />
               <span className="ml-3 text-[10px] font-bold uppercase tracking-control text-secondary">
-                sentiph · agents
+                sentiph · activity
               </span>
             </div>
             <div className="relative w-full" style={{ aspectRatio: "16/10" }}>
               <Image
-                src="/preview_1.jpg"
-                alt="Sentiph canvas showing tentacle nodes connected to active Claude Code agent sessions"
+                src="/preview_3.jpg"
+                alt="Sentiph activity view showing Claude token usage charts and GitHub commits dashboard"
                 fill
                 className="object-cover object-top"
                 priority
