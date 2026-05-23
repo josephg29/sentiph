@@ -63,41 +63,41 @@ const ITEMS = [
 
 export function Features() {
   return (
-    <section id="features" className="border-t border-border-subtle">
-      <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-28">
-        <div className="mb-14">
-          <div className="font-mono text-[10px] font-bold uppercase tracking-control text-muted">
+    <section id="features" className="border-t border-border-mid">
+      <div className="mx-auto max-w-5xl px-5 py-16 sm:px-6 sm:py-24">
+        <div className="mb-12">
+          <div className="text-[10px] font-bold uppercase tracking-control text-muted">
             how it works
           </div>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-display text-foreground sm:text-4xl">
-            Three ideas.<br />One coherent system.
+          <h2 className="mt-2 text-2xl font-bold tracking-control text-foreground sm:text-3xl">
+            Three ideas. One coherent system.
           </h2>
         </div>
 
-        <div className="grid gap-px bg-border-subtle lg:grid-cols-3">
+        <div className="grid gap-px bg-border-mid lg:grid-cols-3">
           {ITEMS.map((item) => (
             <article
               key={item.label}
-              className={`flex flex-col bg-canvas p-8 ${item.span}`}
+              className={`flex flex-col bg-canvas p-7 ${item.span}`}
             >
-              <div className="font-mono text-[10px] font-bold uppercase tracking-control text-muted">
+              <div className="text-[10px] font-bold uppercase tracking-control text-muted">
                 {item.label}
               </div>
-              <h3 className="mt-3 font-display text-xl font-bold tracking-display text-foreground sm:text-2xl">
+              <h3 className="mt-2.5 text-[15px] font-bold tracking-control text-foreground sm:text-[17px]">
                 {item.title}
               </h3>
-              <p className="mt-3 max-w-prose text-[13.5px] leading-relaxed text-secondary">
+              <p className="mt-2.5 max-w-prose text-[13px] leading-relaxed text-secondary">
                 {item.body}
               </p>
 
-              <div className="mt-auto pt-6">
+              <div className="mt-auto pt-5">
                 <div className="border border-border-strong bg-surface-1">
                   <div className="flex items-center gap-1.5 border-b border-border-strong px-3 py-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                   </div>
-                  <pre className="overflow-x-auto p-4 font-mono text-[11.5px] leading-[1.7] text-secondary">
+                  <pre className="overflow-x-auto p-3.5 text-[11px] leading-[1.7] text-secondary">
                     {item.terminal.join("\n")}
                   </pre>
                 </div>

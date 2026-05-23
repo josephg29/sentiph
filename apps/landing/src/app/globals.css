@@ -1,49 +1,50 @@
 @import "tailwindcss";
 
 /* ───────────────────────────────────────────────────────────────────────
-   Monocraft — terminal/code voice, retained for brand identity
+   Monocraft — matches the main app font exactly
    ─────────────────────────────────────────────────────────────────────── */
 @font-face {
   font-family: "Monocraft";
   src: url("/fonts/Monocraft.otf") format("opentype");
-  font-weight: 100 900;
+  font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
 /* ───────────────────────────────────────────────────────────────────────
-   Design tokens — dark SaaS/AI aesthetic
+   Design tokens — mirrors apps/web/src/styles/foundation.css exactly
    ─────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-canvas:    #0c0c0c;
-  --bg-surface-1: #131313;
-  --bg-surface-2: #1a1a1a;
-  --bg-surface-3: #222222;
+  --bg-canvas:     #fafafa;
+  --bg-surface-1:  #f2f2f2;
+  --bg-surface-2:  #e8e8e8;
+  --bg-surface-3:  #ddd;
 
-  --border-subtle: #1e1e1e;
-  --border-mid:    #2a2a2a;
-  --border-strong: #3a3a3a;
+  --border-subtle: #e4e4e4;
+  --border-mid:    #ddd;
+  --border-strong: #bbb;
 
-  --text-primary:   #f5f5f5;
-  --text-secondary: #a0a0a0;
-  --text-muted:     #555555;
+  --text-primary:   #111;
+  --text-secondary: #888;
+  --text-muted:     #bbb;
 
-  --accent:       #2fce68;
-  --accent-dim:   #1a7a3f;
-  --accent-glow:  rgba(47, 206, 104, 0.12);
+  --accent:        #111;
+  --accent-inv:    #fafafa;
 
-  --term-green:   #2fce68;
-  --term-red:     #e05c5c;
-  --term-amber:   #d4a017;
+  --term-bg:       #111;
+  --term-header:   #222;
+  --term-text:     #fafafa;
+  --term-green:    #25a244;
+  --term-red:      #880f1e;
+  --term-amber:    #b87000;
 
-  --font-display:  var(--font-space-grotesk, "Space Grotesk", system-ui, sans-serif);
-  --font-mono:     "Monocraft", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --font-mono:     "Monocraft", "Courier New", monospace;
 
   --tracking-control: 0.06em;
-  --tracking-display: -0.03em;
+  --line-height-ui:   1.2;
 
-  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
-  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --grid-line: rgba(0, 0, 0, 0.025);
+  --grid-size: 28px;
 }
 
 @theme inline {
@@ -61,35 +62,22 @@
   --color-muted:          var(--text-muted);
 
   --color-accent:         var(--accent);
-  --color-accent-dim:     var(--accent-dim);
+  --color-accent-inv:     var(--accent-inv);
 
+  --color-term-bg:        var(--term-bg);
   --color-term-green:     var(--term-green);
   --color-term-red:       var(--term-red);
   --color-term-amber:     var(--term-amber);
 
-  --font-display: var(--font-display);
-  --font-mono:    var(--font-mono);
-  --font-sans:    var(--font-mono);
+  --font-mono: var(--font-mono);
+  --font-sans: var(--font-mono);
 
   --tracking-control: var(--tracking-control);
-  --tracking-display: var(--tracking-display);
-
-  --animate-pulse-soft: var(--animate-pulse-soft);
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 0.35; }
+  0%, 100% { opacity: 0.3; }
   50%       { opacity: 1; }
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
 }
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -99,27 +87,34 @@
   *,
   ::before,
   ::after {
-    border-color: var(--border-subtle);
+    border-color: var(--border-mid);
     box-sizing: border-box;
   }
 
   html {
-    font-size: 16px;
+    font-size: 15px;
     background: var(--bg-canvas);
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
-    background: var(--bg-canvas);
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+      var(--bg-canvas);
+    background-size: var(--grid-size) var(--grid-size),
+                     var(--grid-size) var(--grid-size),
+                     auto;
     color: var(--text-primary);
     font-family: var(--font-mono);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    /* Match main app — crisp pixel rendering for Monocraft */
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
   }
 
   ::selection {
     background: var(--accent);
-    color: #0c0c0c;
+    color: var(--accent-inv);
   }
 
   a {
@@ -127,9 +122,9 @@
     text-decoration: none;
   }
 
-  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar        { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track  { background: var(--bg-surface-1); }
-  ::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb  { background: var(--border-strong); }
 
   img, svg.pixelated, .pixelated {
     image-rendering: pixelated;

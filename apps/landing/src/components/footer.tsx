@@ -9,12 +9,12 @@ const LINKS: Array<{ label: string; href: string }> = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border-subtle">
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6">
-        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+    <footer className="border-t border-border-mid">
+      <div className="mx-auto max-w-5xl px-5 py-7 sm:px-6">
+        <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
           <a href="#top" className="flex items-center gap-2.5" aria-label="Sentiph home">
             <SentiphMark scale={1.5} />
-            <span className="font-mono text-[11px] font-bold uppercase tracking-control text-muted">
+            <span className="text-[11px] font-bold uppercase tracking-control text-muted">
               sentiph
             </span>
           </a>
@@ -26,7 +26,7 @@ export function Footer() {
                 href={link.href}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-[11px] font-bold uppercase tracking-control text-muted transition-colors hover:text-foreground"
+                className="text-[11px] font-bold uppercase tracking-control text-muted transition-colors hover:text-foreground"
               >
                 {link.label}
               </a>
