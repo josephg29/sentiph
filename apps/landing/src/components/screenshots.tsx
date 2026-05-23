@@ -2,34 +2,24 @@ import Image from "next/image";
 
 const SHOTS = [
   {
-    src: "/preview_1.jpg",
-    alt: "Sentiph agents canvas — empty state showing the Sentiph mascot at the center",
-    label: "agents",
-    detail: "canvas overview",
+    src: "/preview_2.jpg",
+    alt: "Sentiph deck view showing options to create a session or open an agent",
+    label: "deck",
   },
   {
-    src: "/preview_2.jpg",
-    alt: "Sentiph deck view — create tentacles and launch Claude Code agents",
-    label: "deck",
-    detail: "create tentacles · launch agents",
+    src: "/preview_3.jpg",
+    alt: "Sentiph activity view showing Claude token usage charts and GitHub commits",
+    label: "activity",
   },
   {
     src: "/preview_6.jpg",
-    alt: "Sentiph observe view — agent observability dashboard with success rates and time distribution",
+    alt: "Sentiph observe view showing per-agent success rates and time distribution",
     label: "observe",
-    detail: "runs · costs · success rates",
   },
   {
     src: "/preview_4.jpg",
-    alt: "Sentiph code intel view — tracks files edited by agents",
+    alt: "Sentiph code intel view tracking files edited by agents",
     label: "code intel",
-    detail: "file edit tracking",
-  },
-  {
-    src: "/preview_5.jpg",
-    alt: "Sentiph monitor view — external integrations",
-    label: "monitor",
-    detail: "external integrations",
   },
 ];
 
@@ -40,7 +30,7 @@ function TerminalChrome({ label }: { label: string }) {
       <span className="h-2 w-2 rounded-full bg-[#febc2e]" aria-hidden />
       <span className="h-2 w-2 rounded-full bg-[#28c840]" aria-hidden />
       <span className="ml-3 text-[9px] font-bold uppercase tracking-control text-secondary">
-        {label}
+        sentiph · {label}
       </span>
     </div>
   );
@@ -61,13 +51,12 @@ export function Screenshots() {
           </h2>
         </div>
 
-        {/* Featured — activity view (most data) */}
         <div className="overflow-hidden border border-border-strong shadow-sm">
-          <TerminalChrome label={`sentiph · ${featured.label} — ${featured.detail}`} />
+          <TerminalChrome label={featured.label} />
           <div className="relative w-full" style={{ aspectRatio: "16/10" }}>
             <Image
-              src="/preview_3.jpg"
-              alt="Sentiph activity view showing Claude token usage charts and GitHub commits"
+              src={featured.src}
+              alt={featured.alt}
               fill
               className="object-cover object-top"
               sizes="(max-width: 1280px) 100vw, 1024px"
@@ -75,8 +64,7 @@ export function Screenshots() {
           </div>
         </div>
 
-        {/* Gallery */}
-        <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="mt-2 grid grid-cols-3 gap-2">
           {rest.map((shot) => (
             <div key={shot.src} className="overflow-hidden border border-border-strong">
               <TerminalChrome label={shot.label} />
@@ -86,7 +74,7 @@ export function Screenshots() {
                   alt={shot.alt}
                   fill
                   className="object-cover object-top"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 256px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 33vw, 340px"
                 />
               </div>
             </div>

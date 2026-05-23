@@ -5,7 +5,6 @@ export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden pt-16">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-5 pb-16 pt-16 sm:px-6 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-20 lg:pt-20">
-        {/* Left: copy */}
         <div>
           <div className="inline-flex items-center gap-2 border border-border-mid bg-surface-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-control text-secondary">
             <span
@@ -22,11 +21,9 @@ export function Hero() {
             <span className="block">from one workspace.</span>
           </h1>
 
-          <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-secondary">
-            Sentiph runs multiple full Claude Code sessions at once and keeps each one on
-            track. Every session gets its own scoped context in files — not buried in a
-            conversation thread — so agents stay focused, a parent session can spawn and
-            direct workers, and you can see what every agent is actually doing.
+          <p className="mt-5 max-w-[400px] text-[14px] leading-[1.7] text-secondary">
+            Run multiple full Claude Code sessions at once. Manage them, track what they
+            spend, and coordinate parallel work without switching windows.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -53,21 +50,20 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Right: activity screenshot */}
         <div className="relative">
-          <div className="overflow-hidden border border-border-strong bg-surface-2 shadow-sm">
+          <div className="overflow-hidden border border-border-strong shadow-sm">
             <div className="flex items-center gap-2 border-b border-border-strong bg-surface-2 px-3.5 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" aria-hidden />
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" aria-hidden />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" aria-hidden />
               <span className="ml-3 text-[10px] font-bold uppercase tracking-control text-secondary">
-                sentiph · activity
+                sentiph · agents
               </span>
             </div>
             <div className="relative w-full" style={{ aspectRatio: "16/10" }}>
               <Image
-                src="/preview_3.jpg"
-                alt="Sentiph activity view showing Claude token usage charts and GitHub commits dashboard"
+                src="/preview_1.jpg"
+                alt="Sentiph agents canvas showing running Claude Code sessions as nodes"
                 fill
                 className="object-cover object-top"
                 priority
