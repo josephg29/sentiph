@@ -17,14 +17,14 @@ export function Hero() {
           </div>
 
           <h1 className="mt-6 text-[40px] font-bold leading-[1.1] tracking-control text-foreground sm:text-[52px] lg:text-[58px]">
-            <span className="block">run many agents.</span>
-            <span className="block">see everything.</span>
+            <span className="block">all your Claude Code</span>
+            <span className="block">sessions, one place.</span>
           </h1>
 
-          <p className="mt-5 max-w-[400px] text-[14px] leading-[1.7] text-secondary">
-            Sentiph is a local orchestration layer for Claude Code. Manage multiple agent
-            sessions, track token usage and costs across every project, and observe what
-            your agents are actually doing.
+          <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-secondary">
+            Sentiph lets you run as many full Claude Code terminals as you need and manage
+            them all from a single local app. Each session gets its own scoped context,
+            notes, and task list so nothing bleeds into anything else.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -51,7 +51,7 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Right: activity screenshot — most data-rich view */}
+        {/* Right: activity screenshot */}
         <div className="relative">
           <div className="overflow-hidden border border-border-strong bg-surface-2 shadow-sm">
             <div className="flex items-center gap-2 border-b border-border-strong bg-surface-2 px-3.5 py-2.5">

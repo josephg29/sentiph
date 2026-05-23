@@ -1,38 +1,38 @@
 const ITEMS = [
   {
-    label: "01 · agents",
-    title: "All your sessions in one canvas.",
-    body: "The agents view shows every running Claude Code session as a node. See what's active, what's idle, and what's connected to which tentacle — without switching tabs.",
+    label: "01 · sessions",
+    title: "Multiple Claude Code terminals from one app.",
+    body: "Launch as many full Claude Code sessions as you need directly from Sentiph. They all run as real PTY terminals — the full Claude Code experience, just not scattered across a dozen windows.",
     terminal: [
       "[1] agents  canvas",
       "  ● api-refactor    running",
       "  ● frontend        running",
-      "  ○ db-migration    idle",
+      "  ● db-migration    running",
       "  ○ tests           idle",
       "",
-      "press 1-9 to switch views",
+      "press [+] to launch another →",
     ],
     span: "lg:col-span-2",
   },
   {
-    label: "02 · deck",
-    title: "Create tentacles. Launch agents.",
-    body: "A tentacle is a scoped job container: context, notes, and a task list for one slice of work. Create one, then launch a Claude Code agent directly into it.",
+    label: "02 · tentacles",
+    title: "Scoped context per session.",
+    body: "Each session lives inside a tentacle — a folder with its own CONTEXT.md, task list, and notes. Agents read the right context for their job instead of reconstructing it from scratch every time.",
     terminal: [
-      "create first tentacle",
-      "  start the deck by creating",
-      "  a tentacle for your codebase",
-      "",
-      "open agent",
-      "  provider: claude code",
-      "  [launch]",
+      ".sentiph/tentacles/",
+      "  api-refactor/",
+      "    CONTEXT.md",
+      "    todo.md",
+      "  frontend/",
+      "    CONTEXT.md",
+      "    todo.md",
     ],
     span: "lg:col-span-1",
   },
   {
     label: "03 · activity",
-    title: "Token usage across every project.",
-    body: "See how many tokens and dollars your agents are spending — per session, per project, per model. GitHub commits are pulled in alongside so you can connect cost to output.",
+    title: "Token usage across every session.",
+    body: "Sentiph tracks what every session is spending across every project — tokens, cost, model, session count. The GitHub commits view shows the work that came out of it.",
     terminal: [
       "claude token usage",
       "  873.4m tokens · 164 sessions",
@@ -45,16 +45,16 @@ const ITEMS = [
   },
   {
     label: "04 · observe",
-    title: "Agent observability built in.",
-    body: "Every agent run is recorded. Success rate, duration, token cost, and errors — per agent, across all sessions. Error heatmaps show when and where things go wrong.",
+    title: "See what every agent actually did.",
+    body: "Every session run is recorded — success rate, duration, token cost, errors, and idle time per agent. Stop guessing whether an agent got stuck. Know.",
     terminal: [
       "observability",
       "  total runs    80",
-      "  success rate  0%",
-      "  total cost    $0.00",
       "  avg duration  90.6m",
+      "  total cost    $0.00",
       "",
-      "  time distribution by agent →",
+      "  time distribution by agent",
+      "  error heatmap (7d, hourly)",
     ],
     span: "lg:col-span-2",
   },
@@ -69,7 +69,7 @@ export function Features() {
             what it does
           </div>
           <h2 className="mt-2 text-2xl font-bold tracking-control text-foreground sm:text-3xl">
-            Orchestrate. Track. Observe.
+            Everything you need to run Claude Code at scale.
           </h2>
         </div>
 
