@@ -633,6 +633,19 @@ export const createTerminalRuntime = ({
     autoRenamePromptContext?: string;
     isGroupLeader?: boolean;
   }): TerminalSnapshot => {
+    // Octoboss is a singleton: if a terminal with that tentacleId already exists,
+    // ensure its session is running and return the existing snapshot instead of
+    // creating a duplicate that would orphan the live session.
+    if (requestedTentacleId === OCTOBOSS_TENTACLE_ID) {
+      const existingOctoboss = [...terminals.values()].find(
+        (t) => t.tentacleId === OCTOBOSS_TENTACLE_ID,
+      );
+      if (existingOctoboss) {
+        sessionRuntime.startSession(existingOctoboss.terminalId);
+        return toTerminalSnapshot(existingOctoboss);
+      }
+    }
+
     // Enforce max children per parent.
     if (parentTerminalId) {
       const childCount = [...terminals.values()].filter(
