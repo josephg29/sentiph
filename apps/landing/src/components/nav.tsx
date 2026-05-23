@@ -35,7 +35,7 @@ export async function Nav() {
             href="https://github.com/josephg29/sentiph/blob/main/README.md"
             target="_blank"
             rel="noreferrer"
-            className="hidden text-[10px] font-bold uppercase tracking-control text-secondary transition-colors hover:text-foreground sm:block"
+            className="hidden border-b border-transparent text-[10px] font-bold uppercase tracking-control text-secondary transition-colors hover:border-secondary hover:text-foreground sm:block"
           >
             docs
           </a>

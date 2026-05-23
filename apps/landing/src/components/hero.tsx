@@ -16,7 +16,14 @@ export function Hero() {
         <h1 className="mt-6 text-[40px] font-bold leading-[1.1] tracking-control text-foreground sm:text-[52px] lg:text-[64px]">
           <span className="block">orchestrate</span>
           <span className="block">Claude Code agents</span>
-          <span className="block">from one workspace.</span>
+          <span className="block">
+            from one workspace.
+            <span
+              className="ml-1.5 inline-block h-[0.78em] w-[0.48em] bg-term-green align-[-0.05em]"
+              style={{ animation: "blink 1.1s step-end infinite" }}
+              aria-hidden
+            />
+          </span>
         </h1>
 
         <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-secondary">

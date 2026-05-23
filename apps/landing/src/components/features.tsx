@@ -1,3 +1,31 @@
+function TerminalLine({ line }: { line: string }) {
+  if (line === "") return <div>&nbsp;</div>;
+
+  if (line.includes("○")) {
+    return <div className="text-muted">{line}</div>;
+  }
+
+  if (line.includes("●") || line.includes("running")) {
+    return (
+      <div>
+        {line.split(/(●|running)/).map((part, i) =>
+          part === "●" || part === "running" ? (
+            <span key={i} className="text-term-green">{part}</span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </div>
+    );
+  }
+
+  if (line.trim().startsWith("spawning")) {
+    return <div className="text-muted">{line}</div>;
+  }
+
+  return <div>{line}</div>;
+}
+
 const ITEMS = [
   {
     label: "01 · agents",
@@ -53,7 +81,7 @@ export function Features() {
 
         <div className="grid gap-px bg-border-mid sm:grid-cols-3">
           {ITEMS.map((item) => (
-            <article key={item.label} className="flex flex-col bg-canvas p-7">
+            <article key={item.label} className="flex flex-col bg-canvas p-7 transition-colors hover:bg-surface-1">
               <div className="text-[10px] font-bold uppercase tracking-control text-muted">
                 {item.label}
               </div>
@@ -65,15 +93,17 @@ export function Features() {
               </p>
 
               <div className="mt-auto pt-5">
-                <div className="border border-border-strong bg-surface-1">
+                <div className="border border-border-strong bg-surface-2">
                   <div className="flex items-center gap-1.5 border-b border-border-strong px-3 py-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                     <span className="h-1.5 w-1.5 rounded-full bg-border-strong" aria-hidden />
                   </div>
-                  <pre className="overflow-x-auto p-3.5 text-[11px] leading-[1.7] text-secondary">
-                    {item.terminal.join("\n")}
-                  </pre>
+                  <div className="overflow-x-auto p-3.5 text-[11px] leading-[1.7] text-secondary font-mono">
+                    {item.terminal.map((line, i) => (
+                      <TerminalLine key={i} line={line} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </article>
