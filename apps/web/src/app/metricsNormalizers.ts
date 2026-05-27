@@ -8,7 +8,7 @@ import type {
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v);
 
-export const normalizeAgentRunSummary = (raw: unknown): AgentRunSummary | null => {
+const normalizeAgentRunSummary = (raw: unknown): AgentRunSummary | null => {
   if (!isRecord(raw)) return null;
   if (
     typeof raw.terminalId !== "string" ||

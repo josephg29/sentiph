@@ -183,7 +183,7 @@ const readPullRequestWithGh = (cwd: string, args: string[]) => {
   return parsePullRequestPayload(JSON.parse(output));
 };
 
-export const createDefaultGitClient = (): GitClient => ({
+const createDefaultGitClient = (): GitClient => ({
   assertAvailable() {
     try {
       execFileSync("git", ["--version"], { stdio: "ignore" });

@@ -6,7 +6,7 @@ import type { AgentVisuals } from "./agentVisuals";
 
 // ─── Status styling ──────────────────────────────────────────────────────────
 
-export const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
+const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
   idle: "idle",
   active: "active",
   blocked: "blocked",
@@ -15,7 +15,7 @@ export const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
 
 // ─── TodoList ────────────────────────────────────────────────────────────────
 
-export const TodoList = ({
+const TodoList = ({
   items,
   agentId,
   onToggle,

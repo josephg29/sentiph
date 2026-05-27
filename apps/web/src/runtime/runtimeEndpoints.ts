@@ -172,7 +172,7 @@ export const buildConversationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/conversations");
 };
 
-export const buildConversationSearchUrl = (
+const buildConversationSearchUrl = (
   query: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
@@ -420,7 +420,7 @@ export const buildMetricsEventsUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/prompts";
   }
@@ -428,7 +428,7 @@ export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/prompts");
 };
 
-export const buildPromptItemUrl = (name: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
+const buildPromptItemUrl = (name: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const encodedName = encodeURIComponent(name);
   const path = `/api/prompts/${encodedName}`;
   if (!runtimeBaseUrl) {

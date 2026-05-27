@@ -10,7 +10,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
     "next": "^15.1.4",
@@ -24,7 +23,6 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "tailwindcss": "^4.0.0",
-    "tw-animate-css": "^1.2.4",
     "typescript": "^5.8.2"
   }
 }

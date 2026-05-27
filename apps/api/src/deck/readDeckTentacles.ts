@@ -145,41 +145,6 @@ const updateContextMdSkills = (contextPath: string, skills: string[]): void => {
   writeFileSync(contextPath, next, "utf8");
 };
 
-export const readContextTitle = (contextPath: string): string | null => {
-  if (!existsSync(contextPath)) return null;
-  try {
-    const content = readFileSync(contextPath, "utf8");
-    for (const line of content.split("\n")) {
-      const match = line.match(/^#\s+(.+)$/);
-      if (match?.[1]) return match[1].trim();
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-};
-
-// ─── Todo parsing ────────────────────────────────────────────────────────────
-
-export const parseTodoProgress = (
-  content: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } => {
-  const items: { text: string; done: boolean }[] = [];
-  for (const line of content.split("\n")) {
-    const unchecked = line.match(/^-\s+\[\s*\]\s+(.+)$/);
-    if (unchecked?.[1]) {
-      items.push({ text: unchecked[1].trim(), done: false });
-      continue;
-    }
-    const checked = line.match(/^-\s+\[[xX]\]\s+(.+)$/);
-    if (checked?.[1]) {
-      items.push({ text: checked[1].trim(), done: true });
-    }
-  }
-  const done = items.filter((i) => i.done).length;
-  return { total: items.length, done, items };
-};
-
 // ─── Read all tentacles ─────────────────────────────────────────────────────
 
 export const readDeckTentacles = (

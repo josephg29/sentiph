@@ -1,10 +1,10 @@
 export const TERMINAL_ID_PREFIX = "terminal-";
 export const SENTIPH_TENTACLE_ID = "__sentiph__";
 export const TERMINAL_REGISTRY_VERSION = 3;
-export const TERMINAL_REGISTRY_RELATIVE_PATH = ".sentiph/state/tentacles.json";
-export const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".sentiph/state/transcripts";
-export const TENTACLE_WORKTREE_RELATIVE_PATH = ".sentiph/worktrees";
-export const TENTACLE_WORKTREE_BRANCH_PREFIX = "sentiph/";
+const TERMINAL_REGISTRY_RELATIVE_PATH = ".sentiph/state/tentacles.json";
+const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".sentiph/state/transcripts";
+const TENTACLE_WORKTREE_RELATIVE_PATH = ".sentiph/worktrees";
+const TENTACLE_WORKTREE_BRANCH_PREFIX = "sentiph/";
 export const DEFAULT_AGENT_PROVIDER = "claude-code" as const;
 
 const CLAUDE_BOOTSTRAP = "claude --dangerously-skip-permissions";
@@ -13,7 +13,7 @@ export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   codex: "codex",
   "claude-code": CLAUDE_BOOTSTRAP,
 };
-export const CLAUDE_BOOTSTRAP_COMMAND = CLAUDE_BOOTSTRAP;
+const CLAUDE_BOOTSTRAP_COMMAND = CLAUDE_BOOTSTRAP;
 
 // Maps the public model aliases that spawn_terminal accepts onto the
 // CLI flag value Claude Code expects. Aliases keep the orchestrator's

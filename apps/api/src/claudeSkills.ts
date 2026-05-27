@@ -3,8 +3,6 @@ import { basename, dirname, join } from "node:path";
 
 import type { DeckAvailableSkill } from "@sentiph/core";
 
-const SKILL_MARKER_START = "<!-- sentiph:suggested-skills:start -->";
-const SKILL_MARKER_END = "<!-- sentiph:suggested-skills:end -->";
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const H1_PATTERN = /^#\s+(.+)$/m;
 
@@ -122,61 +120,4 @@ export const readAvailableClaudeSkills = (workspaceCwd: string): DeckAvailableSk
     }
     return a.name.localeCompare(b.name);
   });
-};
-
-export const parseSuggestedSkillsFromContext = (content: string): string[] => {
-  const start = content.indexOf(SKILL_MARKER_START);
-  const end = content.indexOf(SKILL_MARKER_END);
-  if (start < 0 || end < 0 || end <= start) return [];
-
-  const block = content.slice(start, end);
-  const skills = block
-    .split("\n")
-    .map((line) => {
-      const match = line.trim().match(/^- `(.+)`$/);
-      return match?.[1]?.trim() ?? null;
-    })
-    .filter((skill): skill is string => skill !== null);
-
-  return normalizeSkillNames(skills);
-};
-
-const renderSuggestedSkillsBlock = (skills: readonly string[]): string => {
-  const normalized = normalizeSkillNames(skills);
-  if (normalized.length === 0) return "";
-
-  const items = normalized.map((skill) => `- \`${skill}\``).join("\n");
-  return [
-    SKILL_MARKER_START,
-    "## Suggested Skills",
-    "",
-    "You can use these skills if you need to.",
-    "",
-    items,
-    SKILL_MARKER_END,
-  ].join("\n");
-};
-
-export const applySuggestedSkillsToContext = (
-  content: string,
-  skills: readonly string[],
-): string => {
-  const trimmedContent = content.trimEnd();
-  const start = trimmedContent.indexOf(SKILL_MARKER_START);
-  const end = trimmedContent.indexOf(SKILL_MARKER_END);
-  const block = renderSuggestedSkillsBlock(skills);
-
-  let withoutExistingBlock = trimmedContent;
-  if (start >= 0 && end > start) {
-    withoutExistingBlock = `${trimmedContent.slice(0, start).trimEnd()}\n${trimmedContent
-      .slice(end + SKILL_MARKER_END.length)
-      .trimStart()}`.trimEnd();
-  }
-
-  if (block.length === 0) {
-    return `${withoutExistingBlock}\n`;
-  }
-
-  const base = withoutExistingBlock.length > 0 ? `${withoutExistingBlock}\n\n` : "";
-  return `${base}${block}\n`;
 };
