@@ -1069,7 +1069,7 @@ describe("createSessionRuntime", () => {
       runtime.close();
     });
 
-    it("stored UUID but session file missing: --session-id reuses UUID, no banner", () => {
+    it("stored UUID but session file missing: allocates fresh UUID to avoid Claude 'session already exists' on retry", () => {
       const tentacleId = "tentacle-missing-file";
       const storedUuid = "00000000-0000-4000-8000-000000000002";
 
@@ -1095,9 +1095,18 @@ describe("createSessionRuntime", () => {
       expect(runtime.startSession(tentacleId)).toBe(true);
 
       const firstCall = pty.write.mock.calls[0]?.[0] as string;
-      expect(firstCall).toBe(
-        `claude --session-id ${storedUuid} --dangerously-skip-permissions\r`,
+      const match = firstCall.match(
+        /^claude --session-id ([0-9a-f-]{36}) --dangerously-skip-permissions\r$/,
       );
+      expect(match).not.toBeNull();
+      const usedUuid = match?.[1];
+      // Must NOT reuse the orphaned stored UUID — Claude CLI would abort with
+      // "session already exists" if the ID was registered by a prior failed
+      // bootstrap (e.g. credits exhausted) or by a parallel worker spawn.
+      expect(usedUuid).not.toBe(storedUuid);
+
+      // The replacement UUID must be persisted so subsequent retries stay stable.
+      expect(terminals.get(tentacleId)?.claudeSessionId).toBe(usedUuid);
 
       const scrollback = runtime.getScrollback(tentacleId) ?? "";
       expect(scrollback).not.toContain("resuming previous Claude session");

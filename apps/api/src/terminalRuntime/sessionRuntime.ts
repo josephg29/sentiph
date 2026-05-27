@@ -161,7 +161,16 @@ export const createSessionRuntime = ({
           banner: "[Sentiph: resuming previous Claude session…]",
         };
       }
-      return { flags: ["--session-id", existingSessionId] };
+      // The persisted session ID has no transcript on disk in this cwd.
+      // Reusing `--session-id <same>` after a failed bootstrap (e.g. credits
+      // exhausted, Fast mode disabled) causes Claude CLI to abort with
+      // "session already exists". Allocate a fresh ID and persist it so the
+      // retry — and any parallel worker spawn — can succeed.
+      const replacementSessionId = randomUUID();
+      return {
+        flags: ["--session-id", replacementSessionId],
+        sessionIdToPersist: replacementSessionId,
+      };
     }
 
     const priorLifecycle = terminalRecord.lifecycleState;
