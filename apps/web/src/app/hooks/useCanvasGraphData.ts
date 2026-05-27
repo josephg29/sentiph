@@ -203,6 +203,51 @@ export const useCanvasGraphData = ({
       setInactiveSessions([]);
       return;
     }
+
+    const demoMode =
+      typeof window !== "undefined" && window.location.search.includes("demo=true");
+
+    if (demoMode) {
+      const buildMock = (id: string, displayName: string): DeckTentacleSummary => ({
+        tentacleId: id,
+        displayName,
+        description: "",
+        status: "active",
+        color: null,
+        octopus: { animation: null, expression: null, accessory: null, hairColor: null },
+        scope: { paths: [], tags: [] },
+        vaultFiles: [],
+        todoTotal: 0,
+        todoDone: 0,
+        todoItems: [],
+        suggestedSkills: [],
+      });
+      const names: [string, string][] = [
+        ["api-refactor", "api-refactor"],
+        ["perf-audit", "perf-audit"],
+        ["type-checking", "type-checking"],
+        ["db-migration", "db-migration"],
+        ["frontend", "frontend"],
+        ["docs", "docs"],
+        ["security", "security"],
+        ["test-suite", "test-suite"],
+      ];
+      setDeckTentacles([]);
+      setInactiveSessions([]);
+      const timers: number[] = [];
+      const start = Number(new URLSearchParams(window.location.search).get("demoStartMs") || 800);
+      const step = Number(new URLSearchParams(window.location.search).get("demoStepMs") || 350);
+      names.forEach(([id, name], i) => {
+        const t = window.setTimeout(() => {
+          setDeckTentacles((prev) => [...prev, buildMock(id, name)]);
+        }, start + i * step);
+        timers.push(t);
+      });
+      return () => {
+        for (const t of timers) window.clearTimeout(t);
+      };
+    }
+
     void fetchDeckTentacles();
     void fetchInactiveSessions();
   }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
