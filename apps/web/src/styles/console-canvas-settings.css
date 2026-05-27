@@ -205,3 +205,62 @@
     grid-template-columns: 1fr;
   }
 }
+
+.settings-updates-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.56rem;
+}
+
+.settings-updates-version {
+  display: grid;
+  gap: 0.18rem;
+  border: 1px solid #dddddd;
+  background: #ffffff;
+  padding: 0.5rem 0.62rem;
+}
+
+.settings-updates-label {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7989;
+}
+
+.settings-updates-value {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.92rem;
+  color: #111111;
+  word-break: break-all;
+}
+
+.settings-updates-details {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #2b3340;
+}
+
+.settings-updates-message {
+  margin: 0;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: #2b3340;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  padding: 0.42rem 0.56rem;
+}
+
+.settings-updates-restart {
+  display: grid;
+  gap: 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--term-green) 32%, #cccccc 68%);
+  background: color-mix(in srgb, var(--term-green) 8%, #ffffff 92%);
+  padding: 0.56rem 0.68rem;
+}
+
+.settings-updates-restart p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #1a3a26;
+}

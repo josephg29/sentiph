@@ -78,6 +78,11 @@ import {
   handleTerminalsCollectionRoute,
 } from "./terminalRoutes";
 import {
+  handleUpdatesApplyRoute,
+  handleUpdatesRestartRoute,
+  handleUpdatesStatusRoute,
+} from "./updatesRoutes";
+import {
   handleClaudeUsageRoute,
   handleCodexUsageRoute,
   handleGithubSummaryRoute,
@@ -175,6 +180,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ]],
   ["setup", [handleSetupRoute, handleSetupStepRoute]],
   ["prompts", [handlePromptItemRoute]],
+  ["updates", [handleUpdatesStatusRoute, handleUpdatesApplyRoute, handleUpdatesRestartRoute]],
 ]);
 
 const extractRoutePrefix = (pathname: string): string | null => {

@@ -4,6 +4,7 @@ import {
 } from "../app/notificationSounds";
 import { ActionButton } from "./ui/ActionButton";
 import { SettingsToggle } from "./ui/SettingsToggle";
+import { UpdatesSettingsSection } from "./UpdatesSettingsSection";
 
 type SettingsPrimaryViewProps = {
   terminalCompletionSound: TerminalCompletionSoundId;
@@ -88,5 +89,6 @@ export const SettingsPrimaryView = ({
         />
       </div>
     </section>
+    <UpdatesSettingsSection />
   </section>
 );
