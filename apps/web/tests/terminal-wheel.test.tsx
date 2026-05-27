@@ -4,7 +4,7 @@ import {
   readViewportY,
   shouldUseManualWheelScroll,
   wheelDeltaToScrollLines,
-} from "../src/components/terminalWheel";
+} from "../src/app/terminalWheel";
 
 describe("wheelDeltaToScrollLines", () => {
   it("returns zero for invalid or neutral wheel deltas", () => {

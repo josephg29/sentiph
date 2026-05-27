@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { replayTerminalHistory } from "../src/components/terminalReplay";
+import { replayTerminalHistory } from "../src/app/terminalReplay";
 
 describe("replayTerminalHistory", () => {
   it("clears selection and restores the previous scroll position after replay", () => {
