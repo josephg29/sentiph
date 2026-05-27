@@ -88,6 +88,15 @@ export type TerminalSession = {
 
 export type TerminalNameOrigin = "generated" | "user" | "prompt";
 
+export type TerminalModel = "opus" | "sonnet" | "haiku";
+export type TerminalEffort = "low" | "medium" | "high";
+
+export const isTerminalModel = (value: unknown): value is TerminalModel =>
+  value === "opus" || value === "sonnet" || value === "haiku";
+
+export const isTerminalEffort = (value: unknown): value is TerminalEffort =>
+  value === "low" || value === "medium" || value === "high";
+
 export {
   type ChannelMessage,
   type PersistedUiState,
@@ -143,6 +152,8 @@ export type PersistedTerminal = {
   exitCode?: number | undefined;
   exitSignal?: number | string | undefined;
   claudeSessionId?: string | undefined;
+  model?: TerminalModel | undefined;
+  effort?: TerminalEffort | undefined;
 };
 
 export type GitClientPullRequestSnapshot = Omit<

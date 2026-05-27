@@ -4,7 +4,10 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 
-export const createShellEnvironment = (options?: { sentiphSessionId?: string }) => {
+export const createShellEnvironment = (options?: {
+  sentiphSessionId?: string;
+  maxThinkingTokens?: number;
+}) => {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
@@ -15,6 +18,9 @@ export const createShellEnvironment = (options?: { sentiphSessionId?: string }) 
   env.COLORTERM = "truecolor";
   if (options?.sentiphSessionId) {
     env.SENTIPH_SESSION_ID = options.sentiphSessionId;
+  }
+  if (options?.maxThinkingTokens !== undefined && Number.isFinite(options.maxThinkingTokens)) {
+    env.MAX_THINKING_TOKENS = String(Math.max(0, Math.floor(options.maxThinkingTokens)));
   }
   return env;
 };

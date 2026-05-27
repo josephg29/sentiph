@@ -10,6 +10,8 @@ import type { WebSocket, WebSocketServer } from "ws";
 
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import {
+  CLAUDE_EFFORT_THINKING_TOKENS,
+  CLAUDE_MODEL_FLAG_VALUE,
   DEFAULT_AGENT_PROVIDER,
   SENTIPH_TENTACLE_ID,
   TERMINAL_BOOTSTRAP_COMMANDS,
@@ -153,11 +155,21 @@ export const createSessionRuntime = ({
       return { flags: [] };
     }
 
+    const modelFlags: string[] = [];
+    if (terminalRecord.model) {
+      const modelId = CLAUDE_MODEL_FLAG_VALUE[terminalRecord.model];
+      if (modelId) {
+        modelFlags.push("--model", modelId);
+      }
+    }
+    const withModel = (flags: string[]): string[] =>
+      modelFlags.length > 0 ? [...modelFlags, ...flags] : flags;
+
     const existingSessionId = terminalRecord.claudeSessionId;
     if (existingSessionId) {
       if (claudeSessionFileExists(cwd, existingSessionId)) {
         return {
-          flags: ["--resume", existingSessionId],
+          flags: withModel(["--resume", existingSessionId]),
           banner: "[Sentiph: resuming previous Claude session…]",
         };
       }
@@ -168,7 +180,7 @@ export const createSessionRuntime = ({
       // retry — and any parallel worker spawn — can succeed.
       const replacementSessionId = randomUUID();
       return {
-        flags: ["--session-id", replacementSessionId],
+        flags: withModel(["--session-id", replacementSessionId]),
         sessionIdToPersist: replacementSessionId,
       };
     }
@@ -181,14 +193,14 @@ export const createSessionRuntime = ({
 
     if (hadPriorSession) {
       return {
-        flags: ["--continue"],
+        flags: withModel(["--continue"]),
         banner: "[Sentiph: resuming previous Claude session…]",
       };
     }
 
     const newSessionId = randomUUID();
     return {
-      flags: ["--session-id", newSessionId],
+      flags: withModel(["--session-id", newSessionId]),
       sessionIdToPersist: newSessionId,
     };
   };
@@ -662,13 +674,20 @@ export const createSessionRuntime = ({
     ensureNodePtySpawnHelperExecutable();
     const shellLaunch = getShellLaunch();
 
+    const thinkingTokens = terminalRecord?.effort
+      ? CLAUDE_EFFORT_THINKING_TOKENS[terminalRecord.effort]
+      : undefined;
+
     let pty: IPty;
     try {
       pty = spawn(shellLaunch.command, shellLaunch.args, {
         cols: DEFAULT_PTY_COLS,
         rows: DEFAULT_PTY_ROWS,
         cwd: tentacleCwd,
-        env: createShellEnvironment({ sentiphSessionId: sessionId }),
+        env: createShellEnvironment({
+          sentiphSessionId: sessionId,
+          ...(thinkingTokens !== undefined ? { maxThinkingTokens: thinkingTokens } : {}),
+        }),
         name: "xterm-256color",
       });
     } catch (error) {

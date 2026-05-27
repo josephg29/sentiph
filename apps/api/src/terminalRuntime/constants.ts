@@ -14,6 +14,25 @@ export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   "claude-code": CLAUDE_BOOTSTRAP,
 };
 export const CLAUDE_BOOTSTRAP_COMMAND = CLAUDE_BOOTSTRAP;
+
+// Maps the public model aliases that spawn_terminal accepts onto the
+// CLI flag value Claude Code expects. Aliases keep the orchestrator's
+// decision space small (3 options) while still letting us swap in
+// specific point releases if a model is retired.
+export const CLAUDE_MODEL_FLAG_VALUE: Record<"opus" | "sonnet" | "haiku", string> = {
+  opus: "claude-opus-4-7",
+  sonnet: "claude-sonnet-4-6",
+  haiku: "claude-haiku-4-5",
+};
+
+// Effort maps to the Claude Code MAX_THINKING_TOKENS env var, which
+// caps the extended-thinking budget for the spawned session. Low keeps
+// responses fast; high reserves the full default budget for deep tasks.
+export const CLAUDE_EFFORT_THINKING_TOKENS: Record<"low" | "medium" | "high", number> = {
+  low: 4_000,
+  medium: 16_000,
+  high: 31_999,
+};
 export const TERMINAL_SESSION_IDLE_GRACE_MS = 5 * 60 * 1000;
 export const TERMINAL_SCROLLBACK_MAX_BYTES = 512 * 1024;
 export const TERMINAL_MAX_CONCURRENT_SESSIONS = 32;

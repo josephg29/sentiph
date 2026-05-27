@@ -42,6 +42,18 @@ const TOOLS = [
           description:
             "Set to true to spawn this agent as a group leader. Group leaders have orchestration tools (spawn_terminal, list_terminals, send_prompt, get_terminal_output, close_terminal) so they can spawn and coordinate their own batch of worker agents. Use this when you need more than 9 total workers: spawn up to 9 group leaders, each of which manages its own sub-batch. Group leaders should be prompted to act as sub-orchestrators for their assigned subtask.",
         },
+        model: {
+          type: "string",
+          enum: ["opus", "sonnet", "haiku"],
+          description:
+            "Which Claude model the child runs on. Pick based on task difficulty: 'haiku' for cheap, fast, mechanical work (lint, format, simple edits, search, classification, glue scripts); 'sonnet' for default coding work (build features, fix bugs, write tests, refactor a few files); 'opus' for deep reasoning (architecture decisions, gnarly multi-file refactors, novel algorithms, hard debugging). Default 'sonnet' when in doubt. Decide in one short sentence, no agonising.",
+        },
+        effort: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description:
+            "How much extended-thinking budget the child gets. 'low' for fast, mechanical or interactive tasks where deep thinking would waste time and tokens. 'medium' for typical coding work. 'high' for tasks that genuinely benefit from long planning (debugging without obvious cause, architecture, complex refactors, security audits). Default 'medium'. Choose effort independently from model — a haiku doing a tricky job can still get high effort, and an opus doing trivial cleanup can stay low.",
+        },
       },
       required: ["prompt", "name", "color"],
     },
@@ -237,6 +249,20 @@ const handleToolCall = async (
     }
     if (args.group_leader === true) {
       body.isGroupLeader = true;
+    }
+    if (
+      args.model === "opus" ||
+      args.model === "sonnet" ||
+      args.model === "haiku"
+    ) {
+      body.model = args.model;
+    }
+    if (
+      args.effort === "low" ||
+      args.effort === "medium" ||
+      args.effort === "high"
+    ) {
+      body.effort = args.effort;
     }
 
     const res = await fetch(`${apiOrigin}/api/terminals`, {

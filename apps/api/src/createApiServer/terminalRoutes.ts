@@ -2,6 +2,8 @@ import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalEffort,
+  type TerminalModel,
   type TerminalNameOrigin,
 } from "../terminalRuntime";
 import type { ApiRouteHandler } from "./routeHelpers";
@@ -15,6 +17,8 @@ import {
 import {
   parseTerminalAgentProvider,
   parseTerminalColor,
+  parseTerminalEffort,
+  parseTerminalModel,
   parseTerminalName,
   parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
@@ -86,6 +90,18 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const modelResult = parseTerminalModel(bodyReadResult.payload);
+  if (modelResult.error) {
+    writeJson(response, 400, { error: modelResult.error }, corsOrigin);
+    return true;
+  }
+
+  const effortResult = parseTerminalEffort(bodyReadResult.payload);
+  if (effortResult.error) {
+    writeJson(response, 400, { error: effortResult.error }, corsOrigin);
+    return true;
+  }
+
   try {
     const createTerminalInput: {
       terminalId?: string;
@@ -101,9 +117,17 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       autoRenamePromptContext?: string;
       parentTerminalId?: string;
       isGroupLeader?: boolean;
+      model?: TerminalModel;
+      effort?: TerminalEffort;
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
+    if (modelResult.model !== undefined) {
+      createTerminalInput.model = modelResult.model;
+    }
+    if (effortResult.effort !== undefined) {
+      createTerminalInput.effort = effortResult.effort;
+    }
     if (nameResult.name !== undefined) {
       createTerminalInput.tentacleName = nameResult.name;
     }

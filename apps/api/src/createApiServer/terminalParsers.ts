@@ -1,8 +1,12 @@
 import {
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalEffort,
+  type TerminalModel,
   type TerminalNameOrigin,
   isTerminalAgentProvider,
+  isTerminalEffort,
+  isTerminalModel,
 } from "../terminalRuntime";
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
@@ -185,4 +189,50 @@ export const parseTerminalNameOrigin = (payload: unknown) => {
     nameOrigin: rawNameOrigin,
     error: null as string | null,
   };
+};
+
+export const parseTerminalModel = (payload: unknown) => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return {
+      model: undefined as TerminalModel | undefined,
+      error: null as string | null,
+    };
+  }
+  const raw = (payload as Record<string, unknown>).model;
+  if (raw === undefined) {
+    return {
+      model: undefined as TerminalModel | undefined,
+      error: null as string | null,
+    };
+  }
+  if (!isTerminalModel(raw)) {
+    return {
+      model: undefined as TerminalModel | undefined,
+      error: "Terminal model must be one of 'opus', 'sonnet', 'haiku'.",
+    };
+  }
+  return { model: raw, error: null as string | null };
+};
+
+export const parseTerminalEffort = (payload: unknown) => {
+  if (payload === null || payload === undefined || typeof payload !== "object") {
+    return {
+      effort: undefined as TerminalEffort | undefined,
+      error: null as string | null,
+    };
+  }
+  const raw = (payload as Record<string, unknown>).effort;
+  if (raw === undefined) {
+    return {
+      effort: undefined as TerminalEffort | undefined,
+      error: null as string | null,
+    };
+  }
+  if (!isTerminalEffort(raw)) {
+    return {
+      effort: undefined as TerminalEffort | undefined,
+      error: "Terminal effort must be one of 'low', 'medium', 'high'.",
+    };
+  }
+  return { effort: raw, error: null as string | null };
 };

@@ -44,7 +44,9 @@ import {
   RuntimeInputError,
   type TentacleWorkspaceMode,
   type TerminalAgentProvider,
+  type TerminalEffort,
   type TerminalLifecycleState,
+  type TerminalModel,
   type TerminalNameOrigin,
   type TerminalSession,
   type TerminalSessionEndDetails,
@@ -55,10 +57,17 @@ export type {
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
+  TerminalEffort,
+  TerminalModel,
   TerminalNameOrigin,
   TentacleWorkspaceMode,
 } from "./terminalRuntime/types";
-export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
+export {
+  isTerminalAgentProvider,
+  isTerminalCompletionSoundId,
+  isTerminalEffort,
+  isTerminalModel,
+} from "./terminalRuntime/types";
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const MAX_CHILDREN_PER_PARENT = 32;
@@ -636,6 +645,8 @@ export const createTerminalRuntime = ({
     nameOrigin,
     autoRenamePromptContext,
     isGroupLeader,
+    model,
+    effort,
   }: {
     terminalId?: string;
     tentacleId?: string;
@@ -651,6 +662,8 @@ export const createTerminalRuntime = ({
     nameOrigin?: TerminalNameOrigin;
     autoRenamePromptContext?: string;
     isGroupLeader?: boolean;
+    model?: TerminalModel;
+    effort?: TerminalEffort;
   }): TerminalSnapshot => {
     // Sentiph is a singleton: if a terminal with that tentacleId already exists,
     // ensure its session is running and return the existing snapshot instead of
@@ -719,6 +732,8 @@ export const createTerminalRuntime = ({
       ...(initialPrompt ? { lastActiveAt: new Date().toISOString() } : {}),
       ...(parentTerminalId ? { parentTerminalId } : {}),
       ...(isGroupLeader ? { isGroupLeader: true } : {}),
+      ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
     };
 
     const effectiveWorktreeId = worktreeId ?? tentacleId;

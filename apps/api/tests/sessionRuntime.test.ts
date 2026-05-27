@@ -1216,6 +1216,71 @@ describe("createSessionRuntime", () => {
       runtime.close();
     });
 
+    it("model on a fresh terminal: injects --model <claude-id> ahead of --session-id", () => {
+      const tentacleId = "tentacle-model-opus";
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            model: "opus",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toMatch(
+        /^claude --model claude-opus-4-7 --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
+      );
+
+      runtime.close();
+    });
+
+    it("model on a resume: injects --model alongside --resume", () => {
+      const tentacleId = "tentacle-model-resume";
+      const storedUuid = "00000000-0000-4000-8000-0000000000a1";
+      writeFakeClaudeSessionFile(workspaceCwd, storedUuid);
+
+      const terminals = new Map<string, PersistedTerminal>([
+        [
+          tentacleId,
+          {
+            terminalId: tentacleId,
+            tentacleId,
+            tentacleName: tentacleId,
+            createdAt: new Date().toISOString(),
+            workspaceMode: "shared",
+            agentProvider: "claude-code",
+            lifecycleState: "stopped",
+            claudeSessionId: storedUuid,
+            model: "haiku",
+          },
+        ],
+      ]);
+      const sessions = new Map<string, TerminalSession>();
+      const pty = new FakePty();
+      const { runtime } = makeRuntime(terminals, sessions, pty);
+
+      expect(runtime.startSession(tentacleId)).toBe(true);
+
+      const firstCall = pty.write.mock.calls[0]?.[0] as string;
+      expect(firstCall).toBe(
+        `claude --model claude-haiku-4-5 --resume ${storedUuid} --dangerously-skip-permissions\r`,
+      );
+
+      runtime.close();
+    });
+
     it("Codex provider skips resume injection (only claude-code is affected)", () => {
       const tentacleId = "tentacle-codex";
       const terminals = new Map<string, PersistedTerminal>([
