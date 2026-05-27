@@ -4,6 +4,11 @@ import type { WebSocket } from "ws";
 
 import type { TerminalServerMessage, TerminalSession } from "./types";
 
+/**
+ * Extracts the terminal ID from a WebSocket upgrade request URL.
+ * Matches the path pattern `/api/terminals/:id/ws` and percent-decodes the ID.
+ * Returns null if the URL is absent, malformed, or doesn't match the pattern.
+ */
 export const getTerminalId = (request: IncomingMessage) => {
   if (!request.url) {
     return null;
@@ -28,6 +33,11 @@ export const getTerminalId = (request: IncomingMessage) => {
   }
 };
 
+/**
+ * Serializes `message` to JSON and sends it on `client`, but only when the socket is
+ * in the OPEN state (readyState === 1). Silently drops the send if the socket is
+ * connecting, closing, or closed to avoid "WebSocket is not open" errors.
+ */
 export const sendMessage = (client: WebSocket, message: TerminalServerMessage) => {
   if (client.readyState !== 1) {
     return;
@@ -36,6 +46,11 @@ export const sendMessage = (client: WebSocket, message: TerminalServerMessage) =
   client.send(JSON.stringify(message));
 };
 
+/**
+ * Delivers `message` to all connected WebSocket clients AND all registered directListeners.
+ * Direct listeners are used by the API server itself to process terminal output server-side
+ * (e.g. for code-intel event extraction) without going through a WebSocket round-trip.
+ */
 export const broadcastMessage = (session: TerminalSession, message: TerminalServerMessage) => {
   for (const client of session.clients) {
     sendMessage(client, message);

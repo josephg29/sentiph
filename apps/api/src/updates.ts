@@ -38,6 +38,12 @@ const resolveDefaultPackageRoot = (): string => {
   return candidates[0] ?? process.cwd();
 };
 
+/**
+ * Determines how Sentiph was installed by inspecting the package directory.
+ * A `.git` directory means a git-clone dev install; a `node_modules/sentiph` path or
+ * `package.json` name `"sentiph"` means an npm global install; otherwise source is "unknown".
+ * @param packageRootOverride override the auto-detected package root (useful for tests)
+ */
 export const detectInstallation = (packageRootOverride?: string): InstallationInfo => {
   const packageRoot = packageRootOverride ?? resolveDefaultPackageRoot();
   const pkg = readPackageJson(packageRoot);
@@ -183,6 +189,12 @@ export type UpdateStatus = {
   error: string | null;
 };
 
+/**
+ * Checks whether a newer version is available.
+ * For npm installs: fetches `registry.npmjs.org/sentiph/latest` and compares semver.
+ * For git installs: runs `git fetch origin` then compares local HEAD SHA to remote.
+ * @param signal AbortSignal to cancel in-flight network requests
+ */
 export const checkForUpdates = async (
   installation: InstallationInfo,
   signal: AbortSignal,
@@ -235,6 +247,12 @@ export type ApplyResult = {
   error: string | null;
 };
 
+/**
+ * Applies the pending update in-place.
+ * npm installs: runs `npm install -g sentiph@latest` (5-minute timeout).
+ * git installs: runs `git pull --ff-only`, then `pnpm install`, then `pnpm build` (10-minute total).
+ * A failed sub-step aborts the sequence and reports the error in `ApplyResult`.
+ */
 export const applyUpdate = async (installation: InstallationInfo): Promise<ApplyResult> => {
   if (installation.source === "npm") {
     const result = await runCommand(
@@ -313,6 +331,11 @@ export const applyUpdate = async (installation: InstallationInfo): Promise<Apply
   };
 };
 
+/**
+ * Spawns a fresh Sentiph process (detached, stdio ignored) then calls `process.exit(0)`
+ * after `delayMs` so the new binary starts cleanly without inheriting the old process's
+ * open handles. The new child survives because it is detached and unreffed.
+ */
 export const scheduleSelfRestart = (installation: InstallationInfo, delayMs = 500): void => {
   const binPath = join(installation.packageRoot, "bin", "sentiph");
   setTimeout(() => {

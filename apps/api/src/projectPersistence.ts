@@ -154,6 +154,10 @@ export const saveProjectsRegistry = (registry: ProjectsRegistry) => {
 export const resolveProjectConfigPath = (workspaceCwd: string) =>
   join(workspaceCwd, PROJECT_CONFIG_RELATIVE_PATH);
 
+/**
+ * Produces a stable project ID from the workspace path using a 16-char SHA-1 prefix.
+ * The path is the canonical identity — renaming the directory would produce a different ID.
+ */
 export const deriveProjectIdFromWorkspace = (workspaceCwd: string) =>
   `workspace-${createHash("sha1").update(workspaceCwd).digest("hex").slice(0, 16)}`;
 
@@ -181,6 +185,11 @@ export const loadProjectConfig = (workspaceCwd: string): ProjectConfigDocument |
   return toProjectConfigDocument(readJsonFile(configPath));
 };
 
+/**
+ * Returns the existing `.sentiph/project.json` config for `workspaceCwd` or creates one.
+ * Display name priority: `preferredName` → legacy registry name → directory basename → "sentiph-project".
+ * Project ID priority: `preferredProjectId` → new UUID.
+ */
 export const ensureProjectConfig = (
   workspaceCwd: string,
   preferredName?: string,
@@ -209,6 +218,11 @@ export const ensureProjectConfig = (
   return config;
 };
 
+/**
+ * Ensures the project config exists then upserts the global `~/.sentiph/projects.json` registry.
+ * Matches on project ID (not path) so a moved workspace keeps its entry rather than creating a duplicate.
+ * Updates `lastOpenedAt` on every call.
+ */
 export const registerProject = (
   workspaceCwd: string,
   preferredName?: string,
@@ -248,6 +262,10 @@ export const resolveGlobalProjectDir = (projectId: string) =>
 export const resolveEphemeralProjectStateDir = (workspaceCwd: string) =>
   resolveGlobalProjectDir(deriveProjectIdFromWorkspace(workspaceCwd));
 
+/**
+ * Side-effecting: registers the project in the global registry AND creates
+ * `~/.sentiph/projects/<projectId>/state/` before returning the project directory path.
+ */
 export const resolveProjectStateDir = (workspaceCwd: string, preferredName?: string): string => {
   const entry = registerProject(workspaceCwd, preferredName);
   const projectDir = resolveGlobalProjectDir(entry.id);
@@ -281,6 +299,11 @@ export const hasSentiphGitignoreEntry = (workspaceCwd: string) => {
     .includes(".sentiph");
 };
 
+/**
+ * Appends `.sentiph` to the workspace `.gitignore` if not already present, or creates
+ * the file if it doesn't exist. Returns `{ changed: true }` when the file was modified
+ * so callers can log the action.
+ */
 export const ensureSentiphGitignoreEntry = (workspaceCwd: string) => {
   const gitignorePath = join(workspaceCwd, ".gitignore");
   const entry = ".sentiph";
@@ -304,6 +327,13 @@ export const ensureSentiphGitignoreEntry = (workspaceCwd: string) => {
   return { changed: true };
 };
 
+/**
+ * Copies state files to the global project directory if they don't already exist there.
+ * Tries two legacy source locations in order:
+ * 1. `<workspaceCwd>/.sentiph/state/` — local state from before the global migration
+ * 2. `~/.sentiph/projects/<legacyName>/state/` — old name-based global dir (pre-UUID IDs)
+ * No-ops when `projectStateDir` equals the local fallback (migration already done or not needed).
+ */
 export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: string) => {
   const fallbackProjectDir = join(workspaceCwd, ".sentiph");
   if (projectStateDir === fallbackProjectDir) {

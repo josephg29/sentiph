@@ -121,6 +121,21 @@ const buildClusterForce = (simNodes: SimNode[], simLinks: SimLink[]) => {
   };
 };
 
+/**
+ * Runs a D3-force simulation for the canvas graph and exposes imperative controls.
+ *
+ * The simulation uses two separate effect keys to avoid unnecessary work:
+ * - `nodeIdKey`/`edgeKey` — topology changes (new/removed nodes or edges) rebuild the
+ *   simulation and reheat it at `REHEAT_ALPHA = 0.8`.
+ * - `contentKey` — non-topology changes (label, color, agentState) update simulation node
+ *   references and produce a fresh snapshot without reheating.
+ *
+ * A custom cluster force keeps child nodes within `CHILD_ORBIT_MAX = 150` of their
+ * tentacle leader, which overrides the generic repulsion for tightly-coupled sub-agents.
+ *
+ * @returns `simulatedNodes` with updated x/y per tick; imperative `pinNode`/`unpinNode`/
+ * `moveNode`/`reheat` to drive user interaction without triggering React state updates.
+ */
 export const useForceSimulation = ({
   nodes,
   edges,

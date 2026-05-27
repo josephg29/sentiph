@@ -151,6 +151,21 @@ const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | nul
   };
 };
 
+/**
+ * Builds the node/edge graph for the canvas view by merging three data sources:
+ * deck tentacles (persistent agents), active terminal sessions (live WS columns),
+ * and inactive conversation sessions (completed runs from the conversations API).
+ *
+ * Position of each node is seeded from a `prevNodesRef` cache so the D3 simulation
+ * can animate from the last known position rather than jumping on every re-render.
+ *
+ * When `?demo=true` is present in the URL, real fetches are skipped and mock tentacle
+ * nodes are injected with staggered timeouts to simulate a live fleet spinning up.
+ *
+ * @param columns active terminal list from the WS event stream
+ * @param enabled set to false to skip fetching and return an empty graph
+ * @param agentRuntimeStates optional per-terminal runtime states to annotate session nodes
+ */
 export const useCanvasGraphData = ({
   columns,
   enabled,

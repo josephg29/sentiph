@@ -344,6 +344,13 @@ const extractLabeledPercent = (
   return percentFromLine(normalizedText.slice(start, end));
 };
 
+/**
+ * Parses the raw terminal output of Claude CLI's `/usage` command into structured percentages.
+ * Handles two label conventions: "X% used" (stored as-is) and "X% remaining" (inverted to `100 - X`).
+ * Looks for three labeled sections: "current session", "current week (all models / opus)",
+ * "current week (sonnet only / sonnet)".
+ * @param rawOutput raw PTY output including ANSI escape codes
+ */
 export const parseCliUsageOutput = (rawOutput: string): ParsedCliUsage => {
   const clean = stripAnsiCodes(rawOutput);
   const primaryUsedPercent = extractLabeledPercent(clean, ["current session"]);
@@ -740,6 +747,12 @@ const cliHasRealData = (parsed: ParsedCliUsage): boolean =>
   parsed.secondaryUsedPercent !== null ||
   parsed.sonnetUsedPercent !== null;
 
+/**
+ * Fetches usage directly from the Anthropic OAuth API using the access token stored in
+ * `~/.claude/.credentials.json`. Returns an "unavailable" snapshot (with a human-readable
+ * message) when credentials are absent, missing the required `user:profile` scope, or
+ * when the API request fails. Caches successful responses to disk.
+ */
 export const readClaudeOauthUsageSnapshot = async (
   dependencies: ClaudeUsageDependencies = {},
 ): Promise<ClaudeUsageSnapshot> => {
@@ -752,6 +765,11 @@ export const readClaudeOauthUsageSnapshot = async (
     : snapshot;
 };
 
+/**
+ * Captures usage by spawning a PTY session, running the `/usage` command inside it,
+ * and parsing the terminal output. This path reflects real Claude Code usage without
+ * requiring OAuth API access, but depends on `node-pty` and the `claude` binary being present.
+ */
 export const readClaudeCliUsageSnapshot = async (
   dependencies: ClaudeUsageDependencies = {},
 ): Promise<ClaudeUsageSnapshot> => {
@@ -872,6 +890,13 @@ const startBackgroundRefresh = (dependencies: ClaudeUsageDependencies = {}): voi
     });
 };
 
+/**
+ * Main entry point for reading Claude usage. Strategy:
+ * 1. Return cached snapshot if it is fresh enough (prevents rate-limit storms).
+ * 2. Try CLI PTY first (most accurate, direct reflection of Claude Code usage).
+ * 3. Fall back to the OAuth API when CLI yields no data.
+ * 4. Serve a stale cached snapshot when both live sources fail, rather than returning an error.
+ */
 export const readClaudeUsageSnapshot = async (
   dependencies: ClaudeUsageDependencies = {},
 ): Promise<ClaudeUsageSnapshot> => {

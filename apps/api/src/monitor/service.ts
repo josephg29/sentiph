@@ -38,6 +38,12 @@ const queryTermsMatch = (left: string[], right: string[]): boolean => {
   return left.every((term, index) => term === right[index]);
 };
 
+/**
+ * Returns true when the monitor feed cache should be invalidated.
+ * A change to `currentQueryTerms` (compared against `cachedQueryTerms`) makes the cache
+ * immediately stale regardless of age — different search terms must always trigger a re-fetch.
+ * Otherwise staleness is determined by elapsed time vs `maxCacheAgeMs`.
+ */
 export const isMonitorCacheStale = ({
   now,
   maxCacheAgeMs,
@@ -65,6 +71,12 @@ export const isMonitorCacheStale = ({
 
 const toRankDedupeKey = (post: MonitorPost) => `${post.source}:${post.id}`;
 
+/**
+ * Deduplicates posts across providers (same `source:id` key), keeps the highest-liked
+ * version of each duplicate, then sorts by like count (descending) and slices to `limit`.
+ * Deduplication is necessary because multiple fetch windows or retry attempts can return
+ * overlapping results.
+ */
 export const rankAndLimitPostsByLikes = (posts: MonitorPost[], limit = 30): MonitorPost[] => {
   const dedupedById = new Map<string, MonitorPost>();
 

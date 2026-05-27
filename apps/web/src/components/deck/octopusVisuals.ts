@@ -35,6 +35,11 @@ export function hashString(str: string): number {
   return Math.abs(h);
 }
 
+/**
+ * Park-Miller LCG that produces a deterministic pseudo-random sequence from `seed`.
+ * Using a stable seed (e.g. `hashString(tentacleId)`) means a tentacle always
+ * receives the same random visuals across renders and page reloads.
+ */
 export function seededRandom(seed: number): () => number {
   let s = seed;
   return () => {
@@ -51,6 +56,12 @@ export type OctopusVisuals = {
   hairColor?: string | undefined;
 };
 
+/**
+ * Produces the visual configuration for a tentacle's octopus avatar.
+ * Stored values from `tentacle.octopus` override the randomly-derived defaults,
+ * allowing users to pin a specific animation/expression/accessory via the UI.
+ * Falls back to seeded-random choices only when a field is null/undefined.
+ */
 export function deriveOctopusVisuals(tentacle: DeckTentacleSummary): OctopusVisuals {
   const rng = seededRandom(hashString(tentacle.tentacleId));
   const stored = tentacle.octopus;

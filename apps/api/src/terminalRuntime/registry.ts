@@ -137,6 +137,11 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
   return nextState;
 };
 
+/**
+ * Removes references to deleted terminals from persisted UI state so that stale
+ * terminal IDs (minimized list, per-terminal width map) don't accumulate over time.
+ * Returns a new `PersistedUiState` with only active terminal IDs retained.
+ */
 export const pruneUiStateTerminalReferences = (
   uiState: PersistedUiState,
   terminals: Map<string, PersistedTerminal>,
@@ -348,6 +353,12 @@ const parseRegistryDocument = (
   };
 };
 
+/**
+ * Reads and parses the terminal registry JSON at `registryPath`.
+ * Handles three cases gracefully: file not found (returns empty registry),
+ * parse/validation error (logs a warning and returns empty registry), and
+ * v1/v2 schema (auto-migrates tentacle entries to the v3 terminal format).
+ */
 export const loadTerminalRegistry = (registryPath: string) => {
   if (!existsSync(registryPath)) {
     return {
@@ -395,6 +406,12 @@ export const persistTerminalRegistry = (registryPath: string, state: TerminalReg
   writeSerializedRegistrySync(registryPath, serializeTerminalRegistry(state));
 };
 
+/**
+ * Creates a debounced async persistence handle for the terminal registry.
+ * Rapid consecutive saves collapse into a single write; no-op writes (serialized
+ * content unchanged from last persisted value) are skipped entirely.
+ * An internal write loop serializes concurrent async writes so they never overlap.
+ */
 export const createTerminalRegistryPersistence = (registryPath: string) => {
   let pendingSerialized: string | null = null;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
