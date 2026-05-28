@@ -40,10 +40,16 @@
   },
   "dependencies": {
     "node-pty": "^1.1.0",
-    "ws": "^8.19.0"
+    "ws": "^8.20.1"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "node-pty"]
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "node-pty"],
+    "overrides": {
+      "vite": ">=6.4.2",
+      "picomatch": ">=4.0.4",
+      "happy-dom": ">=20.8.9",
+      "postcss": ">=8.5.10"
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
