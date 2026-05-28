@@ -402,7 +402,7 @@ const writeSerializedRegistry = async (registryPath: string, serialized: string)
   await writeFile(registryPath, serialized, "utf8");
 };
 
-export const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {
+const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {
   writeSerializedRegistrySync(registryPath, serializeTerminalRegistry(state));
 };
 

@@ -354,7 +354,3 @@ export const scheduleSelfRestart = (installation: InstallationInfo, delayMs = 50
   }, delayMs);
 };
 
-export const __testing = {
-  compareSemver,
-  resolveDefaultPackageRoot,
-};

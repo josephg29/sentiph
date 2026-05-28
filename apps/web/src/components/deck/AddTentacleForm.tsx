@@ -28,14 +28,14 @@ export type AddTentacleFormProps = {
   availableSkills: DeckAvailableSkill[];
 };
 
-export const EXPRESSION_OPTIONS: { value: OctopusExpression; label: string }[] = [
+const EXPRESSION_OPTIONS: { value: OctopusExpression; label: string }[] = [
   { value: "normal", label: "Normal" },
   { value: "happy", label: "Happy" },
   { value: "angry", label: "Angry" },
   { value: "surprised", label: "Surprised" },
 ];
 
-export const ACCESSORY_OPTIONS: { value: OctopusAccessory; label: string }[] = [
+const ACCESSORY_OPTIONS: { value: OctopusAccessory; label: string }[] = [
   { value: "none", label: "None" },
   { value: "long", label: "Long" },
   { value: "mohawk", label: "Mohawk" },
@@ -43,7 +43,7 @@ export const ACCESSORY_OPTIONS: { value: OctopusAccessory; label: string }[] = [
   { value: "curly", label: "Curly" },
 ];
 
-export const HAIR_COLORS = [
+const HAIR_COLORS = [
   "#4a2c0a",
   "#1a1a1a",
   "#c8a04a",

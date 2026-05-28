@@ -15,7 +15,7 @@ const RUNTIME_METADATA_FILENAME = "runtime.json";
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-export const resolveRuntimeMetadataPath = (projectStateDir: string) =>
+const resolveRuntimeMetadataPath = (projectStateDir: string) =>
   join(projectStateDir, "state", RUNTIME_METADATA_FILENAME);
 
 export const readRuntimeMetadata = (projectStateDir: string): RuntimeMetadata | null => {

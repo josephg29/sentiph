@@ -717,6 +717,3 @@ export const AgentGlyph = ({
     />
   );
 };
-
-// Backward-compat alias
-export const OctopusGlyph = AgentGlyph;

@@ -27,7 +27,7 @@ export const ACCESSORIES: AgentAccessory[] = [
   "curly",
 ];
 
-export function hashString(str: string): number {
+function hashString(str: string): number {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
@@ -35,7 +35,7 @@ export function hashString(str: string): number {
   return Math.abs(h);
 }
 
-export function seededRandom(seed: number): () => number {
+function seededRandom(seed: number): () => number {
   let s = seed;
   return () => {
     s = (s * 16807 + 0) % 2147483647;
@@ -51,7 +51,7 @@ export type AgentVisuals = {
   hairColor?: string | undefined;
 };
 
-export function deriveAgentVisuals(agent: DeckTentacleSummary): AgentVisuals {
+function deriveAgentVisuals(agent: DeckTentacleSummary): AgentVisuals {
   const rng = seededRandom(hashString(agent.tentacleId));
   const stored = agent.octopus;
   return {
