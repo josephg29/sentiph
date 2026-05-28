@@ -1,108 +1,218 @@
-<div align="center">
-
-<strong>multi-agent orchestration for Claude Code</strong>
-<br />
-<br />
-
-![Last Update](https://img.shields.io/github/last-commit/josephg29/sentiph?label=Last%20Update&style=flat-square)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-
-</div>
-
 # Sentiph
 
-Running ten Claude Code sessions at once gets chaotic fast — constantly switching windows, losing track of what each one was doing, and having no shared source of truth between them. **Sentiph** fixes that by giving each job its own scoped context, notes, and task list, while making it possible for one Claude Code session to **spawn and coordinate other Claude Code sessions**.
+**Multi-agent orchestration for Claude Code.**
 
-## What it does
+Running several Claude Code sessions at once gets unwieldy fast — context gets lost, windows multiply, and there is no shared source of truth between sessions. Sentiph wraps each job in a durable file-based context, shows every active session on a visual canvas, and lets one Claude Code session spawn and coordinate others, all from a local web UI backed by a WebSocket/PTY API.
 
-- **Runs multiple full Claude Code terminals** so one developer can manage several sessions at once from a single view
-- **Scopes each job** with its own `CONTEXT.md`, `todo.md`, and notes so agents don't need to reconstruct context from chat history
-- **Lets one agent coordinate others** — a parent session can spawn workers, assign them todo items, and receive status back
-- **Tracks token usage, cost, and run time** across every session and project
-- **Provides a canvas view** showing all running sessions as nodes, plus a deck view, activity view, and observability dashboard
-- **Supports inter-agent messaging** so workers can report completion, blockers, and handoffs back to a coordinator
+## Highlights
 
-## How it works
+- **Parallel terminals on a canvas** — every Claude Code session appears as a node in an interactive D3 force-graph canvas; terminal I/O streams through an embedded xterm.js terminal
+- **File-backed session context** — each session keeps its own `CONTEXT.md`, `todo.md`, and notes under `.sentiph/sessions/<session-id>/`; agents read and update these files directly
+- **Parent/worker orchestration** — a parent terminal can spawn up to nine child workers, each scoped to a session todo item; shared-workspace or worktree-isolated execution modes are both supported
+- **In-memory channel messaging** — terminals exchange short messages via `sentiph channel send`; delivery is queued until the target session is idle
+- **Claude hook integration** — PTY sessions write hook callbacks that feed state transitions (active, waiting, idle, stop) back to the API and drive transcript capture and channel delivery
+- **Usage and cost tracking** — per-session token usage and cost are surfaced in the observability view
 
-Sentiph separates three concerns that usually get tangled together across a pile of terminals:
+## Architecture
 
-1. **Context** lives in `.sentiph/sessions/<session-id>/`. `CONTEXT.md` explains the area of the codebase, `todo.md` holds executable work items, and extra markdown files store notes or handoffs.
-2. **Execution** is managed by a local API that runs PTY sessions, handles terminal lifecycle, and streams state to the UI over WebSocket.
-3. **Isolation** is optional. Sessions can share the main workspace or run in a dedicated worktree under `.sentiph/worktrees/<worktree-id>/`.
+```
+apps/
+  api/   — Node.js HTTP + WebSocket server, PTY lifecycle, hooks, worktrees
+  web/   — Vite + React UI: canvas, deck, activity, observability, settings
+packages/
+  core/  — framework-agnostic domain types and application logic
+```
 
-The deck reads session files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Claude hooks feed the API with agent state, transcript, and idle events so the UI can show more than raw terminal output.
+**`apps/api`** owns all infrastructure concerns: terminal registry, node-pty sessions, WebSocket upgrades, Claude hook ingestion, git worktree creation, transcript persistence, and in-memory channel queues. It binds to `127.0.0.1` by default and enforces loopback `Host` and `Origin` checks.
 
-## Claude Code coordinating Claude Code
+**`apps/web`** is a Vite + React single-page application. The canvas view uses a D3 force layout. The deck view reads session files. Other views cover activity, code intelligence, GitHub, observability, and settings.
 
-One of the core ideas is that Claude Code should not just be a single terminal waiting on a human. In Sentiph, one Claude Code session can act as a coordinator — spawning worker sessions, giving each one a scoped job, and collecting status back while you stay at the orchestration layer.
+**`packages/core`** defines domain types and pure application logic shared by both apps. It has no dependency on React, HTTP, PTY, or filesystem concerns.
 
-This is different from Claude Code's built-in subagent spawning because you can directly see, intervene in, and track what each worker is doing.
+The two apps communicate over HTTP (CRUD, snapshots, prompt resolution) and two WebSocket endpoints: one for terminal I/O and one for terminal list events. Port defaults to `8787` and auto-increments if that port is taken.
 
-For more, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
+## Prerequisites
 
-## Quick start
+- Node.js `22+`
+- pnpm `10+`
+- `claude` CLI (Claude Code)
+- `git` (required for worktree-isolated sessions)
+- `gh` (required for GitHub pull-request features)
+- `curl` (required for Claude hook callbacks)
 
-<details open>
-<summary><strong>Install from source</strong></summary>
+## Installation
+
+Install from source:
 
 ```bash
 git clone https://github.com/josephg29/sentiph
-cd sentiph && pnpm install && pnpm build
+cd sentiph
+pnpm install
+pnpm build
 npm install -g .
+```
+
+Then run Sentiph from any project directory:
+
+```bash
 sentiph
 ```
 
-</details>
+On first run, Sentiph initialises a `.sentiph/` scaffold in the current directory, assigns a stable project ID, and opens the UI in the browser.
 
-<details>
-<summary><strong>Local development</strong></summary>
+> Sentiph is not yet published to npm, so `npm install -g sentiph` is not a valid install path.
+
+## Running in development
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-</details>
+`pnpm dev` starts `@sentiph/api` and `@sentiph/web` in parallel. The dev runner picks an available port starting at `8787` and passes it to both processes as `SENTIPH_API_PORT`.
 
-On first run, Sentiph creates the `.sentiph/` scaffold, assigns a stable project ID, picks an available port starting at `8787`, and opens the UI.
+## Building
 
-## Requirements
+```bash
+pnpm build
+```
 
-- Node.js `22+`
-- `claude` CLI installed
-- `git` (for worktree sessions)
-- `gh` (for GitHub pull request features)
-- `curl` (for Claude hook callbacks)
+Builds the web bundle, runs the API bundle step, and assembles the distributable package under `dist/`.
 
-## What persists
+## Project structure
 
-- `.sentiph/` — project scaffold, worktrees, and session context files
-- `~/.sentiph/projects/<project-id>/state/` — runtime state, transcripts, and metadata
+```
+bin/          CLI entry point (bin/sentiph)
+apps/
+  api/        Node.js API and PTY runtime
+  web/        Vite + React operator UI
+packages/
+  core/       Shared domain types and logic
+scripts/      Dev runner and build helpers
+docs/         Contributor and agent documentation
+static/       Static assets served by the API
+```
 
-PTY sessions survive browser reloads during the idle grace period but do not survive an API restart. Use `sentiph terminal list`, `stop`, `kill`, and `prune` to inspect and clean up stale records. Sentiph caps live PTY sessions at 32 by default; set `SENTIPH_MAX_TERMINAL_SESSIONS` to tune that limit.
+## Key concepts
+
+### Sessions
+
+A session is a folder under `.sentiph/sessions/<session-id>/`. The minimum useful contents are `CONTEXT.md` (area description) and `todo.md` (checkbox task list). Additional markdown files are surfaced as session vault files.
+
+Deck derives the session display name from the first heading in `CONTEXT.md` and the description from the first non-empty paragraph. Todo progress is parsed from `- [ ]` and `- [x]` checkbox lines.
+
+### Terminals
+
+A terminal is a runtime record that can hold one active PTY-backed Claude Code session. Multiple terminals can reference the same session — for example, swarm workers all read the same `CONTEXT.md` but each has its own terminal ID, transcript, lifecycle state, and optional worktree.
+
+PTY sessions do not survive an API restart. Terminal records do. Records that were `running` at the time of a restart are reconciled to `stale`.
+
+### Workspace modes
+
+- **shared** — the terminal's PTY runs in the main workspace; fast to set up but all active terminals share the same checkout
+- **worktree** — the API creates an isolated git worktree under `.sentiph/worktrees/<terminal-id>/` on branch `sentiph/<terminal-id>`; preferred when tasks touch overlapping files
+
+### Parent/worker orchestration
+
+A parent terminal can spawn child worker terminals (up to 32 per parent). Each worker is assigned one todo item and given a generated prompt that includes the session context path, todo text, workspace mode, API port, and parent terminal ID. A parent coordinator terminal is added automatically when a swarm targets more than one item.
+
+Workers report progress via `sentiph channel send` and by writing to session markdown files. Merge, review, and todo updates are the parent's responsibility.
+
+### Channels
+
+Channels are in-memory message queues. Messages are queued until the target terminal is idle, then injected. They do not persist across API restarts — durable handoffs belong in session markdown files.
+
+## CLI reference
+
+```bash
+# Start the dashboard for the current project
+sentiph
+
+# Initialise the .sentiph/ scaffold without starting the UI
+sentiph init [project-name]
+
+# List registered projects
+sentiph projects
+
+# Session management
+sentiph tentacle create <name> --description "description"
+sentiph tentacle list
+
+# Terminal management
+sentiph terminal create [--name <name>] [--workspace-mode shared|worktree] [--tentacle-id <id>]
+sentiph terminal list
+sentiph terminal stop <terminal-id>
+sentiph terminal kill <terminal-id>
+sentiph terminal prune
+
+# Inter-agent messaging
+sentiph channel send <terminal-id> "message"
+sentiph channel list <terminal-id>
+```
+
+Full option descriptions are in [docs/reference/cli.md](docs/reference/cli.md).
+
+## Persistence
+
+| Location | Contents |
+|---|---|
+| `.sentiph/project.json` | Stable project ID |
+| `.sentiph/sessions/<id>/` | Agent-facing context markdown |
+| `.sentiph/worktrees/<id>/` | Isolated git worktrees |
+| `~/.sentiph/projects/<id>/state/sessions.json` | Terminal registry |
+| `~/.sentiph/projects/<id>/state/transcripts/*.jsonl` | Conversation transcripts |
+| `~/.sentiph/projects/<id>/state/deck.json` | Deck UI metadata |
+
+By default the API allows up to 32 simultaneous PTY sessions. Set `SENTIPH_MAX_TERMINAL_SESSIONS` to change that limit.
+
+## Development
+
+**Test**
+
+```bash
+pnpm test
+```
+
+Runs vitest in every workspace package.
+
+**Lint**
+
+```bash
+pnpm lint
+```
+
+Runs Biome checks across the repository.
+
+**Format**
+
+```bash
+pnpm format
+```
+
+Rewrites formatting with Biome.
+
+Before opening a pull request, run `pnpm test`, `pnpm lint`, and `pnpm build`.
 
 ## Docs
 
-- [Docs Home](docs/index.md)
+- [Docs home](docs/index.md)
 - [Installation](docs/getting-started/installation.md)
 - [Quickstart](docs/getting-started/quickstart.md)
-- [Mental Model](docs/concepts/mental-model.md)
+- [Mental model](docs/concepts/mental-model.md)
 - [Sessions](docs/concepts/sessions.md)
 - [Runtime and API](docs/concepts/runtime-and-api.md)
-- [Working With Todos](docs/guides/working-with-todos.md)
-- [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md)
-- [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
-- [CLI Reference](docs/reference/cli.md)
-- [Filesystem Layout](docs/reference/filesystem-layout.md)
-- [API Reference](docs/reference/api.md)
-- [Experimental Features](docs/reference/experimental-features.md)
+- [Working with todos](docs/guides/working-with-todos.md)
+- [Orchestrating child agents](docs/guides/orchestrating-child-agents.md)
+- [Inter-agent messaging](docs/guides/inter-agent-messaging.md)
+- [CLI reference](docs/reference/cli.md)
+- [Filesystem layout](docs/reference/filesystem-layout.md)
+- [API reference](docs/reference/api.md)
+- [Experimental features](docs/reference/experimental-features.md)
 - [Troubleshooting](docs/reference/troubleshooting.md)
-- [Contributing](CONTRIBUTING.md)
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a PR, please read [CONTRIBUTING.md](CONTRIBUTING.md). If any code was written with an AI coding agent, please disclose which agent and model in the PR description.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, required checks, and pull request expectations. If any code was written with an AI coding agent, disclose which agent and model in the PR description.
 
 ## License
 
