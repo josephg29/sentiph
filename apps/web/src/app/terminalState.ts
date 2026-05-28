@@ -1,3 +1,7 @@
+/**
+ * Filters `terminalIds` to only those present in `activeTerminalIds`, returning the
+ * original array reference unchanged when nothing was removed (stable identity for React deps).
+ */
 export const retainActiveTerminalIds = (
   terminalIds: string[],
   activeTerminalIds: ReadonlySet<string>,
@@ -6,6 +10,10 @@ export const retainActiveTerminalIds = (
   return nextTerminalIds.length === terminalIds.length ? terminalIds : nextTerminalIds;
 };
 
+/**
+ * Same as `retainActiveTerminalIds` but for a `Record<terminalId, T>` map — returns the
+ * original object reference unchanged when no keys were dropped.
+ */
 export const retainActiveTerminalEntries = <TState>(
   state: Record<string, TState>,
   activeTerminalIds: ReadonlySet<string>,

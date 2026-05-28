@@ -32,6 +32,10 @@ const resolveLookupCommand = (platform: NodeJS.Platform) =>
     ? { file: "where", args: [] as string[] }
     : { file: "which", args: [] as string[] };
 
+/**
+ * Checks whether `command` is on the PATH using `which` (Unix) or `where` (Windows).
+ * Accepts an `options` object to inject a mock `execFileSync` in tests.
+ */
 export const isCommandAvailable = (
   command: string,
   options: CommandAvailabilityOptions = {},
@@ -48,6 +52,12 @@ export const isCommandAvailable = (
   }
 };
 
+/**
+ * Probes for required CLIs and classifies findings as errors or warnings.
+ * Missing `claude` AND `codex` together is an error (Sentiph cannot spawn any agents).
+ * Missing either one alone, or missing `git`/`gh`/`curl`, is a warning (degraded functionality).
+ * @param isAvailable injectable checker for tests
+ */
 export const collectStartupPrerequisiteReport = (
   isAvailable: CommandAvailabilityChecker = (command) => isCommandAvailable(command),
 ): StartupPrerequisiteReport => {

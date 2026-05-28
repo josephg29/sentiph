@@ -1,5 +1,10 @@
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+/**
+ * Merges CORS headers into `headers`. When `corsOrigin` is non-null, adds
+ * `Access-Control-Allow-Origin` reflecting that specific origin and `Vary: Origin`
+ * so intermediate caches don't serve the wrong CORS response to different origins.
+ */
 export const withCors = (headers: Record<string, string>, corsOrigin: string | null) => {
   const nextHeaders: Record<string, string> = {
     ...headers,
@@ -26,6 +31,11 @@ const parseHostname = (value: string, withScheme: boolean): string | null => {
   }
 };
 
+/**
+ * Returns true when the `Origin` header is acceptable in the current access mode.
+ * In local-only mode: absent Origin (CLI tools, MCP subprocesses) is allowed;
+ * a non-loopback Origin is rejected. Remote access mode accepts all origins.
+ */
 export const isAllowedOriginHeader = (origin: string | undefined, allowRemoteAccess: boolean) => {
   if (allowRemoteAccess) {
     return true;
@@ -42,6 +52,11 @@ export const isAllowedOriginHeader = (origin: string | undefined, allowRemoteAcc
   return hostname !== null && isLoopbackHostname(hostname);
 };
 
+/**
+ * Returns true when the `Host` header permits the request.
+ * In local-only mode a missing or non-loopback host is rejected, preventing DNS-rebinding
+ * attacks where a remote page targets `localhost` without a matching Origin.
+ */
 export const isAllowedHostHeader = (host: string | undefined, allowRemoteAccess: boolean) => {
   if (allowRemoteAccess) {
     return true;
@@ -55,6 +70,10 @@ export const isAllowedHostHeader = (host: string | undefined, allowRemoteAccess:
   return hostname !== null && isLoopbackHostname(hostname);
 };
 
+/**
+ * Returns true when the `Host` header resolves to a loopback address, regardless of any
+ * remote-access setting. Used for connection-type detection, not request gating.
+ */
 export const isLoopbackHostHeader = (host: string | undefined): boolean => {
   if (!host) {
     return false;
@@ -72,6 +91,10 @@ export const readHeaderValue = (header: string | string[] | undefined): string |
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+/**
+ * Returns the origin to echo in the `Access-Control-Allow-Origin` header, or `null`
+ * to suppress the CORS header when the origin is absent or not allowed.
+ */
 export const getRequestCorsOrigin = (origin: string | undefined, allowRemoteAccess: boolean) => {
   if (!origin) {
     return null;

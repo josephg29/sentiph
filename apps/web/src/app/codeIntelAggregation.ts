@@ -262,6 +262,13 @@ const MRI_STOPS: [number, number, number][] = [
   [0xf0, 0x22, 0x06], // fire red
 ];
 
+/**
+ * Returns an RGB color interpolated along a thermal MRI gradient (dark-ember → fire-red)
+ * scaled by `value / maxValue`. Returns a near-black `rgb(10,10,46)` when `maxValue` is 0
+ * or the stop lookup fails.
+ * @param value edit count for this file
+ * @param maxValue highest edit count in the dataset (used to normalize)
+ */
 export const heatColor = (value: number, maxValue: number): string => {
   if (maxValue === 0) return "rgb(10,10,46)";
   const ratio = Math.min(value / maxValue, 1);

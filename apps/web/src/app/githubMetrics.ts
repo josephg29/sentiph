@@ -25,6 +25,11 @@ export const buildGitHubStatusPill = (summary: GitHubRepoSummarySnapshot | null)
   return "GitHub error";
 };
 
+/**
+ * Returns the most recent `GITHUB_COMMIT_SERIES_LENGTH` commit-per-day points, sorted ascending.
+ * Leading zero-commit days are trimmed so the sparkline doesn't pad the left side with silence.
+ * Falls back to a zero-filled placeholder series when data is unavailable.
+ */
 export const buildGitHubCommitSeries = (summary: GitHubRepoSummarySnapshot | null) => {
   const fallbackSeries = Array.from({ length: GITHUB_COMMIT_SERIES_LENGTH }, (_, index) => ({
     date: `n/a-${index}`,
@@ -47,6 +52,11 @@ export const buildGitHubCommitSeries = (summary: GitHubRepoSummarySnapshot | nul
   return sorted;
 };
 
+/**
+ * Maps commit-per-day data to SVG coordinates within `width × height`.
+ * Y is inverted (canvas y-axis grows downward), so higher commit counts map to smaller y values.
+ * The value range is normalized so the tallest bar always reaches the top of the viewport.
+ */
 export const buildGitHubCommitSparkPoints = (
   series: GitHubCommitPoint[],
   width: number,

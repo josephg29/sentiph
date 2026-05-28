@@ -172,6 +172,13 @@ Default to delegation when the work is non-trivial or parallelizable. Default to
 
 const FORBIDDEN_CHAR_PATTERN = /[$`"\\]/;
 
+/**
+ * Asserts that `prompt` contains none of the four characters unsafe inside a bash
+ * double-quoted string substitution: `$`, `` ` ``, `"`, `\`.
+ * The prompt is written to disk and loaded via shell substitution at bootstrap,
+ * so any of those characters would break the invocation or allow injection.
+ * @throws {Error} when a forbidden character is found, with its index and value
+ */
 export const assertSentiphSystemPromptIsShellSafe = (prompt: string): void => {
   const match = FORBIDDEN_CHAR_PATTERN.exec(prompt);
   if (!match) {

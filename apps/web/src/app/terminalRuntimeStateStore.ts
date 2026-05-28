@@ -70,6 +70,10 @@ export const getTerminalRuntimeStateInfo = (
   };
 };
 
+/**
+ * Returns a copy of `terminal` with `agentRuntimeState` removed so downstream comparisons
+ * are not affected by ephemeral runtime info that arrives over the WebSocket event stream.
+ */
 export const stripTerminalRuntimeState = (terminal: TerminalView[number]): TerminalView[number] => {
   const { agentRuntimeState: _agentRuntimeState, ...structuralTerminal } = terminal;
   return structuralTerminal;
@@ -78,6 +82,13 @@ export const stripTerminalRuntimeState = (terminal: TerminalView[number]): Termi
 export const stripTerminalRuntimeStates = (terminals: TerminalView): TerminalView =>
   terminals.map((terminal) => stripTerminalRuntimeState(terminal));
 
+/**
+ * Creates a pub-sub store for agent runtime states keyed by terminal ID.
+ * Listeners can subscribe globally or to a specific set of terminal IDs to
+ * avoid re-renders in components that don't care about all terminals.
+ * The store is separate from the main terminal state to prevent high-frequency
+ * WS updates from causing full terminal-list re-renders.
+ */
 export const createTerminalRuntimeStateStore = () => {
   let stateByTerminalId: TerminalRuntimeStateMap = {};
   const globalListeners = new Set<Listener>();
@@ -235,6 +246,13 @@ export const createTerminalRuntimeStateStore = () => {
 
 export type TerminalRuntimeStateStore = ReturnType<typeof createTerminalRuntimeStateStore>;
 
+/**
+ * Subscribes to runtime state changes for the given terminal IDs and returns a stable
+ * `Map` that only updates when the actual state values change — not on every store tick —
+ * to prevent unnecessary component re-renders.
+ * @param runtimeStateStore the singleton store created by `createTerminalRuntimeStateStore`
+ * @param terminalIds list of terminal IDs to observe; changing this list re-subscribes
+ */
 export const useTerminalRuntimeStates = (
   runtimeStateStore: TerminalRuntimeStateStore,
   terminalIds: string[],

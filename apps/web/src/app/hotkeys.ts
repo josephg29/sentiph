@@ -27,5 +27,9 @@ export const parsePrimaryNavKey = (key: string): PrimaryNavIndex | null => {
   return n as PrimaryNavIndex;
 };
 
+/**
+ * Uppercases input and strips any characters outside `[A-Z0-9._/-]`, then truncates
+ * to 16 characters — enforces the allowed format for stock/crypto ticker query strings.
+ */
 export const normalizeTickerQueryInput = (value: string): string =>
   value.toUpperCase().replace(TICKER_QUERY_ALLOWED_PATTERN, "").slice(0, MAX_TICKER_QUERY_LENGTH);
