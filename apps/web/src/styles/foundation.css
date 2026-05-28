@@ -101,3 +101,42 @@ body {
 .workspace-shell--full {
   grid-template-columns: 1fr;
 }
+
+/* PrimaryViewRouter wrapper — fills the second grid column and provides a
+   positioning context so the hidden canvas slot can overlay it without
+   escaping to a distant ancestor. */
+.primary-view-router {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Any direct child that is in normal flow (i.e. the active non-canvas view)
+   should fill the available height. */
+.primary-view-router > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.primary-view-canvas-slot {
+  display: flex;
+  flex-direction: column;
+}
+
+/* When another nav is active the canvas stays mounted but is pushed behind
+   the active view and made invisible so xterm WebSockets and instances
+   survive the tab switch without tearing down.
+   Using position:absolute removes it from flex flow so the active view
+   fills the router unobstructed; z-index:-1 keeps it below everything. */
+.primary-view-canvas-slot--hidden {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}

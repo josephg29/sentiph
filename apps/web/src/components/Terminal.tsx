@@ -375,6 +375,17 @@ export const Terminal = ({
           observer.observe(containerRef.current);
         }
 
+        const onVisibilityChange = () => {
+          if (document.visibilityState !== "visible") {
+            return;
+          }
+          fitAddon.fit();
+          if (typeof terminal.rows === "number" && terminal.rows > 0) {
+            terminal.refresh(0, terminal.rows - 1);
+          }
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+
         scheduleResizeSync();
         terminalRef.current = terminal;
         fitAddonRef.current = fitAddon;
@@ -385,6 +396,7 @@ export const Terminal = ({
             window.clearTimeout(resizeDebounceTimer);
           }
           observer?.disconnect();
+          document.removeEventListener("visibilitychange", onVisibilityChange);
           onDataDisposable.dispose();
           terminal.dispose();
           terminalRef.current = null;

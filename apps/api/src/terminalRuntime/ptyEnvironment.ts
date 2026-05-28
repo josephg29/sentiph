@@ -16,6 +16,8 @@ export const createShellEnvironment = (options?: {
   }
   env.TERM = "xterm-256color";
   env.COLORTERM = "truecolor";
+  // Disable shell idle-exit timers so PTY sessions survive when no client is connected.
+  env.TMOUT = "0";
   if (options?.sentiphSessionId) {
     env.SENTIPH_SESSION_ID = options.sentiphSessionId;
   }

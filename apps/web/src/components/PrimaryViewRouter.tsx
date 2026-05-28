@@ -29,6 +29,9 @@ type PrimaryViewRouterProps = {
   >;
 };
 
+const isCanvasNav = (nav: PrimaryNavIndex) =>
+  nav !== 2 && nav !== 3 && nav !== 4 && nav !== 5 && nav !== 8 && nav !== 9;
+
 export const PrimaryViewRouter = ({
   activePrimaryNav,
   deckPrimaryViewProps,
@@ -38,39 +41,43 @@ export const PrimaryViewRouter = ({
   canvasPrimaryViewProps,
   monitorRuntime,
 }: PrimaryViewRouterProps) => {
-  if (activePrimaryNav === 2) {
-    return <DeckPrimaryView {...deckPrimaryViewProps} />;
-  }
+  const canvasActive = isCanvasNav(activePrimaryNav);
 
-  if (activePrimaryNav === 3) {
-    return <ActivityPrimaryView {...activityPrimaryViewProps} />;
-  }
+  return (
+    <div className="primary-view-router">
+      {/*
+       * Canvas is always mounted so Terminal WebSocket connections and xterm
+       * instances survive nav tab switches. When inactive it is absolutely
+       * positioned behind the active view and hidden from view/input.
+       */}
+      <div
+        className={`primary-view-canvas-slot${canvasActive ? "" : " primary-view-canvas-slot--hidden"}`}
+        aria-hidden={!canvasActive}
+      >
+        <CanvasPrimaryView {...canvasPrimaryViewProps} />
+      </div>
 
-  if (activePrimaryNav === 4) {
-    return <CodeIntelPrimaryView enabled={activePrimaryNav === 4} />;
-  }
+      {activePrimaryNav === 2 && <DeckPrimaryView {...deckPrimaryViewProps} />}
 
-  if (activePrimaryNav === 5) {
-    if (isMonitorVisible) {
-      return <MonitorPrimaryView monitorRuntime={monitorRuntime} />;
-    }
-    return (
-      <section className="monitor-view" aria-label="Monitor primary view disabled">
-        <section className="monitor-panel monitor-panel--configure">
-          <h3>Monitor is disabled</h3>
-          <p>Enable Monitor workspace view in Settings to restore this panel.</p>
-        </section>
-      </section>
-    );
-  }
+      {activePrimaryNav === 3 && <ActivityPrimaryView {...activityPrimaryViewProps} />}
 
-  if (activePrimaryNav === 8) {
-    return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
-  }
+      {activePrimaryNav === 4 && <CodeIntelPrimaryView enabled />}
 
-  if (activePrimaryNav === 9) {
-    return <ObservabilityPrimaryView enabled />;
-  }
+      {activePrimaryNav === 5 &&
+        (isMonitorVisible ? (
+          <MonitorPrimaryView monitorRuntime={monitorRuntime} />
+        ) : (
+          <section className="monitor-view" aria-label="Monitor primary view disabled">
+            <section className="monitor-panel monitor-panel--configure">
+              <h3>Monitor is disabled</h3>
+              <p>Enable Monitor workspace view in Settings to restore this panel.</p>
+            </section>
+          </section>
+        ))}
 
-  return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
+      {activePrimaryNav === 8 && <SettingsPrimaryView {...settingsPrimaryViewProps} />}
+
+      {activePrimaryNav === 9 && <ObservabilityPrimaryView enabled />}
+    </div>
+  );
 };
