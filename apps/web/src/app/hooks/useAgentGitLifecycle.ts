@@ -324,14 +324,13 @@ export const useAgentGitLifecycle = ({
       setGitDialogError(null);
       setGitCommitMessageDraft("");
 
-      void Promise.all([
-        fetchAgentGitStatus(tentacleId),
-        fetchAgentPullRequest(tentacleId),
-      ]).catch((error: unknown) => {
-        setGitDialogError(
-          error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
-        );
-      });
+      void Promise.all([fetchAgentGitStatus(tentacleId), fetchAgentPullRequest(tentacleId)]).catch(
+        (error: unknown) => {
+          setGitDialogError(
+            error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
+          );
+        },
+      );
     },
     [fetchAgentGitStatus, fetchAgentPullRequest],
   );

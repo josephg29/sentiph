@@ -107,9 +107,7 @@ export const ErrorHeatmap = ({ buckets }: ErrorHeatmapProps) => {
                       stroke="#ddd"
                       strokeWidth={0.5}
                       style={{ cursor: "crosshair" }}
-                      onMouseEnter={(e) =>
-                        setTooltip({ x: e.clientX, y: e.clientY, bucket })
-                      }
+                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, bucket })}
                       onMouseLeave={() => setTooltip(null)}
                     />
                   );

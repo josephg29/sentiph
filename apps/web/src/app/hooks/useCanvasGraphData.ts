@@ -219,8 +219,7 @@ export const useCanvasGraphData = ({
       return;
     }
 
-    const demoMode =
-      typeof window !== "undefined" && window.location.search.includes("demo=true");
+    const demoMode = typeof window !== "undefined" && window.location.search.includes("demo=true");
 
     if (demoMode) {
       const buildMock = (id: string, displayName: string): DeckTentacleSummary => ({
@@ -253,9 +252,12 @@ export const useCanvasGraphData = ({
       const start = Number(new URLSearchParams(window.location.search).get("demoStartMs") || 800);
       const step = Number(new URLSearchParams(window.location.search).get("demoStepMs") || 350);
       names.forEach(([id, name], i) => {
-        const t = window.setTimeout(() => {
-          setDeckTentacles((prev) => [...prev, buildMock(id, name)]);
-        }, start + i * step);
+        const t = window.setTimeout(
+          () => {
+            setDeckTentacles((prev) => [...prev, buildMock(id, name)]);
+          },
+          start + i * step,
+        );
         timers.push(t);
       });
       return () => {

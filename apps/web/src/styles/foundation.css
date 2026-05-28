@@ -1,6 +1,6 @@
 @font-face {
-  font-family: 'Monocraft';
-  src: url('/fonts/Monocraft.otf') format('opentype');
+  font-family: "Monocraft";
+  src: url("/fonts/Monocraft.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -38,7 +38,7 @@
   --terminal-scrollbar-thumb: #555;
   --terminal-scrollbar-thumb-hover: #777;
   --terminal-scrollbar-thumb-active: #999;
-  --font-main: 'Monocraft', 'Courier New', monospace;
+  --font-main: "Monocraft", "Courier New", monospace;
   --control-font-family: var(--font-main);
   --control-letter-spacing: 0.06em;
   --control-line-height: 1.2;
@@ -69,10 +69,8 @@ html {
 
 body {
   font-family: var(--font-main);
-  background:
-    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-    var(--bg-canvas);
+  background: linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px), var(--bg-canvas);
   background-size: 28px 28px, 28px 28px, auto;
   color: var(--text-primary);
   overflow: hidden;

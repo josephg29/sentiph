@@ -15,59 +15,59 @@
    Design tokens — mirrors apps/web/src/styles/foundation.css exactly
    ─────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-canvas:     #fafafa;
-  --bg-surface-1:  #f2f2f2;
-  --bg-surface-2:  #e8e8e8;
-  --bg-surface-3:  #ddd;
+  --bg-canvas: #fafafa;
+  --bg-surface-1: #f2f2f2;
+  --bg-surface-2: #e8e8e8;
+  --bg-surface-3: #ddd;
 
   --border-subtle: #e4e4e4;
-  --border-mid:    #ddd;
+  --border-mid: #ddd;
   --border-strong: #bbb;
 
-  --text-primary:   #111;
+  --text-primary: #111;
   --text-secondary: #888;
-  --text-muted:     #bbb;
+  --text-muted: #bbb;
 
-  --accent:        #111;
-  --accent-inv:    #fafafa;
+  --accent: #111;
+  --accent-inv: #fafafa;
 
-  --term-bg:       #111;
-  --term-header:   #222;
-  --term-text:     #fafafa;
-  --term-green:    #25a244;
-  --term-red:      #880f1e;
-  --term-amber:    #b87000;
+  --term-bg: #111;
+  --term-header: #222;
+  --term-text: #fafafa;
+  --term-green: #25a244;
+  --term-red: #880f1e;
+  --term-amber: #b87000;
 
-  --font-mono:     "Monocraft", "Courier New", monospace;
+  --font-mono: "Monocraft", "Courier New", monospace;
 
   --tracking-control: 0.06em;
-  --line-height-ui:   1.2;
+  --line-height-ui: 1.2;
 
   --grid-line: rgba(0, 0, 0, 0.025);
   --grid-size: 28px;
 }
 
 @theme inline {
-  --color-canvas:         var(--bg-canvas);
-  --color-surface-1:      var(--bg-surface-1);
-  --color-surface-2:      var(--bg-surface-2);
-  --color-surface-3:      var(--bg-surface-3);
+  --color-canvas: var(--bg-canvas);
+  --color-surface-1: var(--bg-surface-1);
+  --color-surface-2: var(--bg-surface-2);
+  --color-surface-3: var(--bg-surface-3);
 
-  --color-border-subtle:  var(--border-subtle);
-  --color-border-mid:     var(--border-mid);
-  --color-border-strong:  var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-mid: var(--border-mid);
+  --color-border-strong: var(--border-strong);
 
-  --color-foreground:     var(--text-primary);
-  --color-secondary:      var(--text-secondary);
-  --color-muted:          var(--text-muted);
+  --color-foreground: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
 
-  --color-accent:         var(--accent);
-  --color-accent-inv:     var(--accent-inv);
+  --color-accent: var(--accent);
+  --color-accent-inv: var(--accent-inv);
 
-  --color-term-bg:        var(--term-bg);
-  --color-term-green:     var(--term-green);
-  --color-term-red:       var(--term-red);
-  --color-term-amber:     var(--term-amber);
+  --color-term-bg: var(--term-bg);
+  --color-term-green: var(--term-green);
+  --color-term-red: var(--term-red);
+  --color-term-amber: var(--term-amber);
 
   --font-mono: var(--font-mono);
   --font-sans: var(--font-mono);
@@ -76,18 +76,34 @@
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 0.3; }
-  50%       { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -108,13 +124,9 @@
   }
 
   body {
-    background:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-      var(--bg-canvas);
-    background-size: var(--grid-size) var(--grid-size),
-                     var(--grid-size) var(--grid-size),
-                     auto;
+    background: linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px), var(--bg-canvas);
+    background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size), auto;
     color: var(--text-primary);
     font-family: var(--font-mono);
     /* Match main app — crisp pixel rendering for Monocraft */
@@ -132,21 +144,32 @@
     text-decoration: none;
   }
 
-  ::-webkit-scrollbar        { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track  { background: var(--bg-surface-1); }
-  ::-webkit-scrollbar-thumb  { background: var(--border-strong); }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-surface-1);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+  }
 
-  img, svg.pixelated, .pixelated {
+  img,
+  svg.pixelated,
+  .pixelated {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after {
-      animation-duration:       0.01ms !important;
-      animation-iteration-count: 1     !important;
-      transition-duration:      0.01ms !important;
-      scroll-behavior:          auto   !important;
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }

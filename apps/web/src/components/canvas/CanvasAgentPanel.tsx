@@ -55,8 +55,7 @@ function deriveVisuals(agent: DeckTentacleSummary) {
   const stored = agent.octopus;
   return {
     color:
-      agent.color ??
-      (OCTOPUS_COLORS[hashStr(agent.tentacleId) % OCTOPUS_COLORS.length] as string),
+      agent.color ?? (OCTOPUS_COLORS[hashStr(agent.tentacleId) % OCTOPUS_COLORS.length] as string),
     animation:
       (stored?.animation as AgentAnimation | null) ??
       (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as AgentAnimation),
@@ -224,9 +223,7 @@ export const CanvasAgentPanel = ({
   );
 
   const progressPct =
-    agent && agent.todoTotal > 0
-      ? Math.round((agent.todoDone / agent.todoTotal) * 100)
-      : 0;
+    agent && agent.todoTotal > 0 ? Math.round((agent.todoDone / agent.todoTotal) * 100) : 0;
 
   return (
     <div
@@ -244,9 +241,7 @@ export const CanvasAgentPanel = ({
       >
         <span className="detail-title">{agent?.displayName ?? node.label}</span>
         {agent && (
-          <span className="detail-type-badge">
-            {STATUS_LABELS[agent.status] ?? agent.status}
-          </span>
+          <span className="detail-type-badge">{STATUS_LABELS[agent.status] ?? agent.status}</span>
         )}
         <button className="detail-close" type="button" onClick={onClose} aria-label="Close panel">
           <X size={14} />

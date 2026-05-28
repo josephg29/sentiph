@@ -27,8 +27,8 @@ export function Hero() {
         </h1>
 
         <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-secondary">
-          Run multiple full Claude Code sessions at once. Manage them, track what they
-          spend, and coordinate parallel work without switching windows.
+          Run multiple full Claude Code sessions at once. Manage them, track what they spend, and
+          coordinate parallel work without switching windows.
         </p>
 
         <div className="mt-7 flex flex-wrap items-center gap-3">

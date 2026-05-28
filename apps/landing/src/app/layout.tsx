@@ -20,8 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "sentiph",
-    description:
-      "Scoped tentacles, parallel swarms, and inter-agent messaging for Claude Code.",
+    description: "Scoped tentacles, parallel swarms, and inter-agent messaging for Claude Code.",
   },
 };
 

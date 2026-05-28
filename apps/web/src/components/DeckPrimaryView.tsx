@@ -57,7 +57,9 @@ type DeckPrimaryViewProps = {
   isWorkspaceSetupLoading?: boolean;
   workspaceSetupError?: string | null;
   onRefreshWorkspaceSetup?: () => Promise<WorkspaceSetupSnapshot | null>;
-  onRunWorkspaceSetupStep?: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
+  onRunWorkspaceSetupStep?: (
+    stepId: WorkspaceSetupStepId,
+  ) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
 };
 

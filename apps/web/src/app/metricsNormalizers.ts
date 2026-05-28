@@ -58,14 +58,13 @@ export const normalizeAgentMetricsAggregate = (raw: unknown): AgentMetricsAggreg
 
 export const normalizeAgentMetricsHeatmap = (raw: unknown): AgentMetricsHeatmapBucket[] => {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .filter(
-      (item): item is AgentMetricsHeatmapBucket =>
-        isRecord(item) &&
-        typeof item.timestamp === "string" &&
-        typeof item.errorCount === "number" &&
-        typeof item.runCount === "number",
-    );
+  return raw.filter(
+    (item): item is AgentMetricsHeatmapBucket =>
+      isRecord(item) &&
+      typeof item.timestamp === "string" &&
+      typeof item.errorCount === "number" &&
+      typeof item.runCount === "number",
+  );
 };
 
 export const normalizeAgentMetricsEvents = (raw: unknown): AgentMetricsEvent[] => {

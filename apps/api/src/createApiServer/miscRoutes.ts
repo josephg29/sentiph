@@ -1,9 +1,5 @@
 import type { ApiRouteHandler } from "./routeHelpers";
-import {
-  readJsonBodyOrWriteError,
-  writeJson,
-  writeMethodNotAllowed,
-} from "./routeHelpers";
+import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 import { parseUiStatePatch } from "./uiStateParsers";
 
 export const handleUiStateRoute: ApiRouteHandler = async (

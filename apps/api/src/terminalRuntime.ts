@@ -1,7 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
@@ -10,10 +10,7 @@ const resolveCurrentDir = (): string =>
   (import.meta.dirname as string | undefined) ?? dirname(fileURLToPath(import.meta.url));
 
 import { createAgentMetricsCollector } from "./agentMetricsCollector";
-import {
-  SENTIPH_SYSTEM_PROMPT,
-  assertSentiphSystemPromptIsShellSafe,
-} from "./sentiphSystemPrompt";
+import { SENTIPH_SYSTEM_PROMPT, assertSentiphSystemPromptIsShellSafe } from "./sentiphSystemPrompt";
 
 import type { TerminalSnapshot } from "@sentiph/core";
 import type { WebSocket } from "ws";
@@ -110,8 +107,7 @@ const writeSentiphMcpConfig = (stateDir: string): string => {
         command: nodeCommand,
         args: nodeArgs,
         env: {
-          SENTIPH_API_ORIGIN:
-            process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787",
+          SENTIPH_API_ORIGIN: process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787",
         },
       },
     },
@@ -314,7 +310,7 @@ export const createTerminalRuntime = ({
   const worktreesDir = join(stateDir, "worktrees");
   const gitClientOpt = gitClient;
 
-  const GENERATED_NAME_PATTERN = /^Agent \d+$/;
+  const GENERATED_NAME_PATTERN = /^Agent \d+$|^Sentiph Terminal \d+$/;
 
   const worktreeManager = {
     getTentacleWorkspaceCwd: (tentacleId: string) => {
@@ -475,9 +471,7 @@ export const createTerminalRuntime = ({
       if (!result) return null;
       const existing = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (existing && existing.state === "OPEN") {
-        throw new RuntimeInputError(
-          "An open pull request already exists for this branch.",
-        );
+        throw new RuntimeInputError("An open pull request already exists for this branch.");
       }
       const worktreeStatus = gitClientOpt!.readWorktreeStatus({ cwd: result.worktreePath });
       const pr = gitClientOpt!.createPullRequest({
@@ -583,7 +577,9 @@ export const createTerminalRuntime = ({
       hasUserPrompt: isTerminalRecentlyActive(terminal),
       ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
       ...(session ? { agentRuntimeState: session.agentState } : {}),
-      ...(session ? { agentStateChangedAt: new Date(session.agentStateChangedAt).toISOString() } : {}),
+      ...(session
+        ? { agentStateChangedAt: new Date(session.agentStateChangedAt).toISOString() }
+        : {}),
       lifecycleState,
       ...(terminal.lifecycleReason ? { lifecycleReason: terminal.lifecycleReason } : {}),
       ...(terminal.lifecycleUpdatedAt ? { lifecycleUpdatedAt: terminal.lifecycleUpdatedAt } : {}),
@@ -707,7 +703,23 @@ export const createTerminalRuntime = ({
     // Allow explicit tentacleId so multiple terminals can share a tentacle context (e.g. swarm workers).
     const tentacleId = requestedTentacleId ?? terminalId;
     const effectiveName =
-      tentacleName ?? (tentacleId === SENTIPH_TENTACLE_ID ? "Sentiph" : allocateDefaultTerminalName());
+      tentacleName ??
+      (tentacleId === SENTIPH_TENTACLE_ID ? "Sentiph" : allocateDefaultTerminalName());
+
+    // Auto-generate initialInputDraft from tentacle CONTEXT.md when not explicitly provided.
+    if (!initialInputDraft && tentacleId && tentacleId !== SENTIPH_TENTACLE_ID) {
+      const tentacleDir = join(stateDir, "tentacles", tentacleId);
+      const contextPath = join(tentacleDir, "CONTEXT.md");
+      if (existsSync(contextPath)) {
+        const contextContent = readFileSync(contextPath, "utf8");
+        const headingMatch = /^#\s+(.+)$/m.exec(contextContent);
+        if (headingMatch) {
+          const sectionName = (headingMatch[1] ?? "").trim();
+          const relativeTentacleDir = relative(workspaceCwd, tentacleDir);
+          initialInputDraft = `You are working on the ${sectionName} section. For tool-list items, context, and docs, check ${relativeTentacleDir}.`;
+        }
+      }
+    }
 
     // Auto-allocate a unique worktreeId when creating a worktree terminal
     // so multiple worktree terminals can coexist (each gets its own directory).
@@ -1022,18 +1034,33 @@ export const createTerminalRuntime = ({
           const sessionId = decodeURIComponent(file.slice(0, -6));
           const raw = readFileSync(join(transcriptDir, file), "utf8").trim();
           if (!raw) continue;
-          const events = raw.split("\n").map((l) => {
-            try { return JSON.parse(l) as Record<string, unknown>; } catch { return null; }
-          }).filter(Boolean) as Record<string, unknown>[];
+          const events = raw
+            .split("\n")
+            .map((l) => {
+              try {
+                return JSON.parse(l) as Record<string, unknown>;
+              } catch {
+                return null;
+              }
+            })
+            .filter(Boolean) as Record<string, unknown>[];
 
           const startEvent = events.find((e) => e.type === "session_start");
           const endEvent = events.find((e) => e.type === "session_end");
           if (!startEvent) continue;
 
-          const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
-          let turns: Array<{ role: string; content: string; startedAt: string; endedAt: string }> = [];
+          const turnsPath = join(
+            transcriptDir,
+            `${encodeURIComponent(sessionId)}.claude-turns.json`,
+          );
+          let turns: Array<{ role: string; content: string; startedAt: string; endedAt: string }> =
+            [];
           if (existsSync(turnsPath)) {
-            try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns; } catch { /* ignore */ }
+            try {
+              turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns;
+            } catch {
+              /* ignore */
+            }
           }
           const userTurns = turns.filter((t) => t.role === "user");
           const assistantTurns = turns.filter((t) => t.role === "assistant");
@@ -1051,10 +1078,13 @@ export const createTerminalRuntime = ({
             assistantTurnCount: assistantTurns.length,
             firstUserTurnPreview: userTurns[0]?.content?.slice(0, 200) ?? null,
             lastUserTurnPreview: userTurns[userTurns.length - 1]?.content?.slice(0, 200) ?? null,
-            lastAssistantTurnPreview: assistantTurns[assistantTurns.length - 1]?.content?.slice(0, 200) ?? null,
+            lastAssistantTurnPreview:
+              assistantTurns[assistantTurns.length - 1]?.content?.slice(0, 200) ?? null,
           });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return summaries;
     },
 
@@ -1064,17 +1094,30 @@ export const createTerminalRuntime = ({
       if (!existsSync(transcriptPath)) return null;
       const raw = readFileSync(transcriptPath, "utf8").trim();
       if (!raw) return null;
-      const events = raw.split("\n").map((l) => {
-        try { return JSON.parse(l) as Record<string, unknown>; } catch { return null; }
-      }).filter(Boolean);
+      const events = raw
+        .split("\n")
+        .map((l) => {
+          try {
+            return JSON.parse(l) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
 
       const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
       let turns: unknown[] = [];
       if (existsSync(turnsPath)) {
-        try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as unknown[]; } catch { /* ignore */ }
+        try {
+          turns = JSON.parse(readFileSync(turnsPath, "utf8")) as unknown[];
+        } catch {
+          /* ignore */
+        }
       }
 
-      const startEvent = (events as Record<string, unknown>[]).find((e) => e.type === "session_start");
+      const startEvent = (events as Record<string, unknown>[]).find(
+        (e) => e.type === "session_start",
+      );
       return {
         sessionId,
         tentacleId: startEvent?.tentacleId ?? sessionId,
@@ -1089,7 +1132,11 @@ export const createTerminalRuntime = ({
       const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
       if (!existsSync(turnsPath)) return null;
       let turns: Array<{ role: string; content: string }> = [];
-      try { turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns; } catch { return null; }
+      try {
+        turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns;
+      } catch {
+        return null;
+      }
 
       if (format === "json") {
         return JSON.stringify({ sessionId, turnCount: turns.length, turns });
@@ -1110,7 +1157,13 @@ export const createTerminalRuntime = ({
       const base = join(transcriptDir, encodeURIComponent(sessionId));
       for (const ext of [".jsonl", ".claude-turns.json"]) {
         const path = `${base}${ext}`;
-        if (existsSync(path)) { try { rmSync(path); } catch { /* ignore */ } }
+        if (existsSync(path)) {
+          try {
+            rmSync(path);
+          } catch {
+            /* ignore */
+          }
+        }
       }
     },
 
@@ -1120,9 +1173,15 @@ export const createTerminalRuntime = ({
       try {
         const files = readdirSync(transcriptDir);
         for (const file of files) {
-          try { rmSync(join(transcriptDir, file)); } catch { /* ignore */ }
+          try {
+            rmSync(join(transcriptDir, file));
+          } catch {
+            /* ignore */
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     },
 
     searchConversations(query: string) {
@@ -1135,12 +1194,18 @@ export const createTerminalRuntime = ({
         for (const file of files) {
           const sessionId = decodeURIComponent(file.slice(0, -".claude-turns.json".length));
           let turns: Array<{ role: string; content: string }> = [];
-          try { turns = JSON.parse(readFileSync(join(transcriptDir, file), "utf8")) as typeof turns; } catch { continue; }
+          try {
+            turns = JSON.parse(readFileSync(join(transcriptDir, file), "utf8")) as typeof turns;
+          } catch {
+            continue;
+          }
           if (turns.some((t) => t.content.toLowerCase().includes(q))) {
             results.push({ sessionId });
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return results;
     },
 

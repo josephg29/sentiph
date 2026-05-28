@@ -321,9 +321,7 @@ describe("createSessionRuntime", () => {
     expect(runtime.startSession(tentacleId)).toBe(true);
     expect(pty.write).toHaveBeenNthCalledWith(
       1,
-      expect.stringMatching(
-        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
-      ),
+      expect.stringMatching(/^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/),
     );
 
     expect(runtime.closeSession(tentacleId)).toBe(true);
@@ -739,9 +737,7 @@ describe("createSessionRuntime", () => {
     expect(sessions.has(tentacleId)).toBe(true);
     expect(pty.write).toHaveBeenNthCalledWith(
       1,
-      expect.stringMatching(
-        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
-      ),
+      expect.stringMatching(/^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/),
     );
 
     vi.advanceTimersByTime(4_000);
@@ -802,9 +798,7 @@ describe("createSessionRuntime", () => {
 
     expect(pty.write).toHaveBeenNthCalledWith(
       1,
-      expect.stringMatching(
-        /^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/,
-      ),
+      expect.stringMatching(/^claude --session-id [0-9a-f-]+ --dangerously-skip-permissions\r$/),
     );
 
     vi.advanceTimersByTime(4_000);
@@ -1043,23 +1037,19 @@ describe("createSessionRuntime", () => {
       const { runtime } = makeRuntime(terminals, sessions, pty);
 
       const socket = new FakeWebSocket();
-      const fakeServer = (runtime as unknown as {
+      const fakeServer = runtime as unknown as {
         // surface the websocketServer for inspection via separate path
-      });
+      };
       // We use handleUpgrade via the runtime to get a connected socket.
       void fakeServer;
       // Use the runtime's websocketServer for upgrade:
-      const websocketServer = (
-        runtime as unknown as { __test_ws?: FakeWebSocketServer }
-      ).__test_ws;
+      const websocketServer = (runtime as unknown as { __test_ws?: FakeWebSocketServer }).__test_ws;
       void websocketServer;
 
       expect(runtime.startSession(tentacleId)).toBe(true);
 
       const firstCall = pty.write.mock.calls[0]?.[0] as string;
-      expect(firstCall).toBe(
-        `claude --resume ${storedUuid} --dangerously-skip-permissions\r`,
-      );
+      expect(firstCall).toBe(`claude --resume ${storedUuid} --dangerously-skip-permissions\r`);
 
       // Banner is preserved in scrollback so newly connecting clients see it.
       const scrollback = runtime.getScrollback(tentacleId) ?? "";
@@ -1137,9 +1127,7 @@ describe("createSessionRuntime", () => {
       expect(runtime.startSession(tentacleId)).toBe(true);
 
       const firstCall = pty.write.mock.calls[0]?.[0] as string;
-      expect(firstCall).toBe(
-        "claude --continue --dangerously-skip-permissions\r",
-      );
+      expect(firstCall).toBe("claude --continue --dangerously-skip-permissions\r");
 
       const scrollback = runtime.getScrollback(tentacleId) ?? "";
       expect(scrollback).toContain("[Sentiph: resuming previous Claude session");
@@ -1174,9 +1162,7 @@ describe("createSessionRuntime", () => {
 
         expect(runtime.startSession(tentacleId)).toBe(true);
         const firstCall = pty.write.mock.calls[0]?.[0] as string;
-        expect(firstCall).toBe(
-          "claude --continue --dangerously-skip-permissions\r",
-        );
+        expect(firstCall).toBe("claude --continue --dangerously-skip-permissions\r");
 
         runtime.close();
       }

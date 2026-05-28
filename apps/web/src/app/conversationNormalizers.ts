@@ -103,9 +103,7 @@ export const normalizeConversationSessionSummary = (
   };
 };
 
-const normalizeConversationSessionDetail = (
-  value: unknown,
-): ConversationSessionDetail | null => {
+const normalizeConversationSessionDetail = (value: unknown): ConversationSessionDetail | null => {
   const record = asRecord(value);
   if (!record) {
     return null;

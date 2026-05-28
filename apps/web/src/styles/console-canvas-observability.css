@@ -210,11 +210,22 @@
   letter-spacing: 0.04em;
 }
 
-.obs-legend-dot--success { background: var(--term-green); }
-.obs-legend-dot--error   { background: var(--term-red); }
-.obs-legend-dot--proc    { background: var(--term-blue); }
-.obs-legend-dot--idle    { background: #b87000; }
-.obs-legend-dot--other   { background: var(--bg-surface-2); border: 1px solid var(--border-subtle); }
+.obs-legend-dot--success {
+  background: var(--term-green);
+}
+.obs-legend-dot--error {
+  background: var(--term-red);
+}
+.obs-legend-dot--proc {
+  background: var(--term-blue);
+}
+.obs-legend-dot--idle {
+  background: #b87000;
+}
+.obs-legend-dot--other {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+}
 
 /* ── Token usage table ─────────────────────────────── */
 
@@ -291,11 +302,26 @@
   border-radius: 2px;
 }
 
-.obs-outcome--success  { background: #d4f5d4; color: var(--term-green); }
-.obs-outcome--error    { background: #ffd6d6; color: var(--term-red); }
-.obs-outcome--stopped  { background: #e8e8e8; color: #555; }
-.obs-outcome--killed   { background: #fff0d0; color: var(--term-warning); }
-.obs-outcome--unknown  { background: #f0f0f0; color: var(--text-secondary); }
+.obs-outcome--success {
+  background: #d4f5d4;
+  color: var(--term-green);
+}
+.obs-outcome--error {
+  background: #ffd6d6;
+  color: var(--term-red);
+}
+.obs-outcome--stopped {
+  background: #e8e8e8;
+  color: #555;
+}
+.obs-outcome--killed {
+  background: #fff0d0;
+  color: var(--term-warning);
+}
+.obs-outcome--unknown {
+  background: #f0f0f0;
+  color: var(--text-secondary);
+}
 
 /* ── Heatmap ───────────────────────────────────────── */
 
@@ -398,8 +424,18 @@
   white-space: nowrap;
 }
 
-.obs-trail-state .obs-trail-icon  { color: var(--term-blue); }
-.obs-trail-token .obs-trail-icon  { color: var(--term-green); }
-.obs-trail-tool .obs-trail-icon   { color: var(--text-secondary); }
-.obs-trail-error .obs-trail-icon  { color: var(--term-red); }
-.obs-trail-error .obs-trail-type  { color: var(--term-red); }
+.obs-trail-state .obs-trail-icon {
+  color: var(--term-blue);
+}
+.obs-trail-token .obs-trail-icon {
+  color: var(--term-green);
+}
+.obs-trail-tool .obs-trail-icon {
+  color: var(--text-secondary);
+}
+.obs-trail-error .obs-trail-icon {
+  color: var(--term-red);
+}
+.obs-trail-error .obs-trail-type {
+  color: var(--term-red);
+}

@@ -34,7 +34,7 @@ export const ObservabilityPrimaryView = ({ enabled = true }: ObservabilityPrimar
   const { events, isLoadingEvents } = useMetricsEvents(selectedTerminalId);
 
   const selectedSummary = selectedTerminalId
-    ? summaries.find((s) => s.terminalId === selectedTerminalId) ?? null
+    ? (summaries.find((s) => s.terminalId === selectedTerminalId) ?? null)
     : null;
 
   return (

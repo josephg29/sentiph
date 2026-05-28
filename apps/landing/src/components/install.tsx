@@ -13,9 +13,7 @@ export function Install() {
     <section id="install" className="border-t border-border-mid">
       <div className="mx-auto max-w-3xl px-5 py-16 sm:px-6 sm:py-24">
         <div className="mb-10">
-          <div className="text-[10px] font-bold uppercase tracking-control text-muted">
-            install
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-control text-muted">install</div>
           <h2 className="mt-2 text-2xl font-bold tracking-control text-foreground sm:text-3xl">
             Up in three commands.
           </h2>
@@ -31,7 +29,10 @@ export function Install() {
             className="flex items-center justify-between border-b px-3.5 py-2.5"
             style={{ borderColor: "#333", background: "var(--term-header)" }}
           >
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-control" style={{ color: "#aaa" }}>
+            <div
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-control"
+              style={{ color: "#aaa" }}
+            >
               <span
                 className="h-1.5 w-1.5 bg-term-green"
                 style={{ animation: "pulse-soft 2.4s ease-in-out infinite" }}
@@ -47,7 +48,9 @@ export function Install() {
           >
             {LINES.map((line, i) => (
               <div key={i} className="whitespace-pre">
-                <span className="select-none" style={{ color: "#555" }}>$ </span>
+                <span className="select-none" style={{ color: "#555" }}>
+                  ${" "}
+                </span>
                 {line}
               </div>
             ))}

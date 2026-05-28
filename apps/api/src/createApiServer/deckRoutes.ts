@@ -345,12 +345,19 @@ export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
 
 const DECK_TODO_SOLVE_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/todo\/solve$/;
 
-export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
-  { response, requestUrl, corsOrigin },
-) => {
+export const handleDeckTodoSolveRoute: ApiRouteHandler = async ({
+  response,
+  requestUrl,
+  corsOrigin,
+}) => {
   const match = requestUrl.pathname.match(DECK_TODO_SOLVE_PATTERN);
   if (!match) return false;
-  writeJson(response, 410, { error: "Todo solve (child agent spawning) has been removed." }, corsOrigin);
+  writeJson(
+    response,
+    410,
+    { error: "Todo solve (child agent spawning) has been removed." },
+    corsOrigin,
+  );
   return true;
 };
 
@@ -360,9 +367,11 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
 
 const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/tentacles\/([^/]+)\/swarm$/;
 
-export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
-  { response, requestUrl, corsOrigin },
-) => {
+export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async ({
+  response,
+  requestUrl,
+  corsOrigin,
+}) => {
   const match = requestUrl.pathname.match(DECK_TENTACLE_SWARM_PATTERN);
   if (!match) return false;
   writeJson(response, 410, { error: "Swarm (child agent spawning) has been removed." }, corsOrigin);

@@ -1,9 +1,4 @@
-import {
-  applyUpdate,
-  checkForUpdates,
-  detectInstallation,
-  scheduleSelfRestart,
-} from "../updates";
+import { applyUpdate, checkForUpdates, detectInstallation, scheduleSelfRestart } from "../updates";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { writeJson, writeMethodNotAllowed } from "./routeHelpers";
 

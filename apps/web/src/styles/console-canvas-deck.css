@@ -1,9 +1,8 @@
-﻿/* ─── Deck View ───────────────────────────────────────────────── */
-/* Layout is driven entirely by [data-mode="grid"|"detail"] on the root.     */
-/* Pods container is a CSS grid in grid mode, a sidebar column in detail.    */
-/* Non-focused pods collapse; focused pod stretches; detail panel expands.   */
+﻿/* ─── Deck View ───────────────────────────────────────────────── */ /* Layout is driven entirely by [data-mode="grid"|"detail"] on the root.     */
+  /* Pods container is a CSS grid in grid mode, a sidebar column in detail.    */
+  /* Non-focused pods collapse; focused pod stretches; detail panel expands.   */
 
-.deck-view {
+  .deck-view {
   display: flex;
   height: 100%;
   overflow: hidden;

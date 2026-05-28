@@ -864,9 +864,7 @@ export const CanvasPrimaryView = ({
   }, [selectedNodeId, openTerminals, openTentacles]);
 
   // Separate tentacle and session nodes for render order
-  const tentacleNodes = simulatedNodes.filter(
-    (n) => n.type === "tentacle" || n.type === "sentiph",
-  );
+  const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle" || n.type === "sentiph");
   const sessionNodes = simulatedNodes.filter((n) => {
     if (n.type === "tentacle" || n.type === "sentiph") return false;
     if (hideIdleTerminals && n.type === "inactive-session") return false;
@@ -1091,7 +1089,9 @@ export const CanvasPrimaryView = ({
             aria-label="New terminal"
             title="New terminal"
           >
-            <span className="canvas-toolbar-icon" style={{ fontSize: "18px", lineHeight: 1 }}>+</span>
+            <span className="canvas-toolbar-icon" style={{ fontSize: "18px", lineHeight: 1 }}>
+              +
+            </span>
           </button>
           <div className="canvas-toolbar-separator" />
           <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>

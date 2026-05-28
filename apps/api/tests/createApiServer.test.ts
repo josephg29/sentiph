@@ -1257,7 +1257,6 @@ describe("createApiServer", () => {
       hasAnyTentacles: boolean;
       steps: Array<{ id: string; complete: boolean }>;
     };
-    expect(existsSync(join(workspaceCwd, ".sentiph"))).toBe(false);
     expect(existsSync(join(workspaceCwd, ".gitignore"))).toBe(false);
     expect(initialPayload.isFirstRun).toBe(true);
     expect(initialPayload.shouldShowSetupCard).toBe(true);
@@ -1710,7 +1709,7 @@ describe("createApiServer", () => {
         label: "terminal-2",
         state: "live",
         tentacleId: "terminal-2",
-        tentacleName: "Sentiph Terminal 1",
+        tentacleName: "Agent 1",
         workspaceMode: "shared",
       }),
     );
@@ -2890,24 +2889,8 @@ describe("createApiServer", () => {
     expect(renameResponse.status).toBe(400);
   });
 
-  it("spawns a shared-workspace todo agent for an individual item", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
-    temporaryDirectories.push(workspaceCwd);
-    mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "CONTEXT.md"),
-      "# Docs & Knowledge\n",
-      "utf8",
-    );
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "todo.md"),
-      "# Todo\n\n- [ ] Audit docs\n- [ ] Consolidate principles\n",
-      "utf8",
-    );
-
-    const baseUrl = await startServer({ workspaceCwd });
+  it("returns 410 for todo/solve (child agent spawning removed)", async () => {
+    const baseUrl = await startServer();
 
     const solveResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/todo/solve`, {
       method: "POST",
@@ -2918,50 +2901,14 @@ describe("createApiServer", () => {
       body: JSON.stringify({ itemIndex: 0 }),
     });
 
-    expect(solveResponse.status).toBe(201);
+    expect(solveResponse.status).toBe(410);
     await expect(solveResponse.json()).resolves.toEqual({
-      terminalId: "docs-knowledge-todo-0",
-      tentacleId: "docs-knowledge",
-      itemIndex: 0,
-      workspaceMode: "shared",
+      error: "Todo solve (child agent spawning) has been removed.",
     });
-
-    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        terminalId: "docs-knowledge-todo-0",
-        tentacleId: "docs-knowledge",
-        tentacleName: "Docs & Knowledge",
-        workspaceMode: "shared",
-      }),
-    ]);
   });
 
-  it("auto-renames todo agents from the todo item context on first prompt submit", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
-    temporaryDirectories.push(workspaceCwd);
-    mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "CONTEXT.md"),
-      "# Docs & Knowledge\n",
-      "utf8",
-    );
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "todo.md"),
-      "# Todo\n\n- [ ] Audit docs\n- [ ] Consolidate principles\n",
-      "utf8",
-    );
-
-    const baseUrl = await startServer({ workspaceCwd });
+  it("returns 410 for todo agent auto-rename via solve (child agent spawning removed)", async () => {
+    const baseUrl = await startServer();
 
     const solveResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/todo/solve`, {
       method: "POST",
@@ -2971,58 +2918,12 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ itemIndex: 0 }),
     });
-    expect(solveResponse.status).toBe(201);
 
-    const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?sentiph_session=docs-knowledge-todo-0`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: "Generic worker prompt body" }),
-      },
-    );
-    expect(hookResponse.status).toBe(200);
-
-    const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
-      expect.objectContaining({
-        terminalId: "docs-knowledge-todo-0",
-        tentacleId: "docs-knowledge",
-        tentacleName: "Audit docs",
-        workspaceMode: "shared",
-      }),
-    ]);
+    expect(solveResponse.status).toBe(410);
   });
 
-  it("limits swarm prompts to the top-priority items that fit under the child cap", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "sentiph-api-test-"));
-    temporaryDirectories.push(workspaceCwd);
-    mkdirSync(join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge"), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "CONTEXT.md"),
-      "# Docs & Knowledge\n",
-      "utf8",
-    );
-    const todoItems = Array.from(
-      { length: MAX_CHILDREN_PER_PARENT + 4 },
-      (_, index) => `- [ ] item ${index}`,
-    ).join("\n");
-    writeFileSync(
-      join(workspaceCwd, ".sentiph", "tentacles", "docs-knowledge", "todo.md"),
-      `# Todo\n\n${todoItems}\n`,
-      "utf8",
-    );
-
-    const baseUrl = await startServer({ workspaceCwd });
+  it("returns 410 for swarm (child agent spawning removed)", async () => {
+    const baseUrl = await startServer();
 
     const swarmResponse = await fetch(`${baseUrl}/api/deck/tentacles/docs-knowledge/swarm`, {
       method: "POST",
@@ -3033,24 +2934,10 @@ describe("createApiServer", () => {
       body: JSON.stringify({}),
     });
 
-    expect(swarmResponse.status).toBe(201);
+    expect(swarmResponse.status).toBe(410);
     await expect(swarmResponse.json()).resolves.toEqual({
-      tentacleId: "docs-knowledge",
-      parentTerminalId: "docs-knowledge-swarm-parent",
-      workers: Array.from({ length: MAX_CHILDREN_PER_PARENT }, (_, index) => ({
-        terminalId: `docs-knowledge-swarm-${index}`,
-        todoIndex: index,
-        todoText: `item ${index}`,
-      })),
+      error: "Swarm (child agent spawning) has been removed.",
     });
-
-    const promptTemplate = readFileSync(
-      join(process.cwd(), "..", "..", "prompts", "swarm-parent.md"),
-      "utf8",
-    );
-    expect(promptTemplate).toContain(
-      "Treat the listed workers as the highest-priority items and proceed without asking the user whether to batch, reprioritize, or raise the limit.",
-    );
   });
 
   it("deletes a tentacle and removes it from snapshots", async () => {

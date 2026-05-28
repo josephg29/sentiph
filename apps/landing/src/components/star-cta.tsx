@@ -2,10 +2,7 @@ import { Star } from "lucide-react";
 
 export function StarCta() {
   return (
-    <section
-      className="border-t border-border-strong"
-      style={{ background: "var(--term-bg)" }}
-    >
+    <section className="border-t border-border-strong" style={{ background: "var(--term-bg)" }}>
       <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-28">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
@@ -22,12 +19,9 @@ export function StarCta() {
               <span className="block">Every star helps</span>
               <span className="block">a developer find this.</span>
             </h2>
-            <p
-              className="mt-5 max-w-sm text-[13.5px] leading-relaxed"
-              style={{ color: "#888" }}
-            >
-              Free, MIT licensed, and built in the open. No cloud, no accounts, no
-              telemetry. Runs entirely on your machine.
+            <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed" style={{ color: "#888" }}>
+              Free, MIT licensed, and built in the open. No cloud, no accounts, no telemetry. Runs
+              entirely on your machine.
             </p>
           </div>
 
@@ -51,10 +45,16 @@ export function StarCta() {
                 { dt: "requires", dd: "claude code" },
               ].map(({ dt, dd }) => (
                 <div key={dt}>
-                  <dt className="text-[9px] font-bold uppercase tracking-control" style={{ color: "#444" }}>
+                  <dt
+                    className="text-[9px] font-bold uppercase tracking-control"
+                    style={{ color: "#444" }}
+                  >
                     {dt}
                   </dt>
-                  <dd className="mt-0.5 text-[12px] font-bold uppercase tracking-control" style={{ color: "#888" }}>
+                  <dd
+                    className="mt-0.5 text-[12px] font-bold uppercase tracking-control"
+                    style={{ color: "#888" }}
+                  >
                     {dd}
                   </dd>
                 </div>

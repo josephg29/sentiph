@@ -1,6 +1,4 @@
-﻿/* ── Code Intel view ─────────────────────────────────── */
-
-.console-shell .code-intel-view {
+﻿/* ── Code Intel view ─────────────────────────────────── */ .console-shell .code-intel-view {
   min-height: 0;
   border: 1px solid #dddddd;
   background: #f2f2f2;

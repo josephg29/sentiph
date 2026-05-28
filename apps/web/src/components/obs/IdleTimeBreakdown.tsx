@@ -47,7 +47,12 @@ export const IdleTimeBreakdown = ({ summaries }: IdleTimeBreakdownProps) => {
 
           return (
             <g key={s.terminalId}>
-              <text x={LABEL_W - 4} y={y + BAR_H / 2 + 4} textAnchor="end" className="obs-bar-label">
+              <text
+                x={LABEL_W - 4}
+                y={y + BAR_H / 2 + 4}
+                textAnchor="end"
+                className="obs-bar-label"
+              >
                 {shortName}
               </text>
               <rect x={LABEL_W} y={y} width={BAR_MAX_W} height={BAR_H} className="obs-bar-bg" />
@@ -55,7 +60,13 @@ export const IdleTimeBreakdown = ({ summaries }: IdleTimeBreakdownProps) => {
                 <rect x={LABEL_W} y={y} width={procW} height={BAR_H} className="obs-bar-proc" />
               )}
               {idleW > 0 && (
-                <rect x={LABEL_W + procW} y={y} width={idleW} height={BAR_H} className="obs-bar-idle" />
+                <rect
+                  x={LABEL_W + procW}
+                  y={y}
+                  width={idleW}
+                  height={BAR_H}
+                  className="obs-bar-idle"
+                />
               )}
               {otherW > 0 && (
                 <rect

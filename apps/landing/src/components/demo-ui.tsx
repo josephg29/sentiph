@@ -31,9 +31,7 @@ export function DemoUI() {
     <section className="border-t border-border-mid">
       <div className="mx-auto max-w-5xl px-5 py-16 sm:px-6 sm:py-24">
         <div className="mb-10">
-          <div className="text-[10px] font-bold uppercase tracking-control text-muted">
-            preview
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-control text-muted">preview</div>
           <h2 className="mt-2 text-2xl font-bold tracking-control text-foreground sm:text-3xl">
             The actual workspace.
           </h2>
@@ -67,9 +65,7 @@ export function DemoUI() {
                   transition: "background 0.15s, color 0.15s",
                 }}
               >
-                <span style={{ color: i === active ? "#555" : "#2a2a2a" }}>
-                  [{tab.n}]
-                </span>
+                <span style={{ color: i === active ? "#555" : "#2a2a2a" }}>[{tab.n}]</span>
                 {tab.label}
               </button>
             ))}

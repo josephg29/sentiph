@@ -252,7 +252,10 @@ export const useForceSimulation = ({
         )
         .force("x", forceX<SimNode>(centerX).strength(p.positionStrength))
         .force("y", forceY<SimNode>(centerY).strength(p.positionStrength))
-        .force("collide", forceCollide<SimNode>((node: SimNode) => node._gn.radius + p.collisionPadding))
+        .force(
+          "collide",
+          forceCollide<SimNode>((node: SimNode) => node._gn.radius + p.collisionPadding),
+        )
         .force("cluster", clusterForce);
     };
 

@@ -1,6 +1,6 @@
 ﻿/* ─── Prompts Primary View ─────────────────────────────────────────────── */
-
-.console-shell .prompts-view {
+  .console-shell
+  .prompts-view {
   min-height: 0;
   border: 1px solid #dddddd;
   background: #f2f2f2;

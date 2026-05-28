@@ -231,82 +231,82 @@ export const App = () => {
 
     const attachMessageHandler = (ws: WebSocket) => {
       ws.addEventListener("message", (event) => {
-      if (typeof event.data !== "string") {
-        return;
-      }
+        if (typeof event.data !== "string") {
+          return;
+        }
 
-      try {
-        const payload = JSON.parse(event.data) as
-          | {
-              type?: unknown;
-              snapshot?: TerminalSnapshot;
-              terminalId?: string;
-              agentRuntimeState?: string;
-              toolName?: string;
+        try {
+          const payload = JSON.parse(event.data) as
+            | {
+                type?: unknown;
+                snapshot?: TerminalSnapshot;
+                terminalId?: string;
+                agentRuntimeState?: string;
+                toolName?: string;
+              }
+            | undefined;
+          if (!payload || typeof payload.type !== "string") {
+            return;
+          }
+
+          if (payload.type === "terminal-created" || payload.type === "terminal-updated") {
+            if (!payload.snapshot) {
+              return;
             }
-          | undefined;
-        if (!payload || typeof payload.type !== "string") {
-          return;
-        }
-
-        if (payload.type === "terminal-created" || payload.type === "terminal-updated") {
-          if (!payload.snapshot) {
+            const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
+            runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
+            const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
+            if (payload.type === "terminal-created") {
+              setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
+            }
+            setTerminals((current) =>
+              sortTerminalSnapshots([
+                ...current.filter(
+                  (terminal) => terminal.terminalId !== structuralSnapshot.terminalId,
+                ),
+                structuralSnapshot,
+              ]),
+            );
             return;
           }
-          const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
-          runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
-          const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
-          if (payload.type === "terminal-created") {
-            setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
-          }
-          setTerminals((current) =>
-            sortTerminalSnapshots([
-              ...current.filter(
-                (terminal) => terminal.terminalId !== structuralSnapshot.terminalId,
-              ),
-              structuralSnapshot,
-            ]),
-          );
-          return;
-        }
 
-        if (payload.type === "terminal-state-changed") {
-          if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
+          if (payload.type === "terminal-state-changed") {
+            if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
+              return;
+            }
+            runtimeStateStore.setRuntimeState(payload.terminalId, {
+              state: payload.agentRuntimeState,
+              ...(payload.toolName ? { toolName: payload.toolName } : {}),
+            });
             return;
           }
-          runtimeStateStore.setRuntimeState(payload.terminalId, {
-            state: payload.agentRuntimeState,
-            ...(payload.toolName ? { toolName: payload.toolName } : {}),
-          });
-          return;
-        }
 
-        if (payload.type === "terminal-deleted") {
-          if (!payload.terminalId) {
+          if (payload.type === "terminal-deleted") {
+            if (!payload.terminalId) {
+              return;
+            }
+            runtimeStateStore.removeTerminal(payload.terminalId);
+            setTerminals((current) =>
+              current.filter((terminal) => terminal.terminalId !== payload.terminalId),
+            );
             return;
           }
-          runtimeStateStore.removeTerminal(payload.terminalId);
-          setTerminals((current) =>
-            current.filter((terminal) => terminal.terminalId !== payload.terminalId),
-          );
+
+          if (payload.type !== "terminal-list-changed") {
+            return;
+          }
+        } catch {
           return;
         }
 
-        if (payload.type !== "terminal-list-changed") {
-          return;
+        if (terminalEventsRefreshTimerRef.current !== null) {
+          window.clearTimeout(terminalEventsRefreshTimerRef.current);
         }
-      } catch {
-        return;
-      }
-
-      if (terminalEventsRefreshTimerRef.current !== null) {
-        window.clearTimeout(terminalEventsRefreshTimerRef.current);
-      }
-      terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
-        terminalEventsRefreshTimerRef.current = null;
-        void refreshColumns();
-      }, 100);
-    });
+        terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
+          terminalEventsRefreshTimerRef.current = null;
+          void refreshColumns();
+        }, 100);
+      });
     };
 
     connect();
@@ -490,9 +490,7 @@ export const App = () => {
                   setSidebarWidth(clampSidebarWidth(width));
                 }}
                 actionPanel={sidebarActionPanel}
-                bodyContent={
-                  activePrimaryNav === 2 ? (deckSidebarContent ?? undefined) : undefined
-                }
+                bodyContent={activePrimaryNav === 2 ? (deckSidebarContent ?? undefined) : undefined}
               />
             )}
 

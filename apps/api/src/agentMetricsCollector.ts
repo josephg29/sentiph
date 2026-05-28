@@ -151,13 +151,7 @@ export const createAgentMetricsCollector = (metricsDir: string) => {
       const cost = parseTokenCount(costMatch[1] ?? "0");
       if (cost > 0) {
         acc.tokenCostUsd += cost;
-        appendEvent(
-          terminalId,
-          acc.terminal.tentacleId,
-          "token_usage",
-          { costUsd: cost },
-          acc,
-        );
+        appendEvent(terminalId, acc.terminal.tentacleId, "token_usage", { costUsd: cost }, acc);
       }
     }
 

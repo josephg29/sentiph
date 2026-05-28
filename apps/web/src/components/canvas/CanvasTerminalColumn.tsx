@@ -107,7 +107,9 @@ export const CanvasTerminalColumn = ({
                 className="canvas-terminal-column-name-input"
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
-                onBlur={() => { void submitRename(); }}
+                onBlur={() => {
+                  void submitRename();
+                }}
                 onKeyDown={handleKeyDown}
                 aria-label="Rename terminal"
               />

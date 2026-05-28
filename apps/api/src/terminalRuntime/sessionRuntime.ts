@@ -187,9 +187,7 @@ export const createSessionRuntime = ({
 
     const priorLifecycle = terminalRecord.lifecycleState;
     const hadPriorSession =
-      priorLifecycle === "stopped" ||
-      priorLifecycle === "exited" ||
-      priorLifecycle === "stale";
+      priorLifecycle === "stopped" || priorLifecycle === "exited" || priorLifecycle === "stale";
 
     if (hadPriorSession) {
       return {
@@ -441,7 +439,8 @@ export const createSessionRuntime = ({
     session.debugLog?.end();
     session.debugLog = undefined;
 
-    const endedAt = typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString();
+    const endedAt =
+      typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString();
     const resolvedReason =
       event.reason === "pty_exit" ||
       event.reason === "operator_stop" ||
@@ -562,8 +561,7 @@ export const createSessionRuntime = ({
     const terminal = terminals.get(session.terminalId);
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
-    const claudeBase =
-      TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
+    const claudeBase = TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
     let bootstrapCommand: string;
     if (session.tentacleId === SENTIPH_TENTACLE_ID) {
       const flags: string[] = [];
@@ -576,14 +574,18 @@ export const createSessionRuntime = ({
         // The inner quotes around the path tolerate spaces in stateDir.
         flags.push(`--append-system-prompt "$(cat "${sentiphSystemPromptPath}")"`);
       }
-      bootstrapCommand =
-        flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
+      bootstrapCommand = flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
     } else if (provider === "claude-code" && terminal?.isGroupLeader && sentiphMcpConfigPath) {
       const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
       const head = baseTokens[0] ?? "claude";
       const tail = baseTokens.slice(1);
       const resumeFlags = session.claudeBootstrapFlags ?? [];
-      bootstrapCommand = [head, ...resumeFlags, `--mcp-config "${sentiphMcpConfigPath}"`, ...tail].join(" ");
+      bootstrapCommand = [
+        head,
+        ...resumeFlags,
+        `--mcp-config "${sentiphMcpConfigPath}"`,
+        ...tail,
+      ].join(" ");
     } else if (provider === "claude-code") {
       const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
       const head = baseTokens[0] ?? "claude";
@@ -591,8 +593,7 @@ export const createSessionRuntime = ({
       const resumeFlags = session.claudeBootstrapFlags ?? [];
       bootstrapCommand = [head, ...resumeFlags, ...tail].join(" ");
     } else {
-      bootstrapCommand =
-        TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
+      bootstrapCommand = TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
     }
     if (session.claudeResumeBanner) {
       const banner = `\r\n${session.claudeResumeBanner}\r\n`;
@@ -713,7 +714,8 @@ export const createSessionRuntime = ({
       scrollbackChunks: [],
       scrollbackBytes: 0,
       pendingInput: "",
-      keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt) || tentacleId === SENTIPH_TENTACLE_ID,
+      keepAliveWithoutClients:
+        Boolean(terminalRecord?.initialPrompt) || tentacleId === SENTIPH_TENTACLE_ID,
     };
     if (debugLog) {
       session.debugLog = debugLog;

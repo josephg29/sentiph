@@ -40,10 +40,7 @@ import {
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
-import {
-  handleHookSessionStartRoute,
-  handleHookUserPromptSubmitRoute,
-} from "./hooksRoutes";
+import { handleHookSessionStartRoute, handleHookUserPromptSubmitRoute } from "./hooksRoutes";
 import { handleUiStateRoute } from "./miscRoutes";
 import {
   handleMonitorConfigRoute,
@@ -172,12 +169,15 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
   ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
   ["code-intel", [handleCodeIntelEventsRoute]],
   ["hooks", [handleHookSessionStartRoute, handleHookUserPromptSubmitRoute]],
-  ["conversations", [
-    handleConversationsCollectionRoute,
-    handleConversationSearchRoute,
-    handleConversationItemRoute,
-    handleConversationExportRoute,
-  ]],
+  [
+    "conversations",
+    [
+      handleConversationsCollectionRoute,
+      handleConversationSearchRoute,
+      handleConversationItemRoute,
+      handleConversationExportRoute,
+    ],
+  ],
   ["setup", [handleSetupRoute, handleSetupStepRoute]],
   ["prompts", [handlePromptItemRoute]],
   ["updates", [handleUpdatesStatusRoute, handleUpdatesApplyRoute, handleUpdatesRestartRoute]],
@@ -227,10 +227,7 @@ const serveStaticFile = async (
   }
 };
 
-const isAuthorizedRequest = (
-  request: IncomingMessage,
-  pairingService: PairingService,
-): boolean => {
+const isAuthorizedRequest = (request: IncomingMessage, pairingService: PairingService): boolean => {
   const hostHeader = readHeaderValue(request.headers.host);
   if (isLoopbackHostHeader(hostHeader)) {
     return true;

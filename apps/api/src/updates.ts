@@ -216,8 +216,7 @@ export const checkForUpdates = async (
   }
   if (installation.source === "git") {
     const { localSha, remoteSha, error } = await fetchGitRemoteHead(installation.packageRoot);
-    const updateAvailable =
-      !!localSha && !!remoteSha && localSha !== remoteSha;
+    const updateAvailable = !!localSha && !!remoteSha && localSha !== remoteSha;
     return {
       source: "git",
       currentVersion: installation.currentVersion,
@@ -278,12 +277,7 @@ export const applyUpdate = async (installation: InstallationInfo): Promise<Apply
     };
   }
   if (installation.source === "git") {
-    const pull = await runCommand(
-      "git",
-      ["pull", "--ff-only"],
-      installation.packageRoot,
-      60_000,
-    );
+    const pull = await runCommand("git", ["pull", "--ff-only"], installation.packageRoot, 60_000);
     if (pull.exitCode !== 0) {
       return {
         ok: false,
@@ -314,7 +308,8 @@ export const applyUpdate = async (installation: InstallationInfo): Promise<Apply
     return {
       ok: build.exitCode === 0,
       source: "git",
-      output: `${pull.stdout}\n${pull.stderr}\n${install.stdout}\n${install.stderr}\n${build.stdout}\n${build.stderr}`.trim(),
+      output:
+        `${pull.stdout}\n${pull.stderr}\n${install.stdout}\n${install.stderr}\n${build.stdout}\n${build.stderr}`.trim(),
       error:
         build.exitCode === 0
           ? null
@@ -353,4 +348,3 @@ export const scheduleSelfRestart = (installation: InstallationInfo, delayMs = 50
     process.exit(0);
   }, delayMs);
 };
-

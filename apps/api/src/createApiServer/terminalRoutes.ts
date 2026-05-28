@@ -153,7 +153,17 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       typeof bodyPayload.tentacleId === "string" &&
       bodyPayload.tentacleId.trim().length > 0
     ) {
-      createTerminalInput.tentacleId = bodyPayload.tentacleId.trim();
+      const tentacleId = bodyPayload.tentacleId.trim();
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(tentacleId)) {
+        writeJson(
+          response,
+          400,
+          { error: "tentacleId may only contain letters, digits, hyphens, and underscores (max 128 chars)." },
+          corsOrigin,
+        );
+        return true;
+      }
+      createTerminalInput.tentacleId = tentacleId;
     }
     if (
       bodyPayload &&
@@ -174,15 +184,42 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       typeof bodyPayload.worktreeId === "string" &&
       bodyPayload.worktreeId.trim().length > 0
     ) {
-      createTerminalInput.worktreeId = bodyPayload.worktreeId.trim();
+      const worktreeId = bodyPayload.worktreeId.trim();
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(worktreeId)) {
+        writeJson(
+          response,
+          400,
+          { error: "worktreeId may only contain letters, digits, hyphens, and underscores (max 128 chars)." },
+          corsOrigin,
+        );
+        return true;
+      }
+      createTerminalInput.worktreeId = worktreeId;
     }
 
+    const MAX_PROMPT_LENGTH = 65_536;
     if (
       bodyPayload &&
       typeof bodyPayload.initialPrompt === "string" &&
       bodyPayload.initialPrompt.trim().length > 0
     ) {
+      if (bodyPayload.initialPrompt.length > MAX_PROMPT_LENGTH) {
+        writeJson(response, 400, { error: "initialPrompt exceeds maximum allowed length." }, corsOrigin);
+        return true;
+      }
       createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
+    }
+
+    if (
+      bodyPayload &&
+      typeof bodyPayload.initialInputDraft === "string" &&
+      bodyPayload.initialInputDraft.trim().length > 0
+    ) {
+      if (bodyPayload.initialInputDraft.length > MAX_PROMPT_LENGTH) {
+        writeJson(response, 400, { error: "initialInputDraft exceeds maximum allowed length." }, corsOrigin);
+        return true;
+      }
+      createTerminalInput.initialInputDraft = bodyPayload.initialInputDraft.trim();
     }
 
     if (bodyPayload && bodyPayload.isGroupLeader === true) {

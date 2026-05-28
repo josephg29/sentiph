@@ -286,11 +286,7 @@ export const AgentPod = ({
           )}
 
           {agent.todoItems.length > 0 && (
-            <TodoList
-              items={agent.todoItems}
-              agentId={agent.tentacleId}
-              onToggle={onTodoToggle}
-            />
+            <TodoList items={agent.todoItems} agentId={agent.tentacleId} onToggle={onTodoToggle} />
           )}
 
           {agent.suggestedSkills.length > 0 && (

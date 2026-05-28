@@ -172,10 +172,7 @@ export const buildConversationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/conversations");
 };
 
-const buildConversationSearchUrl = (
-  query: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
+const buildConversationSearchUrl = (query: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const path = `/api/conversations/search?q=${encodeURIComponent(query)}`;
   if (!runtimeBaseUrl) {
     return path;
@@ -382,10 +379,7 @@ export const buildMetricsAggregateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) 
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/metrics/aggregate");
 };
 
-export const buildMetricsHeatmapUrl = (
-  days = 7,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
+export const buildMetricsHeatmapUrl = (days = 7, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const path = `/api/metrics/heatmap?days=${days}`;
   if (!runtimeBaseUrl) {
     return path;

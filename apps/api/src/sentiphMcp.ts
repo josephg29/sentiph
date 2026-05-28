@@ -8,7 +8,7 @@ const TOOLS = [
   {
     name: "list_terminals",
     description:
-      "List the child Claude Code agents you are orchestrating, with their current runtime state. Each entry is a full Claude Code session running in its own terminal. State \"idle\" means the agent has finished its previous turn and is ready to accept a new prompt. Always call this before spawn_terminal so you can reuse an idle agent via send_prompt instead of paying the spawn cost.",
+      'List the child Claude Code agents you are orchestrating, with their current runtime state. Each entry is a full Claude Code session running in its own terminal. State "idle" means the agent has finished its previous turn and is ready to accept a new prompt. Always call this before spawn_terminal so you can reuse an idle agent via send_prompt instead of paying the spawn cost.',
     inputSchema: {
       type: "object",
       properties: {},
@@ -128,10 +128,7 @@ const send = (message: unknown): void => {
   process.stdout.write(JSON.stringify(message) + "\n");
 };
 
-const handleToolCall = async (
-  name: string,
-  args: Record<string, unknown>,
-): Promise<string> => {
+const handleToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
   if (name === "list_terminals") {
     const res = await fetch(`${apiOrigin}/api/terminal-snapshots`);
     if (!res.ok) {
@@ -141,9 +138,7 @@ const handleToolCall = async (
 
     const children = parentTerminalId
       ? snapshots.filter((s) => s.parentTerminalId === parentTerminalId)
-      : snapshots.filter(
-          (s) => s.parentTerminalId !== undefined && s.parentTerminalId !== null,
-        );
+      : snapshots.filter((s) => s.parentTerminalId !== undefined && s.parentTerminalId !== null);
 
     if (children.length === 0) {
       return "No terminals yet. Use spawn_terminal to create one.";
@@ -205,14 +200,11 @@ const handleToolCall = async (
     }
 
     const data = `\x1b[200~${prompt}\x1b[201~\r`;
-    const res = await fetch(
-      `${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/input`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data }),
-      },
-    );
+    const res = await fetch(`${apiOrigin}/api/terminals/${encodeURIComponent(terminalId)}/input`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data }),
+    });
 
     if (res.status === 404) {
       return `Terminal "${terminalId}" not found or not active. Use list_terminals to see available terminals, or spawn_terminal to create a new one.`;
@@ -229,9 +221,7 @@ const handleToolCall = async (
     const prompt = String(args.prompt ?? "").trim();
     if (!prompt) throw new Error("prompt is required");
     if (prompt.length > MAX_PROMPT_LENGTH) {
-      throw new Error(
-        `prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`,
-      );
+      throw new Error(`prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters`);
     }
 
     const body: Record<string, unknown> = {
@@ -250,18 +240,10 @@ const handleToolCall = async (
     if (args.group_leader === true) {
       body.isGroupLeader = true;
     }
-    if (
-      args.model === "opus" ||
-      args.model === "sonnet" ||
-      args.model === "haiku"
-    ) {
+    if (args.model === "opus" || args.model === "sonnet" || args.model === "haiku") {
       body.model = args.model;
     }
-    if (
-      args.effort === "low" ||
-      args.effort === "medium" ||
-      args.effort === "high"
-    ) {
+    if (args.effort === "low" || args.effort === "medium" || args.effort === "high") {
       body.effort = args.effort;
     }
 
@@ -320,7 +302,9 @@ const handleToolCall = async (
       const tailLines = allLines.slice(-TAIL_LINES);
       const omitted = allLines.length - tailLines.length;
       const omittedNote =
-        omitted > 0 ? `[... ${omitted} earlier lines hidden — agent is actively working ...]\n` : "";
+        omitted > 0
+          ? `[... ${omitted} earlier lines hidden — agent is actively working ...]\n`
+          : "";
       const tail = tailLines.join("\n") || "No output yet.";
       return `${stateHeader}\n\n${omittedNote}${tail}\n\n[Stop here. Do not interpret this as a result. Call list_terminals and wait for idle, then call get_terminal_output again to read the completed output.]`;
     }
@@ -374,8 +358,7 @@ rl.on("line", (line) => {
 
   if (id === undefined) return;
 
-  const respond = (result: unknown) =>
-    send({ jsonrpc: "2.0", id, result });
+  const respond = (result: unknown) => send({ jsonrpc: "2.0", id, result });
 
   const respondError = (code: number, message: string) =>
     send({ jsonrpc: "2.0", id, error: { code, message } });

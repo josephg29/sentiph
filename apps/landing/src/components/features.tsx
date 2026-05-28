@@ -10,10 +10,12 @@ function TerminalLine({ line }: { line: string }) {
       <div>
         {line.split(/(●|running)/).map((part, i) =>
           part === "●" || part === "running" ? (
-            <span key={i} className="text-term-green">{part}</span>
+            <span key={i} className="text-term-green">
+              {part}
+            </span>
           ) : (
             <span key={i}>{part}</span>
-          )
+          ),
         )}
       </div>
     );
@@ -81,16 +83,17 @@ export function Features() {
 
         <div className="grid gap-px bg-border-mid sm:grid-cols-3">
           {ITEMS.map((item) => (
-            <article key={item.label} className="flex flex-col bg-canvas p-7 transition-colors hover:bg-surface-1">
+            <article
+              key={item.label}
+              className="flex flex-col bg-canvas p-7 transition-colors hover:bg-surface-1"
+            >
               <div className="text-[10px] font-bold uppercase tracking-control text-muted">
                 {item.label}
               </div>
               <h3 className="mt-2.5 text-[15px] font-bold tracking-control text-foreground">
                 {item.title}
               </h3>
-              <p className="mt-2.5 text-[13px] leading-relaxed text-secondary">
-                {item.body}
-              </p>
+              <p className="mt-2.5 text-[13px] leading-relaxed text-secondary">{item.body}</p>
 
               <div className="mt-auto pt-5">
                 <div className="border border-border-strong bg-surface-2">
