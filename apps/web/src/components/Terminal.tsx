@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { X } from "lucide-react";
-import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
-import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { replayTerminalHistory } from "../app/terminalReplay";
 import { wheelDeltaToScrollLines } from "../app/terminalWheel";
+import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
+import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 
 import "xterm/css/xterm.css";
 

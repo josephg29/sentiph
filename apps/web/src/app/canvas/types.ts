@@ -1,8 +1,4 @@
-import type {
-  AgentRuntimeState,
-  AgentState,
-  TentacleWorkspaceMode,
-} from "@sentiph/core";
+import type { AgentRuntimeState, AgentState, TentacleWorkspaceMode } from "@sentiph/core";
 
 export type GraphNode = {
   id: string;

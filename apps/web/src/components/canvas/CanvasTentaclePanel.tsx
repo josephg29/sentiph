@@ -6,10 +6,22 @@ import type { ConversationSessionSummary } from "../../app/types";
 import { AgentGlyph } from "../AgentGlyph";
 
 const AGENT_COLORS = [
-  "#6366f1", "#a78bfa", "#c084fc", "#e879f9",
-  "#fb7185", "#f472b6", "#34d399", "#2dd4bf",
-  "#22d3ee", "#38bdf8", "#60a5fa", "#818cf8",
-  "#f97316", "#fbbf24", "#a3e635", "#4ade80",
+  "#6366f1",
+  "#a78bfa",
+  "#c084fc",
+  "#e879f9",
+  "#fb7185",
+  "#f472b6",
+  "#34d399",
+  "#2dd4bf",
+  "#22d3ee",
+  "#38bdf8",
+  "#60a5fa",
+  "#818cf8",
+  "#f97316",
+  "#fbbf24",
+  "#a3e635",
+  "#4ade80",
 ];
 
 function hashStr(str: string): number {
@@ -60,7 +72,10 @@ export const CanvasTentaclePanel = ({
   onCreateAgent,
   onNavigateToConversation,
 }: CanvasTentaclePanelProps) => {
-  const color = useMemo(() => deriveColor(node.tentacleId, node.color), [node.tentacleId, node.color]);
+  const color = useMemo(
+    () => deriveColor(node.tentacleId, node.color),
+    [node.tentacleId, node.color],
+  );
 
   return (
     <div
@@ -84,10 +99,7 @@ export const CanvasTentaclePanel = ({
       <div className="detail-content">
         <div className="detail-identity">
           <div className="detail-glyph">
-            <AgentGlyph
-              color={color}
-              scale={2}
-            />
+            <AgentGlyph color={color} scale={2} />
           </div>
           <div className="detail-identity-info">
             <div className="detail-name">{node.label}</div>

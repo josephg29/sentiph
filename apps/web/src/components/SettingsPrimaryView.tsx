@@ -2,9 +2,9 @@ import {
   TERMINAL_COMPLETION_SOUND_OPTIONS,
   type TerminalCompletionSoundId,
 } from "../app/notificationSounds";
+import { UpdatesSettingsSection } from "./UpdatesSettingsSection";
 import { ActionButton } from "./ui/ActionButton";
 import { SettingsToggle } from "./ui/SettingsToggle";
-import { UpdatesSettingsSection } from "./UpdatesSettingsSection";
 
 type SettingsPrimaryViewProps = {
   terminalCompletionSound: TerminalCompletionSoundId;

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sentiph — Project Report Card</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151f; --panel-2:#161b27; --line:#222a3a;
+    --ink:#e8edf6; --muted:#9aa6bd; --faint:#6b7689;
+    --a:#34d399; --b:#60a5fa; --c:#fbbf24; --d:#f87171;
+    --accent:#7c8cff; --accent-2:#34d399;
+    --shadow:0 12px 40px rgba(0,0,0,.45);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(124,140,255,.10),transparent 60%),
+               radial-gradient(900px 500px at -10% 110%,rgba(52,211,153,.08),transparent 55%),
+               var(--bg);
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5; padding:48px 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto}
+
+  /* Header */
+  .head{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+    padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:34px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:46px;height:46px;border-radius:12px;flex:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:grid;place-items:center;font-weight:800;color:#0b0e14;font-size:20px;
+    box-shadow:0 6px 20px rgba(124,140,255,.35);
+  }
+  h1{font-size:24px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .meta{color:var(--faint);font-size:12px;text-align:right}
+  .meta b{color:var(--muted)}
+
+  /* GPA card */
+  .gpa{
+    display:flex;align-items:center;gap:30px;flex-wrap:wrap;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:18px;padding:26px 30px;margin-bottom:34px;
+    box-shadow:var(--shadow);
+  }
+  .score-ring{position:relative;width:128px;height:128px;flex:none}
+  .score-ring svg{transform:rotate(-90deg)}
+  .score-ring .val{
+    position:absolute;inset:0;display:grid;place-content:center;text-align:center;
+  }
+  .score-ring .grade{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .score-ring .num{font-size:12px;color:var(--muted);margin-top:4px}
+  .gpa-copy{flex:1;min-width:240px}
+  .gpa-copy h2{margin:0 0 6px;font-size:17px}
+  .gpa-copy p{margin:0;color:var(--muted);font-size:13.5px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .chip{font-size:11.5px;color:var(--muted);border:1px solid var(--line);
+    background:var(--panel);border-radius:999px;padding:4px 11px}
+  .chip b{color:var(--ink)}
+
+  /* Grid of aspects */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}.gpa{justify-content:center;text-align:center}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px 18px 16px;
+    transition:transform .15s ease,border-color .15s ease;position:relative;overflow:hidden;
+  }
+  .card:hover{transform:translateY(-2px);border-color:#2f3a52}
+  .card .top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+  .card h3{margin:0;font-size:14.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .ico{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px;flex:none;
+    background:var(--panel-2);border:1px solid var(--line)}
+  .badge{font-weight:800;font-size:15px;padding:3px 11px;border-radius:9px;letter-spacing:.01em}
+  .bar{height:7px;border-radius:99px;background:#0c1019;border:1px solid var(--line);overflow:hidden;margin:4px 0 10px}
+  .bar > span{display:block;height:100%;border-radius:99px}
+  .card p{margin:0;color:var(--muted);font-size:12.7px}
+  .scoreline{font-size:11.5px;color:var(--faint);margin-top:9px}
+
+  .gA{color:var(--a)} .gB{color:var(--b)} .gC{color:var(--c)} .gD{color:var(--d)}
+  .bgA{background:rgba(52,211,153,.12)} .bgB{background:rgba(96,165,250,.12)}
+  .bgC{background:rgba(251,191,36,.12)} .bgD{background:rgba(248,113,113,.12)}
+  .fA{background:linear-gradient(90deg,#10b981,#34d399)}
+  .fB{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+  .fC{background:linear-gradient(90deg,#d97706,#fbbf24)}
+  .fD{background:linear-gradient(90deg,#dc2626,#f87171)}
+
+  /* Footer notes */
+  .notes{margin-top:34px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px 24px}
+  .notes h4{margin:0 0 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px 30px}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .note{font-size:12.8px;color:var(--muted);display:flex;gap:9px;padding:3px 0}
+  .note .m{flex:none;font-weight:700}
+  .plus .m{color:var(--a)} .minus .m{color:var(--c)}
+  .foot{text-align:center;color:var(--faint);font-size:11.5px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>Sentiph — Project Report Card</h1>
+        <div class="sub">Multi-agent orchestration for Claude Code · TypeScript monorepo</div>
+      </div>
+    </div>
+    <div class="meta">
+      Branch <b>demo/refactor</b><br/>
+      Assessed <b>2026-06-01</b> · 374 commits · v0.1.0
+    </div>
+  </div>
+
+  <!-- Overall -->
+  <div class="gpa">
+    <div class="score-ring">
+      <svg width="128" height="128" viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r="56" fill="none" stroke="#1c2434" stroke-width="11"/>
+        <circle cx="64" cy="64" r="56" fill="none" stroke="url(#g)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="63.3"/>
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#34d399"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="val">
+        <div class="grade gA">A−</div>
+        <div class="num">8.2 / 10</div>
+      </div>
+    </div>
+    <div class="gpa-copy">
+      <h2>Production-minded, well-tested, cleanly layered</h2>
+      <p>A mature local-first developer tool with strict typing, a fast and broad test suite, real
+      security hardening, and unusually thorough documentation. Main drag: lint/tooling hygiene
+      (a mis-scoped Biome config floods 484 false errors) and a few oversized modules.</p>
+      <div class="chips">
+        <span class="chip"><b>202</b> tests passing</span>
+        <span class="chip"><b>~30k</b> LOC</span>
+        <span class="chip"><b>13</b> doc pages</span>
+        <span class="chip"><b>strict</b> TS</span>
+        <span class="chip"><b>1</b> TODO in src</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aspects -->
+  <div class="grid">
+
+    <!-- 1 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🏛️</span>Architecture &amp; Design</h3>
+        <span class="badge gA bgA">A</span>
+      </div>
+      <div class="bar"><span class="fA" style="width:90%"></span></div>
+      <p>Clean pnpm monorepo: <code>api</code> / <code>web</code> / framework-agnostic <code>core</code>
+      with hexagonal layering (domain · ports · adapters · application). Clear infrastructure boundaries.</p>
+      <div class="scoreline">9.0 / 10 · separation of concerns is exemplary</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🛡️</span>Security</h3>
+        <span class="badge gA bgA">A</span>
+      </div>
+      <div class="bar"><span class="fA" style="width:90%"></span></div>
+      <p>Loopback bind by default, dedicated Host/Origin guard on HTTP &amp; WS upgrades, explicit
+      <code>allowRemoteAccess</code> opt-in, careful CORS+Vary handling, recent CVE patching via pnpm overrides.</p>
+      <div class="scoreline">9.0 / 10 · thoughtful threat model for a local tool</div>
+    </div>
+
+    <!-- 3 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🔠</span>Type Safety</h3>
+        <span class="badge gA bgA">A</span>
+      </div>
+      <div class="bar"><span class="fA" style="width:91%"></span></div>
+      <p>Strictest practical config: <code>strict</code>, <code>noUncheckedIndexedAccess</code>,
+      <code>exactOptionalPropertyTypes</code>, <code>isolatedModules</code>. <code>tsc --noEmit</code> gates every package.</p>
+      <div class="scoreline">9.1 / 10 · few projects opt into this much rigor</div>
+    </div>
+
+    <!-- 4 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">📚</span>Documentation</h3>
+        <span class="badge gA bgA">A</span>
+      </div>
+      <div class="bar"><span class="fA" style="width:89%"></span></div>
+      <p>13 structured docs (getting-started · guides · concepts · reference), an accurate
+      architecture-led README, plus AGENTS.md, CONTRIBUTING.md and MIT LICENSE.</p>
+      <div class="scoreline">8.9 / 10 · README matches the actual code</div>
+    </div>
+
+    <!-- 5 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🧪</span>Testing</h3>
+        <span class="badge gB bgB">B+</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:82%"></span></div>
+      <p>202 tests across 26 files pass in ~3s — runtime, usage parsing, protocol, and React UI all covered.
+      No enforced coverage gate and no end-to-end layer in CI.</p>
+      <div class="scoreline">8.2 / 10 · strong breadth, missing E2E + coverage floor</div>
+    </div>
+
+    <!-- 6 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">📦</span>Dependencies</h3>
+        <span class="badge gB bgB">B+</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:82%"></span></div>
+      <p>Lean runtime deps (<code>node-pty</code>, <code>ws</code>), pinned <code>pnpm@10.4.1</code>,
+      Node 22+ engine guard, frozen-lockfile CI, and security overrides for vite/postcss/picomatch.</p>
+      <div class="scoreline">8.2 / 10 · disciplined and minimal</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🔧</span>Tooling &amp; DX</h3>
+        <span class="badge gB bgB">B</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:78%"></span></div>
+      <p>Biome + Vitest + Vite + knip + a custom dev orchestrator script. But <code>biome.json</code>
+      doesn't ignore <code>.sentiph/</code> state &amp; marketing HTML, so <code>pnpm lint</code> reports 493 errors —
+      484 of them noise from generated files.</p>
+      <div class="scoreline">7.8 / 10 · great stack, mis-scoped linter config</div>
+    </div>
+
+    <!-- 8 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🧬</span>Maintainability</h3>
+        <span class="badge gB bgB">B+</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:80%"></span></div>
+      <p>Mostly small, focused modules; only 1 TODO in all source. A few hotspots exceed the 800-line
+      guideline — <code>CanvasPrimaryView.tsx</code> (1409), <code>terminalRuntime.ts</code> (1256).</p>
+      <div class="scoreline">8.0 / 10 · trim the large files to stay clean</div>
+    </div>
+
+    <!-- 9 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">⚙️</span>CI / CD</h3>
+        <span class="badge gB bgB">B</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:74%"></span></div>
+      <p>GitHub Actions runs lint → test → build on every PR and on main, with cache + frozen lockfile.
+      Single workflow only; lint step currently fails on state files, and there's no release/coverage automation.</p>
+      <div class="scoreline">7.4 / 10 · solid gate, pipeline currently red on lint</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="card">
+      <div class="top">
+        <h3><span class="ico">🎨</span>Code Quality &amp; Style</h3>
+        <span class="badge gB bgB">B</span>
+      </div>
+      <div class="bar"><span class="fB" style="width:76%"></span></div>
+      <p>Consistent, well-named, immutability-friendly code with JSDoc on exports. Only 9 genuine
+      lint findings in source (intentional control-chars in ANSI/terminal regexes). Conventional-commit history.</p>
+      <div class="scoreline">7.6 / 10 · clean; resolve or suppress the 9 warnings</div>
+    </div>
+
+  </div>
+
+  <!-- Teacher's notes -->
+  <div class="notes">
+    <h4>Examiner's Notes</h4>
+    <div class="cols">
+      <div class="note plus"><span class="m">＋</span>Framework-agnostic <code>core</code> with no React/HTTP/FS coupling — textbook clean architecture.</div>
+      <div class="note minus"><span class="m">→</span>Add <code>.sentiph</code> &amp; <code>*.html</code> to <code>biome.json</code> ignores to clear 484 phantom lint errors and turn CI green.</div>
+      <div class="note plus"><span class="m">＋</span>Security guard is real code, not a README claim — Host/Origin checks with an explicit remote opt-in.</div>
+      <div class="note minus"><span class="m">→</span>Split <code>CanvasPrimaryView.tsx</code> (1409) and <code>terminalRuntime.ts</code> (1256) below the 800-line line.</div>
+      <div class="note plus"><span class="m">＋</span>202 fast tests and strict TS give a strong refactor-safety net.</div>
+      <div class="note minus"><span class="m">→</span>Add an E2E layer (Playwright) and a coverage threshold to CI to lock in quality.</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Generated from static analysis of branch <b>demo/refactor</b> · scores are heuristic, weighted toward
+    architecture, testing, security &amp; type safety.
+  </div>
+
+</div>
+</body>
+</html>

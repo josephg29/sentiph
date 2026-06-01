@@ -1,5 +1,5 @@
-import { Star } from "lucide-react";
 import { SentiphMark } from "@/components/sentiph-mark";
+import { Star } from "lucide-react";
 
 async function getStarCount(): Promise<number | null> {
   try {

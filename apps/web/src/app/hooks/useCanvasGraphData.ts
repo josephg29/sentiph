@@ -14,9 +14,9 @@ export const SENTIPH_ID = "__sentiph__";
 export const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
 
 const getAccentPrimary = (): string =>
-  (typeof document !== "undefined"
+  typeof document !== "undefined"
     ? getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim()
-    : "#6366f1");
+    : "#6366f1";
 
 type UseCanvasGraphDataOptions = {
   columns: TerminalView;
@@ -201,4 +201,3 @@ export const useCanvasGraphData = ({
     refresh,
   };
 };
-

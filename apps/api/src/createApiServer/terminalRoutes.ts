@@ -158,7 +158,10 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
         writeJson(
           response,
           400,
-          { error: "tentacleId may only contain letters, digits, hyphens, and underscores (max 128 chars)." },
+          {
+            error:
+              "tentacleId may only contain letters, digits, hyphens, and underscores (max 128 chars).",
+          },
           corsOrigin,
         );
         return true;
@@ -189,7 +192,10 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
         writeJson(
           response,
           400,
-          { error: "worktreeId may only contain letters, digits, hyphens, and underscores (max 128 chars)." },
+          {
+            error:
+              "worktreeId may only contain letters, digits, hyphens, and underscores (max 128 chars).",
+          },
           corsOrigin,
         );
         return true;
@@ -204,7 +210,12 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.initialPrompt.trim().length > 0
     ) {
       if (bodyPayload.initialPrompt.length > MAX_PROMPT_LENGTH) {
-        writeJson(response, 400, { error: "initialPrompt exceeds maximum allowed length." }, corsOrigin);
+        writeJson(
+          response,
+          400,
+          { error: "initialPrompt exceeds maximum allowed length." },
+          corsOrigin,
+        );
         return true;
       }
       createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
@@ -216,7 +227,12 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.initialInputDraft.trim().length > 0
     ) {
       if (bodyPayload.initialInputDraft.length > MAX_PROMPT_LENGTH) {
-        writeJson(response, 400, { error: "initialInputDraft exceeds maximum allowed length." }, corsOrigin);
+        writeJson(
+          response,
+          400,
+          { error: "initialInputDraft exceeds maximum allowed length." },
+          corsOrigin,
+        );
         return true;
       }
       createTerminalInput.initialInputDraft = bodyPayload.initialInputDraft.trim();

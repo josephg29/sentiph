@@ -18,5 +18,18 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./tests/setup.ts",
     include: ["tests/**/*.test.tsx"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "json-summary", "html"],
+      include: ["src/**"],
+      // Enforced ratchet floors: set just below the current measured coverage so
+      // the suite can never regress. Raise these as coverage improves.
+      thresholds: {
+        statements: 50,
+        branches: 64,
+        functions: 48,
+        lines: 50,
+      },
+    },
   },
 } as never);

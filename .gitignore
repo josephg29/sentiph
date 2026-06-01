@@ -16,16 +16,23 @@
 /.claude
 /.codex
 /.octogent
-/.sentiph
+.sentiph/
+**/.sentiph/
 /context
 
 # Playwright MCP test artifacts
 .playwright-mcp/
 
-# Root-level debug screenshots
+# Playwright E2E output
+**/playwright-report/
+**/test-results/
+
+# Debug / crawl screenshots
 /[0-9][0-9]-*.png
-/sentiph-*.png
-/mantis-*.png
+sentiph-*.png
+mantis-*.png
+**/*-wiki-*.png
+**/wiki-*.png
 
 # Local env files
 .env

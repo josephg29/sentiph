@@ -943,7 +943,6 @@ export const CanvasPrimaryView = ({
     return `${openIds}::${terminalsPanelWidth ?? "auto"}`;
   }, [openTerminals, terminalsPanelWidth]);
 
-
   return (
     <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
       <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
@@ -1135,7 +1134,6 @@ export const CanvasPrimaryView = ({
             })}
           </div>
         )}
-
       </div>
 
       {hasPanels && (

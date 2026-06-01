@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join, resolve, sep } from "node:path";
 
+import type { AgentMetricsStore } from "../agentMetricsStore";
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
-import type { AgentMetricsStore } from "../agentMetricsStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
@@ -17,14 +17,14 @@ import {
   handleConversationSearchRoute,
   handleConversationsCollectionRoute,
 } from "./conversationRoutes";
+import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
+import { handleHookSessionStartRoute, handleHookUserPromptSubmitRoute } from "./hooksRoutes";
 import {
   handleMetricsAggregateRoute,
   handleMetricsEventsRoute,
   handleMetricsHeatmapRoute,
   handleMetricsSummariesRoute,
 } from "./metricsRoutes";
-import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
-import { handleHookSessionStartRoute, handleHookUserPromptSubmitRoute } from "./hooksRoutes";
 import { handleUiStateRoute } from "./miscRoutes";
 import { createPairingRoutes } from "./pairingRoutes";
 import { handlePromptItemRoute } from "./promptRoutes";

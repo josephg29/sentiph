@@ -168,7 +168,13 @@ export const OctopusNode = ({
       style={{ cursor: "grab" }}
     >
       {/* Invisible hit area for pointer events */}
-      <rect x={-glyphSize / 2} y={-glyphSize / 2} width={glyphSize} height={glyphSize} fill="transparent" />
+      <rect
+        x={-glyphSize / 2}
+        y={-glyphSize / 2}
+        width={glyphSize}
+        height={glyphSize}
+        fill="transparent"
+      />
 
       {/* Edges — highlight when either endpoint is selected */}
       {connectedNodes.map((target) => {
@@ -216,10 +222,7 @@ export const OctopusNode = ({
             pointerEvents: "none",
           }}
         >
-          <AgentGlyph
-            color={isSentiph ? "#cc0000" : color}
-            scale={isSentiph ? 1.5 : GLYPH_SCALE}
-          />
+          <AgentGlyph color={isSentiph ? "#cc0000" : color} scale={isSentiph ? 1.5 : GLYPH_SCALE} />
         </div>
       </foreignObject>
 

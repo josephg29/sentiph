@@ -351,11 +351,7 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
 
   mkdirSync(newStateDir, { recursive: true });
 
-  const stateFiles = [
-    "tentacles.json",
-    "claude-usage-snapshot.json",
-    "runtime.json",
-  ];
+  const stateFiles = ["tentacles.json", "claude-usage-snapshot.json", "runtime.json"];
 
   let migrated = 0;
   for (const file of stateFiles) {

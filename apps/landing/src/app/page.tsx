@@ -1,6 +1,6 @@
-import { Hero } from "@/components/hero";
-import { Features } from "@/components/features";
 import { DemoUI } from "@/components/demo-ui";
+import { Features } from "@/components/features";
+import { Hero } from "@/components/hero";
 import { Install } from "@/components/install";
 import { StarCta } from "@/components/star-cta";
 

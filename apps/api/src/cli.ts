@@ -4,8 +4,8 @@ import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
 
 import {
-  ensureSentiphGitignoreEntry,
   ensureProjectScaffold,
+  ensureSentiphGitignoreEntry,
   loadProjectConfig,
   loadProjectsRegistry,
   migrateStateToGlobal,

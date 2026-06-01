@@ -189,11 +189,7 @@ export const RuntimeStatusStrip = ({
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
       <div className="console-status-main">
-        <AgentGlyph
-          className="console-status-agent-icon"
-          color="#cc0000"
-          scale={0.8}
-        />
+        <AgentGlyph className="console-status-agent-icon" color="#cc0000" scale={0.8} />
         <span className="console-status-brand">sentiph</span>
         <span className="console-status-sub">open source · MIT</span>
       </div>

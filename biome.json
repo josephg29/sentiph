@@ -26,7 +26,10 @@
       ".vercel",
       "**/.next",
       "*.html",
-      "static"
+      "static",
+      "**/coverage",
+      "**/playwright-report",
+      "**/test-results"
     ]
   }
 }

@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
 
+import { createAgentMetricsStore } from "./agentMetricsStore";
 import { scanClaudeUsageChart } from "./claudeSessionScanner";
 import {
   invalidateUsageCache as invalidateUsageCacheDefault,
@@ -8,7 +9,6 @@ import {
   readClaudeOauthUsageSnapshot as readClaudeOauthUsageSnapshotDefault,
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
 } from "./claudeUsage";
-import { createAgentMetricsStore } from "./agentMetricsStore";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";

@@ -1,6 +1,7 @@
 import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@sentiph/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAgentGitLifecycle } from "./app/hooks/useAgentGitLifecycle";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { SENTIPH_ID } from "./app/hooks/useCanvasGraphData";
 import { useClaudeUsagePolling } from "./app/hooks/useClaudeUsagePolling";
@@ -10,7 +11,6 @@ import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
-import { useAgentGitLifecycle } from "./app/hooks/useAgentGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";

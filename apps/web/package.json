@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@sentiph/core": "workspace:*",
@@ -21,6 +24,7 @@
     "xterm-addon-unicode11": "^0.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/d3-force": "^3.0.10",

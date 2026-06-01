@@ -13,8 +13,7 @@ type PrimaryViewRouterProps = {
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
 };
 
-const isCanvasNav = (nav: PrimaryNavIndex) =>
-  nav !== 3 && nav !== 8 && nav !== 9;
+const isCanvasNav = (nav: PrimaryNavIndex) => nav !== 3 && nav !== 8 && nav !== 9;
 
 export const PrimaryViewRouter = ({
   activePrimaryNav,
