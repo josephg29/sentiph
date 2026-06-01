@@ -1,16 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  Check as CheckIcon,
-  Hexagon,
-  ListTodo,
-  Maximize,
-  Pause,
-  Play,
-  RefreshCw,
-  Terminal as TerminalIcon,
-  Trash2,
-} from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { SENTIPH_ID, useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
@@ -22,27 +11,21 @@ import {
   createTerminalRuntimeStateStore,
 } from "../app/terminalRuntimeStateStore";
 import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
-import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
-import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
-import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
-import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
-import { OctopusNode } from "./canvas/OctopusNode"; // TODO: rename to AgentNode
-import { SessionNode } from "./canvas/SessionNode";
-
-type ContextMenuState =
-  | { kind: "canvas"; x: number; y: number }
-  | { kind: "tentacle"; x: number; y: number; tentacleId: string }
-  | { kind: "sentiph"; x: number; y: number }
-  | {
-      kind: "active-session";
-      x: number;
-      y: number;
-      nodeId: string;
-      tentacleId: string;
-      sessionId: string;
-      label: string;
-      workspaceMode?: string;
-    };
+import { CanvasContextMenu } from "./CanvasPrimaryView/CanvasContextMenu";
+import { CanvasDialogs } from "./CanvasPrimaryView/CanvasDialogs";
+import { CanvasGraphLayer } from "./CanvasPrimaryView/CanvasGraphLayer";
+import { CanvasTerminalsPanel } from "./CanvasPrimaryView/CanvasTerminalsPanel";
+import { CanvasToolbar } from "./CanvasPrimaryView/CanvasToolbar";
+import {
+  ACTIVE_SESSION_RADIUS,
+  CLICK_THRESHOLD,
+  buildActiveSessionNodeId,
+  buildTentacleNodeId,
+} from "./CanvasPrimaryView/helpers";
+import type { ContextMenuState } from "./CanvasPrimaryView/types";
+import { useCanvasContextMenu } from "./CanvasPrimaryView/useCanvasContextMenu";
+import { usePanelFocusScroll } from "./CanvasPrimaryView/usePanelFocusScroll";
+import { useTerminalsPanelResize } from "./CanvasPrimaryView/useTerminalsPanelResize";
 
 type CanvasPrimaryViewProps = {
   columns: TerminalView;
@@ -78,100 +61,6 @@ type CanvasPrimaryViewProps = {
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
   onRefreshColumns?: () => Promise<void> | void;
 };
-
-const CLICK_THRESHOLD = 5;
-const GRAPH_MIN_WIDTH = 300;
-const TERMINAL_MIN_WIDTH = 370;
-const ACTIVE_SESSION_RADIUS = 12;
-const buildActiveSessionNodeId = (terminalId: string) => `a:${terminalId}`;
-const buildTentacleNodeId = (tentacleId: string) => `t:${tentacleId}`;
-
-const buildCanvasEdgePath = (
-  source: GraphNode,
-  target: GraphNode,
-  edgeIndex: number,
-  edgeCount: number,
-): string => {
-  const dx = target.x - source.x;
-  const dy = target.y - source.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist < 1) return "";
-
-  const shortenSourceBy = source.radius + 6;
-  const shortenTargetBy = target.radius + 6;
-  const startRatio = Math.min(1, shortenSourceBy / dist);
-  const endRatio = Math.max(0, (dist - shortenTargetBy) / dist);
-  const sx = source.x + dx * startRatio;
-  const sy = source.y + dy * startRatio;
-  const tx = source.x + dx * endRatio;
-  const ty = source.y + dy * endRatio;
-
-  const curvature = edgeCount <= 1 ? 0.18 : (edgeIndex / (edgeCount - 1) - 0.5) * 1.2;
-  const offsetRatio = edgeCount <= 1 ? 0.16 : 0.18;
-  const baseOffset = Math.max(16, Math.min(32, dist * offsetRatio));
-  const offsetX = (-dy / dist) * curvature * baseOffset;
-  const offsetY = (dx / dist) * curvature * baseOffset;
-  const cpx = (sx + tx) / 2 + offsetX;
-  const cpy = (sy + ty) / 2 + offsetY;
-
-  return `M ${sx} ${sy} Q ${cpx} ${cpy} ${tx} ${ty}`;
-};
-
-const isEdgeActivityVisible = (target: GraphNode): boolean =>
-  target.type === "active-session" &&
-  target.hasUserPrompt !== false &&
-  target.agentRuntimeState !== undefined &&
-  target.agentRuntimeState !== "idle";
-
-const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) =>
-  [0, 1, 2].flatMap((index) => [
-    <circle
-      key={`${keyPrefix}-trail-${index}`}
-      className="canvas-edge-activity-dot canvas-edge-activity-dot--trail"
-      r={4.6}
-      fill={color}
-      opacity={Math.max(0.14, 0.28 - index * 0.04)}
-    >
-      <animateMotion
-        path={path}
-        begin={`${index * 0.62}s`}
-        dur="1.9s"
-        repeatCount="indefinite"
-        rotate="auto"
-      />
-      <animate
-        attributeName="r"
-        values="3.8;5.2;3.8"
-        dur="1.9s"
-        begin={`${index * 0.62}s`}
-        repeatCount="indefinite"
-      />
-    </circle>,
-    <circle
-      key={`${keyPrefix}-dot-${index}`}
-      className="canvas-edge-activity-dot"
-      r={3.2}
-      fill="#fff4cc"
-      stroke={color}
-      strokeWidth={1.2}
-      opacity={Math.max(0.7, 1 - index * 0.08)}
-    >
-      <animateMotion
-        path={path}
-        begin={`${index * 0.62}s`}
-        dur="1.9s"
-        repeatCount="indefinite"
-        rotate="auto"
-      />
-      <animate
-        attributeName="r"
-        values="2.8;3.8;2.8"
-        dur="1.9s"
-        begin={`${index * 0.62}s`}
-        repeatCount="indefinite"
-      />
-    </circle>,
-  ]);
 
 export const CanvasPrimaryView = ({
   columns,
@@ -220,11 +109,9 @@ export const CanvasPrimaryView = ({
   const sentiphTerminalInFlight = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeClickedRef = useRef(false);
-  const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
-  const lastFocusedPanelIdRef = useRef<string | null>(null);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -587,52 +474,17 @@ export const CanvasPrimaryView = ({
     [columns, onCloseActiveSession],
   );
 
-  // Divider drag handlers
-  const handleDividerPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      // Measure the actual rendered width of the terminals panel (works whether CSS- or inline-sized)
-      const panelEl = (e.target as HTMLElement).nextElementSibling as HTMLElement | null;
-      const currentWidth = panelEl?.clientWidth ?? terminalsPanelWidth ?? 600;
-      dividerDragRef.current = { startX: e.clientX, startWidth: currentWidth };
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [terminalsPanelWidth],
-  );
-
-  const handleDividerPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dividerDragRef.current;
-    if (!drag) return;
-    const containerWidth = containerRef.current?.clientWidth ?? 1200;
-    // Dragging left → terminals grow, dragging right → terminals shrink
-    const delta = drag.startX - e.clientX;
-    const newWidth = Math.max(
-      TERMINAL_MIN_WIDTH,
-      Math.min(containerWidth - GRAPH_MIN_WIDTH - 6, drag.startWidth + delta),
-    );
-    setTerminalsPanelWidth(newWidth);
-  }, []);
-
-  const handleDividerPointerUp = useCallback(() => {
-    dividerDragRef.current = null;
-  }, []);
-
-  // Convert vertical wheel to horizontal scroll only when hovering terminal headers
-  useEffect(() => {
-    if (!isHydratingTerminals && openTerminalCount === 0 && openTentacleCount === 0) return;
-    const panel = terminalsPanelRef.current;
-    if (!panel) return;
-    const handler = (e: WheelEvent) => {
-      const target = e.target as Element | null;
-      if (!target?.closest(".canvas-terminal-column-header")) return;
-      if (e.deltaY !== 0 && e.deltaX === 0) {
-        e.preventDefault();
-        panel.scrollLeft += e.deltaY;
-      }
-    };
-    panel.addEventListener("wheel", handler, { passive: false });
-    return () => panel.removeEventListener("wheel", handler);
-  }, [isHydratingTerminals, openTerminalCount, openTentacleCount]);
+  // Divider drag + wheel-scroll handlers for the terminals panel
+  const { handleDividerPointerDown, handleDividerPointerMove, handleDividerPointerUp } =
+    useTerminalsPanelResize({
+      containerRef,
+      terminalsPanelRef,
+      terminalsPanelWidth,
+      isHydratingTerminals,
+      openTerminalCount,
+      openTentacleCount,
+      setTerminalsPanelWidth,
+    });
 
   const handleSvgPointerUp = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
@@ -669,84 +521,13 @@ export const CanvasPrimaryView = ({
     }
   }, []);
 
-  // Stable ref for nodesById so native listener always sees latest data
-  const nodesByIdRef = useRef(nodesById);
-  nodesByIdRef.current = nodesById;
-
-  // Stable refs so the native listener always sees the latest callbacks
-  const onNavigateRef = useRef(onNavigateToConversation);
-  onNavigateRef.current = onNavigateToConversation;
-
   // Native contextmenu listener — must be native to reliably preventDefault
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    const handler = (e: MouseEvent) => {
-      let el = e.target as Element | null;
-      let nodeId: string | null = null;
-      while (el && el !== svg) {
-        const id = el.getAttribute("data-node-id");
-        if (id) {
-          nodeId = id;
-          break;
-        }
-        el = el.parentElement;
-      }
-      if (!nodeId) {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({ kind: "canvas", x: e.clientX, y: e.clientY });
-        return;
-      }
-      const node = nodesByIdRef.current.get(nodeId);
-      if (!node) return;
-
-      if (node.type === "sentiph") {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({ kind: "sentiph", x: e.clientX, y: e.clientY });
-        return;
-      }
-
-      if (node.type === "tentacle") {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({
-          kind: "tentacle",
-          x: e.clientX,
-          y: e.clientY,
-          tentacleId: node.tentacleId,
-        });
-        return;
-      }
-
-      if (node.type === "inactive-session" && node.sessionId) {
-        e.preventDefault();
-        e.stopPropagation();
-        onNavigateRef.current?.(node.sessionId);
-        return;
-      }
-
-      if (node.type === "active-session" && node.sessionId) {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({
-          kind: "active-session",
-          x: e.clientX,
-          y: e.clientY,
-          nodeId: node.id,
-          tentacleId: node.tentacleId,
-          sessionId: node.sessionId,
-          label: node.label,
-          ...(node.workspaceMode ? { workspaceMode: node.workspaceMode } : {}),
-        });
-      }
-    };
-
-    svg.addEventListener("contextmenu", handler);
-    return () => svg.removeEventListener("contextmenu", handler);
-  }, [svgRef]);
+  useCanvasContextMenu({
+    svgRef,
+    nodesById,
+    onNavigateToConversation,
+    setContextMenu,
+  });
 
   const handleSentiphAction = useCallback(
     (action: string) => {
@@ -820,40 +601,7 @@ export const CanvasPrimaryView = ({
     });
   }, [isUiStateHydrated, openTerminals, recentlyCreatedTerminal, resolveActiveSessionNode]);
 
-  useEffect(() => {
-    if (!selectedNodeId) {
-      lastFocusedPanelIdRef.current = null;
-      return;
-    }
-    if (!openTerminals.has(selectedNodeId) && !openTentacles.has(selectedNodeId)) {
-      if (lastFocusedPanelIdRef.current === selectedNodeId) {
-        lastFocusedPanelIdRef.current = null;
-      }
-      return;
-    }
-    if (lastFocusedPanelIdRef.current === selectedNodeId) {
-      return;
-    }
-
-    const panel = panelRefs.current.get(selectedNodeId);
-    if (!panel) {
-      return;
-    }
-
-    lastFocusedPanelIdRef.current = selectedNodeId;
-    const rafId = window.requestAnimationFrame(() => {
-      panel.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "nearest",
-      });
-      panel.focus({ preventScroll: true });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(rafId);
-    };
-  }, [selectedNodeId, openTerminals, openTentacles]);
+  usePanelFocusScroll({ selectedNodeId, openTerminals, openTentacles, panelRefs });
 
   // Separate tentacle and session nodes for render order
   const tentacleNodes = simulatedNodes.filter((n) => n.type === "tentacle" || n.type === "sentiph");
@@ -946,462 +694,96 @@ export const CanvasPrimaryView = ({
   return (
     <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
       <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
-        <svg
-          aria-label="Canvas graph"
-          ref={svgRef}
-          className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
-          onPointerDown={handleCanvasPointerDown}
-          onPointerMove={handleSvgPointerMove}
-          onPointerUp={handleSvgPointerUp}
-          onClick={handleSvgClick}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setContextMenu(null);
-              setSelectedNodeId(null);
-              return;
-            }
-            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-              e.preventDefault();
-              setSelectedNodeId(null);
-            }
-          }}
-        >
-          <title>Canvas graph</title>
-          <g
-            transform={`translate(${transform.translateX}, ${transform.translateY}) scale(${transform.scale})`}
-          >
-            {Array.from(sessionEdgesBySource.entries()).flatMap(([sourceId, group]) =>
-              group.map(({ source, target }, index) => {
-                const active = selectedNodeId === source.id || selectedNodeId === target.id;
-                const selectedColor = selectedNodeId
-                  ? (nodesById.get(selectedNodeId)?.color ?? null)
-                  : null;
-                const path = buildCanvasEdgePath(source, target, index, group.length);
+        <CanvasGraphLayer
+          svgRef={svgRef}
+          isPanning={isPanning}
+          dragNodeId={dragNodeId}
+          transform={transform}
+          selectedNodeId={selectedNodeId}
+          hideIdleTerminals={hideIdleTerminals}
+          nodesById={nodesById}
+          edges={edges}
+          tentacleNodes={tentacleNodes}
+          sessionNodes={sessionNodes}
+          sessionEdgesBySource={sessionEdgesBySource}
+          handleCanvasPointerDown={handleCanvasPointerDown}
+          handleSvgPointerMove={handleSvgPointerMove}
+          handleSvgPointerUp={handleSvgPointerUp}
+          handleSvgClick={handleSvgClick}
+          handleNodePointerDown={handleNodePointerDown}
+          handleNodeClick={handleNodeClick}
+          setContextMenu={setContextMenu}
+          setSelectedNodeId={setSelectedNodeId}
+        />
 
-                return (
-                  <g key={`${sourceId}->${target.id}`}>
-                    <path
-                      className="canvas-edge"
-                      d={path}
-                      fill="none"
-                      stroke={active ? (selectedColor ?? source.color) : "#C0C0C0"}
-                      strokeWidth={active ? 2 : 1.5}
-                      strokeOpacity={1}
-                    />
-                    {isEdgeActivityVisible(target)
-                      ? renderEdgeActivityDots(
-                          path,
-                          active ? (selectedColor ?? source.color) : source.color,
-                          `${sourceId}->${target.id}`,
-                        )
-                      : null}
-                  </g>
-                );
-              }),
-            )}
-
-            {/* Render tentacle nodes (with arms) first */}
-            {tentacleNodes.map((node) => {
-              const connected = edges
-                .filter((e) => e.source === node.id)
-                .map((e) => nodesById.get(e.target))
-                .filter((n): n is GraphNode => {
-                  if (!n) return false;
-                  if (hideIdleTerminals && n.type === "inactive-session") return false;
-                  if (
-                    hideIdleTerminals &&
-                    n.type === "active-session" &&
-                    (n.agentState === "idle" || n.hasUserPrompt === false)
-                  )
-                    return false;
-                  return true;
-                });
-
-              const selectedColor = selectedNodeId
-                ? (nodesById.get(selectedNodeId)?.color ?? null)
-                : null;
-
-              return (
-                <OctopusNode
-                  key={node.id}
-                  node={node}
-                  connectedNodes={connected}
-                  isSelected={selectedNodeId === node.id}
-                  selectedNodeId={selectedNodeId}
-                  selectedNodeColor={selectedColor}
-                  onPointerDown={handleNodePointerDown}
-                  onClick={handleNodeClick}
-                />
-              );
-            })}
-
-            {/* Render session nodes on top */}
-            {sessionNodes.map((node) => (
-              <SessionNode
-                key={node.id}
-                node={node}
-                isSelected={selectedNodeId === node.id}
-                onPointerDown={handleNodePointerDown}
-                onClick={handleNodeClick}
-              />
-            ))}
-          </g>
-        </svg>
-
-        {/* Canvas toolbar — top-left action buttons */}
-        <div className="canvas-toolbar" role="toolbar" aria-label="Canvas actions">
-          <button
-            type="button"
-            className="canvas-toolbar-btn canvas-toolbar-btn--new"
-            onClick={() => {
-              const result = onCreateTerminal?.();
-              if (result && typeof result.then === "function") {
-                void result.then((agentId) => {
-                  if (agentId) setPendingOpenAgentId(agentId);
-                });
-              }
-            }}
-            aria-label="New terminal"
-            title="New terminal"
-          >
-            <span className="canvas-toolbar-icon" style={{ fontSize: "18px", lineHeight: 1 }}>
-              +
-            </span>
-          </button>
-          <div className="canvas-toolbar-separator" />
-          <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
-            <span className="canvas-toolbar-icon">
-              <Maximize size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Fit</span>
-          </button>
-          <button type="button" className="canvas-toolbar-btn" onClick={handleRefresh}>
-            <span className="canvas-toolbar-icon">
-              <RefreshCw size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Refresh</span>
-          </button>
-          <div className="canvas-toolbar-separator" />
-          <button
-            type="button"
-            className={`canvas-toolbar-btn${hideIdleTerminals ? " canvas-toolbar-btn--active" : ""}`}
-            onClick={() => setHideIdleTerminals((prev) => !prev)}
-          >
-            <span className="canvas-toolbar-icon">
-              {hideIdleTerminals ? <Play size={14} /> : <Pause size={14} />}
-            </span>
-            <span className="canvas-toolbar-label">
-              {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
-            </span>
-          </button>
-          <div className="canvas-toolbar-separator" />
-          <button
-            type="button"
-            className="canvas-toolbar-btn canvas-toolbar-btn--danger"
-            onClick={() => setIsDeleteAllDialogOpen(true)}
-          >
-            <span className="canvas-toolbar-icon">
-              <Trash2 size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Delete All</span>
-          </button>
-        </div>
-
-        {/* Waiting notifications — compact bars below the toolbar */}
-        {waitingNodes.length > 0 && (
-          <div className="canvas-waiting-list">
-            {waitingNodes.map((node) => {
-              const nameRaw = node.label;
-              const name = nameRaw.length > 20 ? `${nameRaw.slice(0, 20)}…` : nameRaw;
-              const prefix =
-                node.agentRuntimeState === "waiting_for_permission"
-                  ? `${node.waitingToolName ?? "Permission"}: `
-                  : "Waiting: ";
-              return (
-                <button
-                  key={node.id}
-                  type="button"
-                  className="canvas-waiting-bar"
-                  onClick={() => handleNodeClick(node.id)}
-                >
-                  <span className="canvas-waiting-bar-name">
-                    <span className="canvas-waiting-bar-prefix">{prefix}</span>
-                    {name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <CanvasToolbar
+          hideIdleTerminals={hideIdleTerminals}
+          waitingNodes={waitingNodes}
+          setPendingOpenAgentId={setPendingOpenAgentId}
+          setHideIdleTerminals={setHideIdleTerminals}
+          setIsDeleteAllDialogOpen={setIsDeleteAllDialogOpen}
+          handleFitView={handleFitView}
+          handleRefresh={handleRefresh}
+          handleNodeClick={handleNodeClick}
+          onCreateTerminal={onCreateTerminal}
+        />
       </div>
 
       {hasPanels && (
-        <>
-          <div
-            className="canvas-panel-divider"
-            role="separator"
-            aria-orientation="vertical"
-            tabIndex={0}
-            onPointerDown={handleDividerPointerDown}
-            onPointerMove={handleDividerPointerMove}
-            onPointerUp={handleDividerPointerUp}
-          />
-          <div
-            ref={terminalsPanelRef}
-            className="canvas-terminals-panel"
-            style={
-              terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined
-            }
-          >
-            {Array.from(openTentacles.entries()).map(([nodeId, node]) => (
-              <CanvasTentaclePanel
-                key={nodeId}
-                node={node}
-                isFocused={selectedNodeId === nodeId}
-                panelRef={setPanelRef(nodeId)}
-                sessions={sessionsByTentacleId.get(node.tentacleId) ?? []}
-                onClose={() => handleCloseTentacle(nodeId)}
-                onFocus={() => setSelectedNodeId(nodeId)}
-                onCreateAgent={(tentacleId) => {
-                  handleCreateAgent(tentacleId);
-                }}
-                onNavigateToConversation={onNavigateToConversation}
-              />
-            ))}
-            {isHydratingTerminals && openTerminals.size === 0 && (
-              <div className="canvas-terminal-skeleton">
-                <div className="canvas-terminal-skeleton__header" />
-                <div className="canvas-terminal-skeleton__body">
-                  <div className="canvas-terminal-skeleton__line" style={{ width: "60%" }} />
-                  <div className="canvas-terminal-skeleton__line" style={{ width: "80%" }} />
-                  <div className="canvas-terminal-skeleton__line" style={{ width: "45%" }} />
-                </div>
-              </div>
-            )}
-            {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
-              <CanvasTerminalColumn
-                key={nodeId}
-                node={node}
-                terminals={columns}
-                layoutVersion={terminalLayoutVersion}
-                isFocused={selectedNodeId === nodeId}
-                panelRef={setPanelRef(nodeId)}
-                onMinimize={() => handleMinimizeTerminal(nodeId)}
-                onClose={() => handleCloseTerminal(node)}
-                onFocus={() => setSelectedNodeId(nodeId)}
-                onTerminalRenamed={onTerminalRenamed}
-                onTerminalActivity={onTerminalActivity}
-              />
-            ))}
-          </div>
-        </>
+        <CanvasTerminalsPanel
+          terminalsPanelRef={terminalsPanelRef}
+          terminalsPanelWidth={terminalsPanelWidth}
+          isHydratingTerminals={isHydratingTerminals}
+          openTentacles={openTentacles}
+          openTerminals={openTerminals}
+          selectedNodeId={selectedNodeId}
+          columns={columns}
+          terminalLayoutVersion={terminalLayoutVersion}
+          sessionsByTentacleId={sessionsByTentacleId}
+          setPanelRef={setPanelRef}
+          setSelectedNodeId={setSelectedNodeId}
+          handleCloseTentacle={handleCloseTentacle}
+          handleCreateAgent={handleCreateAgent}
+          handleMinimizeTerminal={handleMinimizeTerminal}
+          handleCloseTerminal={handleCloseTerminal}
+          handleDividerPointerDown={handleDividerPointerDown}
+          handleDividerPointerMove={handleDividerPointerMove}
+          handleDividerPointerUp={handleDividerPointerUp}
+          onNavigateToConversation={onNavigateToConversation}
+          onTerminalRenamed={onTerminalRenamed}
+          onTerminalActivity={onTerminalActivity}
+        />
       )}
 
       {/* Context menu */}
       {contextMenu && (
-        <>
-          <div
-            aria-label="Close canvas context menu"
-            className="canvas-context-menu-backdrop"
-            onClick={() => setContextMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Close current menu, then re-derive what's under the cursor on the SVG
-              setContextMenu(null);
-              // Use rAF so the backdrop is removed before we probe elementFromPoint
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " " && e.key !== "Escape") return;
-              e.preventDefault();
-              setContextMenu(null);
-            }}
-            role="button"
-            tabIndex={0}
-          />
-          <div
-            className="canvas-context-menu"
-            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu(null);
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-          >
-            {contextMenu.kind === "canvas" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item"
-                onClick={() => {
-                  setContextMenu(null);
-                  const result = onCreateTerminal?.();
-                  if (result && typeof result.then === "function") {
-                    void result.then((agentId) => {
-                      if (agentId) setPendingOpenAgentId(agentId);
-                    });
-                  }
-                }}
-              >
-                <span className="canvas-context-menu-icon">
-                  <TerminalIcon size={14} />
-                </span>
-                New Terminal
-              </button>
-            )}
-            {contextMenu.kind === "tentacle" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleCreateAgent(contextMenu.tentacleId)}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <TerminalIcon size={14} />
-                  </span>
-                  New Terminal
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleTentacleAction(contextMenu.tentacleId, "tentacle-reorganize-todos")
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <ListTodo size={14} />
-                  </span>
-                  Update To-Do List
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleTentacleAction(contextMenu.tentacleId, "tentacle-update-tentacle")
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  Update Tentacle
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "sentiph" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item"
-                onClick={() => {
-                  setContextMenu(null);
-                  handleNodeClick(`t:${SENTIPH_ID}`);
-                }}
-              >
-                <span className="canvas-context-menu-icon">
-                  <TerminalIcon size={14} />
-                </span>
-                Open Sentiph
-              </button>
-            )}
-            {contextMenu.kind === "active-session" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    const nodeId = contextMenu.nodeId;
-                    const terminal = columns.find((t) => t.terminalId === contextMenu.sessionId);
-                    const currentName = terminal?.tentacleName ?? contextMenu.label;
-                    const panel = panelRefs.current.get(nodeId);
-                    setContextMenu(null);
-                    if (panel) {
-                      const input = panel.querySelector<HTMLInputElement>(
-                        ".canvas-terminal-column-name--editable",
-                      );
-                      input?.click();
-                    }
-                    void currentName;
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <CheckIcon size={14} />
-                  </span>
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item canvas-context-menu-item--danger"
-                  onClick={() => {
-                    onDeleteActiveSession?.(
-                      contextMenu.sessionId,
-                      contextMenu.label,
-                      contextMenu.workspaceMode,
-                    );
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Trash2 size={14} />
-                  </span>
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
-        </>
+        <CanvasContextMenu
+          contextMenu={contextMenu}
+          columns={columns}
+          panelRefs={panelRefs}
+          setContextMenu={setContextMenu}
+          setPendingOpenAgentId={setPendingOpenAgentId}
+          onCreateTerminal={onCreateTerminal}
+          onDeleteActiveSession={onDeleteActiveSession}
+          handleCreateAgent={handleCreateAgent}
+          handleTentacleAction={handleTentacleAction}
+          handleNodeClick={handleNodeClick}
+        />
       )}
 
-      {pendingDeleteTerminal && onCancelDelete && onConfirmDelete && (
-        <div className="canvas-delete-dialog">
-          <DeleteTentacleDialog
-            pendingDeleteTerminal={pendingDeleteTerminal}
-            isDeletingTerminalId={isDeletingTerminalId ?? null}
-            onCancel={onCancelDelete}
-            onConfirmDelete={onConfirmDelete}
-          />
-        </div>
-      )}
-
-      {isDeleteAllDialogOpen && (
-        <div className="canvas-delete-dialog">
-          <DeleteAllTerminalsDialog
-            columns={columns}
-            nodes={nodes}
-            onCancel={() => setIsDeleteAllDialogOpen(false)}
-            onDeleted={({ hadFailures }) => {
-              if (!hadFailures) {
-                setIsDeleteAllDialogOpen(false);
-              }
-              setOpenTerminals(new Map());
-              void onRefreshColumns?.();
-              refreshGraphData();
-            }}
-          />
-        </div>
-      )}
+      <CanvasDialogs
+        columns={columns}
+        nodes={nodes}
+        isDeleteAllDialogOpen={isDeleteAllDialogOpen}
+        pendingDeleteTerminal={pendingDeleteTerminal}
+        isDeletingTerminalId={isDeletingTerminalId}
+        onCancelDelete={onCancelDelete}
+        onConfirmDelete={onConfirmDelete}
+        setIsDeleteAllDialogOpen={setIsDeleteAllDialogOpen}
+        setOpenTerminals={setOpenTerminals}
+        onRefreshColumns={onRefreshColumns}
+        refreshGraphData={refreshGraphData}
+      />
     </section>
   );
 };

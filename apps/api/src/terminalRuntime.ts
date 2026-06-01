@@ -1,16 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
-import { createRequire } from "node:module";
-import { dirname, join, relative } from "node:path";
+import { join, relative } from "node:path";
 import type { Duplex } from "node:stream";
-import { fileURLToPath } from "node:url";
-
-const resolveCurrentDir = (): string =>
-  // import.meta.dirname is Node 22+ and Vite-bundle safe; fall back for older runtimes.
-  (import.meta.dirname as string | undefined) ?? dirname(fileURLToPath(import.meta.url));
 
 import { createAgentMetricsCollector } from "./agentMetricsCollector";
-import { SENTIPH_SYSTEM_PROMPT, assertSentiphSystemPromptIsShellSafe } from "./sentiphSystemPrompt";
 
 import type { TerminalSnapshot } from "@sentiph/core";
 import type { WebSocket } from "ws";
@@ -27,6 +20,9 @@ import {
   TERMINAL_ID_PREFIX,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
+import { createConversationStore } from "./terminalRuntime/conversationStore";
+import { createGitOps } from "./terminalRuntime/gitOps";
+import { writeSentiphMcpConfig, writeSentiphSystemPrompt } from "./terminalRuntime/mcpConfig";
 import {
   createTerminalRegistryPersistence,
   loadTerminalRegistry,
@@ -49,6 +45,8 @@ import {
   type TerminalSessionEndDetails,
   type TerminalSessionStartDetails,
 } from "./terminalRuntime/types";
+import { applyUiStatePatch, readUiStateSnapshot } from "./terminalRuntime/uiState";
+import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
   GitClient,
@@ -68,90 +66,6 @@ export {
 export { RuntimeInputError } from "./terminalRuntime/types";
 
 export const MAX_CHILDREN_PER_PARENT = 32;
-
-const resolveSentiphMcpServerPath = (): { mcpServerPath: string; useTsx: boolean } => {
-  const currentDir = resolveCurrentDir();
-  // In a production bundle, sentiphMcp.ts is emitted as a standalone sentiph-mcp.js.
-  // In dev (tsx), the TypeScript source file is run directly.
-  const jsPath = join(currentDir, "sentiph-mcp.js");
-  if (existsSync(jsPath)) {
-    return { mcpServerPath: jsPath, useTsx: false };
-  }
-  return { mcpServerPath: join(currentDir, "sentiphMcp.ts"), useTsx: true };
-};
-
-const writeSentiphMcpConfig = (stateDir: string): string => {
-  const configPath = join(stateDir, "sentiph-mcp-config.json");
-  const { mcpServerPath, useTsx } = resolveSentiphMcpServerPath();
-
-  const nodeCommand = process.execPath;
-  let nodeArgs: string[];
-  if (!useTsx) {
-    nodeArgs = [mcpServerPath];
-  } else {
-    const _require = createRequire(import.meta.url);
-    try {
-      const tsxPkgPath = _require.resolve("tsx/package.json");
-      const tsxCliPath = join(dirname(tsxPkgPath), "dist", "cli.mjs");
-      nodeArgs = existsSync(tsxCliPath)
-        ? [tsxCliPath, mcpServerPath]
-        : ["--import", "tsx/esm", mcpServerPath];
-    } catch {
-      nodeArgs = ["--import", "tsx/esm", mcpServerPath];
-    }
-  }
-
-  const config = {
-    mcpServers: {
-      sentiph: {
-        command: nodeCommand,
-        args: nodeArgs,
-        env: {
-          SENTIPH_API_ORIGIN: process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787",
-        },
-      },
-    },
-  };
-
-  try {
-    // Create stateDir and its state/ subdirectory unconditionally — on first
-    // run the dir may not yet exist when this is called (the registry creates
-    // it later), which would silently skip writing and leave Sentiph without
-    // MCP tools until the next server restart.
-    mkdirSync(join(stateDir, "state"), { recursive: true });
-    // mode 0o600: only the owner can read this config, since it leaks the
-    // local API origin to any user with read access on the state directory.
-    writeFileSync(configPath, JSON.stringify(config, null, 2), {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[sentiph-mcp] Failed to write MCP config at ${configPath}: ${message}. Sentiph will start without MCP tools.`,
-    );
-  }
-  return configPath;
-};
-
-const writeSentiphSystemPrompt = (stateDir: string): string | undefined => {
-  const promptPath = join(stateDir, "sentiph-system-prompt.md");
-  try {
-    assertSentiphSystemPromptIsShellSafe(SENTIPH_SYSTEM_PROMPT);
-    mkdirSync(stateDir, { recursive: true });
-    writeFileSync(promptPath, SENTIPH_SYSTEM_PROMPT, {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-    return promptPath;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[sentiph-system-prompt] Failed to write system prompt at ${promptPath}: ${message}. Sentiph will start without orchestration guidance.`,
-    );
-    return undefined;
-  }
-};
 
 export const createTerminalRuntime = ({
   workspaceCwd,
@@ -308,49 +222,10 @@ export const createTerminalRuntime = ({
   };
 
   const worktreesDir = join(stateDir, "worktrees");
-  const gitClientOpt = gitClient;
 
   const GENERATED_NAME_PATTERN = /^Agent \d+$|^Sentiph Terminal \d+$/;
 
-  const worktreeManager = {
-    getTentacleWorkspaceCwd: (tentacleId: string) => {
-      if (existsSync(join(worktreesDir, tentacleId))) {
-        return join(worktreesDir, tentacleId);
-      }
-      return workspaceCwd;
-    },
-    hasTentacleWorktree: (tentacleId: string) => existsSync(join(worktreesDir, tentacleId)),
-    createTentacleWorktree: (tentacleId: string, baseRef?: string) => {
-      if (!gitClientOpt || !gitClientOpt.isRepository(workspaceCwd)) {
-        throw new RuntimeInputError(
-          "Worktree terminals require a git repository at the workspace root.",
-        );
-      }
-      const path = join(worktreesDir, tentacleId);
-      gitClientOpt.addWorktree({
-        cwd: workspaceCwd,
-        path,
-        branchName: `sentiph/${tentacleId}`,
-        baseRef: baseRef ?? "HEAD",
-      });
-    },
-    removeTentacleWorktree: (tentacleId: string) => {
-      if (!gitClientOpt) return;
-      const path = join(worktreesDir, tentacleId);
-      try {
-        gitClientOpt.removeWorktree({ cwd: workspaceCwd, path });
-      } catch (err) {
-        throw new RuntimeInputError(
-          `Unable to remove worktree for ${tentacleId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-      try {
-        gitClientOpt.removeBranch({ cwd: workspaceCwd, branchName: `sentiph/${tentacleId}` });
-      } catch {
-        // Branch removal is best-effort
-      }
-    },
-  };
+  const worktreeManager = createWorktreeManager({ worktreesDir, workspaceCwd, gitClient });
 
   const resolveTerminalSession = (
     terminalId: string,
@@ -400,119 +275,8 @@ export const createTerminalRuntime = ({
     ...(sentiphSystemPromptPath ? { sentiphSystemPromptPath } : {}),
   });
 
-  const findWorktreeTerminal = (tentacleId: string) =>
-    [...terminals.values()].find((t) => t.tentacleId === tentacleId);
-
-  const getWorktreePath = (terminal: PersistedTerminal) =>
-    join(worktreesDir, terminal.worktreeId ?? terminal.tentacleId);
-
-  const requireWorktreeTerminal = (tentacleId: string) => {
-    const terminal = findWorktreeTerminal(tentacleId);
-    if (!terminal) return null;
-    if (terminal.workspaceMode !== "worktree") {
-      throw new RuntimeInputError(
-        "Git lifecycle actions are only available for worktree terminals.",
-      );
-    }
-    if (!gitClientOpt) return null;
-    return { terminal, worktreePath: getWorktreePath(terminal), gitClient: gitClientOpt };
-  };
-
-  const toGitStatusSnapshot = (tentacleId: string, worktreePath: string) => {
-    if (!gitClientOpt) return null;
-    const status = gitClientOpt.readWorktreeStatus({ cwd: worktreePath });
-    return { tentacleId, workspaceMode: "worktree" as const, ...status };
-  };
-
-  const gitOps = {
-    readTentacleGitStatus: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      return toGitStatusSnapshot(tentacleId, result.worktreePath);
-    },
-
-    commitTentacleWorktree: (tentacleId: string, message: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      result.gitClient.commitAll({ cwd: result.worktreePath, message });
-      return toGitStatusSnapshot(tentacleId, result.worktreePath);
-    },
-
-    pushTentacleWorktree: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      result.gitClient.pushCurrentBranch({ cwd: result.worktreePath });
-      return toGitStatusSnapshot(tentacleId, result.worktreePath);
-    },
-
-    syncTentacleWorktree: (tentacleId: string, baseRef?: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      result.gitClient.syncWithBase({ cwd: result.worktreePath, baseRef: baseRef ?? "HEAD" });
-      return toGitStatusSnapshot(tentacleId, result.worktreePath);
-    },
-
-    readTentaclePullRequest: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
-      if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
-      const { state, ...prRest } = pr;
-      return {
-        tentacleId,
-        workspaceMode: "worktree" as const,
-        status: state.toLowerCase() as "open" | "merged" | "closed",
-        ...prRest,
-      };
-    },
-
-    createTentaclePullRequest: (tentacleId: string, opts: Record<string, unknown>) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      const existing = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
-      if (existing && existing.state === "OPEN") {
-        throw new RuntimeInputError("An open pull request already exists for this branch.");
-      }
-      const worktreeStatus = result.gitClient.readWorktreeStatus({ cwd: result.worktreePath });
-      const pr = result.gitClient.createPullRequest({
-        cwd: result.worktreePath,
-        title: String(opts.title ?? ""),
-        body: String(opts.body ?? ""),
-        baseRef: String(opts.baseRef ?? worktreeStatus.defaultBaseBranchName ?? "main"),
-        headRef: worktreeStatus.branchName,
-      });
-      if (!pr) return null;
-      const { state, ...prRest } = pr;
-      return {
-        tentacleId,
-        workspaceMode: "worktree" as const,
-        status: state.toLowerCase() as "open" | "merged" | "closed",
-        ...prRest,
-      };
-    },
-
-    mergeTentaclePullRequest: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      const existing = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
-      if (!existing || existing.state !== "OPEN") {
-        throw new RuntimeInputError("No open pull request found for this branch.");
-      }
-      result.gitClient.mergeCurrentBranchPullRequest({
-        cwd: result.worktreePath,
-        strategy: "squash",
-      });
-      const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
-      if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
-      const { state, ...prRest } = pr;
-      return {
-        tentacleId,
-        workspaceMode: "worktree" as const,
-        status: state.toLowerCase() as "open" | "merged" | "closed",
-        ...prRest,
-      };
-    },
-  };
+  const gitOps = createGitOps({ terminals, worktreesDir, gitClient });
+  const conversationStore = createConversationStore(stateDir);
 
   reconcilePersistedLifecycle();
 
@@ -768,20 +532,7 @@ export const createTerminalRuntime = ({
     return toTerminalSnapshot(terminal);
   };
 
-  const readUiState = (): PersistedUiState => {
-    const normalized = pruneUiStateTerminalReferences(uiState, terminals);
-    const result: PersistedUiState = { ...normalized };
-    if (normalized.minimizedTerminalIds) {
-      result.minimizedTerminalIds = [...normalized.minimizedTerminalIds];
-    }
-    if (normalized.terminalWidths) {
-      result.terminalWidths = { ...normalized.terminalWidths };
-    }
-    if (normalized.terminalCompletionSound !== undefined) {
-      result.terminalCompletionSound = normalized.terminalCompletionSound;
-    }
-    return result;
-  };
+  const readUiState = (): PersistedUiState => readUiStateSnapshot(uiState, terminals);
 
   return {
     listTerminalSnapshots(): TerminalSnapshot[] {
@@ -795,55 +546,7 @@ export const createTerminalRuntime = ({
     readUiState,
 
     patchUiState(patch: PersistedUiState): PersistedUiState {
-      if (patch.activePrimaryNav !== undefined) {
-        uiState.activePrimaryNav = patch.activePrimaryNav;
-      }
-      if (patch.isAgentsSidebarVisible !== undefined) {
-        uiState.isAgentsSidebarVisible = patch.isAgentsSidebarVisible;
-      }
-      if (patch.sidebarWidth !== undefined) {
-        uiState.sidebarWidth = patch.sidebarWidth;
-      }
-      if (patch.isActiveAgentsSectionExpanded !== undefined) {
-        uiState.isActiveAgentsSectionExpanded = patch.isActiveAgentsSectionExpanded;
-      }
-      if (patch.isRuntimeStatusStripVisible !== undefined) {
-        uiState.isRuntimeStatusStripVisible = patch.isRuntimeStatusStripVisible;
-      }
-      if (patch.isBottomTelemetryVisible !== undefined) {
-        uiState.isBottomTelemetryVisible = patch.isBottomTelemetryVisible;
-      }
-      if (patch.isCodexUsageVisible !== undefined) {
-        uiState.isCodexUsageVisible = patch.isCodexUsageVisible;
-      }
-      if (patch.isClaudeUsageVisible !== undefined) {
-        uiState.isClaudeUsageVisible = patch.isClaudeUsageVisible;
-      }
-      if (patch.isClaudeUsageSectionExpanded !== undefined) {
-        uiState.isClaudeUsageSectionExpanded = patch.isClaudeUsageSectionExpanded;
-      }
-      if (patch.isCodexUsageSectionExpanded !== undefined) {
-        uiState.isCodexUsageSectionExpanded = patch.isCodexUsageSectionExpanded;
-      }
-      if (patch.terminalCompletionSound !== undefined) {
-        uiState.terminalCompletionSound = patch.terminalCompletionSound;
-      }
-      if (patch.minimizedTerminalIds !== undefined) {
-        uiState.minimizedTerminalIds = [...patch.minimizedTerminalIds];
-      }
-      if (patch.terminalWidths !== undefined) {
-        uiState.terminalWidths = { ...patch.terminalWidths };
-      }
-      if (patch.canvasOpenTerminalIds !== undefined) {
-        uiState.canvasOpenTerminalIds = [...patch.canvasOpenTerminalIds];
-      }
-      if (patch.canvasOpenTentacleIds !== undefined) {
-        uiState.canvasOpenTentacleIds = [...patch.canvasOpenTentacleIds];
-      }
-      if (patch.canvasTerminalsPanelWidth !== undefined) {
-        uiState.canvasTerminalsPanelWidth = patch.canvasTerminalsPanelWidth;
-      }
-
+      applyUiStatePatch(uiState, patch);
       persistRegistry();
       return readUiState();
     },
@@ -1021,190 +724,7 @@ export const createTerminalRuntime = ({
       return sessionRuntime.resizeSession(terminalId, cols, rows);
     },
 
-    listConversationSessions() {
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      if (!existsSync(transcriptDir)) return [];
-      const summaries: unknown[] = [];
-      try {
-        const files = readdirSync(transcriptDir).filter((f) => f.endsWith(".jsonl"));
-        for (const file of files) {
-          const sessionId = decodeURIComponent(file.slice(0, -6));
-          const raw = readFileSync(join(transcriptDir, file), "utf8").trim();
-          if (!raw) continue;
-          const events = raw
-            .split("\n")
-            .map((l) => {
-              try {
-                return JSON.parse(l) as Record<string, unknown>;
-              } catch {
-                return null;
-              }
-            })
-            .filter(Boolean) as Record<string, unknown>[];
-
-          const startEvent = events.find((e) => e.type === "session_start");
-          const endEvent = events.find((e) => e.type === "session_end");
-          if (!startEvent) continue;
-
-          const turnsPath = join(
-            transcriptDir,
-            `${encodeURIComponent(sessionId)}.claude-turns.json`,
-          );
-          let turns: Array<{ role: string; content: string; startedAt: string; endedAt: string }> =
-            [];
-          if (existsSync(turnsPath)) {
-            try {
-              turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns;
-            } catch {
-              /* ignore */
-            }
-          }
-          const userTurns = turns.filter((t) => t.role === "user");
-          const assistantTurns = turns.filter((t) => t.role === "assistant");
-
-          const lastTimestamp = endEvent?.timestamp ?? events[events.length - 1]?.timestamp;
-          summaries.push({
-            sessionId,
-            tentacleId: startEvent.tentacleId ?? sessionId,
-            startedAt: startEvent.timestamp,
-            endedAt: endEvent?.timestamp ?? null,
-            lastEventAt: lastTimestamp ?? null,
-            eventCount: events.length,
-            turnCount: turns.length,
-            userTurnCount: userTurns.length,
-            assistantTurnCount: assistantTurns.length,
-            firstUserTurnPreview: userTurns[0]?.content?.slice(0, 200) ?? null,
-            lastUserTurnPreview: userTurns[userTurns.length - 1]?.content?.slice(0, 200) ?? null,
-            lastAssistantTurnPreview:
-              assistantTurns[assistantTurns.length - 1]?.content?.slice(0, 200) ?? null,
-          });
-        }
-      } catch {
-        /* ignore */
-      }
-      return summaries;
-    },
-
-    readConversationSession(sessionId: string) {
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      const transcriptPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.jsonl`);
-      if (!existsSync(transcriptPath)) return null;
-      const raw = readFileSync(transcriptPath, "utf8").trim();
-      if (!raw) return null;
-      const events = raw
-        .split("\n")
-        .map((l) => {
-          try {
-            return JSON.parse(l) as Record<string, unknown>;
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
-      let turns: unknown[] = [];
-      if (existsSync(turnsPath)) {
-        try {
-          turns = JSON.parse(readFileSync(turnsPath, "utf8")) as unknown[];
-        } catch {
-          /* ignore */
-        }
-      }
-
-      const startEvent = (events as Record<string, unknown>[]).find(
-        (e) => e.type === "session_start",
-      );
-      return {
-        sessionId,
-        tentacleId: startEvent?.tentacleId ?? sessionId,
-        turnCount: turns.length,
-        events,
-        turns,
-      };
-    },
-
-    exportConversationSession(sessionId: string, format: "md" | "json") {
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      const turnsPath = join(transcriptDir, `${encodeURIComponent(sessionId)}.claude-turns.json`);
-      if (!existsSync(turnsPath)) return null;
-      let turns: Array<{ role: string; content: string }> = [];
-      try {
-        turns = JSON.parse(readFileSync(turnsPath, "utf8")) as typeof turns;
-      } catch {
-        return null;
-      }
-
-      if (format === "json") {
-        return JSON.stringify({ sessionId, turnCount: turns.length, turns });
-      }
-
-      const lines: string[] = [];
-      for (const turn of turns) {
-        lines.push(`## ${turn.role === "user" ? "User" : "Assistant"}`);
-        lines.push("");
-        lines.push(turn.content);
-        lines.push("");
-      }
-      return lines.join("\n");
-    },
-
-    deleteConversationSession(sessionId: string) {
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      const base = join(transcriptDir, encodeURIComponent(sessionId));
-      for (const ext of [".jsonl", ".claude-turns.json"]) {
-        const path = `${base}${ext}`;
-        if (existsSync(path)) {
-          try {
-            rmSync(path);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-    },
-
-    deleteAllConversationSessions() {
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      if (!existsSync(transcriptDir)) return;
-      try {
-        const files = readdirSync(transcriptDir);
-        for (const file of files) {
-          try {
-            rmSync(join(transcriptDir, file));
-          } catch {
-            /* ignore */
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    },
-
-    searchConversations(query: string) {
-      const q = query.toLowerCase();
-      const transcriptDir = join(stateDir, "state", "transcripts");
-      if (!existsSync(transcriptDir)) return [];
-      const results: unknown[] = [];
-      try {
-        const files = readdirSync(transcriptDir).filter((f) => f.endsWith(".claude-turns.json"));
-        for (const file of files) {
-          const sessionId = decodeURIComponent(file.slice(0, -".claude-turns.json".length));
-          let turns: Array<{ role: string; content: string }> = [];
-          try {
-            turns = JSON.parse(readFileSync(join(transcriptDir, file), "utf8")) as typeof turns;
-          } catch {
-            continue;
-          }
-          if (turns.some((t) => t.content.toLowerCase().includes(q))) {
-            results.push({ sessionId });
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-      return results;
-    },
+    ...conversationStore,
 
     renameTerminalBySession(sessionId: string, name: string) {
       const terminal = terminals.get(sessionId);
