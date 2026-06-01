@@ -11,6 +11,7 @@
 /coverage
 **/coverage/
 **/.vite/
+*.tsbuildinfo
 
 # Local agent / runtime state
 /.claude
