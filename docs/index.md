@@ -16,6 +16,7 @@ Sentiph has three main layers:
 
 ## Concepts
 
+- [Architecture](concepts/architecture.md) explains the three-package layering and the enforced `@sentiph/core` boundary
 - [Sessions](concepts/sessions.md) explains the file-backed session model and how Deck reads it
 - [Runtime and API](concepts/runtime-and-api.md) explains terminal lifecycle, WebSockets, hooks, persistence, and restart behavior
 

@@ -1,5 +1,10 @@
 # Sentiph
 
+[![CI](https://github.com/josephg29/sentiph/actions/workflows/ci.yml/badge.svg)](https://github.com/josephg29/sentiph/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![pnpm](https://img.shields.io/badge/pnpm-10-F69220?logo=pnpm&logoColor=white)](https://pnpm.io)
+
 **Multi-agent orchestration for Claude Code.**
 
 Running several Claude Code sessions at once gets unwieldy fast — context gets lost, windows multiply, and there is no shared source of truth between sessions. Sentiph wraps each job in a durable file-based session, shows every active session on a visual canvas, and lets one Claude Code session spawn and coordinate others, all from a local web UI backed by a WebSocket/PTY API.
