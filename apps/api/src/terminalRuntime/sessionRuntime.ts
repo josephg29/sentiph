@@ -1,27 +1,38 @@
-import { randomUUID } from "node:crypto";
-import { appendFileSync, createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
+import { buildBootstrapCommand, planClaudeBootstrap } from "./claudeBootstrap";
 import {
   CLAUDE_EFFORT_THINKING_TOKENS,
-  CLAUDE_MODEL_FLAG_VALUE,
   DEFAULT_AGENT_PROVIDER,
   SENTIPH_TENTACLE_ID,
-  TERMINAL_BOOTSTRAP_COMMANDS,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
+import {
+  type SessionEndEvent,
+  appendDebugLog,
+  appendTranscriptEvent,
+  createDebugLog as createDebugLogFile,
+  exitSignalFields,
+  openTranscriptLog as openTranscriptLogFile,
+  resolveEndedAt,
+  resolveSessionEndReason,
+} from "./sessionLogging";
+import { formatShellSpawnError, getShellLaunch } from "./shellLaunch";
 import { toErrorMessage } from "./systemClients";
+import {
+  appendScrollback as appendScrollbackToSession,
+  stripBrokenLeadingAnsi,
+} from "./terminalOutput";
 import type {
   DirectSessionListener,
   PersistedTerminal,
@@ -53,12 +64,6 @@ type CreateSessionRuntimeOptions = {
   sentiphSystemPromptPath?: string;
 };
 
-const ANSI_BEL = String.fromCharCode(0x07);
-const ANSI_ESCAPE = String.fromCharCode(0x1b);
-const BROKEN_OSC_TAIL_RE = new RegExp(
-  `^\\][^${ANSI_BEL}${ANSI_ESCAPE}]*(?:${ANSI_BEL}|${ANSI_ESCAPE}\\\\)`,
-);
-
 export const createSessionRuntime = ({
   websocketServer,
   terminals,
@@ -84,151 +89,10 @@ export const createSessionRuntime = ({
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
 
-  const getShellLaunch = () => {
-    if (process.platform === "win32") {
-      return {
-        command: process.env.ComSpec ?? "cmd.exe",
-        args: [],
-      };
-    }
-
-    const shellFromEnvironment = process.env.SHELL?.trim();
-    if (shellFromEnvironment && shellFromEnvironment.length > 0) {
-      return {
-        command: shellFromEnvironment,
-        args: ["-i"],
-      };
-    }
-
-    return {
-      command: "/bin/bash",
-      args: ["-i"],
-    };
-  };
-
-  const createDebugLog = (sessionId: string) => {
-    if (!isDebugPtyLogsEnabled) {
-      return undefined;
-    }
-
-    mkdirSync(ptyLogDir, { recursive: true });
-    const filename = `${sessionId}-${Date.now()}.log`;
-    return createWriteStream(join(ptyLogDir, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-  };
-
-  const claudeProjectsDir = (): string => {
-    const override = process.env.CLAUDE_CONFIG_DIR?.trim();
-    if (override && override.length > 0) {
-      return join(override, "projects");
-    }
-    return join(homedir(), ".claude", "projects");
-  };
-
-  const encodeClaudeProjectDirectoryName = (cwd: string): string => cwd.replace(/\//g, "-");
-
-  const claudeSessionFileExists = (cwd: string, sessionId: string): boolean => {
-    try {
-      const path = join(
-        claudeProjectsDir(),
-        encodeClaudeProjectDirectoryName(cwd),
-        `${sessionId}.jsonl`,
-      );
-      return existsSync(path);
-    } catch {
-      return false;
-    }
-  };
-
-  const planClaudeBootstrap = (
-    terminalRecord: PersistedTerminal | undefined,
-    cwd: string,
-  ): { flags: string[]; banner?: string; sessionIdToPersist?: string } => {
-    if (!terminalRecord || terminalRecord.tentacleId === SENTIPH_TENTACLE_ID) {
-      return { flags: [] };
-    }
-
-    const provider = terminalRecord.agentProvider ?? DEFAULT_AGENT_PROVIDER;
-    if (provider !== "claude-code") {
-      return { flags: [] };
-    }
-
-    const modelFlags: string[] = [];
-    if (terminalRecord.model) {
-      const modelId = CLAUDE_MODEL_FLAG_VALUE[terminalRecord.model];
-      if (modelId) {
-        modelFlags.push("--model", modelId);
-      }
-    }
-    const withModel = (flags: string[]): string[] =>
-      modelFlags.length > 0 ? [...modelFlags, ...flags] : flags;
-
-    const existingSessionId = terminalRecord.claudeSessionId;
-    if (existingSessionId) {
-      if (claudeSessionFileExists(cwd, existingSessionId)) {
-        return {
-          flags: withModel(["--resume", existingSessionId]),
-          banner: "[Sentiph: resuming previous Claude session…]",
-        };
-      }
-      // The persisted session ID has no transcript on disk in this cwd.
-      // Reusing `--session-id <same>` after a failed bootstrap (e.g. credits
-      // exhausted, Fast mode disabled) causes Claude CLI to abort with
-      // "session already exists". Allocate a fresh ID and persist it so the
-      // retry — and any parallel worker spawn — can succeed.
-      const replacementSessionId = randomUUID();
-      return {
-        flags: withModel(["--session-id", replacementSessionId]),
-        sessionIdToPersist: replacementSessionId,
-      };
-    }
-
-    const priorLifecycle = terminalRecord.lifecycleState;
-    const hadPriorSession =
-      priorLifecycle === "stopped" || priorLifecycle === "exited" || priorLifecycle === "stale";
-
-    if (hadPriorSession) {
-      return {
-        flags: withModel(["--continue"]),
-        banner: "[Sentiph: resuming previous Claude session…]",
-      };
-    }
-
-    const newSessionId = randomUUID();
-    return {
-      flags: withModel(["--session-id", newSessionId]),
-      sessionIdToPersist: newSessionId,
-    };
-  };
-
   let transcriptEventSequence = 0;
 
-  const openTranscriptLog = (sessionId: string): string | undefined => {
-    if (!transcriptDirectoryPath) return undefined;
-    try {
-      mkdirSync(transcriptDirectoryPath, { recursive: true });
-      const filename = `${encodeURIComponent(sessionId)}.jsonl`;
-      return join(transcriptDirectoryPath, filename);
-    } catch {
-      return undefined;
-    }
-  };
-
-  const appendTranscriptEvent = (session: TerminalSession, event: Record<string, unknown>) => {
-    if (!session.transcriptLog) return;
-    session.transcriptEventCount = (session.transcriptEventCount ?? 0) + 1;
-    try {
-      appendFileSync(session.transcriptLog, `${JSON.stringify(event)}\n`, "utf8");
-    } catch {
-      // Non-fatal: temp dir may have been cleaned up or disk full
-    }
-  };
-
-  const appendDebugLog = (session: TerminalSession, line: string) => {
-    session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
-  };
+  const openTranscriptLog = (sessionId: string): string | undefined =>
+    openTranscriptLogFile(sessionId, transcriptDirectoryPath);
 
   const emitStateIfChanged = (
     session: TerminalSession,
@@ -305,60 +169,7 @@ export const createSessionRuntime = ({
   };
 
   const appendScrollback = (session: TerminalSession, chunk: string) => {
-    let nextChunk = chunk;
-    let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-    if (nextChunkBytes > scrollbackMaxBytes) {
-      const chunkBuffer = Buffer.from(nextChunk, "utf8");
-      nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
-      nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-      session.scrollbackChunks = [];
-      session.scrollbackBytes = 0;
-    }
-
-    session.scrollbackChunks.push(nextChunk);
-    session.scrollbackBytes += nextChunkBytes;
-    while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
-      const removedChunk = session.scrollbackChunks.shift();
-      if (!removedChunk) {
-        break;
-      }
-
-      session.scrollbackBytes -= Buffer.byteLength(removedChunk, "utf8");
-    }
-  };
-
-  const stripBrokenLeadingAnsi = (text: string): string => {
-    let nextText = text;
-
-    while (nextText.length > 0) {
-      if (nextText.startsWith("\u001b")) {
-        return nextText;
-      }
-
-      const oscMatch = nextText.match(BROKEN_OSC_TAIL_RE);
-      if (oscMatch) {
-        nextText = nextText.slice(oscMatch[0].length);
-        continue;
-      }
-
-      const csiTailMatch = nextText.match(/^\[[0-9:;<=>?]*[ -/]*[@-~]/);
-      if (csiTailMatch) {
-        nextText = nextText.slice(csiTailMatch[0].length);
-        continue;
-      }
-
-      const orphanedCsiTailMatch = nextText.match(
-        /^(?=[0-9:;<=>?]*[;:<=>?])[0-9:;<=>?]*[ -/]*[@-~]/,
-      );
-      if (orphanedCsiTailMatch) {
-        nextText = nextText.slice(orphanedCsiTailMatch[0].length);
-        continue;
-      }
-
-      break;
-    }
-
-    return nextText;
+    appendScrollbackToSession(session, chunk, scrollbackMaxBytes);
   };
 
   const sendHistory = (websocket: WebSocket, session: TerminalSession) => {
@@ -370,14 +181,6 @@ export const createSessionRuntime = ({
       type: "history",
       data: stripBrokenLeadingAnsi(session.scrollbackChunks.join("")),
     });
-  };
-
-  type SessionEndEvent = {
-    type: "session_end";
-    reason: string;
-    timestamp: string;
-    exitCode?: number;
-    signal?: number | string;
   };
 
   const teardownSession = (
@@ -394,17 +197,9 @@ export const createSessionRuntime = ({
     clearIdleCloseTimer(session);
     clearPromptTimers(session);
     onSessionEnd?.(sessionId, {
-      reason:
-        event.reason === "pty_exit" ||
-        event.reason === "operator_stop" ||
-        event.reason === "operator_kill"
-          ? event.reason
-          : "session_close",
-      endedAt: typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString(),
-      ...(typeof event.exitCode === "number" ? { exitCode: event.exitCode } : {}),
-      ...(typeof event.signal === "number" || typeof event.signal === "string"
-        ? { signal: event.signal }
-        : {}),
+      reason: resolveSessionEndReason(event.reason),
+      endedAt: resolveEndedAt(event.timestamp),
+      ...exitSignalFields(event),
     });
 
     if (session.statePollTimer) {
@@ -439,24 +234,13 @@ export const createSessionRuntime = ({
     session.debugLog?.end();
     session.debugLog = undefined;
 
-    const endedAt =
-      typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString();
-    const resolvedReason =
-      event.reason === "pty_exit" ||
-      event.reason === "operator_stop" ||
-      event.reason === "operator_kill"
-        ? event.reason
-        : "session_close";
     appendTranscriptEvent(session, {
       type: "session_end",
       eventId: `${sessionId}:${++transcriptEventSequence}`,
       sessionId,
-      reason: resolvedReason,
-      timestamp: endedAt,
-      ...(typeof event.exitCode === "number" ? { exitCode: event.exitCode } : {}),
-      ...(typeof event.signal === "number" || typeof event.signal === "string"
-        ? { signal: event.signal }
-        : {}),
+      reason: resolveSessionEndReason(event.reason),
+      timestamp: resolveEndedAt(event.timestamp),
+      ...exitSignalFields(event),
     });
     session.transcriptLog = undefined;
 
@@ -561,40 +345,16 @@ export const createSessionRuntime = ({
     const terminal = terminals.get(session.terminalId);
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
-    const claudeBase = TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
-    let bootstrapCommand: string;
-    if (session.tentacleId === SENTIPH_TENTACLE_ID) {
-      const flags: string[] = [];
-      if (sentiphMcpConfigPath) {
-        flags.push(`--mcp-config "${sentiphMcpConfigPath}"`);
-      }
-      if (sentiphSystemPromptPath) {
-        // The prompt file is authored to avoid bash double-quoted special
-        // characters (verified at write time), so the substitution is safe.
-        // The inner quotes around the path tolerate spaces in stateDir.
-        flags.push(`--append-system-prompt "$(cat "${sentiphSystemPromptPath}")"`);
-      }
-      bootstrapCommand = flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
-    } else if (provider === "claude-code" && terminal?.isGroupLeader && sentiphMcpConfigPath) {
-      const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
-      const head = baseTokens[0] ?? "claude";
-      const tail = baseTokens.slice(1);
-      const resumeFlags = session.claudeBootstrapFlags ?? [];
-      bootstrapCommand = [
-        head,
-        ...resumeFlags,
-        `--mcp-config "${sentiphMcpConfigPath}"`,
-        ...tail,
-      ].join(" ");
-    } else if (provider === "claude-code") {
-      const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
-      const head = baseTokens[0] ?? "claude";
-      const tail = baseTokens.slice(1);
-      const resumeFlags = session.claudeBootstrapFlags ?? [];
-      bootstrapCommand = [head, ...resumeFlags, ...tail].join(" ");
-    } else {
-      bootstrapCommand = TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
-    }
+    const bootstrapCommand = buildBootstrapCommand({
+      provider,
+      tentacleId: session.tentacleId,
+      ...(terminal?.isGroupLeader ? { isGroupLeader: terminal.isGroupLeader } : {}),
+      ...(session.claudeBootstrapFlags
+        ? { claudeBootstrapFlags: session.claudeBootstrapFlags }
+        : {}),
+      ...(sentiphMcpConfigPath ? { sentiphMcpConfigPath } : {}),
+      ...(sentiphSystemPromptPath ? { sentiphSystemPromptPath } : {}),
+    });
     if (session.claudeResumeBanner) {
       const banner = `\r\n${session.claudeResumeBanner}\r\n`;
       appendScrollback(session, banner);
@@ -692,19 +452,11 @@ export const createSessionRuntime = ({
         name: "xterm-256color",
       });
     } catch (error) {
-      const detail = toErrorMessage(error);
-      // node-pty reports PTY-allocation failures (most commonly the OS running
-      // out of pseudo-terminals) as a generic "posix_spawnp failed" with no
-      // errno. Surface an actionable hint instead of the cryptic native message.
-      const looksLikePtyExhaustion = /posix_spawn|forkpty|openpty/i.test(detail);
-      const hint = looksLikePtyExhaustion
-        ? " The system may be out of pseudo-terminals (PTYs). Close other terminal sessions, or raise the limit (macOS: sudo sysctl -w kern.tty.ptmx_max=999; Linux: increase /proc/sys/kernel/pty/max)."
-        : "";
-      throw new Error(`Unable to start terminal shell (${shellLaunch.command}): ${detail}${hint}`);
+      throw new Error(formatShellSpawnError(shellLaunch.command, toErrorMessage(error)));
     }
 
     const stateTracker = new AgentStateTracker();
-    const debugLog = createDebugLog(sessionId);
+    const debugLog = createDebugLogFile(sessionId, isDebugPtyLogsEnabled, ptyLogDir);
     const session: TerminalSession = {
       terminalId: sessionId,
       tentacleId,
