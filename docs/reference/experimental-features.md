@@ -4,11 +4,9 @@ These features exist in the repo, but they are not the center of the current pro
 
 ## Secondary surfaces
 
-- monitor
 - GitHub summary and metrics
 - user and token usage views
 - prompt library UI
-- code intel
 - conversations
 
 ## Why they are secondary

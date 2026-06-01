@@ -14,17 +14,6 @@ Additional markdown files are allowed and are surfaced as session vault files in
 
 The important part is that the folder is agent-facing. It is the durable state that a terminal agent can read, edit, and hand off to another terminal.
 
-## How Deck reads a session
-
-Deck does not maintain a separate database copy of the session. It scans `.sentiph/sessions/` and derives most of the view from files:
-
-- a folder is considered a session only when it contains `CONTEXT.md`
-- the first `# Heading` in `CONTEXT.md` becomes the display name
-- the first non-empty paragraph after that heading becomes the description
-- every other `.md` file becomes a vault file
-
-Deck-specific metadata such as color, status, agents appearance, paths, and tags lives separately in runtime state. That keeps UI preferences out of the agent-facing markdown files.
-
 ## What a session is for
 
 Use a session when one slice of the codebase or one track of work needs its own local operating context.
@@ -34,7 +23,6 @@ Examples:
 - API runtime
 - frontend shell
 - prompt system
-- monitor integration
 - release work
 
 ## What goes in `CONTEXT.md`
@@ -48,7 +36,7 @@ Examples:
 - what not to break
 - any Claude Code skills that are especially useful for this session, when relevant
 
-The first heading and first non-empty paragraph are runtime-significant. Keep them stable and useful because they become the name and description shown in Deck, Canvas, prompt summaries, and terminal creation flows.
+The first heading and first non-empty paragraph are runtime-significant. Keep them stable and useful because they become the name and description shown in Canvas, prompt summaries, and terminal creation flows.
 
 When a session has suggested Claude Code skills, Sentiph appends a managed block at the bottom of `CONTEXT.md`:
 

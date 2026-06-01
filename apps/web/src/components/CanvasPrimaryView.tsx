@@ -58,8 +58,6 @@ type CanvasPrimaryViewProps = {
   onCreateAgent?: (tentacleId: string) => Promise<string | undefined> | undefined;
   onCreateTerminal?: () => Promise<string | undefined> | undefined;
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
-  onCreateTentacle?: () => void;
-  onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSentiphAction?: (action: string) => Promise<string | undefined> | undefined;
   onTentacleAction?: (
     tentacleId: string,
@@ -189,8 +187,6 @@ export const CanvasPrimaryView = ({
   onCreateAgent,
   onCreateTerminal,
   onCreateWorktreeTerminal,
-  onCreateTentacle,
-  onSpawnSwarm,
   onSentiphAction,
   onTentacleAction,
   onNavigateToConversation,
@@ -238,14 +234,12 @@ export const CanvasPrimaryView = ({
     tentacleById,
     sessionsByTentacleId,
     refresh: refreshGraphData,
-    refreshDeckTentacles,
   } = useCanvasGraphData({ columns, enabled: true, agentRuntimeStates });
 
   const {
     transform,
     isPanning,
     svgRef,
-    handleWheel,
     handlePointerDown: handleCanvasPointerDown,
     handlePointerMove: handleCanvasPointerMove,
     handlePointerUp: handleCanvasPointerUp,
@@ -415,7 +409,7 @@ export const CanvasPrimaryView = ({
   }, [columns]);
 
   // Hydrate open tentacles from persisted IDs.
-  // Gate on tentacle-type nodes being present (deck API fetch is async).
+  // Gate on tentacle-type nodes being present.
   const hasTentacleNodes = simulatedNodes.some((n) => n.type === "tentacle");
   const openTentacleCount = openTentacles.size;
   useEffect(() => {
@@ -754,14 +748,6 @@ export const CanvasPrimaryView = ({
     return () => svg.removeEventListener("contextmenu", handler);
   }, [svgRef]);
 
-  const handleSpawnSwarm = useCallback(
-    (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => {
-      setContextMenu(null);
-      void onSpawnSwarm?.(tentacleId, workspaceMode);
-    },
-    [onSpawnSwarm],
-  );
-
   const handleSentiphAction = useCallback(
     (action: string) => {
       setContextMenu(null);
@@ -965,7 +951,6 @@ export const CanvasPrimaryView = ({
           aria-label="Canvas graph"
           ref={svgRef}
           className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
-          onWheel={handleWheel}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={handleSvgPointerMove}
           onPointerUp={handleSvgPointerUp}
@@ -1177,18 +1162,13 @@ export const CanvasPrimaryView = ({
                 node={node}
                 isFocused={selectedNodeId === nodeId}
                 panelRef={setPanelRef(nodeId)}
-                tentacle={tentacleById.get(node.tentacleId) ?? null}
                 sessions={sessionsByTentacleId.get(node.tentacleId) ?? []}
                 onClose={() => handleCloseTentacle(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(tentacleId) => {
                   handleCreateAgent(tentacleId);
                 }}
-                onSpawnSwarm={(tentacleId, workspaceMode) => {
-                  handleSpawnSwarm(tentacleId, workspaceMode);
-                }}
                 onNavigateToConversation={onNavigateToConversation}
-                onRefreshTentacleData={refreshDeckTentacles}
               />
             ))}
             {isHydratingTerminals && openTerminals.size === 0 && (

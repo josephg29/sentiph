@@ -106,6 +106,7 @@ export const Terminal = ({
   useEffect(() => {
     let isCancelled = false;
     let reconnectTimer: number | null = null;
+    let reconnectAttempts = 0;
     let socket: WebSocket | null = null;
     let requestResizeSync = () => {};
     requestResizeSyncRef.current = () => {};
@@ -133,6 +134,7 @@ export const Terminal = ({
         }
         socketRef.current = nextSocket;
         setConnectionState("connected");
+        reconnectAttempts = 0;
         requestResizeSync();
       });
 
@@ -142,9 +144,14 @@ export const Terminal = ({
         }
         socketRef.current = null;
         setConnectionState("closed");
+        // Exponential backoff (capped) so a terminal that repeatedly fails to
+        // start (e.g. the OS is out of PTYs) doesn't hammer the server and spam
+        // the same error every second. Resets to fast reconnect on success.
+        const delay = Math.min(900 * 2 ** reconnectAttempts, 15_000);
+        reconnectAttempts += 1;
         reconnectTimer = window.setTimeout(() => {
           connect();
-        }, 900);
+        }, delay);
       });
 
       nextSocket.addEventListener("error", () => {

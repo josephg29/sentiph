@@ -4,7 +4,7 @@ Sentiph exposes a local HTTP and WebSocket API.
 
 The API has two different kinds of state:
 
-- persisted project state, such as terminal records, Deck metadata, UI state, and transcripts
+- persisted project state, such as terminal records, UI state, and transcripts
 - in-memory runtime state, such as live PTYs, attached WebSockets, scrollback, and channel queues
 
 Most HTTP routes either read/write persisted files or create runtime records. WebSocket routes attach clients to live PTY sessions owned by the API process.
@@ -33,16 +33,6 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 - `GET /api/sessions/:sessionId/git/pr` - reads pull request information for the session branch
 - `POST /api/sessions/:sessionId/git/pr/merge` - merges the session pull request
 
-## Deck and sessions
-
-- `GET /api/deck/skills` - lists available Claude Code skills discovered from project-local `.claude/skills/<skill>/SKILL.md` entries
-- `GET /api/deck/sessions` - lists sessions with metadata and vault files
-- `POST /api/deck/sessions` - creates a new session
-- `DELETE /api/deck/sessions/:sessionId` - deletes a session and its stored files
-- `PATCH /api/deck/sessions/:sessionId/skills` - updates the session's suggested Claude Code skills and rewrites the managed block in `CONTEXT.md`
-- `GET /api/deck/sessions/:sessionId/files/:filename` - reads one markdown file from the session vault
-- `POST /api/deck/sessions/:sessionId/spawn_agent` - spawns worker terminals from session files
-
 ## Prompts
 
 - `GET /api/prompts` - lists available prompt templates
@@ -57,11 +47,6 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 - `POST /api/channels/:terminalId/messages` - sends a message to one terminal channel
 
 Channel messages are queued in memory. The POST body provides `fromTerminalId` and `content`; delivery injects pending messages into the target terminal input when the target session is idle.
-
-## Code intel
-
-- `POST /api/code-intel/events` - records one code-intel event
-- `GET /api/code-intel/events` - returns the stored code-intel event log
 
 ## Hooks
 
@@ -86,13 +71,6 @@ Current hook names:
 
 - `GET /api/ui-state` - reads the persisted UI state for the current project
 - `PATCH /api/ui-state` - updates the persisted UI state
-
-## Monitor
-
-- `GET /api/monitor/config` - reads monitor configuration
-- `PATCH /api/monitor/config` - updates monitor configuration
-- `GET /api/monitor/feed` - returns the current monitor feed snapshot
-- `POST /api/monitor/refresh` - forces a monitor refresh
 
 ## Conversations
 

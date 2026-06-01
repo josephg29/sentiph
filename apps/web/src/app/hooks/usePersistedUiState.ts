@@ -24,7 +24,6 @@ const PRIMARY_NAV_MAX_INDEX = Math.max(...PRIMARY_NAV_ITEMS.map((item) => item.i
 const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
-const DEFAULT_IS_MONITOR_VISIBLE = true;
 const DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE = true;
 const DEFAULT_IS_CODEX_USAGE_VISIBLE = true;
 const DEFAULT_IS_CLAUDE_USAGE_VISIBLE = true;
@@ -71,9 +70,8 @@ const buildPersistedUiStateSnapshot = ({
   isAgentsSidebarVisible,
   sidebarWidth,
   isActiveAgentsSectionExpanded,
-  isRuntimeStatusStripVisible,
-  isMonitorVisible,
-  isBottomTelemetryVisible,
+      isRuntimeStatusStripVisible,
+      isBottomTelemetryVisible,
   isCodexUsageVisible,
   isClaudeUsageVisible,
   isClaudeUsageSectionExpanded,
@@ -90,7 +88,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: number;
   isActiveAgentsSectionExpanded: boolean;
   isRuntimeStatusStripVisible: boolean;
-  isMonitorVisible: boolean;
   isBottomTelemetryVisible: boolean;
   isCodexUsageVisible: boolean;
   isClaudeUsageVisible: boolean;
@@ -108,7 +105,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: clampSidebarWidth(sidebarWidth),
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
-  isMonitorVisible,
   isBottomTelemetryVisible,
   isCodexUsageVisible,
   isClaudeUsageVisible,
@@ -132,7 +128,6 @@ const areUiStateSnapshotsEqual = (
   left.sidebarWidth === right.sidebarWidth &&
   left.isActiveAgentsSectionExpanded === right.isActiveAgentsSectionExpanded &&
   left.isRuntimeStatusStripVisible === right.isRuntimeStatusStripVisible &&
-  left.isMonitorVisible === right.isMonitorVisible &&
   left.isBottomTelemetryVisible === right.isBottomTelemetryVisible &&
   left.isCodexUsageVisible === right.isCodexUsageVisible &&
   left.isClaudeUsageVisible === right.isClaudeUsageVisible &&
@@ -159,8 +154,6 @@ type UsePersistedUiStateResult = {
   setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isRuntimeStatusStripVisible: boolean;
   setIsRuntimeStatusStripVisible: Dispatch<SetStateAction<boolean>>;
-  isMonitorVisible: boolean;
-  setIsMonitorVisible: Dispatch<SetStateAction<boolean>>;
   isBottomTelemetryVisible: boolean;
   setIsBottomTelemetryVisible: Dispatch<SetStateAction<boolean>>;
   isCodexUsageVisible: boolean;
@@ -206,7 +199,6 @@ export const usePersistedUiState = ({
   const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(
     DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
   );
-  const [isMonitorVisible, setIsMonitorVisible] = useState(DEFAULT_IS_MONITOR_VISIBLE);
   const [isBottomTelemetryVisible, setIsBottomTelemetryVisible] = useState(
     DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
   );
@@ -278,7 +270,6 @@ export const usePersistedUiState = ({
           sidebarWidth: MIN_SIDEBAR_WIDTH,
           isActiveAgentsSectionExpanded: DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
           isRuntimeStatusStripVisible: DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-          isMonitorVisible: DEFAULT_IS_MONITOR_VISIBLE,
           isBottomTelemetryVisible: DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
           isCodexUsageVisible: DEFAULT_IS_CODEX_USAGE_VISIBLE,
           isClaudeUsageVisible: DEFAULT_IS_CLAUDE_USAGE_VISIBLE,
@@ -321,7 +312,6 @@ export const usePersistedUiState = ({
           snapshot.isActiveAgentsSectionExpanded ?? DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
         isRuntimeStatusStripVisible:
           snapshot.isRuntimeStatusStripVisible ?? DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-        isMonitorVisible: snapshot.isMonitorVisible ?? DEFAULT_IS_MONITOR_VISIBLE,
         isBottomTelemetryVisible:
           snapshot.isBottomTelemetryVisible ?? DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
         isCodexUsageVisible: snapshot.isCodexUsageVisible ?? DEFAULT_IS_CODEX_USAGE_VISIBLE,
@@ -361,10 +351,6 @@ export const usePersistedUiState = ({
 
       if (snapshot.isRuntimeStatusStripVisible !== undefined) {
         setIsRuntimeStatusStripVisible(snapshot.isRuntimeStatusStripVisible);
-      }
-
-      if (snapshot.isMonitorVisible !== undefined) {
-        setIsMonitorVisible(snapshot.isMonitorVisible);
       }
 
       if (snapshot.isBottomTelemetryVisible !== undefined) {
@@ -434,7 +420,6 @@ export const usePersistedUiState = ({
       sidebarWidth,
       isActiveAgentsSectionExpanded,
       isRuntimeStatusStripVisible,
-      isMonitorVisible,
       isBottomTelemetryVisible,
       isCodexUsageVisible,
       isClaudeUsageVisible,
@@ -484,7 +469,6 @@ export const usePersistedUiState = ({
     isAgentsSidebarVisible,
     isBottomTelemetryVisible,
     isRuntimeStatusStripVisible,
-    isMonitorVisible,
     isCodexUsageVisible,
     isClaudeUsageVisible,
     isClaudeUsageSectionExpanded,
@@ -510,8 +494,6 @@ export const usePersistedUiState = ({
     setIsActiveAgentsSectionExpanded,
     isRuntimeStatusStripVisible,
     setIsRuntimeStatusStripVisible,
-    isMonitorVisible,
-    setIsMonitorVisible,
     isBottomTelemetryVisible,
     setIsBottomTelemetryVisible,
     isCodexUsageVisible,

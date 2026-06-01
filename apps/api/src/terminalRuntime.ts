@@ -810,9 +810,6 @@ export const createTerminalRuntime = ({
       if (patch.isRuntimeStatusStripVisible !== undefined) {
         uiState.isRuntimeStatusStripVisible = patch.isRuntimeStatusStripVisible;
       }
-      if (patch.isMonitorVisible !== undefined) {
-        uiState.isMonitorVisible = patch.isMonitorVisible;
-      }
       if (patch.isBottomTelemetryVisible !== undefined) {
         uiState.isBottomTelemetryVisible = patch.isBottomTelemetryVisible;
       }

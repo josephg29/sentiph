@@ -1,20 +1,13 @@
 export const CODEX_USAGE_SCAN_INTERVAL_MS = 600_000;
 export const GITHUB_SUMMARY_SCAN_INTERVAL_MS = 60_000;
-export const MONITOR_SCAN_INTERVAL_MS = 60_000;
 export const BACKEND_LIVENESS_SCAN_INTERVAL_MS = 120_000;
 export const UI_STATE_SAVE_DEBOUNCE_MS = 250;
 export const MIN_SIDEBAR_WIDTH = 240;
 export const MAX_SIDEBAR_WIDTH = 520;
 
-// Nav tabs 6 (Conversations) and 7 (Prompts) currently have no PrimaryView
-// implementation (PrimaryViewRouter falls through to CanvasPrimaryView).
-// Re-add them here once the corresponding views exist.
 export const PRIMARY_NAV_ITEMS = [
   { index: 1, label: "Agents" },
-  { index: 2, label: "Deck" },
   { index: 3, label: "Activity" },
-  { index: 4, label: "Code Intel" },
-  { index: 5, label: "Monitor" },
   { index: 8, label: "Settings" },
   { index: 9, label: "Observe" },
 ] as const;

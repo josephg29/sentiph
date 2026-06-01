@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
@@ -64,10 +64,6 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
 
   if (typeof value.isRuntimeStatusStripVisible === "boolean") {
     nextState.isRuntimeStatusStripVisible = value.isRuntimeStatusStripVisible;
-  }
-
-  if (typeof value.isMonitorVisible === "boolean") {
-    nextState.isMonitorVisible = value.isMonitorVisible;
   }
 
   if (typeof value.isBottomTelemetryVisible === "boolean") {
@@ -392,14 +388,25 @@ const serializeTerminalRegistry = (state: TerminalRegistryState) => {
   return `${JSON.stringify(document, null, 2)}\n`;
 };
 
+let registryTempCounter = 0;
+
+// Writes go through a temporary sibling file followed by an atomic rename so a
+// concurrent reader never observes a truncated/partial registry document.
+const buildTempRegistryPath = (registryPath: string): string =>
+  `${registryPath}.${process.pid}.${++registryTempCounter}.tmp`;
+
 const writeSerializedRegistrySync = (registryPath: string, serialized: string) => {
   mkdirSync(dirname(registryPath), { recursive: true });
-  writeFileSync(registryPath, serialized, "utf8");
+  const tempPath = buildTempRegistryPath(registryPath);
+  writeFileSync(tempPath, serialized, "utf8");
+  renameSync(tempPath, registryPath);
 };
 
 const writeSerializedRegistry = async (registryPath: string, serialized: string) => {
   mkdirSync(dirname(registryPath), { recursive: true });
-  await writeFile(registryPath, serialized, "utf8");
+  const tempPath = buildTempRegistryPath(registryPath);
+  await writeFile(tempPath, serialized, "utf8");
+  await rename(tempPath, registryPath);
 };
 
 const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {

@@ -1,11 +1,16 @@
 import { X } from "lucide-react";
 import { type Ref, useMemo } from "react";
 
-import type { DeckTentacleSummary, TentacleWorkspaceMode } from "@sentiph/core";
 import type { GraphNode } from "../../app/canvas/types";
 import type { ConversationSessionSummary } from "../../app/types";
 import { AgentGlyph } from "../AgentGlyph";
-import { AGENT_COLORS } from "../deck/agentVisuals";
+
+const AGENT_COLORS = [
+  "#6366f1", "#a78bfa", "#c084fc", "#e879f9",
+  "#fb7185", "#f472b6", "#34d399", "#2dd4bf",
+  "#22d3ee", "#38bdf8", "#60a5fa", "#818cf8",
+  "#f97316", "#fbbf24", "#a3e635", "#4ade80",
+];
 
 function hashStr(str: string): number {
   let h = 0;
@@ -15,12 +20,9 @@ function hashStr(str: string): number {
   return Math.abs(h);
 }
 
-function deriveVisuals(tentacle: DeckTentacleSummary) {
-  return {
-    color:
-      tentacle.color ??
-      (AGENT_COLORS[hashStr(tentacle.tentacleId) % AGENT_COLORS.length] as string),
-  };
+function deriveColor(tentacleId: string, color: string | null | undefined): string {
+  if (color) return color;
+  return AGENT_COLORS[hashStr(tentacleId) % AGENT_COLORS.length] as string;
 }
 
 type CanvasTentaclePanelProps = {
@@ -29,19 +31,9 @@ type CanvasTentaclePanelProps = {
   onClose: () => void;
   onFocus?: () => void;
   panelRef?: Ref<HTMLDivElement> | undefined;
-  tentacle: DeckTentacleSummary | null;
   sessions: ConversationSessionSummary[];
   onCreateAgent?: ((tentacleId: string) => void) | undefined;
-  onSpawnSwarm?: ((tentacleId: string, workspaceMode: TentacleWorkspaceMode) => void) | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
-  onRefreshTentacleData?: (() => Promise<void>) | undefined;
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  idle: "idle",
-  active: "active",
-  blocked: "blocked",
-  "needs-review": "review",
 };
 
 const formatTime = (isoString: string | null): string => {
@@ -64,14 +56,11 @@ export const CanvasTentaclePanel = ({
   onClose,
   onFocus,
   panelRef,
-  tentacle,
   sessions,
   onCreateAgent,
-  onSpawnSwarm,
   onNavigateToConversation,
-  onRefreshTentacleData,
 }: CanvasTentaclePanelProps) => {
-  const visuals = useMemo(() => (tentacle ? deriveVisuals(tentacle) : null), [tentacle]);
+  const color = useMemo(() => deriveColor(node.tentacleId, node.color), [node.tentacleId, node.color]);
 
   return (
     <div
@@ -86,12 +75,7 @@ export const CanvasTentaclePanel = ({
           background: node.color ?? "#111",
         }}
       >
-        <span className="detail-title">{tentacle?.displayName ?? node.label}</span>
-        {tentacle && (
-          <span className="detail-type-badge">
-            {STATUS_LABELS[tentacle.status] ?? tentacle.status}
-          </span>
-        )}
+        <span className="detail-title">{node.label}</span>
         <button className="detail-close" type="button" onClick={onClose} aria-label="Close panel">
           <X size={14} />
         </button>
@@ -99,80 +83,32 @@ export const CanvasTentaclePanel = ({
 
       <div className="detail-content">
         <div className="detail-identity">
-          {visuals && (
-            <div className="detail-glyph">
-              <AgentGlyph
-                color={visuals.color}
-                scale={2}
-              />
-            </div>
-          )}
+          <div className="detail-glyph">
+            <AgentGlyph
+              color={color}
+              scale={2}
+            />
+          </div>
           <div className="detail-identity-info">
-            <div className="detail-name">{tentacle?.displayName ?? node.label}</div>
+            <div className="detail-name">{node.label}</div>
             <div className="detail-row">
               <span className="detail-label">ID</span>
               <span className="detail-value detail-value--mono">{node.tentacleId}</span>
             </div>
-            {tentacle?.description && (
-              <div className="detail-row">
-                <span className="detail-label">Description</span>
-                <span className="detail-value">{tentacle.description}</span>
-              </div>
-            )}
           </div>
         </div>
 
-          {node.type !== "sentiph" && (
-            <div className="detail-section">
-              <div className="detail-section-title">Actions</div>
-              <div className="detail-actions">
-                <button
-                  type="button"
-                  className="detail-action-btn"
-                  onClick={() => onCreateAgent?.(node.tentacleId)}
-                >
-                  {">_"} Create Agent
-                </button>
-                <button
-                  type="button"
-                  className="detail-action-btn"
-                  onClick={() => onSpawnSwarm?.(node.tentacleId, "worktree")}
-                >
-                  &#x2263; Spawn Swarm (Worktrees)
-                </button>
-                <button
-                  type="button"
-                  className="detail-action-btn"
-                  onClick={() => onSpawnSwarm?.(node.tentacleId, "shared")}
-                >
-                  &#x2263; Spawn Swarm (Normal)
-                </button>
-              </div>
-            </div>
-          )}
-
-        {tentacle && tentacle.vaultFiles.length > 0 && (
+        {node.type !== "sentiph" && (
           <div className="detail-section">
-            <div className="detail-section-title">Vault Files</div>
-            <div className="detail-labels-list">
-              {tentacle.vaultFiles.map((file) => (
-                <span key={file} className="detail-label-tag">
-                  {file}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tentacle && tentacle.suggestedSkills.length > 0 && (
-          <div className="detail-section">
-            <div className="detail-section-title">Suggested Skills</div>
-            <div className="detail-labels-list">
-              {tentacle.suggestedSkills.map((skill) => (
-                <span key={skill} className="detail-label-tag">
-                  {skill}
-                </span>
-              ))}
+            <div className="detail-section-title">Actions</div>
+            <div className="detail-actions">
+              <button
+                type="button"
+                className="detail-action-btn"
+                onClick={() => onCreateAgent?.(node.tentacleId)}
+              >
+                {">_"} Create Agent
+              </button>
             </div>
           </div>
         )}

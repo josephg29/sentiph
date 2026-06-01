@@ -49,7 +49,7 @@ export const sendMessage = (client: WebSocket, message: TerminalServerMessage) =
 /**
  * Delivers `message` to all connected WebSocket clients AND all registered directListeners.
  * Direct listeners are used by the API server itself to process terminal output server-side
- * (e.g. for code-intel event extraction) without going through a WebSocket round-trip.
+ * without going through a WebSocket round-trip.
  */
 export const broadcastMessage = (session: TerminalSession, message: TerminalServerMessage) => {
   for (const client of session.clients) {

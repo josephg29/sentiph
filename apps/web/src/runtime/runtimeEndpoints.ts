@@ -108,30 +108,6 @@ export const buildUiStateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/ui-state");
 };
 
-export const buildMonitorConfigUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/monitor/config";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/config");
-};
-
-export const buildMonitorFeedUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/monitor/feed";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/feed");
-};
-
-export const buildMonitorRefreshUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/monitor/refresh";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/monitor/refresh");
-};
-
 export const buildUsageHeatmapUrl = (
   scope: "all" | "project" = "all",
   runtimeBaseUrl = readRuntimeBaseUrl(),
@@ -253,59 +229,6 @@ export const buildTentacleGitPullRequestMergeUrl = (
 ) => {
   const encodedTentacleId = encodeURIComponent(tentacleId);
   const path = `/api/tentacles/${encodedTentacleId}/git/pr/merge`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/deck/tentacles";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/tentacles");
-};
-
-export const buildDeckSkillsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/deck/skills";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/skills");
-};
-
-export const buildDeckTentacleUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  const encodedTentacleId = encodeURIComponent(tentacleId);
-  const path = `/api/deck/tentacles/${encodedTentacleId}`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTentacleSkillsUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/skills`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckVaultFileUrl = (
-  tentacleId: string,
-  fileName: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const encodedTentacleId = encodeURIComponent(tentacleId);
-  const encodedFileName = encodeURIComponent(fileName);
-  const path = `/api/deck/tentacles/${encodedTentacleId}/files/${encodedFileName}`;
   if (!runtimeBaseUrl) {
     return path;
   }

@@ -1,7 +1,11 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import type { DeckAvailableSkill } from "@sentiph/core";
+export type AvailableClaudeSkill = {
+  name: string;
+  description: string;
+  source: "project" | "user";
+};
 
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const H1_PATTERN = /^#\s+(.+)$/m;
@@ -93,12 +97,12 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
   return definitions;
 };
 
-export const readAvailableClaudeSkills = (workspaceCwd: string): DeckAvailableSkill[] => {
-  const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> = [
+export const readAvailableClaudeSkills = (workspaceCwd: string): AvailableClaudeSkill[] => {
+  const roots: Array<{ path: string; source: AvailableClaudeSkill["source"] }> = [
     { path: join(workspaceCwd, ".claude", "skills"), source: "project" },
   ];
 
-  const seen = new Map<string, DeckAvailableSkill>();
+  const seen = new Map<string, AvailableClaudeSkill>();
 
   for (const root of roots) {
     const definitions = listSkillDefinitionFiles(root.path);

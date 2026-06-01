@@ -9,13 +9,11 @@ import {
   readClaudeUsageSnapshot as readClaudeUsageSnapshotDefault,
 } from "./claudeUsage";
 import { createAgentMetricsStore } from "./agentMetricsStore";
-import { createCodeIntelStore } from "./codeIntelStore";
 import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
 import { readGithubRepoSummary as readGithubRepoSummaryDefault } from "./githubRepoSummary";
-import { createMonitorService } from "./monitor";
 import { createTerminalRuntime } from "./terminalRuntime";
 
 export const createApiServer = ({
@@ -31,7 +29,6 @@ export const createApiServer = ({
   readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
   scanUsageHeatmap,
-  monitorService,
   invalidateClaudeUsageCache = invalidateUsageCacheDefault,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
@@ -83,16 +80,10 @@ export const createApiServer = ({
   }
 
   const runtime = createTerminalRuntime(runtimeOptions);
-  const monitorServiceWithDefault =
-    monitorService ??
-    createMonitorService({
-      projectStateDir: resolvedStateDir,
-    });
   const scanUsageHeatmapWithDefault =
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanClaudeUsageChart(scope, resolvedWorkspaceCwd));
 
-  const codeIntelStore = createCodeIntelStore(resolvedStateDir);
   const metricsStore = createAgentMetricsStore(join(resolvedStateDir, "state", "metrics"));
 
   const requestHandler = createApiRequestHandler({
@@ -109,9 +100,7 @@ export const createApiServer = ({
     readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     scanUsageHeatmap: scanUsageHeatmapWithDefault,
-    monitorService: monitorServiceWithDefault,
     invalidateClaudeUsageCache,
-    codeIntelStore,
     metricsStore,
     allowRemoteAccess,
   });

@@ -15,7 +15,6 @@ type UseCanvasTransformResult = {
   transform: CanvasTransform;
   isPanning: boolean;
   svgRef: React.RefObject<SVGSVGElement | null>;
-  handleWheel: (e: React.WheelEvent<SVGSVGElement>) => void;
   handlePointerDown: (e: React.PointerEvent<SVGSVGElement>) => void;
   handlePointerMove: (e: React.PointerEvent<SVGSVGElement>) => void;
   handlePointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
@@ -119,27 +118,36 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     [transform],
   );
 
-  const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
+  // Wheel-to-zoom must be a native listener registered with { passive: false }.
+  // React attaches its synthetic `wheel` listener to the document root as passive,
+  // so calling preventDefault() inside an onWheel prop throws
+  // "Unable to preventDefault inside passive event listener invocation".
+  useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
 
-    const rect = svg.getBoundingClientRect();
-    const cursorX = e.clientX - rect.left;
-    const cursorY = e.clientY - rect.top;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const cursorX = e.clientX - rect.left;
+      const cursorY = e.clientY - rect.top;
 
-    setTransform((prev) => {
-      const direction = e.deltaY < 0 ? 1 : -1;
-      const factor = 1 + direction * ZOOM_FACTOR;
-      const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * factor));
-      const scaleRatio = nextScale / prev.scale;
+      setTransform((prev) => {
+        const direction = e.deltaY < 0 ? 1 : -1;
+        const factor = 1 + direction * ZOOM_FACTOR;
+        const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * factor));
+        const scaleRatio = nextScale / prev.scale;
 
-      return {
-        scale: nextScale,
-        translateX: cursorX - (cursorX - prev.translateX) * scaleRatio,
-        translateY: cursorY - (cursorY - prev.translateY) * scaleRatio,
-      };
-    });
+        return {
+          scale: nextScale,
+          translateX: cursorX - (cursorX - prev.translateX) * scaleRatio,
+          translateY: cursorY - (cursorY - prev.translateY) * scaleRatio,
+        };
+      });
+    };
+
+    svg.addEventListener("wheel", handleWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", handleWheel);
   }, []);
 
   const handlePointerDown = useCallback(
@@ -247,7 +255,6 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     transform,
     isPanning,
     svgRef,
-    handleWheel,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

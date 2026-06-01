@@ -67,6 +67,65 @@ const parseSummary = (raw: unknown): AgentRunSummary | null => {
 
 const HOUR_MS = 60 * 60 * 1000;
 
+const msOf = (iso: string): number => {
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+};
+
+/**
+ * Collapse the append-only run log into one summary per terminal.
+ *
+ * `summaries.jsonl` records one entry per agent *run*, so a single terminal can
+ * appear many times. The observability tables render one row per terminal and key
+ * by `terminalId`, so they need a deduplicated, per-terminal view. Cumulative
+ * fields (duration, tokens, idle/processing time, error count) are summed across
+ * runs; identity and outcome fields come from the most recent run; the run window
+ * spans the earliest start to the latest end; tools are unioned.
+ */
+const aggregateByTerminal = (runs: AgentRunSummary[]): AgentRunSummary[] => {
+  const byTerminal = new Map<string, AgentRunSummary>();
+  const latestStartMs = new Map<string, number>();
+
+  for (const run of runs) {
+    const acc = byTerminal.get(run.terminalId);
+    if (!acc) {
+      byTerminal.set(run.terminalId, { ...run, toolsUsed: [...new Set(run.toolsUsed)] });
+      latestStartMs.set(run.terminalId, msOf(run.startedAt));
+      continue;
+    }
+
+    const runIsLatest = msOf(run.startedAt) >= (latestStartMs.get(run.terminalId) ?? 0);
+    byTerminal.set(run.terminalId, {
+      ...acc,
+      ...(runIsLatest
+        ? {
+            tentacleId: run.tentacleId,
+            tentacleName: run.tentacleName,
+            agentProvider: run.agentProvider,
+            outcome: run.outcome,
+            exitCode: run.exitCode,
+            exitSignal: run.exitSignal,
+          }
+        : {}),
+      startedAt: msOf(run.startedAt) < msOf(acc.startedAt) ? run.startedAt : acc.startedAt,
+      endedAt: msOf(run.endedAt) > msOf(acc.endedAt) ? run.endedAt : acc.endedAt,
+      durationMs: acc.durationMs + run.durationMs,
+      tokenIn: acc.tokenIn + run.tokenIn,
+      tokenOut: acc.tokenOut + run.tokenOut,
+      tokenCostUsd: acc.tokenCostUsd + run.tokenCostUsd,
+      idleMs: acc.idleMs + run.idleMs,
+      processingMs: acc.processingMs + run.processingMs,
+      errorCount: acc.errorCount + run.errorCount,
+      toolsUsed: [...new Set([...acc.toolsUsed, ...run.toolsUsed])],
+    });
+    if (runIsLatest) {
+      latestStartMs.set(run.terminalId, msOf(run.startedAt));
+    }
+  }
+
+  return [...byTerminal.values()];
+};
+
 export type AgentMetricsStore = ReturnType<typeof createAgentMetricsStore>;
 
 export const createAgentMetricsStore = (metricsDir: string) => {
@@ -101,16 +160,16 @@ export const createAgentMetricsStore = (metricsDir: string) => {
     return summaries;
   };
 
-  const readSummaryById = (terminalId: string): AgentRunSummary | null => {
-    const all = readSummaries();
-    let last: AgentRunSummary | null = null;
-    for (const s of all) {
-      if (s.terminalId === terminalId) {
-        last = s;
-      }
-    }
-    return last;
-  };
+  // Per-terminal view of the run log (one entry per terminal). Internal callers
+  // (readAggregate / readHeatmap) keep using readSummaries for per-run stats.
+  const readTerminalSummaries = (opts?: {
+    provider?: string;
+    tentacleId?: string;
+    since?: string;
+  }): AgentRunSummary[] => aggregateByTerminal(readSummaries(opts));
+
+  const readSummaryById = (terminalId: string): AgentRunSummary | null =>
+    readTerminalSummaries().find((s) => s.terminalId === terminalId) ?? null;
 
   const readEvents = (terminalId: string): AgentMetricsEvent[] => {
     const eventsPath = join(metricsDir, `${encodeURIComponent(terminalId)}.jsonl`);
@@ -255,5 +314,12 @@ export const createAgentMetricsStore = (metricsDir: string) => {
       .map(([timestamp, counts]) => ({ timestamp, ...counts }));
   };
 
-  return { readSummaries, readSummaryById, readEvents, readAggregate, readHeatmap };
+  return {
+    readSummaries,
+    readTerminalSummaries,
+    readSummaryById,
+    readEvents,
+    readAggregate,
+    readHeatmap,
+  };
 };

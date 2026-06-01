@@ -1,5 +1,5 @@
 import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@sentiph/core";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { SENTIPH_ID } from "./app/hooks/useCanvasGraphData";
@@ -9,7 +9,6 @@ import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShort
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
-import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useAgentGitLifecycle } from "./app/hooks/useAgentGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
@@ -29,7 +28,6 @@ import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
-import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
   buildTerminalEventsSocketUrl,
@@ -46,7 +44,6 @@ export const App = () => {
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
-  const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
   const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
   const runtimeStateStore = runtimeStateStoreRef.current;
@@ -68,7 +65,6 @@ export const App = () => {
     isBottomTelemetryVisible,
     isClaudeUsageSectionExpanded,
     isCodexUsageSectionExpanded,
-    isMonitorVisible,
     isRuntimeStatusStripVisible,
     isUiStateHydrated,
     minimizedTerminalIds,
@@ -78,7 +74,6 @@ export const App = () => {
     setIsBottomTelemetryVisible,
     setIsClaudeUsageSectionExpanded,
     setIsCodexUsageSectionExpanded,
-    setIsMonitorVisible,
     setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
     setMinimizedTerminalIds,
@@ -346,9 +341,6 @@ export const App = () => {
   });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
-  const monitorRuntime = useMonitorRuntime({
-    enabled: isUiStateHydrated && isMonitorVisible,
-  });
 
   const {
     githubCommitCount30d,
@@ -438,30 +430,24 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 8 && activePrimaryNav !== 9 ? "" : " workspace-shell--full"}`}
         >
           {isAgentsSidebarVisible &&
             activePrimaryNav !== 1 &&
             activePrimaryNav !== 3 &&
-            activePrimaryNav !== 4 &&
-            activePrimaryNav !== 5 &&
-            activePrimaryNav !== 8 && (
+            activePrimaryNav !== 8 &&
+            activePrimaryNav !== 9 && (
               <ActiveAgentsSidebar
                 sidebarWidth={sidebarWidth}
                 onSidebarWidthChange={(width) => {
                   setSidebarWidth(clampSidebarWidth(width));
                 }}
                 actionPanel={sidebarActionPanel}
-                bodyContent={activePrimaryNav === 2 ? (deckSidebarContent ?? undefined) : undefined}
               />
             )}
 
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}
-            deckPrimaryViewProps={{
-              onSidebarContent: setDeckSidebarContent,
-            }}
-            isMonitorVisible={isMonitorVisible}
             activityPrimaryViewProps={{
               usageChartProps: {
                 data: heatmapData,
@@ -487,11 +473,8 @@ export const App = () => {
                 },
               },
             }}
-            monitorRuntime={monitorRuntime}
             settingsPrimaryViewProps={{
-              isMonitorVisible,
               isRuntimeStatusStripVisible,
-              onMonitorVisibilityChange: setIsMonitorVisible,
               onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
               onPreviewTerminalCompletionSound: playCompletionSoundPreview,
               onTerminalCompletionSoundChange: setTerminalCompletionSound,
@@ -516,26 +499,6 @@ export const App = () => {
               },
               onCreateWorktreeTerminal: async () => {
                 return await createTerminal("worktree", undefined, SENTIPH_ID);
-              },
-              onCreateTentacle: async () => {
-                const response = await fetch("/api/deck/tentacles", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name: "", description: "" }),
-                });
-                if (!response.ok) return;
-                await refreshColumns();
-              },
-              onSpawnSwarm: async (tentacleId, workspaceMode) => {
-                const response = await fetch(
-                  `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/swarm`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ workspaceMode }),
-                  },
-                );
-                if (!response.ok) return;
               },
               onCloseActiveSession: (terminalId, terminalName, workspaceMode) => {
                 requestDeleteTerminal(terminalId, terminalName, {
@@ -564,10 +527,6 @@ export const App = () => {
           />
         </div>
       </section>
-
-      {isUiStateHydrated && isMonitorVisible && isBottomTelemetryVisible && (
-        <TelemetryTape monitorFeed={monitorRuntime.monitorFeed} />
-      )}
     </div>
   );
 };

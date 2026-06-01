@@ -26,7 +26,6 @@ The API process owns the moving parts that cannot live in markdown:
 - worktree creation and cleanup for isolated terminals
 - transcript capture and conversation export
 - in-memory channel queues
-- Deck file operations over `.sentiph/sessions/`
 - UI state persistence
 
 ## Transport model
@@ -34,7 +33,7 @@ The API process owns the moving parts that cannot live in markdown:
 - HTTP handles CRUD, snapshots, prompt resolution, and file-backed operations
 - `WS /api/terminals/:terminalId/ws` attaches a browser terminal to one PTY session
 - `WS /api/terminal-events/ws` broadcasts terminal-created, terminal-updated, terminal-deleted, and state-change events
-- file-backed state is the restart boundary for terminal records, UI state, transcripts, deck metadata, and monitor/cache data
+- file-backed state is the restart boundary for terminal records, UI state, and transcripts
 
 Terminal WebSockets do not own the PTY. They are clients attached to a PTY session owned by the API process. When a browser reloads, a new WebSocket can receive scrollback during the idle grace window. When the API restarts, the PTY is gone.
 
@@ -53,8 +52,6 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 - terminal records persisted as `running` are reconciled to `stale` on startup when no live Sentiph session owns them
 
 The terminal registry is `sessions.json` for historical reasons. Current records are terminals, not sessions. A terminal record stores identity, session ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
-
-Deck metadata is separate from session markdown. `deck.json` stores display/status details that should not be mixed into session files.
 
 ## Terminal lifecycle
 
@@ -81,8 +78,6 @@ Hooks currently feed these mechanisms:
 - `PreToolUse` records the current tool and marks user-question waits
 - `Notification` marks permission waits and idle prompts
 - `Stop` parses Claude transcript data into stored conversations and releases the idle keep-alive
-- `PostToolUse` for `Edit|Write` feeds code-intel events
-
 Channel delivery is also tied to hooks. Messages are queued in memory and injected when a target session is idle, including after idle or stop hook events.
 
 ## Main API groups
@@ -91,10 +86,8 @@ Channel delivery is also tied to hooks. Messages are queued in memory and inject
 - sessions
 - prompts
 - channels
-- code intel
 - hook ingestion
 - usage and telemetry
-- monitor
 - conversations
 
 For the exact endpoints, see [API reference](../reference/api.md).

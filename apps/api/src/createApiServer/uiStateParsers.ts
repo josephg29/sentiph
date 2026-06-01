@@ -67,16 +67,6 @@ export const parseUiStatePatch = (
     patch.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  if (record.isMonitorVisible !== undefined) {
-    if (typeof record.isMonitorVisible !== "boolean") {
-      return {
-        patch: null,
-        error: "isMonitorVisible must be a boolean.",
-      };
-    }
-    patch.isMonitorVisible = record.isMonitorVisible;
-  }
-
   if (record.isBottomTelemetryVisible !== undefined) {
     if (typeof record.isBottomTelemetryVisible !== "boolean") {
       return {

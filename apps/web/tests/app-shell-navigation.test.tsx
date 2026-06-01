@@ -68,22 +68,21 @@ describe("App shell and navigation", () => {
     expect(await screen.findByLabelText("Runtime status strip")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
-    expect(screen.getByLabelText("Telemetry ticker tape")).toBeInTheDocument();
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
     expect(screen.getByText("Press 1-9 to navigate")).toBeInTheDocument();
   });
 
-  it("supports keyboard-first primary navigation with number keys 1-8", async () => {
+  it("supports keyboard-first primary navigation with number keys", async () => {
     mockShellRequests();
 
     render(<App />);
     await screen.findByRole("navigation", { name: "Primary navigation" });
 
-    fireEvent.keyDown(window, { key: "4" });
+    fireEvent.keyDown(window, { key: "3" });
 
     expect(
       screen.getByRole("button", {
-        name: "[4] Code Intel",
+        name: "[3] Activity",
       }),
     ).toHaveAttribute("aria-current", "page");
   });
@@ -104,6 +103,5 @@ describe("App shell and navigation", () => {
     expect(screen.getByRole("button", { name: /Soft chime/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Retro beep/i })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show runtime status strip" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Enable X Monitor" })).toBeInTheDocument();
   });
 });

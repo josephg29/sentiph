@@ -41,10 +41,6 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  if (typeof record.isMonitorVisible === "boolean") {
-    nextState.isMonitorVisible = record.isMonitorVisible;
-  }
-
   if (typeof record.isBottomTelemetryVisible === "boolean") {
     nextState.isBottomTelemetryVisible = record.isBottomTelemetryVisible;
   }

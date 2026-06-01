@@ -353,10 +353,6 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
 
   const stateFiles = [
     "tentacles.json",
-    "deck.json",
-    "monitor-config.json",
-    "monitor-cache.json",
-    "code-intel-events.jsonl",
     "claude-usage-snapshot.json",
     "runtime.json",
   ];

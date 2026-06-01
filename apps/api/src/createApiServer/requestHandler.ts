@@ -6,14 +6,11 @@ import { extname, join, resolve, sep } from "node:path";
 import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { AgentMetricsStore } from "../agentMetricsStore";
-import type { CodeIntelStore } from "../codeIntelStore";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
-import type { MonitorService } from "../monitor";
 import { createPairingService as createDefaultPairingService } from "../pairing";
 import type { PairingService } from "../pairing";
-import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
   handleConversationExportRoute,
   handleConversationItemRoute,
@@ -26,21 +23,9 @@ import {
   handleMetricsHeatmapRoute,
   handleMetricsSummariesRoute,
 } from "./metricsRoutes";
-import {
-  handleDeckSkillsRoute,
-  handleDeckTentacleItemRoute,
-  handleDeckTentacleSkillsRoute,
-  handleDeckTentaclesRoute,
-  handleDeckVaultFileRoute,
-} from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
 import { handleHookSessionStartRoute, handleHookUserPromptSubmitRoute } from "./hooksRoutes";
 import { handleUiStateRoute } from "./miscRoutes";
-import {
-  handleMonitorConfigRoute,
-  handleMonitorFeedRoute,
-  handleMonitorRefreshRoute,
-} from "./monitorRoutes";
 import { createPairingRoutes } from "./pairingRoutes";
 import { handlePromptItemRoute } from "./promptRoutes";
 import type {
@@ -107,25 +92,13 @@ type CreateApiRequestHandlerOptions = {
   readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
-  monitorService: MonitorService;
   invalidateClaudeUsageCache: () => void;
-  codeIntelStore: CodeIntelStore;
   metricsStore: AgentMetricsStore;
   pairingService?: PairingService | undefined;
   allowRemoteAccess: boolean;
 };
 
 const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
-  [
-    "deck",
-    [
-      handleDeckSkillsRoute,
-      handleDeckTentaclesRoute,
-      handleDeckTentacleItemRoute,
-      handleDeckTentacleSkillsRoute,
-      handleDeckVaultFileRoute,
-    ],
-  ],
   ["terminal-snapshots", [handleTerminalSnapshotsRoute]],
   ["codex", [handleCodexUsageRoute]],
   ["claude", [handleClaudeUsageRoute]],
@@ -141,7 +114,6 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     ],
   ],
   ["ui-state", [handleUiStateRoute]],
-  ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
   [
     "terminals",
     [
@@ -154,7 +126,6 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     ],
   ],
   ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
-  ["code-intel", [handleCodeIntelEventsRoute]],
   ["hooks", [handleHookSessionStartRoute, handleHookUserPromptSubmitRoute]],
   [
     "conversations",
@@ -252,9 +223,7 @@ export const createApiRequestHandler = ({
   readCodexUsageSnapshot,
   readGithubRepoSummary,
   scanUsageHeatmap,
-  monitorService,
   invalidateClaudeUsageCache,
-  codeIntelStore,
   metricsStore,
   pairingService,
   allowRemoteAccess,
@@ -274,9 +243,7 @@ export const createApiRequestHandler = ({
     readCodexUsageSnapshot,
     readGithubRepoSummary,
     scanUsageHeatmap,
-    monitorService,
     invalidateClaudeUsageCache,
-    codeIntelStore,
     metricsStore,
   };
 

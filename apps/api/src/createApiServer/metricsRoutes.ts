@@ -62,14 +62,14 @@ export const handleMetricsSummariesRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const opts: Parameters<typeof metricsStore.readSummaries>[0] = {};
+  const opts: Parameters<typeof metricsStore.readTerminalSummaries>[0] = {};
   const provider = requestUrl.searchParams.get("provider");
   const tentacleId = requestUrl.searchParams.get("tentacleId");
   const since = requestUrl.searchParams.get("since");
   if (provider) opts.provider = provider;
   if (tentacleId) opts.tentacleId = tentacleId;
   if (since) opts.since = since;
-  const payload = metricsStore.readSummaries(opts);
+  const payload = metricsStore.readTerminalSummaries(opts);
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };

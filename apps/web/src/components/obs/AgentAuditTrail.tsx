@@ -78,8 +78,13 @@ export const AgentAuditTrail = ({
         </div>
       ) : (
         <ol className="obs-trail-list" reversed>
-          {[...events].reverse().map((ev) => (
-            <li key={ev.eventId} className={`obs-trail-item ${EVENT_CSS[ev.eventType] ?? ""}`}>
+          {[...events].reverse().map((ev, index) => (
+            // eventId is only unique within a single run (the sequence counter resets
+            // each run), so combine it with timestamp and position to key across runs.
+            <li
+              key={`${ev.eventId}-${ev.timestamp}-${index}`}
+              className={`obs-trail-item ${EVENT_CSS[ev.eventType] ?? ""}`}
+            >
               <span className="obs-trail-icon">{EVENT_ICONS[ev.eventType] ?? "·"}</span>
               <span className="obs-trail-time">{formatTime(ev.timestamp)}</span>
               <span className="obs-trail-type">{ev.eventType.replace(/_/g, " ")}</span>
