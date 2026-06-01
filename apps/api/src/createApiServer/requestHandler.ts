@@ -30,13 +30,7 @@ import {
   handleDeckSkillsRoute,
   handleDeckTentacleItemRoute,
   handleDeckTentacleSkillsRoute,
-  handleDeckTentacleSwarmRoute,
   handleDeckTentaclesRoute,
-  handleDeckTodoAddRoute,
-  handleDeckTodoDeleteRoute,
-  handleDeckTodoEditRoute,
-  handleDeckTodoSolveRoute,
-  handleDeckTodoToggleRoute,
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
 import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
@@ -49,7 +43,6 @@ import {
 } from "./monitorRoutes";
 import { createPairingRoutes } from "./pairingRoutes";
 import { handlePromptItemRoute } from "./promptRoutes";
-import { handleSetupRoute, handleSetupStepRoute } from "./setupRoutes";
 import type {
   ApiRouteHandler,
   RouteHandlerContext,
@@ -130,12 +123,6 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleDeckTentaclesRoute,
       handleDeckTentacleItemRoute,
       handleDeckTentacleSkillsRoute,
-      handleDeckTodoSolveRoute,
-      handleDeckTentacleSwarmRoute,
-      handleDeckTodoToggleRoute,
-      handleDeckTodoEditRoute,
-      handleDeckTodoAddRoute,
-      handleDeckTodoDeleteRoute,
       handleDeckVaultFileRoute,
     ],
   ],
@@ -178,7 +165,6 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleConversationExportRoute,
     ],
   ],
-  ["setup", [handleSetupRoute, handleSetupStepRoute]],
   ["prompts", [handlePromptItemRoute]],
   ["updates", [handleUpdatesStatusRoute, handleUpdatesApplyRoute, handleUpdatesRestartRoute]],
 ]);

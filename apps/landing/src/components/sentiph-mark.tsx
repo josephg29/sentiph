@@ -1,5 +1,5 @@
-import { PixelOctopus, type PixelOctopusProps } from "@/components/pixel-octopus";
+import { AgentMark, type AgentMarkProps } from "@/components/pixel-octopus";
 
-export function SentiphMark(props: PixelOctopusProps) {
-  return <PixelOctopus scale={2} {...props} />;
+export function SentiphMark(props: AgentMarkProps) {
+  return <AgentMark scale={2} {...props} />;
 }

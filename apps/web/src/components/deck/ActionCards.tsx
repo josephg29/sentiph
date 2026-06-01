@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 
 import type { TerminalAgentProvider } from "../../app/types";
-import { OctopusGlyph } from "../EmptyOctopus";
+import { AgentGlyph } from "../AgentGlyph";
 
 const AGENT_PROVIDER_OPTIONS: { value: TerminalAgentProvider; label: string }[] = [
   { value: "claude-code", label: "Claude Code" },
@@ -34,12 +34,9 @@ export const ActionCards = ({
   <div className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}>
     <button type="button" className="deck-empty-card" onClick={onAddManually}>
       <div className="deck-empty-card-icon">
-        <OctopusGlyph
+        <AgentGlyph
           color="#cc0000"
-          animation="idle"
-          expression="normal"
-          accessory="none"
-          scale={compact ? 3 : 4}
+          scale={compact ? 1 : 1.2}
         />
       </div>
       <div className="deck-empty-card-text">

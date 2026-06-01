@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@sentiph/core";
 import {
   Check as CheckIcon,
   Hexagon,
@@ -27,9 +26,8 @@ import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
 import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
-import { OctopusNode } from "./canvas/OctopusNode";
+import { OctopusNode } from "./canvas/OctopusNode"; // TODO: rename to AgentNode
 import { SessionNode } from "./canvas/SessionNode";
-import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
@@ -53,12 +51,6 @@ type CanvasPrimaryViewProps = {
   canvasOpenTerminalIds?: string[];
   canvasOpenTentacleIds?: string[];
   canvasTerminalsPanelWidth?: number | null;
-  workspaceSetup?: WorkspaceSetupSnapshot | null;
-  isWorkspaceSetupLoading?: boolean;
-  workspaceSetupError?: string | null;
-  runningWorkspaceSetupStepId?: WorkspaceSetupStepId | null;
-  onRunWorkspaceSetupStep?: (stepId: WorkspaceSetupStepId) => Promise<void> | void;
-  onLaunchWorkspaceSetupPlanner?: () => Promise<string | undefined> | undefined;
   recentlyCreatedTerminal?: TerminalView[number] | null;
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
@@ -68,7 +60,6 @@ type CanvasPrimaryViewProps = {
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
   onCreateTentacle?: () => void;
   onSpawnSwarm?: (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
-  onSolveTodoItem?: (tentacleId: string, itemIndex: number) => Promise<void> | void;
   onSentiphAction?: (action: string) => Promise<string | undefined> | undefined;
   onTentacleAction?: (
     tentacleId: string,
@@ -191,12 +182,6 @@ export const CanvasPrimaryView = ({
   canvasOpenTerminalIds,
   canvasOpenTentacleIds,
   canvasTerminalsPanelWidth: persistedTerminalsPanelWidth,
-  workspaceSetup = null,
-  isWorkspaceSetupLoading = false,
-  workspaceSetupError = null,
-  runningWorkspaceSetupStepId = null,
-  onRunWorkspaceSetupStep,
-  onLaunchWorkspaceSetupPlanner,
   recentlyCreatedTerminal,
   onCanvasOpenTerminalIdsChange,
   onCanvasOpenTentacleIdsChange,
@@ -206,7 +191,6 @@ export const CanvasPrimaryView = ({
   onCreateWorktreeTerminal,
   onCreateTentacle,
   onSpawnSwarm,
-  onSolveTodoItem,
   onSentiphAction,
   onTentacleAction,
   onNavigateToConversation,
@@ -234,10 +218,10 @@ export const CanvasPrimaryView = ({
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
   const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
-  const [isLaunchingWorkspaceSetupPlanner, setIsLaunchingWorkspaceSetupPlanner] = useState(false);
   const hasHydratedTerminals = useRef(false);
   const hasHydratedTentacles = useRef(false);
   const lastHandledCreatedTerminalIdRef = useRef<string | null>(null);
+  const sentiphTerminalInFlight = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeClickedRef = useRef(false);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -245,7 +229,6 @@ export const CanvasPrimaryView = ({
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
   const lastFocusedPanelIdRef = useRef<string | null>(null);
-  const shouldShowWorkspaceSetupCard = Boolean(workspaceSetup?.shouldShowSetupCard);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -492,6 +475,23 @@ export const CanvasPrimaryView = ({
     [dragNodeId, screenToGraph, moveNode, handleCanvasPointerMove],
   );
 
+  const handleCreateAgent = useCallback(
+    (tentacleId: string) => {
+      if (!onCreateAgent) return;
+      setContextMenu(null);
+      const result = onCreateAgent(tentacleId);
+      if (result && typeof result.then === "function") {
+        void result.then((agentId) => {
+          sentiphTerminalInFlight.current = false;
+          if (agentId) setPendingOpenAgentId(agentId);
+        });
+      } else {
+        sentiphTerminalInFlight.current = false;
+      }
+    },
+    [onCreateAgent],
+  );
+
   const handleNodeClick = useCallback(
     (nodeId: string) => {
       setSelectedNodeId(nodeId);
@@ -511,7 +511,7 @@ export const CanvasPrimaryView = ({
           }
           return next;
         });
-      } else if (node.type === "tentacle" || node.type === "sentiph") {
+      } else if (node.type === "tentacle") {
         setOpenTentacles((prev) => {
           const next = new Map(prev);
           if (next.has(nodeId)) {
@@ -521,11 +521,31 @@ export const CanvasPrimaryView = ({
           }
           return next;
         });
+      } else if (node.type === "sentiph") {
+        const existingSentiphTerminal = columns.find((t) => t.tentacleId === SENTIPH_ID);
+        if (existingSentiphTerminal) {
+          const sessionNodeId = `a:${existingSentiphTerminal.terminalId}`;
+          setOpenTerminals((prev) => {
+            const next = new Map(prev);
+            if (next.has(sessionNodeId)) {
+              next.delete(sessionNodeId);
+            } else {
+              const sessionNode = nodesById.get(sessionNodeId);
+              if (sessionNode) {
+                next.set(sessionNodeId, { ...sessionNode });
+              }
+            }
+            return next;
+          });
+        } else if (!sentiphTerminalInFlight.current) {
+          sentiphTerminalInFlight.current = true;
+          handleCreateAgent(node.tentacleId);
+        }
       } else if (node.type === "inactive-session" && node.sessionId) {
         onNavigateToConversation?.(node.sessionId);
       }
     },
-    [nodesById, onNavigateToConversation, resolveActiveSessionNode],
+    [nodesById, columns, onNavigateToConversation, resolveActiveSessionNode, handleCreateAgent],
   );
 
   const setPanelRef = useCallback(
@@ -734,20 +754,6 @@ export const CanvasPrimaryView = ({
     return () => svg.removeEventListener("contextmenu", handler);
   }, [svgRef]);
 
-  const handleCreateAgent = useCallback(
-    (tentacleId: string) => {
-      if (!onCreateAgent) return;
-      setContextMenu(null);
-      const result = onCreateAgent(tentacleId);
-      if (result && typeof result.then === "function") {
-        void result.then((agentId) => {
-          if (agentId) setPendingOpenAgentId(agentId);
-        });
-      }
-    },
-    [onCreateAgent],
-  );
-
   const handleSpawnSwarm = useCallback(
     (tentacleId: string, workspaceMode: TerminalWorkspaceMode) => {
       setContextMenu(null);
@@ -950,21 +956,7 @@ export const CanvasPrimaryView = ({
     const openIds = Array.from(openTerminals.keys()).join("|");
     return `${openIds}::${terminalsPanelWidth ?? "auto"}`;
   }, [openTerminals, terminalsPanelWidth]);
-  const handleLaunchWorkspaceSetupPlanner = useCallback(async () => {
-    if (!onLaunchWorkspaceSetupPlanner) {
-      return;
-    }
 
-    setIsLaunchingWorkspaceSetupPlanner(true);
-    try {
-      const agentId = await onLaunchWorkspaceSetupPlanner();
-      if (agentId) {
-        setPendingOpenAgentId(agentId);
-      }
-    } finally {
-      setIsLaunchingWorkspaceSetupPlanner(false);
-    }
-  }, [onLaunchWorkspaceSetupPlanner]);
 
   return (
     <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
@@ -1159,23 +1151,6 @@ export const CanvasPrimaryView = ({
           </div>
         )}
 
-        {shouldShowWorkspaceSetupCard && (
-          <div className="canvas-setup-overlay">
-            <WorkspaceSetupCard
-              workspaceSetup={workspaceSetup}
-              isLoading={isWorkspaceSetupLoading}
-              error={workspaceSetupError}
-              onRunStep={(stepId) => {
-                void onRunWorkspaceSetupStep?.(stepId);
-              }}
-              onLaunchClaudeCode={() => {
-                void handleLaunchWorkspaceSetupPlanner();
-              }}
-              isLaunchingAgent={isLaunchingWorkspaceSetupPlanner}
-              isRunningStepId={runningWorkspaceSetupStepId}
-            />
-          </div>
-        )}
       </div>
 
       {hasPanels && (
@@ -1208,9 +1183,6 @@ export const CanvasPrimaryView = ({
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(tentacleId) => {
                   handleCreateAgent(tentacleId);
-                }}
-                onSolveTodoItem={(tentacleId, itemIndex) => {
-                  void onSolveTodoItem?.(tentacleId, itemIndex);
                 }}
                 onSpawnSwarm={(tentacleId, workspaceMode) => {
                   handleSpawnSwarm(tentacleId, workspaceMode);
@@ -1367,7 +1339,7 @@ export const CanvasPrimaryView = ({
                 className="canvas-context-menu-item"
                 onClick={() => {
                   setContextMenu(null);
-                  handleCreateAgent(SENTIPH_ID);
+                  handleNodeClick(`t:${SENTIPH_ID}`);
                 }}
               >
                 <span className="canvas-context-menu-icon">

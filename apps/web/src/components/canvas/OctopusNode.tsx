@@ -1,12 +1,7 @@
 import { useMemo } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
-import {
-  type OctopusAccessory,
-  type OctopusAnimation,
-  type OctopusExpression,
-  OctopusGlyph,
-} from "../EmptyOctopus";
+import { AgentGlyph } from "../AgentGlyph";
 
 const LINE_MAX = 22;
 
@@ -30,50 +25,6 @@ const splitLabel = (label: string): [string] | [string, string] => {
     label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
   ];
 };
-
-const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
-const EXPRESSIONS: OctopusExpression[] = ["normal", "happy", "angry", "surprised"];
-const ACCESSORIES: OctopusAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
-
-function hashString(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
-function seededRandom(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-type OctopusVisuals = {
-  animation: OctopusAnimation;
-  expression: OctopusExpression;
-  accessory: OctopusAccessory;
-  hairColor?: string | undefined;
-};
-
-function deriveOctopusVisuals(node: GraphNode): OctopusVisuals {
-  const rng = seededRandom(hashString(node.tentacleId));
-  const stored = node.octopus;
-  return {
-    animation:
-      (stored?.animation as OctopusAnimation | null) ??
-      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
-    expression:
-      (stored?.expression as OctopusExpression | null) ??
-      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
-    accessory:
-      (stored?.accessory as OctopusAccessory | null) ??
-      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
-    hairColor: stored?.hairColor ?? undefined,
-  };
-}
 
 type OctopusNodeProps = {
   node: GraphNode;
@@ -119,10 +70,6 @@ const buildEdgePath = (
 
   return `M ${cx} ${cy} Q ${cpx} ${cpy} ${etx} ${ety}`;
 };
-
-const GLYPH_SCALE = 4;
-const GLYPH_W = 112;
-const GLYPH_H = 120;
 
 const isEdgeActivityVisible = (target: GraphNode): boolean =>
   target.type === "active-session" &&
@@ -180,6 +127,9 @@ const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) 
     </circle>,
   ]);
 
+const GLYPH_SIZE = 48;
+const GLYPH_SCALE = 2;
+
 export const OctopusNode = ({
   node,
   connectedNodes,
@@ -192,16 +142,7 @@ export const OctopusNode = ({
   const showFocus = isSelected;
   const isSentiph = node.type === "sentiph";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
-  const visuals = useMemo(
-    () =>
-      isSentiph
-        ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
-        : deriveOctopusVisuals(node),
-    [node, isSentiph],
-  );
-  const glyphScale = isSentiph ? 6 : GLYPH_SCALE;
-  const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
-  const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
+  const glyphSize = GLYPH_SIZE * (isSentiph ? 1.5 : GLYPH_SCALE);
   const color = node.color;
 
   return (
@@ -227,7 +168,7 @@ export const OctopusNode = ({
       style={{ cursor: "grab" }}
     >
       {/* Invisible hit area for pointer events */}
-      <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
+      <rect x={-glyphSize / 2} y={-glyphSize / 2} width={glyphSize} height={glyphSize} fill="transparent" />
 
       {/* Edges — highlight when either endpoint is selected */}
       {connectedNodes.map((target) => {
@@ -257,12 +198,12 @@ export const OctopusNode = ({
       {/* Focused glow — same style as session nodes */}
       {showFocus && <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />}
 
-      {/* Octopus glyph via foreignObject */}
+      {/* Agent glyph via foreignObject */}
       <foreignObject
-        x={-glyphW / 2}
-        y={-glyphH / 2}
-        width={glyphW}
-        height={glyphH}
+        x={-glyphSize / 2}
+        y={-glyphSize / 2}
+        width={glyphSize}
+        height={glyphSize}
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
         <div
@@ -275,20 +216,16 @@ export const OctopusNode = ({
             pointerEvents: "none",
           }}
         >
-          <OctopusGlyph
-            {...(isSentiph ? { color: "#cc0000" } : { color })}
-            animation={visuals.animation}
-            expression={visuals.expression}
-            accessory={visuals.accessory}
-            {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-            scale={glyphScale}
+          <AgentGlyph
+            color={isSentiph ? "#cc0000" : color}
+            scale={isSentiph ? 1.5 : GLYPH_SCALE}
           />
         </div>
       </foreignObject>
 
       {/* Label — always visible, up to two lines */}
       <text
-        y={glyphH / 2 - 12}
+        y={glyphSize / 2 - 12}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
         fill="var(--accent-primary, #111)"

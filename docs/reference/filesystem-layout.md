@@ -1,6 +1,6 @@
 # Filesystem Layout
 
-Sentiph splits files by ownership. Agent-facing project context stays in the workspace. Runtime-owned state stays in the per-project global state directory.
+Sentiph splits files by ownership. Agent-facing project files stay in the workspace. Runtime-owned state stays in the per-project global state directory.
 
 ## Project-local files
 
@@ -12,7 +12,7 @@ Main paths:
 - `.sentiph/sessions/`
 - `.sentiph/worktrees/`
 
-`project.json` holds the stable project ID used to find global state. The sessions folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as context storage.
+`project.json` holds the stable project ID used to find global state. The sessions folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as state storage.
 
 Session example:
 
@@ -21,7 +21,6 @@ Session example:
   sessions/
     api-backend/
       CONTEXT.md
-      todo.md
       routes.md
 ```
 
@@ -69,7 +68,7 @@ Notable files:
 
 ## Practical rule
 
-If something is agent-facing context, keep it in the session folder.
+If something is agent-facing state, keep it in the session folder.
 
 If something is runtime-owned state, expect it under the global project state directory.
 

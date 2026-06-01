@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { DeckAvailableSkill, DeckTentacleSummary } from "@sentiph/core";
-import { OctopusGlyph } from "../EmptyOctopus";
-import type { OctopusVisuals } from "./octopusVisuals";
-
-// ─── Status styling ──────────────────────────────────────────────────────────
+import { AgentGlyph } from "../AgentGlyph";
+import type { AgentVisuals } from "./agentVisuals";
 
 const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
   idle: "idle",
@@ -13,56 +11,9 @@ const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
   "needs-review": "review",
 };
 
-// ─── TodoList ────────────────────────────────────────────────────────────────
-
-const TodoList = ({
-  items,
-  tentacleId,
-  onToggle,
-}: {
-  items: { text: string; done: boolean }[];
-  tentacleId: string;
-  onToggle?: ((tentacleId: string, itemIndex: number, done: boolean) => void) | undefined;
-}) => {
-  let lastDoneIndex = -1;
-  for (let idx = items.length - 1; idx >= 0; idx--) {
-    if (items[idx]?.done) {
-      lastDoneIndex = idx;
-      break;
-    }
-  }
-  const scrollRef = useRef<HTMLLIElement | null>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ block: "start" });
-  }, []);
-
-  return (
-    <ul className="deck-pod-todos">
-      {items.map((item, i) => (
-        <li
-          key={item.text}
-          ref={i === lastDoneIndex ? scrollRef : undefined}
-          className={`deck-pod-todo-item${item.done ? " deck-pod-todo-item--done" : ""}`}
-        >
-          <input
-            type="checkbox"
-            checked={item.done}
-            className="deck-pod-todo-checkbox"
-            onChange={() => onToggle?.(tentacleId, i, !item.done)}
-          />
-          <span className="deck-pod-todo-text">{item.text}</span>
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-// ─── TentaclePod ─────────────────────────────────────────────────────────────
-
 export type TentaclePodProps = {
   tentacle: DeckTentacleSummary;
-  visuals: OctopusVisuals;
+  visuals: AgentVisuals;
   isFocused: boolean;
   activeFileName?: string | undefined;
   onVaultFileClick?: (fileName: string) => void;
@@ -70,7 +21,6 @@ export type TentaclePodProps = {
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
-  onTodoToggle?: (tentacleId: string, itemIndex: number, done: boolean) => void;
   availableSkills: DeckAvailableSkill[];
   isSavingSkills?: boolean | undefined;
   onSaveSuggestedSkills?:
@@ -88,13 +38,10 @@ export const TentaclePod = ({
   onClose,
   onDelete,
   isDeleting,
-  onTodoToggle,
   availableSkills,
   isSavingSkills,
   onSaveSuggestedSkills,
 }: TentaclePodProps) => {
-  const progressPct =
-    tentacle.todoTotal > 0 ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100) : 0;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [draftSkills, setDraftSkills] = useState<string[]>(tentacle.suggestedSkills);
@@ -195,15 +142,11 @@ export const TentaclePod = ({
           {STATUS_LABELS[tentacle.status]}
         </span>
         <div className="deck-pod-identity">
-          <div className="deck-pod-octopus-col">
-            <div className="deck-pod-octopus">
-              <OctopusGlyph
+          <div className="deck-pod-agent-col">
+            <div className="deck-pod-agent">
+              <AgentGlyph
                 color={visuals.color}
-                animation={visuals.animation}
-                expression={visuals.expression}
-                accessory={visuals.accessory}
-                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-                scale={5}
+                scale={1.5}
               />
             </div>
           </div>
@@ -266,31 +209,6 @@ export const TentaclePod = ({
                 </button>
               </div>
             </div>
-          )}
-
-          {tentacle.todoTotal > 0 && (
-            <div className="deck-pod-progress">
-              <div className="deck-pod-progress-bar">
-                <div
-                  className="deck-pod-progress-fill"
-                  style={{ width: `${progressPct}%`, backgroundColor: visuals.color }}
-                />
-              </div>
-              <span
-                className="deck-pod-progress-label"
-                style={{ backgroundColor: `${visuals.color}22`, color: visuals.color }}
-              >
-                {tentacle.todoDone}/{tentacle.todoTotal} done
-              </span>
-            </div>
-          )}
-
-          {tentacle.todoItems.length > 0 && (
-            <TodoList
-              items={tentacle.todoItems}
-              tentacleId={tentacle.tentacleId}
-              onToggle={onTodoToggle}
-            />
           )}
 
           {tentacle.suggestedSkills.length > 0 && (

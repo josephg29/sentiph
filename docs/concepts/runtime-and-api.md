@@ -31,7 +31,7 @@ The API process owns the moving parts that cannot live in markdown:
 
 ## Transport model
 
-- HTTP handles CRUD, snapshots, prompt resolution, setup checks, and file-backed operations
+- HTTP handles CRUD, snapshots, prompt resolution, and file-backed operations
 - `WS /api/terminals/:terminalId/ws` attaches a browser terminal to one PTY session
 - `WS /api/terminal-events/ws` broadcasts terminal-created, terminal-updated, terminal-deleted, and state-change events
 - file-backed state is the restart boundary for terminal records, UI state, transcripts, deck metadata, and monitor/cache data
@@ -54,7 +54,7 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 
 The terminal registry is `sessions.json` for historical reasons. Current records are terminals, not sessions. A terminal record stores identity, session ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
-Deck metadata is separate from session markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todo.md`.
+Deck metadata is separate from session markdown. `deck.json` stores display/status details that should not be mixed into session files.
 
 ## Terminal lifecycle
 
@@ -88,7 +88,7 @@ Channel delivery is also tied to hooks. Messages are queued in memory and inject
 ## Main API groups
 
 - terminals and snapshots
-- deck sessions and todo operations
+- sessions
 - prompts
 - channels
 - code intel

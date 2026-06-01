@@ -13,8 +13,6 @@ Use them for short coordination:
 - hand off a finding
 - point another agent to a file or risk
 
-It is not a replacement for proper context files.
-
 ## Delivery model
 
 When a message is sent, Sentiph:

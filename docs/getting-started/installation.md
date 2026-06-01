@@ -42,7 +42,7 @@ Running `sentiph` inside a project directory will:
 - move runtime state to `~/.sentiph/projects/<project-id>/state/`
 - choose an open local API port starting at `8787`
 - open the browser unless `SENTIPH_NO_OPEN=1`
-- show a Deck setup card until the first session is created
+
 
 ## Startup rules
 

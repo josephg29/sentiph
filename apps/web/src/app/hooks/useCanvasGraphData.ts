@@ -13,7 +13,7 @@ const INACTIVE_SESSION_RADIUS = 10;
 
 const SENTIPH_RADIUS = 52;
 export const SENTIPH_ID = "__sentiph__";
-const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
+export const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
 
 const getAccentPrimary = (): string =>
   (typeof document !== "undefined"
@@ -76,35 +76,10 @@ const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | nul
     return null;
   }
 
-  const todoItems = Array.isArray(record.todoItems)
-    ? record.todoItems
-        .map((item) => {
-          if (item === null || typeof item !== "object") {
-            return null;
-          }
-
-          const todoRecord = item as Record<string, unknown>;
-          if (typeof todoRecord.text !== "string") {
-            return null;
-          }
-
-          return {
-            text: todoRecord.text,
-            done: todoRecord.done === true,
-          };
-        })
-        .filter((item): item is { text: string; done: boolean } => item !== null)
-    : [];
-
   const scopeRecord =
     record.scope !== null && typeof record.scope === "object"
       ? (record.scope as Record<string, unknown>)
       : null;
-  const octopusRecord =
-    record.octopus !== null && typeof record.octopus === "object"
-      ? (record.octopus as Record<string, unknown>)
-      : null;
-
   const status =
     record.status === "idle" ||
     record.status === "active" ||
@@ -119,12 +94,6 @@ const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | nul
     description: typeof record.description === "string" ? record.description : "",
     status,
     color: typeof record.color === "string" ? record.color : null,
-    octopus: {
-      animation: typeof octopusRecord?.animation === "string" ? octopusRecord.animation : null,
-      expression: typeof octopusRecord?.expression === "string" ? octopusRecord.expression : null,
-      accessory: typeof octopusRecord?.accessory === "string" ? octopusRecord.accessory : null,
-      hairColor: typeof octopusRecord?.hairColor === "string" ? octopusRecord.hairColor : null,
-    },
     scope: {
       paths: Array.isArray(scopeRecord?.paths)
         ? scopeRecord.paths.filter((path): path is string => typeof path === "string")
@@ -136,15 +105,6 @@ const normalizeDeckTentacleSummary = (value: unknown): DeckTentacleSummary | nul
     vaultFiles: Array.isArray(record.vaultFiles)
       ? record.vaultFiles.filter((file): file is string => typeof file === "string")
       : [],
-    todoTotal:
-      typeof record.todoTotal === "number" && Number.isFinite(record.todoTotal)
-        ? record.todoTotal
-        : todoItems.length,
-    todoDone:
-      typeof record.todoDone === "number" && Number.isFinite(record.todoDone)
-        ? record.todoDone
-        : todoItems.filter((item) => item.done).length,
-    todoItems,
     suggestedSkills: Array.isArray(record.suggestedSkills)
       ? record.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
       : [],
@@ -228,12 +188,8 @@ export const useCanvasGraphData = ({
         description: "",
         status: "active",
         color: null,
-        octopus: { animation: null, expression: null, accessory: null, hairColor: null },
         scope: { paths: [], tags: [] },
         vaultFiles: [],
-        todoTotal: 0,
-        todoDone: 0,
-        todoItems: [],
         suggestedSkills: [],
       });
       const names: [string, string][] = [
@@ -351,7 +307,6 @@ export const useCanvasGraphData = ({
       label,
       color,
       ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
-      ...(deck?.octopus ? { octopus: deck.octopus } : {}),
     };
     nodes.push(node);
     currentNodesById.set(tentacleNodeId, node);

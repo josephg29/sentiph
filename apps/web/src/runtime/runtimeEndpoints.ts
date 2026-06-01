@@ -108,26 +108,6 @@ export const buildUiStateUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/ui-state");
 };
 
-export const buildWorkspaceSetupUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/setup";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/setup");
-};
-
-export const buildWorkspaceSetupStepUrl = (
-  stepId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const path = `/api/setup/steps/${encodeURIComponent(stepId)}`;
-  if (!runtimeBaseUrl) {
-    return path;
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
 export const buildMonitorConfigUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/monitor/config";
@@ -330,45 +310,6 @@ export const buildDeckVaultFileUrl = (
     return path;
   }
 
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTodoToggleUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/toggle`;
-  if (!runtimeBaseUrl) return path;
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTodoEditUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/edit`;
-  if (!runtimeBaseUrl) return path;
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTodoAddUrl = (tentacleId: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo`;
-  if (!runtimeBaseUrl) return path;
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTodoDeleteUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/delete`;
-  if (!runtimeBaseUrl) return path;
-  return buildAbsoluteUrl(runtimeBaseUrl, path);
-};
-
-export const buildDeckTodoSolveUrl = (
-  tentacleId: string,
-  runtimeBaseUrl = readRuntimeBaseUrl(),
-) => {
-  const path = `/api/deck/tentacles/${encodeURIComponent(tentacleId)}/todo/solve`;
-  if (!runtimeBaseUrl) return path;
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 

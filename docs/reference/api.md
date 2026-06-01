@@ -36,18 +36,12 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 ## Deck and sessions
 
 - `GET /api/deck/skills` - lists available Claude Code skills discovered from project-local `.claude/skills/<skill>/SKILL.md` entries
-- `GET /api/deck/sessions` - lists sessions with metadata, vault files, and todo progress
+- `GET /api/deck/sessions` - lists sessions with metadata and vault files
 - `POST /api/deck/sessions` - creates a new session
 - `DELETE /api/deck/sessions/:sessionId` - deletes a session and its stored files
 - `PATCH /api/deck/sessions/:sessionId/skills` - updates the session's suggested Claude Code skills and rewrites the managed block in `CONTEXT.md`
-- `POST /api/deck/sessions/:sessionId/todo` - adds a todo item to `todo.md`
-- `PATCH /api/deck/sessions/:sessionId/todo/toggle` - marks a todo item done or undone
-- `PATCH /api/deck/sessions/:sessionId/todo/edit` - edits the text of a todo item
-- `POST /api/deck/sessions/:sessionId/todo/delete` - deletes a todo item
 - `GET /api/deck/sessions/:sessionId/files/:filename` - reads one markdown file from the session vault
-- `POST /api/deck/sessions/:sessionId/spawn_agent` - spawns worker terminals from incomplete todo items
-
-Deck routes treat `.sentiph/sessions/<session-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
+- `POST /api/deck/sessions/:sessionId/spawn_agent` - spawns worker terminals from session files
 
 ## Prompts
 
@@ -92,11 +86,6 @@ Current hook names:
 
 - `GET /api/ui-state` - reads the persisted UI state for the current project
 - `PATCH /api/ui-state` - updates the persisted UI state
-
-## Workspace setup
-
-- `GET /api/setup` - reads the verified first-run setup status for the current workspace
-- `POST /api/setup/steps/:stepId` - runs one setup step and returns the refreshed setup snapshot
 
 ## Monitor
 

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Should Sentiph build pipelines automatically?</title>
+<meta name="description" content="A plain-language explainer: would an automatic build → check → fix → done pipeline help Sentiph, and how do we make it happen every time without anyone remembering to." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
+<style>
+  :root{
+    --paper:#faf8f3; --surface:#ffffff; --surface-2:#fbfaf6;
+    --ink:#181816; --muted:#6f6a60; --line:#e8e3d7; --line-soft:#f0ece2;
+    --builder:#d9540b; --checker:#1a936f; --fixer:#6d4aff; --done:#181816; --lead:#181816;
+    --shadow:0 1px 2px rgba(24,24,22,.04), 0 8px 24px rgba(24,24,22,.05);
+  }
+  html.dark{
+    --paper:#0d0d0f; --surface:#161618; --surface-2:#1a1a1d;
+    --ink:#f3f1ea; --muted:#a39d92; --line:#2a2a2f; --line-soft:#212126;
+    --builder:#ff7a3c; --checker:#33c997; --fixer:#9b7bff; --done:#f3f1ea; --lead:#f3f1ea;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+  html{background:var(--paper);}
+  body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--paper);
+       -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+  .display{font-family:'Newsreader',Georgia,serif;}
+  .eyebrow{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--muted);}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);}
+  .hair{border-color:var(--line);}
+  .muted{color:var(--muted);}
+  .chip{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--line);border-radius:999px;
+        padding:.4rem .75rem;font-weight:600;font-size:.85rem;background:var(--surface);}
+  .dot{width:.6rem;height:.6rem;border-radius:999px;flex:none;}
+  a.focusable:focus-visible, button:focus-visible{outline:2px solid var(--fixer);outline-offset:2px;border-radius:10px;}
+  /* pipeline */
+  .stage{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+         padding:1rem 1.1rem;min-width:0;}
+  .arrow{color:var(--muted);flex:none;display:flex;align-items:center;justify-content:center;}
+  .arrow svg{width:30px;height:30px;}
+  @media (max-width:767px){ .arrow svg{transform:rotate(90deg);} }
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media (prefers-reduced-motion:reduce){ .reveal{opacity:1;transform:none;transition:none;} }
+  .grain{background-image:radial-gradient(var(--line-soft) 1px, transparent 1px);background-size:22px 22px;}
+</style>
+</head>
+<body class="min-h-screen">
+
+  <!-- top bar -->
+  <header class="max-w-3xl mx-auto px-5 sm:px-8 pt-6 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:var(--fixer)"></span>
+      <span class="font-semibold tracking-tight">Sentiph</span>
+    </div>
+    <button id="themeToggle" class="focusable chip" aria-label="Toggle dark mode">
+      <span id="themeIcon">☀︎</span><span class="hidden sm:inline" id="themeLabel">Light</span>
+    </button>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-5 sm:px-8 pb-24">
+
+    <!-- hero -->
+    <section class="pt-12 sm:pt-16">
+      <p class="eyebrow reveal">The question on the table</p>
+      <h1 class="display reveal mt-4 text-[2.1rem] leading-[1.12] sm:text-[3.1rem] sm:leading-[1.08] font-medium tracking-tight">
+        Should Sentiph build a
+        <span style="color:var(--fixer)">pipeline</span>
+        for every job — automatically?
+      </h1>
+      <p class="reveal mt-6 text-lg sm:text-xl muted leading-relaxed max-w-2xl">
+        Right now, when Sentiph splits work across many agents, whether the work gets
+        <em>checked</em> depends on whether the lead agent remembers to check it. A pipeline makes
+        that checking automatic and identical every time. Here is whether it's worth it — and how we'd make it happen on its own.
+      </p>
+    </section>
+
+    <!-- one-sentence answer -->
+    <section class="mt-12 reveal">
+      <div class="card p-6 sm:p-8 grain">
+        <p class="eyebrow">The short answer</p>
+        <p class="display mt-3 text-2xl sm:text-[1.7rem] leading-snug">
+          Yes — for work that matters. And the real prize isn't the pipeline itself,
+          it's making Sentiph <span style="color:var(--fixer)">build it for you</span>, so quality stops
+          depending on anyone remembering to check.
+        </p>
+      </div>
+    </section>
+
+    <!-- what is a pipeline -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">First, in plain words</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">What a “pipeline” actually means</h2>
+      <p class="reveal mt-5 text-lg muted leading-relaxed">
+        Think of a kitchen. Today, Sentiph is one talented cook improvising every order — fast, but the quality of each plate
+        depends on the cook's mood and memory. A pipeline turns it into an <strong style="color:var(--ink)">assembly line</strong>:
+        every order moves through the same stations, in the same order, every single time.
+      </p>
+
+      <!-- the line -->
+      <div class="reveal mt-8 card p-5 sm:p-7">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-1">
+          <!-- request -->
+          <div class="stage flex-1 text-center">
+            <div class="text-xs eyebrow mb-1.5" style="letter-spacing:.16em">You ask</div>
+            <div class="font-semibold">“Build this”</div>
+          </div>
+          <div class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h14M13 7l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- builder -->
+          <div class="stage flex-1 text-center">
+            <div class="flex items-center justify-center gap-1.5 mb-1.5"><span class="dot" style="background:var(--builder)"></span><span class="text-xs eyebrow" style="letter-spacing:.16em;color:var(--builder)">Builder</span></div>
+            <div class="font-semibold">Does the work</div>
+          </div>
+          <div class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h14M13 7l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- checkers -->
+          <div class="stage flex-1 text-center">
+            <div class="flex items-center justify-center gap-1.5 mb-1.5"><span class="dot" style="background:var(--checker)"></span><span class="text-xs eyebrow" style="letter-spacing:.16em;color:var(--checker)">Checkers</span></div>
+            <div class="font-semibold">Inspect it</div>
+          </div>
+          <div class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h14M13 7l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- fixer -->
+          <div class="stage flex-1 text-center">
+            <div class="flex items-center justify-center gap-1.5 mb-1.5"><span class="dot" style="background:var(--fixer)"></span><span class="text-xs eyebrow" style="letter-spacing:.16em;color:var(--fixer)">Fixer</span></div>
+            <div class="font-semibold">Patches issues</div>
+          </div>
+          <div class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h14M13 7l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- done -->
+          <div class="stage flex-1 text-center" style="background:var(--done);border-color:var(--done)">
+            <div class="text-xs eyebrow mb-1.5" style="letter-spacing:.16em;color:var(--paper)">Result</div>
+            <div class="font-semibold" style="color:var(--paper)">Checked &amp; done</div>
+          </div>
+        </div>
+        <p class="muted text-sm mt-5 text-center">
+          The key part is the <strong style="color:var(--checker)">Checkers</strong>: a fresh set of eyes that has to sign off
+          <em>before</em> the work counts as finished. You don't proofread your own essay as well as someone else does — same idea.
+        </p>
+      </div>
+    </section>
+
+    <!-- today vs with -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">The real difference</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">Who holds it all together?</h2>
+      <div class="grid sm:grid-cols-2 gap-4 mt-7">
+        <div class="reveal card p-6">
+          <div class="chip" style="border-color:var(--line)"><span class="dot" style="background:#c9c2b2"></span>Today</div>
+          <h3 class="display text-xl mt-4 mb-2">You're the glue</h3>
+          <p class="muted leading-relaxed">
+            The lead agent hands out work, but checking is improvised and the <em>order</em> changes run to run.
+            You end up clicking through terminals to see what's done, what's broken, and what still needs a second look.
+            It works — but it leans on you (or a busy lead agent) to never drop the ball.
+          </p>
+        </div>
+        <div class="reveal card p-6" style="border-color:var(--fixer)">
+          <div class="chip" style="border-color:var(--fixer)"><span class="dot" style="background:var(--fixer)"></span>With pipelines</div>
+          <h3 class="display text-xl mt-4 mb-2">Sentiph is the glue</h3>
+          <p class="muted leading-relaxed">
+            Every job runs the same routine on its own: do it, check it, fix it, gather the result. Nobody has to remember the steps —
+            they're built in. You press go and get back work that's <strong style="color:var(--ink)">already been inspected</strong>,
+            plus one clean summary instead of fifty open windows.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- would it help -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">Would it actually help?</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">Yes — and here's exactly where</h2>
+      <div class="grid sm:grid-cols-3 gap-4 mt-7">
+        <div class="reveal card p-5">
+          <div class="text-2xl mb-2">⚖️</div>
+          <h3 class="font-semibold mb-1.5">Consistent quality</h3>
+          <p class="muted text-sm leading-relaxed">Every job gets the same checks. Quality stops being a coin-flip based on which agent did it.</p>
+        </div>
+        <div class="reveal card p-5">
+          <div class="text-2xl mb-2">📈</div>
+          <h3 class="font-semibold mb-1.5">Trust at scale</h3>
+          <p class="muted text-sm leading-relaxed">Run 100 jobs overnight and wake up to <em>checked</em> work — not 100 things you now have to review yourself.</p>
+        </div>
+        <div class="reveal card p-5">
+          <div class="text-2xl mb-2">🛋️</div>
+          <h3 class="font-semibold mb-1.5">Less babysitting</h3>
+          <p class="muted text-sm leading-relaxed">You stop being the bottleneck that has to watch every terminal. The line watches itself.</p>
+        </div>
+      </div>
+
+      <!-- honest caveat -->
+      <div class="reveal mt-4 card p-6" style="background:var(--surface-2)">
+        <h3 class="font-semibold mb-2 flex items-center gap-2"><span>🙂</span> The honest catch</h3>
+        <p class="muted leading-relaxed">
+          A pipeline costs more — more agents per job means more time and more money — and it's overkill for tiny tasks like renaming a file.
+          So the smart version isn't “always run the full line.” It's “<strong style="color:var(--ink)">automatically use the right amount of checking</strong>
+          for the size of the job.” More on that below.
+        </p>
+      </div>
+    </section>
+
+    <!-- how to make it automatic -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">The actual ask</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">How we make Sentiph do it on its own</h2>
+      <p class="reveal mt-5 text-lg muted leading-relaxed">
+        Today the “recipe” lives in the lead agent's head, so it's only followed when remembered. The whole game is to
+        <strong style="color:var(--ink)">move the recipe out of the agent's head and into Sentiph itself</strong>. Five moves get us there:
+      </p>
+
+      <ol class="mt-8 space-y-4">
+        <li class="reveal card p-6 flex gap-5">
+          <span class="display text-3xl flex-none" style="color:var(--fixer)">1</span>
+          <div>
+            <h3 class="font-semibold text-lg mb-1.5">Give Sentiph a set of recipes</h3>
+            <p class="muted leading-relaxed">Write the standard routines down once — for example, “a coding job always goes Builder → two Checkers → Fixer → Done.” Now it's a fixed routine Sentiph owns, not a suggestion an agent might skip.</p>
+          </div>
+        </li>
+        <li class="reveal card p-6 flex gap-5">
+          <span class="display text-3xl flex-none" style="color:var(--fixer)">2</span>
+          <div>
+            <h3 class="font-semibold text-lg mb-1.5">Make the hand-offs automatic</h3>
+            <p class="muted leading-relaxed">The moment the Builder finishes, Sentiph passes the work straight to the Checkers — no human or lead agent has to notice and forward it. The baton moves itself.</p>
+          </div>
+        </li>
+        <li class="reveal card p-6 flex gap-5">
+          <span class="display text-3xl flex-none" style="color:var(--fixer)">3</span>
+          <div>
+            <h3 class="font-semibold text-lg mb-1.5">Add a pass / fail checkpoint</h3>
+            <p class="muted leading-relaxed">Checkers don't just chat — they give a clear verdict: <strong style="color:var(--checker)">“pass”</strong> and it moves on, or <strong style="color:var(--builder)">“needs fixing, here's what”</strong> and it goes to the Fixer automatically. This checkpoint is what makes it a real pipeline instead of a pile of agents.</p>
+          </div>
+        </li>
+        <li class="reveal card p-6 flex gap-5">
+          <span class="display text-3xl flex-none" style="color:var(--fixer)">4</span>
+          <div>
+            <h3 class="font-semibold text-lg mb-1.5">Gather the results automatically</h3>
+            <p class="muted leading-relaxed">When all the jobs finish, Sentiph collects them and hands you one tidy summary — instead of leaving you to open fifty terminals and piece it together yourself.</p>
+          </div>
+        </li>
+        <li class="reveal card p-6 flex gap-5">
+          <span class="display text-3xl flex-none" style="color:var(--fixer)">5</span>
+          <div>
+            <h3 class="font-semibold text-lg mb-1.5">Let Sentiph pick the recipe itself</h3>
+            <p class="muted leading-relaxed">Sentiph reads the job and chooses how much checking it deserves — a quick task gets the fast lane, a normal feature gets the standard line, anything risky gets extra eyes. You don't choose; it just does the right thing.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- worked example -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">See it in motion</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">Example: “Add a login button”</h2>
+      <div class="reveal mt-7 card p-6 sm:p-8">
+        <ol class="space-y-5">
+          <li class="flex gap-4 items-start">
+            <span class="dot mt-2" style="background:var(--builder)"></span>
+            <p class="leading-relaxed"><strong>Builder</strong> writes the button and wires it up. <span class="muted">When it's done, it doesn't announce itself and wait — Sentiph already knows what's next.</span></p>
+          </li>
+          <li class="flex gap-4 items-start">
+            <span class="dot mt-2" style="background:var(--checker)"></span>
+            <p class="leading-relaxed"><strong>Two Checkers</strong> independently inspect it — does it work, is it safe, does it match the rest of the app? <span class="muted">One finds the button breaks on mobile. Verdict: needs fixing.</span></p>
+          </li>
+          <li class="flex gap-4 items-start">
+            <span class="dot mt-2" style="background:var(--fixer)"></span>
+            <p class="leading-relaxed"><strong>Fixer</strong> gets the exact note — “breaks on mobile” — and patches it. <span class="muted">Re-checked, it passes.</span></p>
+          </li>
+          <li class="flex gap-4 items-start">
+            <span class="dot mt-2" style="background:var(--done)"></span>
+            <p class="leading-relaxed"><strong>Done.</strong> You get: “Login button added, checked on desktop and mobile, one issue caught and fixed.” <span class="muted">You never opened a single terminal.</span></p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- every time? -->
+    <section class="mt-16">
+      <p class="eyebrow reveal">The smart version of “every time”</p>
+      <h2 class="display reveal mt-3 text-3xl sm:text-4xl font-medium tracking-tight">Right amount of checking, automatically</h2>
+      <p class="reveal mt-5 text-lg muted leading-relaxed">“Run a pipeline every time” shouldn't mean “run the heaviest pipeline every time.” It means Sentiph always picks the fitting one:</p>
+
+      <div class="reveal mt-7 overflow-hidden card">
+        <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x" style="--tw-divide-opacity:1;">
+          <div class="p-6" style="border-color:var(--line)">
+            <div class="chip mb-3"><span class="dot" style="background:var(--checker)"></span>Tiny job</div>
+            <p class="text-sm muted leading-relaxed mb-2">Rename, format, a one-line tweak.</p>
+            <p class="font-semibold">Fast lane</p>
+            <p class="text-sm muted">Just do it, quick glance. No full line.</p>
+          </div>
+          <div class="p-6" style="border-color:var(--line)">
+            <div class="chip mb-3"><span class="dot" style="background:var(--builder)"></span>Normal job</div>
+            <p class="text-sm muted leading-relaxed mb-2">Build a feature, fix a bug.</p>
+            <p class="font-semibold">Standard line</p>
+            <p class="text-sm muted">Build → Check → Fix → Done.</p>
+          </div>
+          <div class="p-6" style="border-color:var(--line)">
+            <div class="chip mb-3"><span class="dot" style="background:var(--fixer)"></span>Risky job</div>
+            <p class="text-sm muted leading-relaxed mb-2">Security, payments, data, big migrations.</p>
+            <p class="font-semibold">Careful line</p>
+            <p class="text-sm muted">Extra independent Checkers + your sign-off.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- closing -->
+    <section class="mt-16 reveal">
+      <div class="card p-7 sm:p-9" style="background:var(--done);border-color:var(--done)">
+        <p class="eyebrow" style="color:#b9b3a4">What changes for you</p>
+        <h2 class="display mt-3 text-2xl sm:text-3xl leading-snug" style="color:var(--paper)">
+          You press go and get back work that's already been checked — and you still own the final call on anything big.
+        </h2>
+        <p class="mt-4 leading-relaxed" style="color:#cfc9ba">
+          The pipeline doesn't take control away from you. It removes the part you shouldn't have to do — remembering the steps,
+          chasing terminals, and hoping each agent checked its own work. Sentiph carries the routine; you carry the judgment.
+        </p>
+      </div>
+      <p class="muted text-sm mt-6 leading-relaxed">
+        <strong style="color:var(--ink)">One honest footnote.</strong> This is the one real gap in Sentiph today: it has the
+        <em>shape</em> of an assembly line (a coordinator that fans out work) but not the <em>built-in routine</em> — so the line only
+        appears when an agent remembers to build it. The five moves above are what turn “sometimes, if remembered” into “every time, by default.”
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="max-w-3xl mx-auto px-5 sm:px-8 pb-16">
+    <div class="border-t hair pt-6 flex items-center justify-between text-sm muted">
+      <span>Sentiph · pipelines, explained</span>
+      <a class="focusable hover:underline" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Back to top ↑</a>
+    </div>
+  </footer>
+
+<script>
+  // Theme: respect system, allow toggle
+  (function(){
+    const root = document.documentElement;
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    function apply(dark){
+      root.classList.toggle('dark', dark);
+      icon.textContent = dark ? '☾' : '☀︎';
+      label.textContent = dark ? 'Dark' : 'Light';
+    }
+    apply(prefersDark);
+    document.getElementById('themeToggle').addEventListener('click', () => apply(!root.classList.contains('dark')));
+  })();
+
+  // Gentle reveal on scroll (respects reduced motion)
+  (function(){
+    const items = document.querySelectorAll('.reveal');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      items.forEach(el => el.classList.add('in')); return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    items.forEach(el => io.observe(el));
+  })();
+</script>
+</body>
+</html>

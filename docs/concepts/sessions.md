@@ -6,24 +6,22 @@ Sessions are the core abstraction in Sentiph.
 
 A session is a folder under `.sentiph/sessions/<session-id>/` that stores agent-readable markdown files.
 
-The minimum useful files are:
+The minimum useful file is:
 
 - `CONTEXT.md`
-- `todo.md`
 
 Additional markdown files are allowed and are surfaced as session vault files in the app.
 
-The important part is that the folder is agent-facing. It is the durable context that a terminal agent can read, edit, and hand off to another terminal.
+The important part is that the folder is agent-facing. It is the durable state that a terminal agent can read, edit, and hand off to another terminal.
 
 ## How Deck reads a session
 
-Deck does not maintain a separate database copy of the session context. It scans `.sentiph/sessions/` and derives most of the view from files:
+Deck does not maintain a separate database copy of the session. It scans `.sentiph/sessions/` and derives most of the view from files:
 
 - a folder is considered a session only when it contains `CONTEXT.md`
 - the first `# Heading` in `CONTEXT.md` becomes the display name
 - the first non-empty paragraph after that heading becomes the description
-- every other `.md` file becomes a vault file, with `todo.md` sorted first
-- checkbox lines in `todo.md` become progress and worker inputs
+- every other `.md` file becomes a vault file
 
 Deck-specific metadata such as color, status, agents appearance, paths, and tags lives separately in runtime state. That keeps UI preferences out of the agent-facing markdown files.
 
@@ -66,47 +64,26 @@ You can use these skills if you need to.
 
 The managed block is rewritten by the API when suggested skills change. Put human-authored architecture notes outside that block.
 
-## What goes in `todo.md`
-
-`todo.md` should contain markdown checkbox items:
-
-```md
-# Todo
-
-- [ ] add request validation for monitor config
-- [ ] cover the invalid payload case in tests
-- [x] wire the route into the request handler
-```
-
-The runtime parses checkbox lines and computes progress.
-
-Only lines that match `- [ ] text` or `- [x] text` are treated as todo items. Their order matters because swarm creation uses the parsed item index when it creates worker terminal IDs such as `<session-id>-swarm-0`.
-
-When the UI toggles, edits, adds, or deletes todos, it rewrites `todo.md`. There is no hidden todo store.
-
 ## Sessions and delegation
 
-The point of a session is not only documentation. It is operational context.
+The point of a session is not only documentation. It is operational.
 
 A worker attached to a session can:
 
 - read local notes first
 - stay scoped to that area
-- use the todo list as a work queue
-- hand work to child agents without rebuilding context from scratch
-
-When a todo item is solved from Deck, Sentiph reads the item text, resolves a worker prompt template, and creates a terminal attached to the same session. For swarm runs, incomplete todo items become workers, and larger swarms get a parent coordinator terminal that supervises completion.
+- hand work to child agents without rebuilding from scratch
 
 ## Sessions and worktrees
 
 Sessions are not the same thing as worktrees.
 
-- a session is a context folder
+- a session is a folder with agent-facing files
 - a worktree is an isolated git checkout for a terminal
 
 You can use a session with shared workspace terminals or worktree terminals.
 
-In shared mode, all terminals operate in the main workspace, so the context boundary is social and procedural. In worktree mode, each terminal can get a separate checkout under `.sentiph/worktrees/`, but it still reads the same session folder for instructions and todos.
+In shared mode, all terminals operate in the main workspace, so the boundary is social and procedural. In worktree mode, each terminal can get a separate checkout under `.sentiph/worktrees/`, but it still reads the same session folder for instructions.
 
 ## Failure boundaries
 

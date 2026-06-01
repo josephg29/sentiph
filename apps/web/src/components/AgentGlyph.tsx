@@ -1,5 +1,3 @@
-import { cn } from "@/lib/utils";
-
 const SIZE = 24;
 const R = SIZE / 2;
 const HEX_R = R * 0.85;
@@ -13,30 +11,29 @@ const hexPoints = (() => {
   return pts.join(" ");
 })();
 
-export interface AgentMarkProps {
-  scale?: number;
+type AgentGlyphProps = {
   color?: string;
+  scale?: number;
   className?: string;
-  title?: string;
-}
+  testId?: string;
+};
 
-export function AgentMark({
-  scale = 4,
-  color = "var(--term-red)",
+export const AgentGlyph = ({
+  color = "#cc0000",
+  scale = 1,
   className,
-  title,
-}: AgentMarkProps) {
+  testId,
+}: AgentGlyphProps) => {
   const s = SIZE * scale;
   return (
     <svg
       width={s}
       height={s}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
-      shapeRendering="crispEdges"
-      role={title ? "img" : "presentation"}
-      aria-label={title}
-      aria-hidden={title ? undefined : true}
-      className={cn("block", className)}
+      className={className}
+      data-testid={testId}
+      role="img"
+      aria-label="Agent"
     >
       <polygon points={hexPoints} fill={color} stroke="rgba(0,0,0,0.15)" strokeWidth={0.8} />
       <polygon
@@ -57,4 +54,4 @@ export function AgentMark({
       />
     </svg>
   );
-}
+};

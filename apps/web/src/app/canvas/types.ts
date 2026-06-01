@@ -1,7 +1,6 @@
 import type {
   AgentRuntimeState,
   AgentState,
-  DeckOctopusAppearance,
   TentacleWorkspaceMode,
 } from "@sentiph/core";
 
@@ -25,7 +24,6 @@ export type GraphNode = {
   workspaceMode?: TentacleWorkspaceMode;
   parentTerminalId?: string;
   firstPromptPreview?: string;
-  octopus?: DeckOctopusAppearance;
 };
 
 export type GraphEdge = {

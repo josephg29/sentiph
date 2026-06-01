@@ -15,24 +15,12 @@ describe("TentaclePod skill editor", () => {
           description: "Docs and knowledge.",
           status: "idle",
           color: "#ff6b2b",
-          octopus: {
-            animation: null,
-            expression: null,
-            accessory: null,
-            hairColor: null,
-          },
           scope: { paths: [], tags: [] },
-          vaultFiles: ["todo.md"],
-          todoTotal: 0,
-          todoDone: 0,
-          todoItems: [],
+          vaultFiles: [],
           suggestedSkills: ["docs-writer"],
         }}
         visuals={{
           color: "#ff6b2b",
-          animation: "sway",
-          expression: "happy",
-          accessory: "none",
         }}
         isFocused={false}
         availableSkills={[

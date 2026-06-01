@@ -264,9 +264,6 @@ const startServer = async () => {
   } else {
     console.log("  UI:      bundled web assets are missing from this install");
   }
-  if (!isInitialized) {
-    console.log("  Setup:   workspace is not initialized yet; use the in-app setup flow");
-  }
   console.log();
 };
 

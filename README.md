@@ -2,15 +2,15 @@
 
 **Multi-agent orchestration for Claude Code.**
 
-Running several Claude Code sessions at once gets unwieldy fast — context gets lost, windows multiply, and there is no shared source of truth between sessions. Sentiph wraps each job in a durable file-based context, shows every active session on a visual canvas, and lets one Claude Code session spawn and coordinate others, all from a local web UI backed by a WebSocket/PTY API.
+Running several Claude Code sessions at once gets unwieldy fast — context gets lost, windows multiply, and there is no shared source of truth between sessions. Sentiph wraps each job in a durable file-based session, shows every active session on a visual canvas, and lets one Claude Code session spawn and coordinate others, all from a local web UI backed by a WebSocket/PTY API.
 
 ![Sentiph canvas — active agent sessions on an interactive graph](static/images/preview_1.jpg)
 
 ## Highlights
 
 - **Parallel terminals on a canvas** — every Claude Code session appears as a node in an interactive D3 force-graph canvas; terminal I/O streams through an embedded xterm.js terminal
-- **File-backed session context** — each session keeps its own `CONTEXT.md`, `todo.md`, and notes under `.sentiph/sessions/<session-id>/`; agents read and update these files directly
-- **Parent/worker orchestration** — a parent terminal can spawn up to nine child workers, each scoped to a session todo item; shared-workspace or worktree-isolated execution modes are both supported
+- **File-backed sessions** — each session keeps its own `CONTEXT.md` and notes under `.sentiph/sessions/<session-id>/`; agents read and update these files directly
+- **Parent/worker orchestration** — a parent terminal can spawn up to nine child workers; shared-workspace or worktree-isolated execution modes are both supported
 - **In-memory channel messaging** — terminals exchange short messages via `sentiph channel send`; delivery is queued until the target session is idle
 - **Claude hook integration** — PTY sessions write hook callbacks that feed state transitions (active, waiting, idle, stop) back to the API and drive transcript capture and channel delivery
 - **Usage and cost tracking** — per-session token usage and cost are surfaced in the observability view
@@ -99,9 +99,9 @@ static/       Static assets served by the API
 
 ### Sessions
 
-A session is a folder under `.sentiph/sessions/<session-id>/`. The minimum useful contents are `CONTEXT.md` (area description) and `todo.md` (checkbox task list). Additional markdown files are surfaced as session vault files.
+A session is a folder under `.sentiph/sessions/<session-id>/`. The minimum useful content is `CONTEXT.md` (area description). Additional markdown files are surfaced as session vault files.
 
-Deck derives the session display name from the first heading in `CONTEXT.md` and the description from the first non-empty paragraph. Todo progress is parsed from `- [ ]` and `- [x]` checkbox lines.
+Deck derives the session display name from the first heading in `CONTEXT.md` and the description from the first non-empty paragraph.
 
 ### Terminals
 
@@ -116,9 +116,9 @@ PTY sessions do not survive an API restart. Terminal records do. Records that we
 
 ### Parent/worker orchestration
 
-A parent terminal can spawn child worker terminals (up to 32 per parent). Each worker is assigned one todo item and given a generated prompt that includes the session context path, todo text, workspace mode, API port, and parent terminal ID. A parent coordinator terminal is added automatically when a swarm targets more than one item.
+A parent terminal can spawn child worker terminals (up to 32 per parent). Each worker is given a generated prompt that includes the session path, workspace mode, API port, and parent terminal ID. A parent coordinator terminal is added automatically when a swarm targets more than one item.
 
-Workers report progress via `sentiph channel send` and by writing to session markdown files. Merge, review, and todo updates are the parent's responsibility.
+Workers report progress via `sentiph channel send` and by writing to session markdown files. Merge and review are the parent's responsibility.
 
 ### Channels
 
@@ -159,7 +159,7 @@ Full option descriptions are in [docs/reference/cli.md](docs/reference/cli.md).
 | Location | Contents |
 |---|---|
 | `.sentiph/project.json` | Stable project ID |
-| `.sentiph/sessions/<id>/` | Agent-facing context markdown |
+| `.sentiph/sessions/<id>/` | Agent-facing markdown |
 | `.sentiph/worktrees/<id>/` | Isolated git worktrees |
 | `~/.sentiph/projects/<id>/state/sessions.json` | Terminal registry |
 | `~/.sentiph/projects/<id>/state/transcripts/*.jsonl` | Conversation transcripts |
@@ -203,7 +203,6 @@ Before opening a pull request, run `pnpm test`, `pnpm lint`, and `pnpm build`.
 - [Mental model](docs/concepts/mental-model.md)
 - [Sessions](docs/concepts/sessions.md)
 - [Runtime and API](docs/concepts/runtime-and-api.md)
-- [Working with todos](docs/guides/working-with-todos.md)
 - [Orchestrating child agents](docs/guides/orchestrating-child-agents.md)
 - [Inter-agent messaging](docs/guides/inter-agent-messaging.md)
 - [CLI reference](docs/reference/cli.md)

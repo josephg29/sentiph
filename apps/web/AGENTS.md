@@ -8,7 +8,6 @@
 - `docs/concepts/mental-model.md`
 - `docs/concepts/tentacles.md`
 - `docs/concepts/runtime-and-api.md`
-- `docs/guides/working-with-todos.md`
 - `docs/guides/orchestrating-child-agents.md`
 - `docs/guides/inter-agent-messaging.md`
 - Read these when changing interaction models, UI vocabulary, tentacle flows, agent orchestration surfaces, or operator-facing behavior.

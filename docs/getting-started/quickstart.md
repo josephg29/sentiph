@@ -22,9 +22,6 @@ sentiph
 
 Sentiph is not published to npm yet, so `npm install -g sentiph` is not currently a valid quick start path.
 
-On a fresh workspace, Sentiph opens the Deck setup flow first. The setup card verifies the
-workspace files, `.gitignore`, and local prerequisites before you create sessions.
-
 ## 2. Create or inspect a session
 
 If the app is already running, you can create a session from the CLI:
@@ -37,12 +34,11 @@ Or use the Deck view in the UI.
 
 Each session becomes a folder under `.sentiph/sessions/<session-id>/`.
 
-## 3. Let the agent build the local context
+## 3. Let the agent build the local session
 
-The session files are where the job keeps its local context:
+The session files are where the job keeps its state:
 
 - `CONTEXT.md` for the local model of that area
-- `todo.md` for concrete tasks
 - extra markdown files for notes, architecture, handoff, or examples
 
 You do not need to treat these as manual setup that the developer always writes by hand. One of the points of Sentiph is that **Claude Code** can help create, update, and maintain these files from inside the app as the work becomes clearer.
@@ -55,11 +51,7 @@ sentiph terminal create --name "API worker" --session-id api-backend
 
 Use `--workspace-mode worktree` if you want an isolated git worktree.
 
-## 5. Delegate from todo items
-
-The runtime can parse incomplete items in `todo.md` and use them as inputs when spawning child agents from the Deck swarm flow. That means one item can become one worker, or a larger list can become a swarm.
-
-## 6. Send a message
+## 5. Send a message
 
 ```bash
 sentiph channel send terminal-2 "Need review on the request parser changes"
@@ -69,8 +61,7 @@ sentiph channel send terminal-2 "Need review on the request parser changes"
 
 - the session folder exists
 - the terminal appears in the UI
-- `CONTEXT.md` and `todo.md` exist for that session
-- todo progress is visible
+- `CONTEXT.md` exists for that session
 - messages show up in the target terminal channel
 
 ## Next reading

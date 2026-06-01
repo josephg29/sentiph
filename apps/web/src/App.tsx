@@ -12,7 +12,6 @@ import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydrati
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useAgentGitLifecycle } from "./app/hooks/useAgentGitLifecycle";
-import { useWorkspaceSetup } from "./app/hooks/useWorkspaceSetup";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
@@ -94,23 +93,6 @@ export const App = () => {
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
-
-  const {
-    workspaceSetup,
-    isWorkspaceSetupLoading,
-    workspaceSetupError,
-    refreshWorkspaceSetup,
-    runWorkspaceSetupStep,
-  } = useWorkspaceSetup();
-  const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState<
-    | "initialize-workspace"
-    | "ensure-gitignore"
-    | "check-claude"
-    | "check-git"
-    | "check-curl"
-    | "create-tentacles"
-    | null
-  >(null);
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
@@ -437,26 +419,6 @@ export const App = () => {
     );
   }, []);
 
-  const handleRunWorkspaceSetupStep = useCallback(
-    async (
-      stepId:
-        | "initialize-workspace"
-        | "ensure-gitignore"
-        | "check-claude"
-        | "check-git"
-        | "check-curl"
-        | "create-tentacles",
-    ) => {
-      setRunningWorkspaceSetupStepId(stepId);
-      try {
-        await runWorkspaceSetupStep(stepId);
-      } finally {
-        setRunningWorkspaceSetupStepId(null);
-      }
-    },
-    [runWorkspaceSetupStep],
-  );
-
   return (
     <div className="page console-shell">
       {isRuntimeStatusStripVisible && (
@@ -543,11 +505,6 @@ export const App = () => {
               canvasOpenTerminalIds,
               canvasOpenTentacleIds,
               canvasTerminalsPanelWidth,
-              workspaceSetup,
-              isWorkspaceSetupLoading,
-              workspaceSetupError,
-              runningWorkspaceSetupStepId,
-              onRunWorkspaceSetupStep: handleRunWorkspaceSetupStep,
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenTentacleIdsChange: setCanvasOpenTentacleIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,

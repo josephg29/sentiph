@@ -136,9 +136,8 @@
   min-width: 0;
 }
 
-.console-status-octopus-icon {
+.console-status-agent-icon {
   flex-shrink: 0;
-  image-rendering: pixelated;
 }
 
 .console-status-brand {

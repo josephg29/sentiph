@@ -183,7 +183,6 @@ vi.mock("../src/components/PrimaryViewRouter", () => ({
   }: {
     canvasPrimaryViewProps: {
       onSpawnSwarm?: (tentacleId: string, workspaceMode: "shared" | "worktree") => Promise<void>;
-      onSolveTodoItem?: ((tentacleId: string, itemIndex: number) => Promise<void>) | undefined;
     };
   }) => (
     <div>
@@ -193,11 +192,7 @@ vi.mock("../src/components/PrimaryViewRouter", () => ({
       >
         Spawn Swarm
       </button>
-      <span>
-        {canvasPrimaryViewProps.onSolveTodoItem
-          ? "solve callback present"
-          : "solve callback omitted"}
-      </span>
+
     </div>
   ),
 }));
@@ -250,7 +245,6 @@ describe("App swarm actions", () => {
 
     render(<App />);
 
-    expect(screen.getByText("solve callback omitted")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Spawn Swarm" }));
 
     await waitFor(() => {

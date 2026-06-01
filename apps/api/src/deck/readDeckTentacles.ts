@@ -3,7 +3,6 @@ import { join } from "node:path";
 
 import type {
   DeckAvailableSkill,
-  DeckOctopusAppearance,
   DeckTentacleStatus,
   DeckTentacleSummary,
 } from "@sentiph/core";
@@ -19,7 +18,6 @@ type DeckTentacleState = {
   description: string;
   color: string | null;
   status: DeckTentacleStatus;
-  octopus: DeckOctopusAppearance;
   scope: { paths: string[]; tags: string[] };
   suggestedSkills: string[];
 };
@@ -59,7 +57,6 @@ const parseTentacleState = (raw: unknown, tentacleId: string): DeckTentacleState
     description: "",
     color: null,
     status: "idle",
-    octopus: { animation: null, expression: null, accessory: null, hairColor: null },
     scope: { paths: [], tags: [] },
     suggestedSkills: [],
   };
@@ -79,20 +76,6 @@ const parseTentacleState = (raw: unknown, tentacleId: string): DeckTentacleState
       ? (rec.status as DeckTentacleStatus)
       : "idle";
 
-  const octopus: DeckOctopusAppearance = {
-    animation: null,
-    expression: null,
-    accessory: null,
-    hairColor: null,
-  };
-  if (rec.octopus !== null && typeof rec.octopus === "object") {
-    const o = rec.octopus as Record<string, unknown>;
-    if (typeof o.animation === "string") octopus.animation = o.animation;
-    if (typeof o.expression === "string") octopus.expression = o.expression;
-    if (typeof o.accessory === "string") octopus.accessory = o.accessory;
-    if (typeof o.hairColor === "string") octopus.hairColor = o.hairColor;
-  }
-
   const scope = { paths: [] as string[], tags: [] as string[] };
   if (rec.scope !== null && typeof rec.scope === "object") {
     const s = rec.scope as Record<string, unknown>;
@@ -108,7 +91,7 @@ const parseTentacleState = (raw: unknown, tentacleId: string): DeckTentacleState
     ? rec.suggestedSkills.filter((s): s is string => typeof s === "string")
     : [];
 
-  return { displayName, description, color, status, octopus, scope, suggestedSkills };
+  return { displayName, description, color, status, scope, suggestedSkills };
 };
 
 // ─── CONTEXT.md managed block helpers ───────────────────────────────────────
@@ -165,12 +148,8 @@ export const readDeckTentacles = (
       description: state.description,
       status: state.status,
       color: state.color,
-      octopus: state.octopus,
       scope: state.scope,
       vaultFiles: [],
-      todoTotal: 0,
-      todoDone: 0,
-      todoItems: [],
       suggestedSkills: state.suggestedSkills,
     };
   });
@@ -184,41 +163,12 @@ export const readDeckVaultFile = (
   _fileName: string,
 ): string | null => null;
 
-// ─── Todo operations (no-op — no filesystem backing) ─────────────────────────
-
-export const toggleTodoItem = (
-  _workspaceCwd: string,
-  _tentacleId: string,
-  _itemIndex: number,
-  _done: boolean,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
-
-export const editTodoItem = (
-  _workspaceCwd: string,
-  _tentacleId: string,
-  _itemIndex: number,
-  _text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
-
-export const addTodoItem = (
-  _workspaceCwd: string,
-  _tentacleId: string,
-  _text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
-
-export const deleteTodoItem = (
-  _workspaceCwd: string,
-  _tentacleId: string,
-  _itemIndex: number,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => null;
-
 // ─── Create a new tentacle ──────────────────────────────────────────────────
 
 type CreateDeckTentacleInput = {
   name: string;
   description: string;
   color: string;
-  octopus: DeckOctopusAppearance;
   suggestedSkills?: string[];
 };
 
@@ -252,7 +202,6 @@ export const createDeckTentacle = (
     description,
     color: input.color,
     status: "idle",
-    octopus: input.octopus,
     scope: { paths: [], tags: [] },
     suggestedSkills,
   };
@@ -272,12 +221,8 @@ export const createDeckTentacle = (
       description,
       status: "idle",
       color: input.color,
-      octopus: input.octopus,
       scope: { paths: [], tags: [] },
       vaultFiles: [],
-      todoTotal: 0,
-      todoDone: 0,
-      todoItems: [],
       suggestedSkills,
     },
   };

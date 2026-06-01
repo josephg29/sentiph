@@ -1,25 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { DeckAvailableSkill } from "@sentiph/core";
-import type { OctopusAccessory, OctopusAnimation, OctopusExpression } from "../EmptyOctopus";
-import { OctopusGlyph } from "../EmptyOctopus";
-import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, OCTOPUS_COLORS } from "./octopusVisuals";
+import { AgentGlyph } from "../AgentGlyph";
+import { AGENT_COLORS } from "./agentVisuals";
 
 // ─── Add tentacle form ───────────────────────────────────────────────────────
 
-export type OctopusAppearancePayload = {
-  animation: string;
-  expression: string;
-  accessory: string;
-  hairColor: string;
-};
+export type AgentAppearancePayload = Record<string, unknown>;
 
 export type AddTentacleFormProps = {
   onSubmit: (
     name: string,
     description: string,
     color: string,
-    octopus: OctopusAppearancePayload,
     suggestedSkills: string[],
   ) => void;
   onCancel: () => void;
@@ -27,32 +20,6 @@ export type AddTentacleFormProps = {
   error: string | null;
   availableSkills: DeckAvailableSkill[];
 };
-
-const EXPRESSION_OPTIONS: { value: OctopusExpression; label: string }[] = [
-  { value: "normal", label: "Normal" },
-  { value: "happy", label: "Happy" },
-  { value: "angry", label: "Angry" },
-  { value: "surprised", label: "Surprised" },
-];
-
-const ACCESSORY_OPTIONS: { value: OctopusAccessory; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "long", label: "Long" },
-  { value: "mohawk", label: "Mohawk" },
-  { value: "side-sweep", label: "Side Sweep" },
-  { value: "curly", label: "Curly" },
-];
-
-const HAIR_COLORS = [
-  "#4a2c0a",
-  "#1a1a1a",
-  "#c8a04a",
-  "#e04020",
-  "#f5f5f5",
-  "#6b3fa0",
-  "#2a6e3f",
-  "#1e90ff",
-];
 
 export const AddTentacleForm = ({
   onSubmit,
@@ -64,22 +31,7 @@ export const AddTentacleForm = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(
-    () => OCTOPUS_COLORS[Math.floor(Math.random() * OCTOPUS_COLORS.length)] as string,
-  );
-  const [selectedExpression, setSelectedExpression] = useState<OctopusExpression>(() => {
-    const pick = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)] as OctopusExpression;
-    return pick;
-  });
-  const [selectedAccessory, setSelectedAccessory] = useState<OctopusAccessory>(() => {
-    const pick = ACCESSORIES[Math.floor(Math.random() * ACCESSORIES.length)] as OctopusAccessory;
-    return pick;
-  });
-  const [selectedAnimation] = useState<OctopusAnimation>(() => {
-    const pick = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)] as OctopusAnimation;
-    return pick;
-  });
-  const [selectedHairColor, setSelectedHairColor] = useState(
-    () => HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)] as string,
+    () => AGENT_COLORS[Math.floor(Math.random() * AGENT_COLORS.length)] as string,
   );
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -95,12 +47,6 @@ export const AddTentacleForm = ({
       name.trim(),
       description.trim(),
       selectedColor,
-      {
-        animation: selectedAnimation,
-        expression: selectedExpression,
-        accessory: selectedAccessory,
-        hairColor: selectedHairColor,
-      },
       selectedSkills,
     );
   };
@@ -124,13 +70,9 @@ export const AddTentacleForm = ({
 
       <div className="deck-add-form-body">
         <div className="deck-add-form-preview">
-          <OctopusGlyph
+          <AgentGlyph
             color={selectedColor}
-            animation={selectedAnimation}
-            expression={selectedExpression}
-            accessory={selectedAccessory}
-            hairColor={selectedHairColor}
-            scale={8}
+            scale={2}
           />
         </div>
 
@@ -189,7 +131,7 @@ export const AddTentacleForm = ({
         <div className="deck-add-form-label">
           Color
           <div className="deck-add-form-colors">
-            {OCTOPUS_COLORS.map((c) => (
+            {AGENT_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -200,57 +142,6 @@ export const AddTentacleForm = ({
                 aria-label={`Select color ${c}`}
               />
             ))}
-          </div>
-        </div>
-
-        <div className="deck-add-form-row">
-          <div className="deck-add-form-label">
-            Expression
-            <div className="deck-add-form-chips">
-              {EXPRESSION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className="deck-add-form-chip"
-                  data-selected={opt.value === selectedExpression ? "true" : "false"}
-                  onClick={() => setSelectedExpression(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="deck-add-form-label">
-            Hair Style
-            <div className="deck-add-form-chips">
-              {ACCESSORY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className="deck-add-form-chip"
-                  data-selected={opt.value === selectedAccessory ? "true" : "false"}
-                  onClick={() => setSelectedAccessory(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="deck-add-form-label">
-            Hair Color
-            <div className="deck-add-form-colors">
-              {HAIR_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="deck-add-form-color-swatch deck-add-form-color-swatch--small"
-                  data-selected={c === selectedHairColor ? "true" : "false"}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setSelectedHairColor(c)}
-                  aria-label={`Select hair color ${c}`}
-                />
-              ))}
-            </div>
           </div>
         </div>
 

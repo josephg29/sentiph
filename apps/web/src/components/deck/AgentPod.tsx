@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { DeckAvailableSkill, DeckTentacleSummary } from "@sentiph/core";
-import { AgentGlyph } from "../EmptyAgents";
+import { AgentGlyph } from "../AgentGlyph";
 import type { AgentVisuals } from "./agentVisuals";
-
-// ─── Status styling ──────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
   idle: "idle",
@@ -12,53 +10,6 @@ const STATUS_LABELS: Record<DeckTentacleSummary["status"], string> = {
   blocked: "blocked",
   "needs-review": "review",
 };
-
-// ─── TodoList ────────────────────────────────────────────────────────────────
-
-const TodoList = ({
-  items,
-  agentId,
-  onToggle,
-}: {
-  items: { text: string; done: boolean }[];
-  agentId: string;
-  onToggle?: ((agentId: string, itemIndex: number, done: boolean) => void) | undefined;
-}) => {
-  let lastDoneIndex = -1;
-  for (let idx = items.length - 1; idx >= 0; idx--) {
-    if (items[idx]?.done) {
-      lastDoneIndex = idx;
-      break;
-    }
-  }
-  const scrollRef = useRef<HTMLLIElement | null>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ block: "start" });
-  }, []);
-
-  return (
-    <ul className="deck-pod-todos">
-      {items.map((item, i) => (
-        <li
-          key={item.text}
-          ref={i === lastDoneIndex ? scrollRef : undefined}
-          className={`deck-pod-todo-item${item.done ? " deck-pod-todo-item--done" : ""}`}
-        >
-          <input
-            type="checkbox"
-            checked={item.done}
-            className="deck-pod-todo-checkbox"
-            onChange={() => onToggle?.(agentId, i, !item.done)}
-          />
-          <span className="deck-pod-todo-text">{item.text}</span>
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-// ─── AgentPod ─────────────────────────────────────────────────────────────────
 
 export type AgentPodProps = {
   agent: DeckTentacleSummary;
@@ -70,11 +21,10 @@ export type AgentPodProps = {
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
-  onTodoToggle?: (agentId: string, itemIndex: number, done: boolean) => void;
   availableSkills: DeckAvailableSkill[];
   isSavingSkills?: boolean | undefined;
   onSaveSuggestedSkills?:
-    | ((agentId: string, suggestedSkills: string[]) => Promise<boolean>)
+    | ((tentacleId: string, suggestedSkills: string[]) => Promise<boolean>)
     | undefined;
 };
 
@@ -88,13 +38,10 @@ export const AgentPod = ({
   onClose,
   onDelete,
   isDeleting,
-  onTodoToggle,
   availableSkills,
   isSavingSkills,
   onSaveSuggestedSkills,
 }: AgentPodProps) => {
-  const progressPct =
-    agent.todoTotal > 0 ? Math.round((agent.todoDone / agent.todoTotal) * 100) : 0;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [draftSkills, setDraftSkills] = useState<string[]>(agent.suggestedSkills);
@@ -195,15 +142,11 @@ export const AgentPod = ({
           {STATUS_LABELS[agent.status]}
         </span>
         <div className="deck-pod-identity">
-          <div className="deck-pod-octopus-col">
-            <div className="deck-pod-octopus">
+          <div className="deck-pod-agent-col">
+            <div className="deck-pod-agent">
               <AgentGlyph
                 color={visuals.color}
-                animation={visuals.animation}
-                expression={visuals.expression}
-                accessory={visuals.accessory}
-                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-                scale={5}
+                scale={1.5}
               />
             </div>
           </div>
@@ -266,27 +209,6 @@ export const AgentPod = ({
                 </button>
               </div>
             </div>
-          )}
-
-          {agent.todoTotal > 0 && (
-            <div className="deck-pod-progress">
-              <div className="deck-pod-progress-bar">
-                <div
-                  className="deck-pod-progress-fill"
-                  style={{ width: `${progressPct}%`, backgroundColor: visuals.color }}
-                />
-              </div>
-              <span
-                className="deck-pod-progress-label"
-                style={{ backgroundColor: `${visuals.color}22`, color: visuals.color }}
-              >
-                {agent.todoDone}/{agent.todoTotal} done
-              </span>
-            </div>
-          )}
-
-          {agent.todoItems.length > 0 && (
-            <TodoList items={agent.todoItems} agentId={agent.tentacleId} onToggle={onTodoToggle} />
           )}
 
           {agent.suggestedSkills.length > 0 && (

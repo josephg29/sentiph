@@ -32,7 +32,6 @@
   - `docs/concepts/tentacles.md`
   - `docs/concepts/runtime-and-api.md`
 - Workflow guides:
-  - `docs/guides/working-with-todos.md`
   - `docs/guides/orchestrating-child-agents.md`
   - `docs/guides/inter-agent-messaging.md`
 - References:

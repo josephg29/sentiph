@@ -36,12 +36,6 @@ describe("AddTentacleForm", () => {
       "docs",
       "",
       expect.any(String),
-      expect.objectContaining({
-        animation: expect.any(String),
-        expression: expect.any(String),
-        accessory: expect.any(String),
-        hairColor: expect.any(String),
-      }),
       ["docs-writer"],
     );
   });
