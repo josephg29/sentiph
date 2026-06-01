@@ -69,9 +69,12 @@ export const ErrorHeatmap = ({ buckets }: ErrorHeatmapProps) => {
           viewBox={`0 0 ${svgW} ${svgH}`}
           style={{ width: Math.min(svgW, 680), height: svgH }}
           aria-label="Error heatmap"
+          role="img"
         >
+          <title>Error heatmap</title>
           {Array.from({ length: Math.min(CELLS_PER_ROW, 24) }).map((_, hi) => (
             <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: hour columns are positional; the index is the cell's stable identity.
               key={hi}
               x={hi * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2}
               y={LABEL_HEIGHT - 4}
@@ -84,7 +87,10 @@ export const ErrorHeatmap = ({ buckets }: ErrorHeatmapProps) => {
           {rows.map((row, ri) => {
             const dayLabel = row[0] ? toDayLabel(row[0].timestamp) : "";
             return (
-              <g key={ri}>
+              <g
+                // biome-ignore lint/suspicious/noArrayIndexKey: heatmap rows are positional days; the index is the row's stable identity.
+                key={ri}
+              >
                 <text
                   x={svgW - 4}
                   y={LABEL_HEIGHT + ri * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2 + 4}

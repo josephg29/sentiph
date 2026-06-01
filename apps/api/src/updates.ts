@@ -70,12 +70,10 @@ export const detectInstallation = (packageRootOverride?: string): InstallationIn
 };
 
 const compareSemver = (a: string, b: string): number => {
-  const parse = (v: string) =>
-    v
-      .replace(/^v/, "")
-      .split("-")[0]!
-      .split(".")
-      .map((n) => Number.parseInt(n, 10) || 0);
+  const parse = (v: string) => {
+    const core = v.replace(/^v/, "").split("-")[0] ?? "";
+    return core.split(".").map((n) => Number.parseInt(n, 10) || 0);
+  };
   const aa = parse(a);
   const bb = parse(b);
   for (let i = 0; i < Math.max(aa.length, bb.length); i++) {

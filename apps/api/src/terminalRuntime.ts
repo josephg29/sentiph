@@ -1,6 +1,6 @@
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -415,7 +415,7 @@ export const createTerminalRuntime = ({
       );
     }
     if (!gitClientOpt) return null;
-    return { terminal, worktreePath: getWorktreePath(terminal) };
+    return { terminal, worktreePath: getWorktreePath(terminal), gitClient: gitClientOpt };
   };
 
   const toGitStatusSnapshot = (tentacleId: string, worktreePath: string) => {
@@ -434,28 +434,28 @@ export const createTerminalRuntime = ({
     commitTentacleWorktree: (tentacleId: string, message: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      gitClientOpt!.commitAll({ cwd: result.worktreePath, message });
+      result.gitClient.commitAll({ cwd: result.worktreePath, message });
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
     pushTentacleWorktree: (tentacleId: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      gitClientOpt!.pushCurrentBranch({ cwd: result.worktreePath });
+      result.gitClient.pushCurrentBranch({ cwd: result.worktreePath });
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
     syncTentacleWorktree: (tentacleId: string, baseRef?: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      gitClientOpt!.syncWithBase({ cwd: result.worktreePath, baseRef: baseRef ?? "HEAD" });
+      result.gitClient.syncWithBase({ cwd: result.worktreePath, baseRef: baseRef ?? "HEAD" });
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
     readTentaclePullRequest: (tentacleId: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      const pr = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
       const { state, ...prRest } = pr;
       return {
@@ -469,12 +469,12 @@ export const createTerminalRuntime = ({
     createTentaclePullRequest: (tentacleId: string, opts: Record<string, unknown>) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      const existing = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      const existing = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (existing && existing.state === "OPEN") {
         throw new RuntimeInputError("An open pull request already exists for this branch.");
       }
-      const worktreeStatus = gitClientOpt!.readWorktreeStatus({ cwd: result.worktreePath });
-      const pr = gitClientOpt!.createPullRequest({
+      const worktreeStatus = result.gitClient.readWorktreeStatus({ cwd: result.worktreePath });
+      const pr = result.gitClient.createPullRequest({
         cwd: result.worktreePath,
         title: String(opts.title ?? ""),
         body: String(opts.body ?? ""),
@@ -494,15 +494,15 @@ export const createTerminalRuntime = ({
     mergeTentaclePullRequest: (tentacleId: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
-      const existing = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      const existing = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (!existing || existing.state !== "OPEN") {
         throw new RuntimeInputError("No open pull request found for this branch.");
       }
-      gitClientOpt!.mergeCurrentBranchPullRequest({
+      result.gitClient.mergeCurrentBranchPullRequest({
         cwd: result.worktreePath,
         strategy: "squash",
       });
-      const pr = gitClientOpt!.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+      const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
       const { state, ...prRest } = pr;
       return {

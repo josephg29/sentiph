@@ -64,6 +64,7 @@ export const TokenUsageSummary = ({
                 onClick={() =>
                   onSelectTerminal(selectedTerminalId === s.terminalId ? null : s.terminalId)
                 }
+                // biome-ignore lint/a11y/useSemanticElements: this is a table row (<tr>) made interactive; it cannot be replaced by a <button> without breaking table semantics.
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {

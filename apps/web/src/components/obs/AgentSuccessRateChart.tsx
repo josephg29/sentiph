@@ -31,7 +31,9 @@ export const AgentSuccessRateChart = ({ byTentacleName }: AgentSuccessRateChartP
         viewBox={`0 0 ${LABEL_WIDTH + BAR_MAX_WIDTH + CHART_PADDING * 2 + 48} ${svgHeight}`}
         style={{ width: "100%", height: svgHeight }}
         aria-label="Agent success rate chart"
+        role="img"
       >
+        <title>Agent success rate chart</title>
         {entries.map(([name, stats], i) => {
           const y = CHART_PADDING + i * (BAR_HEIGHT + BAR_GAP);
           const rate = stats.runs > 0 ? stats.successCount / stats.runs : 0;

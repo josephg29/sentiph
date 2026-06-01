@@ -117,15 +117,19 @@ const TOOLS = [
 
 const stripAnsi = (text: string): string =>
   text
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: CSI escape sequences start with the ESC control character.
     .replace(/\x1b\[[\x20-\x3f]*[\x40-\x7e]/g, "")
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: OSC escape sequences are delimited by BEL/ST control characters.
     .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: matches remaining two-byte ESC sequences.
     .replace(/\x1b[@-_]/g, "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips residual non-printable control characters from terminal output.
     .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "");
 
 const send = (message: unknown): void => {
-  process.stdout.write(JSON.stringify(message) + "\n");
+  process.stdout.write(`${JSON.stringify(message)}\n`);
 };
 
 const handleToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
@@ -288,9 +292,9 @@ const handleToolCall = async (name: string, args: Record<string, unknown>): Prom
 
     const stateHeader =
       agentState === "processing"
-        ? `[agent: processing — output below is in-progress; wait for idle before evaluating results]`
+        ? "[agent: processing — output below is in-progress; wait for idle before evaluating results]"
         : agentState === "idle"
-          ? `[agent: idle — output below is the completed result]`
+          ? "[agent: idle — output below is the completed result]"
           : `[agent: ${agentState}]`;
 
     const raw = await scrollbackRes.text();

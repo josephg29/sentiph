@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
+import { useState } from "react";
 
 const TABS = [
   {
@@ -45,6 +45,7 @@ export function DemoUI() {
           >
             {TABS.map((tab, i) => (
               <button
+                type="button"
                 key={tab.n}
                 onClick={() => setActive(i)}
                 className="flex items-center gap-1.5 px-4 select-none"

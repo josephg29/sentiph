@@ -103,6 +103,7 @@ export const CanvasTerminalColumn = ({
           <h2>
             {isEditingName ? (
               <input
+                // biome-ignore lint/a11y/noAutofocus: the rename input is rendered only on explicit edit intent, where focusing it immediately is the expected behavior.
                 autoFocus
                 className="canvas-terminal-column-name-input"
                 value={nameDraft}

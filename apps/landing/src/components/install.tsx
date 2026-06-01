@@ -47,7 +47,8 @@ export function Install() {
             style={{ color: "#fafafa" }}
           >
             {LINES.map((line, i) => (
-              <div key={i} className="whitespace-pre">
+              // biome-ignore lint/suspicious/noArrayIndexKey: install lines are a fixed, ordered script; the index is their stable identity.
+              <div key={`${line}-${i}`} className="whitespace-pre">
                 <span className="select-none" style={{ color: "#555" }}>
                   ${" "}
                 </span>

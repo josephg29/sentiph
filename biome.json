@@ -16,6 +16,17 @@
     "enabled": true
   },
   "files": {
-    "ignore": ["node_modules", "dist", "coverage"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "coverage",
+      ".sentiph",
+      "**/.sentiph",
+      ".playwright-mcp",
+      ".vercel",
+      "**/.next",
+      "*.html",
+      "static"
+    ]
   }
 }

@@ -34,7 +34,9 @@ export const IdleTimeBreakdown = ({ summaries }: IdleTimeBreakdownProps) => {
         viewBox={`0 0 ${LABEL_W + BAR_MAX_W + PADDING * 2 + 40} ${svgH}`}
         style={{ width: "100%", height: svgH }}
         aria-label="Agent idle time breakdown chart"
+        role="img"
       >
+        <title>Agent idle time breakdown chart</title>
         {items.map((s, i) => {
           const y = PADDING + i * (BAR_H + BAR_GAP);
           const total = Math.max(1, s.durationMs);

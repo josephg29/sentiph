@@ -939,6 +939,7 @@ describe("createSessionRuntime", () => {
 
     afterEach(() => {
       if (originalClaudeConfigDir === undefined) {
+        // biome-ignore lint/performance/noDelete: restoring the original env requires removing the key, not setting it to "undefined".
         delete process.env.CLAUDE_CONFIG_DIR;
       } else {
         process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
@@ -1035,16 +1036,6 @@ describe("createSessionRuntime", () => {
       const sessions = new Map<string, TerminalSession>();
       const pty = new FakePty();
       const { runtime } = makeRuntime(terminals, sessions, pty);
-
-      const socket = new FakeWebSocket();
-      const fakeServer = runtime as unknown as {
-        // surface the websocketServer for inspection via separate path
-      };
-      // We use handleUpgrade via the runtime to get a connected socket.
-      void fakeServer;
-      // Use the runtime's websocketServer for upgrade:
-      const websocketServer = (runtime as unknown as { __test_ws?: FakeWebSocketServer }).__test_ws;
-      void websocketServer;
 
       expect(runtime.startSession(tentacleId)).toBe(true);
 

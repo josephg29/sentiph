@@ -10,11 +10,13 @@ function TerminalLine({ line }: { line: string }) {
       <div>
         {line.split(/(●|running)/).map((part, i) =>
           part === "●" || part === "running" ? (
-            <span key={i} className="text-term-green">
+            // biome-ignore lint/suspicious/noArrayIndexKey: split fragments are positional and may repeat; the index is their stable identity.
+            <span key={`${part}-${i}`} className="text-term-green">
               {part}
             </span>
           ) : (
-            <span key={i}>{part}</span>
+            // biome-ignore lint/suspicious/noArrayIndexKey: split fragments are positional and may repeat; the index is their stable identity.
+            <span key={`${part}-${i}`}>{part}</span>
           ),
         )}
       </div>
@@ -104,7 +106,8 @@ export function Features() {
                   </div>
                   <div className="overflow-x-auto p-3.5 text-[11px] leading-[1.7] text-secondary font-mono">
                     {item.terminal.map((line, i) => (
-                      <TerminalLine key={i} line={line} />
+                      // biome-ignore lint/suspicious/noArrayIndexKey: terminal lines are a fixed, ordered transcript and may repeat; the index is their stable identity.
+                      <TerminalLine key={`${line}-${i}`} line={line} />
                     ))}
                   </div>
                 </div>

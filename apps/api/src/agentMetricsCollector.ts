@@ -11,6 +11,7 @@ import type {
 import type { AgentRuntimeState } from "./agentStateDetection";
 import type { PersistedTerminal, TerminalSessionEndReason } from "./terminalRuntime/types";
 
+// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI/OSC escape sequences are control characters by definition; matching them is required to strip terminal output.
 const ANSI_RE = /\x1b(?:\[[0-9;:<=>?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|.)/g;
 
 const stripAnsi = (text: string): string =>
