@@ -1,5 +1,12 @@
 import { Minus, X } from "lucide-react";
-import { type KeyboardEvent, type Ref, useCallback, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type Ref,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
 import type { TerminalView } from "../../app/types";
@@ -94,6 +101,9 @@ export const CanvasTerminalColumn = ({
     <section
       ref={panelRef}
       className={`canvas-terminal-column${isFocused ? " canvas-terminal-column--focused" : ""}`}
+      // Carries this node's color so the panel's accent visually links back to
+      // its canvas node (which renders in the same color).
+      style={{ "--panel-accent": node.color } as CSSProperties}
       tabIndex={-1}
       onPointerDown={handleFocus}
       onFocusCapture={handleFocus}

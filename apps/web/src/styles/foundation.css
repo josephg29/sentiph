@@ -12,7 +12,8 @@
   --bg-surface-2: #e8e8e8;
   --border-subtle: #ddd;
   --text-primary: #111;
-  --text-secondary: #888;
+  /* #666 clears WCAG AA (5.1:1) on the #fafafa canvas; #888 was only 3.4:1 */
+  --text-secondary: #666;
   --accent-primary: #111;
   --term-red: #880f1e;
   --term-green: #25a244;
@@ -29,7 +30,7 @@
   --sidebar-row-active: #ddd;
   --sidebar-border: #ddd;
   --sidebar-border-strong: #bbb;
-  --sidebar-text-muted: #888;
+  --sidebar-text-muted: #666;
   --terminal-bg: #111;
   --terminal-header-bg-top: #222;
   --terminal-header-bg-bottom: #111;
@@ -43,6 +44,14 @@
   --control-letter-spacing: 0.06em;
   --control-line-height: 1.2;
   --ui-base-font-size: 15px;
+  /* Explicit type scale — one readable step above body for headings, and a
+     caption floor so no label renders below ~9.3px on the 15px base. */
+  --font-caption: 0.62rem;
+  --font-small: 0.78rem;
+  --font-body: 0.88rem;
+  --font-h2: 1.15rem;
+  --font-h1: 1.5rem;
+  --weight-strong: 700;
   --scrollbar-size: 10px;
   --scrollbar-track: #e8e8e8;
   --scrollbar-thumb: #bbb;

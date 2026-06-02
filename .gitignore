@@ -35,6 +35,14 @@ mantis-*.png
 **/*-wiki-*.png
 **/wiki-*.png
 
+# Grade report-card output (the /grade skill writes these to the repo root)
+grade-report-*.html
+grade-loop-summary-*.html
+grade-*.png
+# Intermediate regrade screenshots (regrade-*, rg2-*, rg3-*, …)
+regrade-*.png
+rg[0-9]*.png
+
 # Local env files
 .env
 .env.local

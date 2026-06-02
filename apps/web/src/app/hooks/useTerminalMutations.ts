@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
+import { notify } from "../toast";
 import type { TerminalAgentProvider, TerminalView, TerminalWorkspaceMode } from "../types";
 
 export type PendingDeleteTerminal = {
@@ -79,6 +80,7 @@ export const useTerminalMutations = ({
       const trimmedName = terminalNameDraft.trim();
       if (trimmedName.length === 0) {
         setLoadError("Terminal name cannot be empty.");
+        notify.error("Name can't be empty", "Enter a name or press Esc to cancel.");
         return;
       }
 
@@ -106,8 +108,10 @@ export const useTerminalMutations = ({
         const nextColumns = await readColumns();
         setColumns(nextColumns);
         setEditingTerminalId(null);
+        notify.success("Agent renamed", `Now “${trimmedName}”`);
       } catch {
         setLoadError("Unable to rename terminal.");
+        notify.error("Couldn't rename agent", "The rename request failed — try again.");
       }
     },
     [readColumns, setColumns, setLoadError, terminalNameDraft],
@@ -160,9 +164,17 @@ export const useTerminalMutations = ({
             : createdTerminalId);
         setMinimizedTerminalIds((current) => current.filter((id) => id !== createdTerminalId));
         beginTerminalNameEdit(createdTerminalId, createdTerminalName);
+        notify.success(
+          "Agent spawned",
+          `“${createdTerminalName}” is booting — name it or press Esc to keep the default.`,
+        );
         return createdTerminalId;
       } catch {
         setLoadError("Unable to create a new terminal.");
+        notify.error(
+          "Couldn't spawn agent",
+          "The server rejected the request — check it's running and retry.",
+        );
         return undefined;
       } finally {
         setIsCreatingTerminal(false);
@@ -196,7 +208,7 @@ export const useTerminalMutations = ({
       return;
     }
 
-    const { terminalId } = pendingDeleteTerminal;
+    const { terminalId, tentacleName } = pendingDeleteTerminal;
     try {
       setLoadError(null);
       setIsDeletingTerminalId(terminalId);
@@ -223,8 +235,10 @@ export const useTerminalMutations = ({
       const nextColumns = await readColumns();
       setColumns(nextColumns);
       setPendingDeleteTerminal(null);
+      notify.success("Agent removed", `“${tentacleName}” was deleted.`);
     } catch {
       setLoadError("Unable to delete terminal.");
+      notify.error("Couldn't remove agent", `“${tentacleName}” could not be deleted — try again.`);
     } finally {
       setIsDeletingTerminalId(null);
     }

@@ -26,14 +26,15 @@
 .settings-panel-header h2 {
   margin: 0;
   color: #111111;
-  font-size: 0.96rem;
+  font-size: var(--font-h2);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
 }
 
 .settings-panel-header p {
   margin: 0;
-  color: #888888;
-  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-size: var(--font-small);
 }
 
 .settings-sound-picker {
@@ -45,7 +46,7 @@
 .settings-sound-option {
   border: 1px solid #dddddd;
   background: #f0f0f0;
-  color: #b8c2d1;
+  color: #565f6e;
   font-family: var(--font-main);
   cursor: pointer;
   text-align: left;
@@ -57,7 +58,13 @@
 .settings-sound-option[data-active="true"] {
   border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
   background: color-mix(in srgb, var(--term-green) 22%, #f0f0f0 78%);
-  color: #d6ffe4;
+  /* Active background is a LIGHT mint, so active text must be dark to clear
+     WCAG AA. Light-mint text on light-mint read as green-on-green. */
+  color: #123b1f;
+}
+
+.settings-sound-option[data-active="true"] .settings-sound-option-description {
+  color: #1c4a2e;
 }
 
 .settings-sound-option:focus-visible {
@@ -72,7 +79,7 @@
 }
 
 .settings-sound-option-description {
-  color: #93a4bb;
+  color: #565f6e;
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   font-size: 0.76rem;
   line-height: 1.34;
@@ -85,13 +92,30 @@
   flex-wrap: wrap;
 }
 
-.settings-sound-preview {
+/* All scoped under .console-shell so they outrank the broad `.console-shell
+   .action-button` chrome rule (which otherwise forces light #ddd text onto
+   these light-panel buttons, making them read as disabled). */
+.console-shell .settings-sound-preview {
   --action-button-border: color-mix(in srgb, #38b86c 68%, #1a5235);
   --action-button-bg: color-mix(in srgb, #2fb763 76%, #194e34 24%);
   --action-button-color: #f4fff8;
   --action-button-font-size: 0.76rem;
   --action-button-padding-y: 0.2rem;
   --action-button-padding-x: 0.4rem;
+}
+
+/* The Updates check/install buttons carry no custom class, so re-assert
+   readable variant colors for them inside the settings panel. */
+.console-shell .settings-panel-actions .action-button--info {
+  --action-button-border: #1e59a3;
+  --action-button-bg: #eaf0f9;
+  --action-button-color: #1e59a3;
+}
+
+.console-shell .settings-panel-actions .action-button--accent:not(.settings-sound-preview) {
+  --action-button-border: #111111;
+  --action-button-bg: #ffffff;
+  --action-button-color: #111111;
 }
 
 .settings-saved-pill {
@@ -113,7 +137,7 @@
 .settings-toggle-option {
   border: 1px solid #dddddd;
   background: #f0f0f0;
-  color: #b8c2d1;
+  color: #565f6e;
   font-family: var(--font-main);
   cursor: pointer;
   text-align: left;
@@ -128,7 +152,8 @@
 .settings-toggle-option[data-active="true"] {
   border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
   background: color-mix(in srgb, var(--term-green) 22%, #f0f0f0 78%);
-  color: #d6ffe4;
+  /* Dark text on the light-mint active background (see sound option note). */
+  color: #123b1f;
 }
 
 .settings-toggle-option:focus-visible {
@@ -148,9 +173,13 @@
 }
 
 .settings-toggle-description {
-  color: #93a4bb;
+  color: #565f6e;
   font-size: 0.73rem;
   letter-spacing: 0.03em;
+}
+
+.settings-toggle-option[data-active="true"] .settings-toggle-description {
+  color: #1c4a2e;
 }
 
 .settings-toggle-switch {
@@ -192,12 +221,12 @@
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #93a4bb;
+  color: #565f6e;
   grid-column: 1 / -1;
 }
 
 .settings-toggle-option[data-active="true"] .settings-toggle-state {
-  color: #c2f5d4;
+  color: #1c4a2e;
 }
 
 @media (max-width: 940px) {

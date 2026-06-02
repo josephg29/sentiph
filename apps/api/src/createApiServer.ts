@@ -13,7 +13,7 @@ import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codex
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
-import { readGithubRepoSummary as readGithubRepoSummaryDefault } from "./githubRepoSummary";
+import { readGithubRepoSummaryCached as readGithubRepoSummaryDefault } from "./githubRepoSummary";
 import { createTerminalRuntime } from "./terminalRuntime";
 
 export const createApiServer = ({

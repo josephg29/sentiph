@@ -116,7 +116,9 @@
 
 .action-button:disabled {
   cursor: wait;
-  opacity: 0.7;
+  /* Keep disabled/in-flight actions legible rather than ghosted — at 0.7 the
+     accent/info variants dropped below readable contrast on light panels. */
+  opacity: 0.85;
 }
 
 .action-button:focus-visible {

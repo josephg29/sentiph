@@ -103,8 +103,8 @@ vi.mock("../src/components/canvas/SessionNode", () => ({
   ),
 }));
 
-vi.mock("../src/components/canvas/OctopusNode", () => ({
-  OctopusNode: ({
+vi.mock("../src/components/canvas/AgentNode", () => ({
+  AgentNode: ({
     node,
     onClick,
   }: {

@@ -151,8 +151,8 @@
 }
 
 .console-status-sub {
-  color: #999;
-  font-size: 0.6rem;
+  color: #666;
+  font-size: 0.66rem;
   letter-spacing: 0.1em;
   text-transform: lowercase;
   white-space: nowrap;
@@ -184,8 +184,8 @@
 }
 
 .console-status-sparkline-label {
-  color: #888;
-  font-size: 0.54rem;
+  color: #666;
+  font-size: var(--font-caption);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: lowercase;
@@ -244,7 +244,7 @@
 .console-status-claude-usage-refresh {
   background: none;
   border: 1px solid #ddd;
-  color: #888;
+  color: #666;
   font-size: 0.85rem;
   line-height: 1;
   padding: 0.18rem 0.32rem;
@@ -264,7 +264,7 @@
 }
 
 .console-status-claude-usage-title {
-  color: #888;
+  color: #666;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -323,7 +323,7 @@
 }
 
 .console-status-usage-row-label {
-  color: #888;
+  color: #666;
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: lowercase;
@@ -433,10 +433,45 @@
 
 .console-primary-nav-hint {
   margin: 0;
-  color: #888;
+  /* #888 on the #111 nav was ~3.4:1 (below AA); #aaa clears it comfortably. */
+  color: #aaaaaa;
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   white-space: nowrap;
+}
+
+.console-primary-nav-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.console-primary-nav-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: transparent;
+  color: #ddd;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.console-primary-nav-help:hover {
+  color: #fafafa;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.console-primary-nav-help:focus-visible {
+  outline: 1px solid #fafafa;
+  outline-offset: 1px;
 }
 
 /* ─── Route not found ──────────────────────────────────────────────────────── */
@@ -471,8 +506,8 @@
 
 .route-not-found-title {
   margin: 16px 0 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: var(--font-h2);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -515,4 +550,134 @@
 .route-not-found-action:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+/* ─── Narrow viewports: free the primary nav ─────────────────────────────────
+   The "Press 1-4 to navigate" hint plus the help button consume the row's
+   `auto` track, squeezing the four scrollable tabs down to ~two visible and
+   letting the clipped container intercept clicks on the rest. Drop the hint
+   below 640px so the tabs get the full width (they still scroll if needed). */
+@media (max-width: 640px) {
+  .console-primary-nav-hint {
+    display: none;
+  }
+}
+
+/* ─── Narrow viewports: stack the runtime status strip ───────────────────────
+   Below 480px the three-column strip (brand · sparklines · usage bars) cannot
+   fit a 375px viewport — the regions overlapped the logo and forced horizontal
+   overflow. Stack the regions, drop the decorative sparklines, and let the
+   Claude-usage bars span the full width instead of holding their 280px floor. */
+@media (max-width: 480px) {
+  .console-shell .console-status-strip {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+    row-gap: 0.32rem;
+  }
+
+  .console-status-main {
+    justify-content: space-between;
+  }
+
+  .console-status-charts {
+    display: none;
+  }
+
+  .console-status-claude-usage {
+    min-width: 0;
+    max-width: none;
+    justify-self: stretch;
+  }
+}
+
+/* ─── Keyboard shortcuts overlay ─────────────────────────────────────────────── */
+
+.shortcuts-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(17, 17, 17, 0.45);
+}
+
+.shortcuts-overlay {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: 6px;
+  padding: 20px 22px 22px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  outline: none;
+}
+
+.shortcuts-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shortcuts-overlay-header h2 {
+  margin: 0;
+  font-size: var(--font-h2);
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The overlay panel is light, but the close button still lives under
+   `.console-shell`, whose dark-chrome rule paints action buttons #ddd-on-transparent
+   — faint grey-on-white here. Higher-specificity override restores a solid,
+   high-contrast control on the light panel. */
+.shortcuts-overlay .action-button.shortcuts-overlay-close {
+  --action-button-border: #111;
+  --action-button-bg: #111;
+  --action-button-color: #fafafa;
+  border-radius: 4px;
+}
+
+.shortcuts-overlay .action-button.shortcuts-overlay-close:hover {
+  --action-button-bg: #000;
+  --action-button-border: #000;
+}
+
+.shortcuts-overlay-list {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+
+.shortcuts-overlay-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  align-items: baseline;
+  gap: 0.72rem;
+  padding: 0.34rem 0;
+}
+
+.shortcuts-overlay-row + .shortcuts-overlay-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shortcuts-overlay-keys {
+  margin: 0;
+  font-size: var(--font-small);
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.shortcuts-overlay-desc {
+  margin: 0;
+  font-size: var(--font-small);
+  line-height: 1.4;
+  color: var(--text-secondary);
 }

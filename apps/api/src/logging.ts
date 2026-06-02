@@ -7,3 +7,25 @@ export const logVerbose = (...args: Parameters<typeof console.log>): void => {
     console.log(...args);
   }
 };
+
+const summarizeError = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+/**
+ * Always emits a one-line error summary to `console.error`. The full stack trace
+ * (when available) is only logged when verbose logging is enabled, keeping normal
+ * operation quiet while still surfacing that something failed.
+ */
+export const logError = (prefix: string, error: unknown): void => {
+  console.error(`${prefix}: ${summarizeError(error)}`);
+  if (isVerboseLoggingEnabled() && error instanceof Error && error.stack) {
+    console.error(error.stack);
+  }
+};
+
+/** Emits a one-line warning to `console.warn` only when verbose logging is enabled. */
+export const logWarn = (...args: Parameters<typeof console.warn>): void => {
+  if (isVerboseLoggingEnabled()) {
+    console.warn(...args);
+  }
+};

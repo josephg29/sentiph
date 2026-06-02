@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { isVerboseLoggingEnabled, logVerbose } from "../src/logging";
+import { isVerboseLoggingEnabled, logError, logVerbose, logWarn } from "../src/logging";
 
 describe("logging", () => {
   afterEach(() => {
@@ -29,5 +29,57 @@ describe("logging", () => {
 
     expect(consoleSpy).toHaveBeenCalledTimes(1);
     expect(consoleSpy).toHaveBeenCalledWith("shown");
+  });
+
+  describe("logError", () => {
+    it("always emits a one-line summary for an Error", () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      logError("[scope]", new Error("boom"));
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("[scope]: boom");
+    });
+
+    it("stringifies non-Error values", () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      logError("[scope]", "plain string");
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("[scope]: plain string");
+    });
+
+    it("also logs the stack trace when verbose logging is enabled", () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("boom");
+
+      logError("[scope]", error);
+
+      expect(consoleSpy).toHaveBeenCalledTimes(2);
+      expect(consoleSpy).toHaveBeenNthCalledWith(1, "[scope]: boom");
+      expect(consoleSpy).toHaveBeenNthCalledWith(2, error.stack);
+    });
+  });
+
+  describe("logWarn", () => {
+    it("stays silent when verbose logging is disabled", () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      logWarn("hidden");
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    it("writes when verbose logging is enabled", () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      logWarn("shown");
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("shown");
+    });
   });
 });

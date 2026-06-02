@@ -7,11 +7,13 @@ import {
 type ConsolePrimaryNavProps = {
   activePrimaryNav: PrimaryNavIndex;
   onPrimaryNavChange: (index: PrimaryNavIndex) => void;
+  onShowShortcuts: () => void;
 };
 
 export const ConsolePrimaryNav = ({
   activePrimaryNav,
   onPrimaryNavChange,
+  onShowShortcuts,
 }: ConsolePrimaryNavProps) => (
   <nav className="console-primary-nav" aria-label="Primary navigation">
     <div className="console-primary-nav-tabs">
@@ -30,6 +32,17 @@ export const ConsolePrimaryNav = ({
         </button>
       ))}
     </div>
-    <p className="console-primary-nav-hint">Press 1-{PRIMARY_NAV_SHORTCUT_MAX} to navigate</p>
+    <div className="console-primary-nav-meta">
+      <p className="console-primary-nav-hint">Press 1-{PRIMARY_NAV_SHORTCUT_MAX} to navigate</p>
+      <button
+        aria-label="Show keyboard shortcuts"
+        className="console-primary-nav-help"
+        onClick={onShowShortcuts}
+        title="Keyboard shortcuts (?)"
+        type="button"
+      >
+        ?
+      </button>
+    </div>
   </nav>
 );

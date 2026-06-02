@@ -21,6 +21,28 @@ export const AgentSuccessRateChart = ({ byTentacleName }: AgentSuccessRateChartP
     );
   }
 
+  // Agents can exist with runs in flight but no finished outcome yet. Charting a
+  // wall of 0% bars then reads like every agent failed; show an explicit
+  // "awaiting completed runs" state instead until at least one run resolves.
+  const resolvedRuns = entries.reduce(
+    (total, [, stats]) => total + stats.successCount + stats.errorCount,
+    0,
+  );
+  if (resolvedRuns === 0) {
+    return (
+      <div className="obs-chart-panel">
+        <h4 className="obs-chart-title">Success Rate by Agent</h4>
+        <div className="obs-empty obs-empty--panel">
+          <span className="obs-empty-title">Awaiting completed runs</span>
+          <span className="obs-empty-detail">
+            {entries.length} agent{entries.length === 1 ? "" : "s"} tracked · none have finished a
+            run yet, so there's no success rate to chart.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const svgHeight = entries.length * (BAR_HEIGHT + BAR_GAP) + CHART_PADDING * 2 - BAR_GAP;
 
   return (

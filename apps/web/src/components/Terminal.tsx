@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { X } from "lucide-react";
-import { replayTerminalHistory } from "../app/terminalReplay";
-import { wheelDeltaToScrollLines } from "../app/terminalWheel";
-import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
-import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
+import { useTerminalSocket } from "../app/hooks/useTerminalSocket";
+import { useXtermInstance } from "../app/hooks/useXtermInstance";
+import { type AgentRuntimeState, AgentStateBadge } from "./AgentStateBadge";
 
 import "xterm/css/xterm.css";
 
@@ -19,37 +18,6 @@ type TerminalProps = {
   onTerminalRenamed?: ((terminalId: string, tentacleName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
 };
-
-type TerminalStateMessage = {
-  type: "state";
-  state: AgentRuntimeState;
-};
-
-type TerminalOutputMessage = {
-  type: "output";
-  data: string;
-};
-
-type TerminalHistoryMessage = {
-  type: "history";
-  data: string;
-};
-
-type TerminalRenameMessage = {
-  type: "rename";
-  tentacleName: string;
-};
-
-type TerminalActivityMessage = {
-  type: "activity";
-};
-
-type TerminalServerMessage =
-  | TerminalStateMessage
-  | TerminalOutputMessage
-  | TerminalHistoryMessage
-  | TerminalRenameMessage
-  | TerminalActivityMessage;
 
 const PromptInjectIcon = () => (
   <svg
@@ -74,379 +42,72 @@ export const Terminal = ({
   onTerminalRenamed,
   onTerminalActivity,
 }: TerminalProps) => {
-  const socketRef = useRef<WebSocket | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [connectionState, setConnectionState] = useState("connecting");
   const [agentState, setAgentRuntimeState] = useState<AgentRuntimeState>("idle");
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
-  const terminalRef = useRef<{
-    write: (value: string, callback?: () => void) => void;
-    scrollLines: (lineCount: number) => void;
-    clear: () => void;
-    reset: () => void;
-    clearSelection?: () => void;
-    refresh?: (start: number, end: number) => void;
-    cols: number;
-    rows: number;
-  } | null>(null);
-  const fitAddonRef = useRef<{ fit: () => void } | null>(null);
-  const requestResizeSyncRef = useRef<() => void>(() => {});
+  const [displayConnectionState, setDisplayConnectionState] = useState("connecting");
+
   const onTerminalActivityRef = useRef(onTerminalActivity);
   const onTerminalRenamedRef = useRef(onTerminalRenamed);
+  onTerminalActivityRef.current = onTerminalActivity;
+  onTerminalRenamedRef.current = onTerminalRenamed;
+
   const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
   const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
 
-  onTerminalActivityRef.current = onTerminalActivity;
-  onTerminalRenamedRef.current = onTerminalRenamed;
+  // Forward refs that let the xterm side push input/resize to the socket
+  // without the xterm setup effect depending on the (potentially fresh) socket
+  // send functions, which would otherwise re-create the terminal each render.
+  const sendInputRef = useRef<(data: string) => void>(() => {});
+  const sendResizeRef = useRef<(cols: number, rows: number) => void>(() => {});
+
+  const handleData = useCallback((data: string) => {
+    sendInputRef.current(data);
+  }, []);
+  const handleResize = useCallback((cols: number, rows: number) => {
+    sendResizeRef.current(cols, rows);
+  }, []);
+  const handleSetupError = useCallback(() => {
+    setDisplayConnectionState("fallback");
+  }, []);
+
+  const { containerRef, handleHistory, handleOutput, requestResizeSync } = useXtermInstance({
+    terminalId,
+    layoutVersion,
+    onData: handleData,
+    onResize: handleResize,
+    onSetupError: handleSetupError,
+  });
+
+  const handleRename = useCallback((id: string, tentacleName: string) => {
+    onTerminalRenamedRef.current?.(id, tentacleName);
+  }, []);
+  const handleActivity = useCallback((id: string) => {
+    onTerminalActivityRef.current?.(id);
+  }, []);
+
+  const { connectionState, sendInput, sendResize, isSocketOpen } = useTerminalSocket({
+    terminalId,
+    onState: setAgentRuntimeState,
+    onRename: handleRename,
+    onActivity: handleActivity,
+    onHistory: handleHistory,
+    onOutput: handleOutput,
+    onOpen: requestResizeSync,
+  });
+
+  sendInputRef.current = sendInput;
+  sendResizeRef.current = sendResize;
 
   useEffect(() => {
     onAgentRuntimeStateChange?.(agentState);
   }, [agentState, onAgentRuntimeStateChange]);
 
+  // Mirror the socket connection state into the rendered attribute. The xterm
+  // setup-failure path may overwrite this with "fallback"; a later socket event
+  // overwrites it again, matching the original single-state "last write wins".
   useEffect(() => {
-    let isCancelled = false;
-    let reconnectTimer: number | null = null;
-    let reconnectAttempts = 0;
-    let socket: WebSocket | null = null;
-    let requestResizeSync = () => {};
-    requestResizeSyncRef.current = () => {};
-    let cleanupTerminal = () => {};
-    let activeTerminal: {
-      write: (value: string, callback?: () => void) => void;
-      scrollLines: (lineCount: number) => void;
-      clear: () => void;
-      reset: () => void;
-      clearSelection?: () => void;
-      refresh?: (start: number, end: number) => void;
-      rows: number;
-    } | null = null;
-    let pendingHistoryData: string | null = null;
-    const pendingOutputChunks: string[] = [];
-
-    const connect = () => {
-      const nextSocket = new WebSocket(buildTerminalSocketUrl(terminalId));
-      socket = nextSocket;
-      setConnectionState("connecting");
-
-      nextSocket.addEventListener("open", () => {
-        if (isCancelled || socket !== nextSocket) {
-          return;
-        }
-        socketRef.current = nextSocket;
-        setConnectionState("connected");
-        reconnectAttempts = 0;
-        requestResizeSync();
-      });
-
-      nextSocket.addEventListener("close", () => {
-        if (isCancelled || socket !== nextSocket) {
-          return;
-        }
-        socketRef.current = null;
-        setConnectionState("closed");
-        // Exponential backoff (capped) so a terminal that repeatedly fails to
-        // start (e.g. the OS is out of PTYs) doesn't hammer the server and spam
-        // the same error every second. Resets to fast reconnect on success.
-        const delay = Math.min(900 * 2 ** reconnectAttempts, 15_000);
-        reconnectAttempts += 1;
-        reconnectTimer = window.setTimeout(() => {
-          connect();
-        }, delay);
-      });
-
-      nextSocket.addEventListener("error", () => {
-        if (isCancelled || socket !== nextSocket) {
-          return;
-        }
-        setConnectionState("error");
-      });
-
-      nextSocket.addEventListener("message", (event) => {
-        if (isCancelled || socket !== nextSocket) {
-          return;
-        }
-
-        if (typeof event.data !== "string") {
-          return;
-        }
-
-        try {
-          const payload = JSON.parse(event.data) as TerminalServerMessage;
-          if (payload.type === "history" && typeof payload.data === "string") {
-            if (activeTerminal) {
-              const viewport =
-                containerRef.current?.querySelector<HTMLElement>(".xterm-viewport") ?? null;
-              replayTerminalHistory(activeTerminal, payload.data, viewport);
-              return;
-            }
-
-            pendingHistoryData = payload.data;
-            pendingOutputChunks.length = 0;
-            return;
-          }
-
-          if (payload.type === "output" && typeof payload.data === "string") {
-            if (activeTerminal) {
-              activeTerminal.write(payload.data);
-              return;
-            }
-
-            pendingOutputChunks.push(payload.data);
-            return;
-          }
-
-          if (payload.type === "state" && isAgentRuntimeState(payload.state)) {
-            setAgentRuntimeState(payload.state);
-            return;
-          }
-
-          if (payload.type === "rename" && typeof payload.tentacleName === "string") {
-            onTerminalRenamedRef.current?.(terminalId, payload.tentacleName);
-            return;
-          }
-
-          if (payload.type === "activity") {
-            onTerminalActivityRef.current?.(terminalId);
-            return;
-          }
-        } catch {
-          if (activeTerminal) {
-            activeTerminal.write(event.data);
-            return;
-          }
-
-          pendingOutputChunks.push(event.data);
-        }
-      });
-    };
-
-    connect();
-
-    if (import.meta.env.MODE === "test") {
-      return () => {
-        isCancelled = true;
-        if (reconnectTimer !== null) {
-          window.clearTimeout(reconnectTimer);
-        }
-        socket?.close();
-      };
-    }
-
-    void (async () => {
-      if (!containerRef.current) {
-        return;
-      }
-
-      try {
-        const [{ Terminal }, { FitAddon }] = await Promise.all([
-          import("xterm"),
-          import("@xterm/addon-fit"),
-        ]);
-
-        if (isCancelled || !containerRef.current) {
-          return;
-        }
-
-        const rootFontSize = Number.parseFloat(
-          window.getComputedStyle(document.documentElement).fontSize,
-        );
-        const terminalFontSize = Number.isFinite(rootFontSize)
-          ? Math.max(13, Math.round(rootFontSize * 0.82))
-          : 13;
-        const terminalBackground =
-          window
-            .getComputedStyle(document.documentElement)
-            .getPropertyValue("--terminal-bg")
-            .trim() || "#101722";
-
-        const terminal = new Terminal({
-          cursorBlink: true,
-          cursorInactiveStyle: "bar",
-          cursorStyle: "bar",
-          cursorWidth: 2,
-          fontFamily: '"JetBrains Mono", "IBM Plex Mono", monospace',
-          fontSize: terminalFontSize,
-          theme: {
-            background: terminalBackground,
-            foreground: "#e8e8e8",
-            cursor: "#fafafa",
-            cursorAccent: terminalBackground,
-            selectionBackground: "#555",
-          },
-        });
-        const fitAddon = new FitAddon();
-        terminal.loadAddon(fitAddon);
-        terminal.open(containerRef.current);
-        fitAddon.fit();
-        terminal.focus();
-
-        try {
-          const { Unicode11Addon } = await import("xterm-addon-unicode11");
-          const unicode11Addon = new Unicode11Addon();
-          terminal.loadAddon(unicode11Addon);
-          terminal.unicode.activeVersion = "11";
-        } catch {
-          // Non-critical: terminal works without unicode11, just with less accurate character widths
-        }
-        activeTerminal = terminal;
-
-        if (pendingHistoryData !== null) {
-          replayTerminalHistory(terminal, pendingHistoryData, null);
-          pendingHistoryData = null;
-        }
-        if (pendingOutputChunks.length > 0) {
-          for (const chunk of pendingOutputChunks) {
-            terminal.write(chunk);
-          }
-          pendingOutputChunks.length = 0;
-        }
-
-        const wheelListenerTarget = containerRef.current;
-        const viewportWheelTarget =
-          wheelListenerTarget.querySelector<HTMLElement>(".xterm-viewport") ?? wheelListenerTarget;
-        const onPointerDown = () => {
-          terminal.focus();
-        };
-        const onWheel = (event: WheelEvent) => {
-          const lines = wheelDeltaToScrollLines(event.deltaY, event.deltaMode);
-          if (lines === 0) {
-            return;
-          }
-
-          event.preventDefault();
-          event.stopPropagation();
-          terminal.scrollLines(lines);
-        };
-        wheelListenerTarget.addEventListener("pointerdown", onPointerDown, {
-          capture: true,
-        });
-        viewportWheelTarget.addEventListener("wheel", onWheel, {
-          passive: false,
-        });
-
-        let resizeDebounceTimer: number | null = null;
-        let lastSentCols = -1;
-        let lastSentRows = -1;
-
-        const sendResize = () => {
-          if (!socket || socket.readyState !== 1) {
-            return;
-          }
-
-          if (terminal.cols === lastSentCols && terminal.rows === lastSentRows) {
-            return;
-          }
-
-          socket.send(
-            JSON.stringify({
-              type: "resize",
-              cols: terminal.cols,
-              rows: terminal.rows,
-            }),
-          );
-          lastSentCols = terminal.cols;
-          lastSentRows = terminal.rows;
-        };
-
-        const scheduleResizeSync = () => {
-          if (resizeDebounceTimer !== null) {
-            window.clearTimeout(resizeDebounceTimer);
-          }
-          resizeDebounceTimer = window.setTimeout(() => {
-            resizeDebounceTimer = null;
-            sendResize();
-          }, 60);
-        };
-        requestResizeSync = scheduleResizeSync;
-        requestResizeSyncRef.current = scheduleResizeSync;
-
-        const onDataDisposable = terminal.onData((data) => {
-          if (!socket || socket.readyState !== 1) {
-            return;
-          }
-
-          socket.send(
-            JSON.stringify({
-              type: "input",
-              data,
-            }),
-          );
-        });
-
-        let observer: ResizeObserver | null = null;
-        if ("ResizeObserver" in window) {
-          observer = new ResizeObserver(() => {
-            fitAddon.fit();
-            scheduleResizeSync();
-          });
-          observer.observe(containerRef.current);
-        }
-
-        const onVisibilityChange = () => {
-          if (document.visibilityState !== "visible") {
-            return;
-          }
-          fitAddon.fit();
-          if (typeof terminal.rows === "number" && terminal.rows > 0) {
-            terminal.refresh(0, terminal.rows - 1);
-          }
-        };
-        document.addEventListener("visibilitychange", onVisibilityChange);
-
-        scheduleResizeSync();
-        terminalRef.current = terminal;
-        fitAddonRef.current = fitAddon;
-        cleanupTerminal = () => {
-          wheelListenerTarget.removeEventListener("pointerdown", onPointerDown, true);
-          viewportWheelTarget.removeEventListener("wheel", onWheel);
-          if (resizeDebounceTimer !== null) {
-            window.clearTimeout(resizeDebounceTimer);
-          }
-          observer?.disconnect();
-          document.removeEventListener("visibilitychange", onVisibilityChange);
-          onDataDisposable.dispose();
-          terminal.dispose();
-          terminalRef.current = null;
-          fitAddonRef.current = null;
-          requestResizeSyncRef.current = () => {};
-        };
-      } catch {
-        setConnectionState("fallback");
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-      if (reconnectTimer !== null) {
-        window.clearTimeout(reconnectTimer);
-      }
-      requestResizeSync = () => {};
-      requestResizeSyncRef.current = () => {};
-      cleanupTerminal();
-      socket?.close();
-    };
-  }, [terminalId]);
-
-  useEffect(() => {
-    if (layoutVersion === undefined) {
-      return;
-    }
-
-    const activeTerminal = terminalRef.current;
-    const fitAddon = fitAddonRef.current;
-    if (!activeTerminal || !fitAddon) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      fitAddon.fit();
-      requestResizeSyncRef.current();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [layoutVersion]);
+    setDisplayConnectionState(connectionState);
+  }, [connectionState]);
 
   return (
     <div
@@ -459,7 +120,7 @@ export const Terminal = ({
         onSelectTerminal?.(terminalId);
       }}
     >
-      <div className="terminal-header" data-connection-state={connectionState}>
+      <div className="terminal-header" data-connection-state={displayConnectionState}>
         <span className="terminal-title">{terminalTitle}</span>
         {initialPrompt && !isPromptBannerDismissed && (
           <div className="terminal-prompt-banner">
@@ -467,9 +128,8 @@ export const Terminal = ({
               type="button"
               className="terminal-prompt-banner-inject"
               onClick={() => {
-                const ws = socketRef.current;
-                if (ws && ws.readyState === 1) {
-                  ws.send(JSON.stringify({ type: "input", data: initialPrompt }));
+                if (isSocketOpen()) {
+                  sendInput(initialPrompt);
                 }
                 setIsPromptBannerDismissed(true);
               }}

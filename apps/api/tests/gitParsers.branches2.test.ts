@@ -30,6 +30,24 @@ describe("parseTentacleSyncBaseRef — branches2", () => {
     expect(result.error).toBeNull();
     expect(result.baseRef).toBeNull();
   });
+
+  // Argument-injection guard: reject leading-dash baseRef values.
+  it("rejects a baseRef that begins with a dash", () => {
+    const result = parseTentacleSyncBaseRef({ baseRef: "--upload-pack=evil" });
+    expect(result.error).toBe("baseRef must not begin with a dash.");
+    expect(result.baseRef).toBeNull();
+  });
+
+  it("rejects a baseRef that is a single dash flag", () => {
+    const result = parseTentacleSyncBaseRef({ baseRef: "-f" });
+    expect(result.error).toBe("baseRef must not begin with a dash.");
+  });
+
+  it("accepts a normal baseRef", () => {
+    const result = parseTentacleSyncBaseRef({ baseRef: "origin/main" });
+    expect(result.error).toBeNull();
+    expect(result.baseRef).toBe("origin/main");
+  });
 });
 
 describe("parseTentaclePullRequestCreateInput — branches2", () => {
@@ -74,5 +92,15 @@ describe("parseTentaclePullRequestCreateInput — branches2", () => {
   it("returns error for non-object payload (boolean)", () => {
     const result = parseTentaclePullRequestCreateInput(true);
     expect(result.error).toBe("Expected a JSON object body.");
+  });
+
+  // Argument-injection guard: reject leading-dash baseRef values.
+  it("rejects a baseRef that begins with a dash", () => {
+    const result = parseTentaclePullRequestCreateInput({
+      title: "My PR",
+      baseRef: "--exec=evil",
+    });
+    expect(result.error).toBe("Pull request baseRef must not begin with a dash.");
+    expect(result.baseRef).toBeNull();
   });
 });

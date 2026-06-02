@@ -43,6 +43,7 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
   const totalTokens = useMemo(() => days.reduce((s, d) => s + d.totalTokens, 0), [days]);
   const totalSessions = useMemo(() => days.reduce((s, d) => s + d.sessions, 0), [days]);
   const activeDays = useMemo(() => days.filter((d) => d.totalTokens > 0).length, [days]);
+  const hasUsage = days.length > 0 && totalTokens > 0;
 
   const bars = useMemo(
     () => buildBars(days, segmentKeys, segmentMode),
@@ -77,6 +78,36 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
 
     return { peakDay, avgPerSession, topModel, topProject, maxStreak };
   }, [days, totalTokens, totalSessions, models, projects]);
+
+  if (!isLoading && !hasUsage) {
+    return (
+      <section className="usage-heatmap" aria-label="Claude token usage chart">
+        <header className="usage-heatmap-header">
+          <div className="usage-heatmap-header-left">
+            <h3>Claude Token Usage</h3>
+            <span className="usage-heatmap-summary">No usage recorded yet</span>
+          </div>
+          <div className="usage-heatmap-header-actions">
+            <ActionButton
+              aria-label="Refresh usage chart data"
+              className="usage-heatmap-refresh"
+              disabled={isLoading}
+              onClick={onRefresh}
+              size="dense"
+              variant="accent"
+            >
+              Refresh
+            </ActionButton>
+          </div>
+        </header>
+        <div className="usage-chart-split">
+          <p className="usage-chart-empty">
+            No Claude usage recorded yet — run Claude Code and refresh to populate this chart.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="usage-heatmap" aria-label="Claude token usage chart">

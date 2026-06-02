@@ -26,7 +26,7 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
-type OctopusNodeProps = {
+type AgentNodeProps = {
   node: GraphNode;
   connectedNodes: GraphNode[];
   isSelected: boolean;
@@ -130,7 +130,7 @@ const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) 
 const GLYPH_SIZE = 48;
 const GLYPH_SCALE = 2;
 
-export const OctopusNode = ({
+export const AgentNode = ({
   node,
   connectedNodes,
   isSelected,
@@ -138,7 +138,7 @@ export const OctopusNode = ({
   selectedNodeColor,
   onPointerDown,
   onClick,
-}: OctopusNodeProps) => {
+}: AgentNodeProps) => {
   const showFocus = isSelected;
   const isSentiph = node.type === "sentiph";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);

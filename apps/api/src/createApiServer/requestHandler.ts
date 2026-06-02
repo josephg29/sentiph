@@ -8,7 +8,7 @@ import type { UsageChartResponse } from "../claudeSessionScanner";
 import type { ClaudeUsageSnapshot } from "../claudeUsage";
 import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
-import { logVerbose } from "../logging";
+import { logError, logVerbose } from "../logging";
 import { createPairingService as createDefaultPairingService } from "../pairing";
 import type { PairingService } from "../pairing";
 import {
@@ -28,6 +28,7 @@ import {
 import { handleUiStateRoute } from "./miscRoutes";
 import { createPairingRoutes } from "./pairingRoutes";
 import { handlePromptItemRoute } from "./promptRoutes";
+import { type RateLimitBucket, checkRateLimit } from "./rateLimit";
 import type {
   ApiRouteHandler,
   RouteHandlerContext,
@@ -36,11 +37,10 @@ import type {
 } from "./routeHelpers";
 import { writeJson, writeNoContent } from "./routeHelpers";
 import {
-  extractBearerToken,
   getRequestCorsOrigin,
   isAllowedHostHeader,
   isAllowedOriginHeader,
-  isLoopbackHostHeader,
+  isAuthorizedRequest,
   readHeaderValue,
 } from "./security";
 import {
@@ -148,6 +148,29 @@ const extractRoutePrefix = (pathname: string): string | null => {
   return segments[2] ?? null;
 };
 
+const TERMINAL_INPUT_PATH_PATTERN = /^\/api\/terminals\/[^/]+\/input$/;
+
+/**
+ * Returns the rate-limit bucket for write-heavy terminal endpoints, or null when
+ * the request is not subject to HTTP rate limiting. Only `POST /api/terminals`
+ * (create) and `POST /api/terminals/:id/input` are limited.
+ */
+const resolveRateLimitBucket = (
+  method: string | undefined,
+  pathname: string,
+): RateLimitBucket | null => {
+  if (method !== "POST") {
+    return null;
+  }
+  if (pathname === "/api/terminals") {
+    return "create";
+  }
+  if (TERMINAL_INPUT_PATH_PATTERN.test(pathname)) {
+    return "input";
+  }
+  return null;
+};
+
 const logRequest = (method: string, path: string, status: number, startTime: number) => {
   logVerbose(`[API] ${method} ${path} ${status} ${Date.now() - startTime}ms`);
 };
@@ -175,38 +198,10 @@ const serveStaticFile = async (
   } catch (error) {
     const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
     if (code !== "ENOENT") {
-      console.error(
-        `[API] Static file error: ${filePath}`,
-        error instanceof Error ? error.message : error,
-      );
+      logError(`[API] Static file error: ${filePath}`, error);
     }
     return false;
   }
-};
-
-const isAuthorizedRequest = (request: IncomingMessage, pairingService: PairingService): boolean => {
-  const hostHeader = readHeaderValue(request.headers.host);
-  if (isLoopbackHostHeader(hostHeader)) {
-    return true;
-  }
-
-  const authHeader = readHeaderValue(request.headers.authorization);
-  const bearer = extractBearerToken(authHeader);
-  if (bearer && pairingService.verifyToken(bearer)) {
-    return true;
-  }
-
-  try {
-    const requestUrl = new URL(request.url ?? "/", "http://localhost");
-    const tokenQuery = requestUrl.searchParams.get("token");
-    if (tokenQuery && pairingService.verifyToken(tokenQuery)) {
-      return true;
-    }
-  } catch {
-    // ignore
-  }
-
-  return false;
 };
 
 export const createApiRequestHandler = ({
@@ -290,6 +285,15 @@ export const createApiRequestHandler = ({
         return;
       }
 
+      // HTTP rate limiting for write-heavy terminal endpoints (create + input).
+      // The WS data path (input over websocket in sessionRuntime) is NOT covered here.
+      const rateLimitBucket = resolveRateLimitBucket(request.method, requestUrl.pathname);
+      if (rateLimitBucket && !checkRateLimit(rateLimitBucket, request.socket?.remoteAddress)) {
+        writeJson(response, 429, { error: "Too many requests" }, corsOrigin);
+        logRequest(request.method ?? "?", requestUrl.pathname, 429, startTime);
+        return;
+      }
+
       const routeContext: RouteHandlerContext = {
         request,
         response,
@@ -329,10 +333,9 @@ export const createApiRequestHandler = ({
       writeJson(response, 404, { error: "Not found" }, corsOrigin);
       logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
     } catch (error) {
-      console.error(
-        `[API] Unhandled error: ${request.method ?? "?"} ${request.url ?? "/"}`,
-        error instanceof Error ? (error.stack ?? error.message) : error,
-      );
+      // Always log a one-line summary (method + url + message); the full stack is
+      // emitted only under the verbose gate inside logError.
+      logError(`[API] Unhandled error: ${request.method ?? "?"} ${request.url ?? "/"}`, error);
       writeJson(
         response,
         500,

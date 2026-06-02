@@ -1,5 +1,5 @@
 import type { GraphEdge, GraphNode } from "../../app/canvas/types";
-import { OctopusNode } from "../canvas/OctopusNode"; // TODO: rename to AgentNode
+import { AgentNode } from "../canvas/AgentNode";
 import { SessionNode } from "../canvas/SessionNode";
 import { buildCanvasEdgePath, isEdgeActivityVisible, renderEdgeActivityDots } from "./helpers";
 import type { ContextMenuState } from "./types";
@@ -133,7 +133,7 @@ export const CanvasGraphLayer = ({
             : null;
 
           return (
-            <OctopusNode
+            <AgentNode
               key={node.id}
               node={node}
               connectedNodes={connected}

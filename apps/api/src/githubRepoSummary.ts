@@ -7,6 +7,8 @@ import type {
   GitHubRepoSummarySnapshot,
 } from "@sentiph/core";
 
+import { logVerbose } from "./logging";
+
 const execFileAsync = promisify(execFile);
 const COMMIT_SERIES_DAYS = 30;
 const RECENT_COMMIT_LIMIT = 50;
@@ -394,4 +396,72 @@ export const readGithubRepoSummary = async (
 
     return errorSnapshot(now, "Unable to collect GitHub repository summary.");
   }
+};
+
+// ---------------------------------------------------------------------------
+// TTL cache with in-flight dedup + serve-stale-then-background-refresh.
+//
+// `readGithubRepoSummary` shells out to `gh` (x2) and `git log` (x3) on EVERY
+// call, which is expensive and identical for back-to-back requests. This wrapper
+// mirrors the claudeUsage cache pattern: fresh cache is served directly, a stale
+// cache is served immediately while a refresh runs in the background, and a cold
+// cache awaits the first fetch. `readGithubRepoSummary` itself stays pure so its
+// dependency-injected unit tests are unaffected.
+// ---------------------------------------------------------------------------
+
+export const GITHUB_SUMMARY_CACHE_TTL_MS = 60_000;
+
+let cachedGithubSummary: { snapshot: GitHubRepoSummarySnapshot; fetchedAt: number } | null = null;
+let githubRefreshInFlight: Promise<GitHubRepoSummarySnapshot> | null = null;
+
+/** Clears the cached GitHub summary so the next read triggers a fresh fetch. Exported for tests. */
+export const resetGithubRepoSummaryCache = (): void => {
+  cachedGithubSummary = null;
+  githubRefreshInFlight = null;
+};
+
+const runGithubRefresh = (
+  dependencies: GitHubRepoSummaryDependencies,
+): Promise<GitHubRepoSummarySnapshot> => {
+  if (githubRefreshInFlight) {
+    return githubRefreshInFlight;
+  }
+  const refresh = readGithubRepoSummary(dependencies)
+    .then((snapshot) => {
+      cachedGithubSummary = { snapshot, fetchedAt: Date.now() };
+      return snapshot;
+    })
+    .finally(() => {
+      githubRefreshInFlight = null;
+    });
+  githubRefreshInFlight = refresh;
+  return refresh;
+};
+
+/**
+ * Cached variant of {@link readGithubRepoSummary}. Serves a fresh snapshot from
+ * cache, serves a stale snapshot immediately while refreshing in the background,
+ * or awaits the first fetch when the cache is cold.
+ */
+export const readGithubRepoSummaryCached = async (
+  dependencies: GitHubRepoSummaryDependencies = {},
+): Promise<GitHubRepoSummarySnapshot> => {
+  const cached = cachedGithubSummary;
+  if (cached && Date.now() - cached.fetchedAt < GITHUB_SUMMARY_CACHE_TTL_MS) {
+    return cached.snapshot;
+  }
+
+  if (cached) {
+    // Stale: serve immediately, refresh in the background. Swallow background
+    // rejections so they never surface as unhandled promise rejections.
+    runGithubRefresh(dependencies).catch((error) => {
+      logVerbose(
+        `[github-summary] background refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
+    return cached.snapshot;
+  }
+
+  // Cold cache: await the first fetch.
+  return runGithubRefresh(dependencies);
 };

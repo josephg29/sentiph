@@ -153,6 +153,32 @@ export const useCanvasGraphData = ({
     edges.push({ source: parentNodeId, target: sessionNodeId });
   }
 
+  // Disambiguate identically-labeled active agents. Un-renamed agents inherit the
+  // same default name (e.g. several "Sentiph" terminals), which makes them
+  // indistinguishable on the canvas; append a short, stable id suffix to each
+  // member of a colliding group so they can be told apart at a glance.
+  const activeNodesByLabel = new Map<string, GraphNode[]>();
+  for (const node of nodes) {
+    if (node.type !== "active-session") {
+      continue;
+    }
+    const group = activeNodesByLabel.get(node.label);
+    if (group) {
+      group.push(node);
+    } else {
+      activeNodesByLabel.set(node.label, [node]);
+    }
+  }
+  for (const group of activeNodesByLabel.values()) {
+    if (group.length < 2) {
+      continue;
+    }
+    for (const node of group) {
+      const suffix = (node.sessionId ?? node.id).slice(-4);
+      node.label = `${node.label} · ${suffix}`;
+    }
+  }
+
   // Inactive sessions from conversations
   for (const session of inactiveSessions) {
     if (activeTerminalIds.has(session.sessionId)) continue;

@@ -1,3 +1,7 @@
+import type { IncomingMessage } from "node:http";
+
+import type { PairingService } from "../pairing";
+
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 /**
@@ -118,4 +122,38 @@ export const extractBearerToken = (authHeader: string | undefined): string | und
   }
   const value = authHeader.slice(BEARER_PREFIX.length).trim();
   return value.length > 0 ? value : undefined;
+};
+
+/**
+ * Returns true when a request is authorized. Loopback requests are ALWAYS
+ * authorized (default local mode is unaffected — this short-circuits before any
+ * token check). Non-loopback requests must present a valid pairing token, either
+ * as a `Bearer` Authorization header or a `?token=` query parameter.
+ */
+export const isAuthorizedRequest = (
+  request: IncomingMessage,
+  pairingService: PairingService,
+): boolean => {
+  const hostHeader = readHeaderValue(request.headers.host);
+  if (isLoopbackHostHeader(hostHeader)) {
+    return true;
+  }
+
+  const authHeader = readHeaderValue(request.headers.authorization);
+  const bearer = extractBearerToken(authHeader);
+  if (bearer && pairingService.verifyToken(bearer)) {
+    return true;
+  }
+
+  try {
+    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    const tokenQuery = requestUrl.searchParams.get("token");
+    if (tokenQuery && pairingService.verifyToken(tokenQuery)) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
 };

@@ -13,11 +13,15 @@ export const createDebugLog = (
     return undefined;
   }
 
-  mkdirSync(ptyLogDir, { recursive: true });
+  // PTY debug logs can capture anything typed into a terminal session (including
+  // secrets). Restrict the directory to 0o700 and the log file to 0o600 so the
+  // raw capture is never world-readable. (No content redaction is attempted.)
+  mkdirSync(ptyLogDir, { recursive: true, mode: 0o700 });
   const filename = `${sessionId}-${Date.now()}.log`;
   return createWriteStream(join(ptyLogDir, filename), {
     flags: "a",
     encoding: "utf8",
+    mode: 0o600,
   });
 };
 

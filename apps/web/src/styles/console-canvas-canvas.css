@@ -240,7 +240,9 @@
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
-  color: #888888;
+  /* #888 on the light canvas was ~3:1 and read as disabled; #555 clears AA
+     for the 9px labels while staying visually secondary to the hover state. */
+  color: #555555;
   font-family: var(--font-main);
   cursor: pointer;
   line-height: 1;
@@ -449,6 +451,87 @@
   overflow: hidden;
 }
 
+/* First-run onboarding hint — a dismissible card floating over the empty canvas.
+   Only the card captures pointer events so the canvas behind stays draggable. */
+.canvas-onboarding-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(360px, calc(100% - 32px));
+  padding: 14px 16px;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  font-family: var(--font-main);
+}
+
+.canvas-onboarding-hint-eyebrow {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  margin-bottom: 6px;
+}
+
+.canvas-onboarding-hint-text {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.canvas-onboarding-hint-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas-onboarding-hint-cta {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 4px;
+}
+
+.canvas-onboarding-hint-cta:hover {
+  background: color-mix(in srgb, var(--accent-primary) 85%, #000);
+}
+
+.canvas-onboarding-hint-dismiss {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 4px;
+}
+
+.canvas-onboarding-hint-dismiss:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.canvas-onboarding-hint-cta:focus-visible,
+.canvas-onboarding-hint-dismiss:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
 .canvas-graph-panel--split {
   flex: 3 1 0;
   min-width: 300px;
@@ -475,6 +558,42 @@
   overflow-x: auto;
   overflow-y: hidden;
   background: #eeeeee;
+}
+
+/* ─── Narrow viewports: stack graph above terminal ───────────────────────────
+   The canvas is a horizontal split (graph ≥300px · 6px divider · terminals
+   with 370px-min columns). Below ~760px those minimums exceed the viewport and
+   the terminal panel was clipped off the right edge. Stack vertically so the
+   graph sits on top and the terminal fills the width beneath it. The terminals
+   panel carries an inline `flex` only after a manual divider drag, so the
+   override is forced with !important to win on a fresh narrow load too. */
+@media (max-width: 760px) {
+  .console-shell .canvas-view {
+    flex-direction: column;
+  }
+
+  .canvas-graph-panel--split {
+    flex: 0 0 42%;
+    min-width: 0;
+    min-height: 160px;
+  }
+
+  .canvas-panel-divider {
+    display: none;
+  }
+
+  .canvas-terminals-panel {
+    flex: 1 1 auto !important;
+    min-width: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .canvas-terminal-column,
+  .canvas-terminal-skeleton {
+    flex: 1 0 auto;
+    min-width: 0;
+  }
 }
 
 /* ─── Terminal skeleton loading ───────────────────────────────────────────── */
@@ -533,18 +652,33 @@
   border-left: none;
 }
 
+/* Selected panel mirrors its node's color so the click target and its terminal
+   read as one unit (the class was previously referenced in JSX with no rule). */
+.canvas-terminal-column--focused {
+  border-left-color: var(--panel-accent, var(--accent-primary));
+  box-shadow: inset 2px 0 0 var(--panel-accent, var(--accent-primary));
+}
+
+.canvas-terminal-column--focused:first-child {
+  border-left: 2px solid var(--panel-accent, var(--accent-primary));
+}
+
 .canvas-terminal-column-header {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.3rem 0.45rem;
+  /* Persistent thin tag in the node's color, even when the panel isn't focused. */
+  border-top: 2px solid var(--panel-accent, var(--accent-primary));
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
     color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
   );
   border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
-  color: #121212;
+  /* The header background is a near-black gradient, so the title and actions
+     must be light — #121212 text on it was effectively invisible. */
+  color: #f4f4f4;
   user-select: none;
 }
 

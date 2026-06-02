@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createConversationStore } from "../src/terminalRuntime/conversationStore";
 
@@ -60,6 +60,8 @@ describe("createConversationStore", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
     for (const d of tmpDirs) {
       rmSync(d, { recursive: true, force: true });
     }
@@ -79,23 +81,23 @@ describe("createConversationStore", () => {
   // ─── listConversationSessions ───────────────────────────────────────────────
 
   describe("listConversationSessions", () => {
-    it("returns empty array when transcript directory does not exist", () => {
+    it("returns empty array when transcript directory does not exist", async () => {
       const noDir = createConversationStore(join(stateDir, "nonexistent"));
-      expect(noDir.listConversationSessions()).toEqual([]);
+      expect(await noDir.listConversationSessions()).toEqual([]);
     });
 
-    it("returns empty array when no .jsonl files are present", () => {
-      expect(store.listConversationSessions()).toEqual([]);
+    it("returns empty array when no .jsonl files are present", async () => {
+      expect(await store.listConversationSessions()).toEqual([]);
     });
 
-    it("skips files with no session_start event", () => {
+    it("skips files with no session_start event", async () => {
       writeTranscript(SESSION_ID, [makeOutputEvent()]);
-      expect(store.listConversationSessions()).toEqual([]);
+      expect(await store.listConversationSessions()).toEqual([]);
     });
 
-    it("returns a summary for a session with start and end events", () => {
+    it("returns a summary for a session with start and end events", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), makeOutputEvent(), makeEndEvent()]);
-      const summaries = store.listConversationSessions();
+      const summaries = await store.listConversationSessions();
       expect(summaries).toHaveLength(1);
       const s = summaries[0] as Record<string, unknown>;
       expect(s.sessionId).toBe(SESSION_ID);
@@ -103,17 +105,17 @@ describe("createConversationStore", () => {
       expect(s.eventCount).toBe(3);
     });
 
-    it("includes turn counts when a .claude-turns.json file exists", () => {
+    it("includes turn counts when a .claude-turns.json file exists", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), makeEndEvent()]);
       writeTurns(SESSION_ID, makeTurns());
-      const summaries = store.listConversationSessions();
+      const summaries = await store.listConversationSessions();
       const s = summaries[0] as Record<string, unknown>;
       expect(s.turnCount).toBe(2);
       expect(s.userTurnCount).toBe(1);
       expect(s.assistantTurnCount).toBe(1);
     });
 
-    it("includes first and last user turn previews (max 200 chars)", () => {
+    it("includes first and last user turn previews (max 200 chars)", async () => {
       const longContent = "A".repeat(300);
       writeTurns(
         SESSION_ID,
@@ -123,113 +125,199 @@ describe("createConversationStore", () => {
         ]),
       );
       writeTranscript(SESSION_ID, [makeStartEvent(), makeEndEvent()]);
-      const s = store.listConversationSessions()[0] as Record<string, unknown>;
+      const s = (await store.listConversationSessions())[0] as Record<string, unknown>;
       expect((s.firstUserTurnPreview as string).length).toBe(200);
     });
 
-    it("includes lastEventAt from end event timestamp when present", () => {
+    it("includes lastEventAt from end event timestamp when present", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), makeEndEvent()]);
-      const s = store.listConversationSessions()[0] as Record<string, unknown>;
+      const s = (await store.listConversationSessions())[0] as Record<string, unknown>;
       expect(s.endedAt).toBe("2024-01-01T01:00:00Z");
       expect(s.lastEventAt).toBe("2024-01-01T01:00:00Z");
     });
 
-    it("uses last event timestamp as lastEventAt when end event is absent", () => {
+    it("uses last event timestamp as lastEventAt when end event is absent", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), makeOutputEvent()]);
-      const s = store.listConversationSessions()[0] as Record<string, unknown>;
+      const s = (await store.listConversationSessions())[0] as Record<string, unknown>;
       expect(s.endedAt).toBeNull();
       expect(s.lastEventAt).toBe("2024-01-01T00:30:00Z");
     });
 
-    it("skips sessions with empty transcript files", () => {
+    it("skips sessions with empty transcript files", async () => {
       writeFileSync(join(transcriptDir, `${ENCODED}.jsonl`), "", "utf8");
-      expect(store.listConversationSessions()).toEqual([]);
+      expect(await store.listConversationSessions()).toEqual([]);
     });
 
-    it("gracefully handles corrupted .jsonl lines", () => {
+    it("gracefully handles corrupted .jsonl lines", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), "not json {{{"]);
-      const summaries = store.listConversationSessions();
+      const summaries = await store.listConversationSessions();
       expect(summaries).toHaveLength(1);
       const s = summaries[0] as Record<string, unknown>;
       expect(s.eventCount).toBe(1); // only the valid line is counted
     });
 
-    it("gracefully handles corrupted .claude-turns.json", () => {
+    it("gracefully handles corrupted .claude-turns.json", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent()]);
       writeTurns(SESSION_ID, "not json {{{");
-      const summaries = store.listConversationSessions();
+      const summaries = await store.listConversationSessions();
       expect(summaries).toHaveLength(1);
       const s = summaries[0] as Record<string, unknown>;
       expect(s.turnCount).toBe(0);
+    });
+
+    it("emits a single per-file warning for skipped lines when verbose logging is on", async () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      writeTranscript(SESSION_ID, [makeStartEvent(), "not json {{{", "also bad {{{"]);
+      await store.listConversationSessions();
+      const skippedWarnings = warnSpy.mock.calls.filter((c) =>
+        String(c[0]).includes("unparseable line"),
+      );
+      expect(skippedWarnings).toHaveLength(1);
+      expect(String(skippedWarnings[0]?.[0])).toContain("skipped 2");
+    });
+
+    // ─── pagination ───────────────────────────────────────────────────────────
+
+    it("returns all sessions when no options are provided", async () => {
+      writeTranscript("session-1", [makeStartEvent("session-1")]);
+      writeTranscript("session-2", [makeStartEvent("session-2")]);
+      writeTranscript("session-3", [makeStartEvent("session-3")]);
+      const summaries = await store.listConversationSessions();
+      expect(summaries).toHaveLength(3);
+    });
+
+    it("applies limit when provided", async () => {
+      writeTranscript("session-1", [makeStartEvent("session-1")]);
+      writeTranscript("session-2", [makeStartEvent("session-2")]);
+      writeTranscript("session-3", [makeStartEvent("session-3")]);
+      const summaries = await store.listConversationSessions({ limit: 2 });
+      expect(summaries).toHaveLength(2);
+    });
+
+    it("applies offset when provided", async () => {
+      writeTranscript("session-1", [makeStartEvent("session-1")]);
+      writeTranscript("session-2", [makeStartEvent("session-2")]);
+      writeTranscript("session-3", [makeStartEvent("session-3")]);
+      const summaries = await store.listConversationSessions({ offset: 1 });
+      expect(summaries).toHaveLength(2);
+    });
+
+    it("skips and (verbose) warns when a .jsonl entry cannot be read", async () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      // A directory named like a transcript file makes readFile fail (EISDIR).
+      mkdirSync(join(transcriptDir, "broken.jsonl"));
+      writeTranscript(SESSION_ID, [makeStartEvent()]);
+
+      const summaries = await store.listConversationSessions();
+      // The valid session is still returned; the broken entry is skipped.
+      expect(summaries).toHaveLength(1);
+      const readErrors = warnSpy.mock.calls.filter((c) =>
+        String(c[0]).includes("read transcript failed for broken.jsonl"),
+      );
+      expect(readErrors.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("returns the most recent sessions first (mtime desc)", async () => {
+      writeTranscript("older", [makeStartEvent("older")]);
+      // Ensure distinct mtimes by writing the newer file after a tick.
+      await new Promise((r) => setTimeout(r, 12));
+      writeTranscript("newer", [makeStartEvent("newer")]);
+      const summaries = (await store.listConversationSessions({
+        limit: 1,
+      })) as Array<Record<string, unknown>>;
+      expect(summaries).toHaveLength(1);
+      expect(summaries[0]?.sessionId).toBe("newer");
     });
   });
 
   // ─── readConversationSession ────────────────────────────────────────────────
 
   describe("readConversationSession", () => {
-    it("returns null when the transcript file does not exist", () => {
-      expect(store.readConversationSession("nonexistent")).toBeNull();
+    it("returns null when the transcript file does not exist", async () => {
+      expect(await store.readConversationSession("nonexistent")).toBeNull();
     });
 
-    it("returns null for an empty transcript file", () => {
+    it("returns null for an empty transcript file", async () => {
       writeFileSync(join(transcriptDir, `${ENCODED}.jsonl`), "", "utf8");
-      expect(store.readConversationSession(SESSION_ID)).toBeNull();
+      expect(await store.readConversationSession(SESSION_ID)).toBeNull();
     });
 
-    it("returns events and turns for a valid session", () => {
+    it("returns events and turns for a valid session", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), makeEndEvent()]);
       writeTurns(SESSION_ID, makeTurns());
-      const result = store.readConversationSession(SESSION_ID);
+      const result = (await store.readConversationSession(SESSION_ID)) as Record<string, unknown>;
       expect(result).not.toBeNull();
-      expect(result?.sessionId).toBe(SESSION_ID);
-      expect(result?.tentacleId).toBe("t1");
-      expect(result?.events).toHaveLength(2);
-      expect(result?.turnCount).toBe(2);
+      expect(result.sessionId).toBe(SESSION_ID);
+      expect(result.tentacleId).toBe("t1");
+      expect(result.events).toHaveLength(2);
+      expect(result.turnCount).toBe(2);
     });
 
-    it("returns empty turns array when no .claude-turns.json exists", () => {
+    it("returns empty turns array when no .claude-turns.json exists", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent()]);
-      const result = store.readConversationSession(SESSION_ID);
-      expect(result?.turns).toEqual([]);
+      const result = (await store.readConversationSession(SESSION_ID)) as Record<string, unknown>;
+      expect(result.turns).toEqual([]);
     });
 
-    it("uses sessionId as tentacleId when session_start lacks tentacleId field", () => {
+    it("uses sessionId as tentacleId when session_start lacks tentacleId field", async () => {
       writeTranscript(SESSION_ID, [
         JSON.stringify({ type: "session_start", sessionId: SESSION_ID, timestamp: "t" }),
       ]);
-      const result = store.readConversationSession(SESSION_ID);
-      expect(result?.tentacleId).toBe(SESSION_ID);
+      const result = (await store.readConversationSession(SESSION_ID)) as Record<string, unknown>;
+      expect(result.tentacleId).toBe(SESSION_ID);
     });
 
-    it("filters out corrupted lines from events", () => {
+    it("filters out corrupted lines from events", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent(), "invalid{{{", makeEndEvent()]);
-      const result = store.readConversationSession(SESSION_ID);
-      expect(result?.events).toHaveLength(2);
+      const result = (await store.readConversationSession(SESSION_ID)) as Record<string, unknown>;
+      expect(result.events).toHaveLength(2);
     });
 
-    it("handles corrupted turns JSON gracefully", () => {
+    it("handles corrupted turns JSON gracefully", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent()]);
       writeTurns(SESSION_ID, "not json {{{");
-      const result = store.readConversationSession(SESSION_ID);
-      expect(result?.turns).toEqual([]);
+      const result = (await store.readConversationSession(SESSION_ID)) as Record<string, unknown>;
+      expect(result.turns).toEqual([]);
+    });
+
+    it("returns null and warns (verbose) on a non-ENOENT read error", async () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      // A directory at the transcript path triggers EISDIR (non-ENOENT).
+      mkdirSync(join(transcriptDir, `${ENCODED}.jsonl`));
+      const result = await store.readConversationSession(SESSION_ID);
+      expect(result).toBeNull();
+      expect(warnSpy.mock.calls.some((c) => String(c[0]).includes("read transcript failed"))).toBe(
+        true,
+      );
     });
   });
 
   // ─── exportConversationSession ──────────────────────────────────────────────
 
   describe("exportConversationSession", () => {
-    it("returns null when .claude-turns.json does not exist", () => {
-      expect(store.exportConversationSession(SESSION_ID, "json")).toBeNull();
+    it("returns null when .claude-turns.json does not exist", async () => {
+      expect(await store.exportConversationSession(SESSION_ID, "json")).toBeNull();
     });
 
-    it("returns null when .claude-turns.json is corrupted", () => {
+    it("returns null when .claude-turns.json is corrupted", async () => {
       writeTurns(SESSION_ID, "not json {{{");
-      expect(store.exportConversationSession(SESSION_ID, "json")).toBeNull();
+      expect(await store.exportConversationSession(SESSION_ID, "json")).toBeNull();
     });
 
-    it("exports as JSON with turn count", () => {
+    it("returns null and warns (verbose) on a non-ENOENT turns read error", async () => {
+      vi.stubEnv("SENTIPH_VERBOSE_LOGS", "1");
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mkdirSync(join(transcriptDir, `${ENCODED}.claude-turns.json`));
+      expect(await store.exportConversationSession(SESSION_ID, "json")).toBeNull();
+      expect(warnSpy.mock.calls.some((c) => String(c[0]).includes("read turns failed"))).toBe(true);
+    });
+
+    it("exports as JSON with turn count", async () => {
       writeTurns(SESSION_ID, makeTurns());
-      const result = store.exportConversationSession(SESSION_ID, "json");
+      const result = await store.exportConversationSession(SESSION_ID, "json");
       expect(result).not.toBeNull();
       const parsed = JSON.parse(result as string) as Record<string, unknown>;
       expect(parsed.sessionId).toBe(SESSION_ID);
@@ -237,16 +325,16 @@ describe("createConversationStore", () => {
       expect(Array.isArray(parsed.turns)).toBe(true);
     });
 
-    it("exports as markdown with User/Assistant headings", () => {
+    it("exports as markdown with User/Assistant headings", async () => {
       writeTurns(SESSION_ID, makeTurns());
-      const result = store.exportConversationSession(SESSION_ID, "md");
+      const result = await store.exportConversationSession(SESSION_ID, "md");
       expect(result).toContain("## User");
       expect(result).toContain("## Assistant");
       expect(result).toContain("What is 2+2?");
       expect(result).toContain("The answer is 4.");
     });
 
-    it("exports markdown with multiple turns in order", () => {
+    it("exports markdown with multiple turns in order", async () => {
       writeTurns(
         SESSION_ID,
         JSON.stringify([
@@ -256,7 +344,7 @@ describe("createConversationStore", () => {
           { role: "assistant", content: "Second answer" },
         ]),
       );
-      const result = store.exportConversationSession(SESSION_ID, "md") as string;
+      const result = (await store.exportConversationSession(SESSION_ID, "md")) as string;
       const userIdx1 = result.indexOf("First question");
       const userIdx2 = result.indexOf("Second question");
       expect(userIdx1).toBeLessThan(userIdx2);
@@ -266,74 +354,74 @@ describe("createConversationStore", () => {
   // ─── deleteConversationSession ──────────────────────────────────────────────
 
   describe("deleteConversationSession", () => {
-    it("deletes transcript and turns files", () => {
+    it("deletes transcript and turns files", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent()]);
       writeTurns(SESSION_ID, makeTurns());
 
-      store.deleteConversationSession(SESSION_ID);
-      expect(store.readConversationSession(SESSION_ID)).toBeNull();
-      expect(store.exportConversationSession(SESSION_ID, "json")).toBeNull();
+      await store.deleteConversationSession(SESSION_ID);
+      expect(await store.readConversationSession(SESSION_ID)).toBeNull();
+      expect(await store.exportConversationSession(SESSION_ID, "json")).toBeNull();
     });
 
-    it("is a no-op when neither file exists", () => {
-      expect(() => store.deleteConversationSession("nonexistent-session")).not.toThrow();
+    it("is a no-op when neither file exists", async () => {
+      await expect(store.deleteConversationSession("nonexistent-session")).resolves.toBeUndefined();
     });
 
-    it("deletes only the jsonl file when turns file is absent", () => {
+    it("deletes only the jsonl file when turns file is absent", async () => {
       writeTranscript(SESSION_ID, [makeStartEvent()]);
-      store.deleteConversationSession(SESSION_ID);
-      expect(store.readConversationSession(SESSION_ID)).toBeNull();
+      await store.deleteConversationSession(SESSION_ID);
+      expect(await store.readConversationSession(SESSION_ID)).toBeNull();
     });
   });
 
   // ─── deleteAllConversationSessions ─────────────────────────────────────────
 
   describe("deleteAllConversationSessions", () => {
-    it("is a no-op when transcript dir does not exist", () => {
+    it("is a no-op when transcript dir does not exist", async () => {
       const noDir = createConversationStore(join(stateDir, "nowhere"));
-      expect(() => noDir.deleteAllConversationSessions()).not.toThrow();
+      await expect(noDir.deleteAllConversationSessions()).resolves.toBeUndefined();
     });
 
-    it("removes all files in the transcript dir", () => {
+    it("removes all files in the transcript dir", async () => {
       writeTranscript("session-1", [makeStartEvent("session-1")]);
       writeTranscript("session-2", [makeStartEvent("session-2")]);
       writeTurns("session-1", makeTurns());
 
-      store.deleteAllConversationSessions();
-      expect(store.listConversationSessions()).toEqual([]);
+      await store.deleteAllConversationSessions();
+      expect(await store.listConversationSessions()).toEqual([]);
     });
   });
 
   // ─── searchConversations ────────────────────────────────────────────────────
 
   describe("searchConversations", () => {
-    it("returns empty array when transcript dir does not exist", () => {
+    it("returns empty array when transcript dir does not exist", async () => {
       const noDir = createConversationStore(join(stateDir, "nowhere"));
-      expect(noDir.searchConversations("anything")).toEqual([]);
+      expect(await noDir.searchConversations("anything")).toEqual([]);
     });
 
-    it("returns empty array when no turns files match the query", () => {
+    it("returns empty array when no turns files match the query", async () => {
       writeTurns(SESSION_ID, makeTurns());
-      expect(store.searchConversations("zzznomatch")).toEqual([]);
+      expect(await store.searchConversations("zzznomatch")).toEqual([]);
     });
 
-    it("returns matching sessions (case-insensitive)", () => {
+    it("returns matching sessions (case-insensitive)", async () => {
       writeTurns(SESSION_ID, makeTurns());
-      const results = store.searchConversations("ANSWER IS 4");
+      const results = await store.searchConversations("ANSWER IS 4");
       expect(results).toHaveLength(1);
       expect((results[0] as Record<string, unknown>).sessionId).toBe(SESSION_ID);
     });
 
-    it("searches across multiple sessions", () => {
+    it("searches across multiple sessions", async () => {
       writeTurns("session-a", JSON.stringify([{ role: "user", content: "unique-phrase-alpha" }]));
       writeTurns("session-b", JSON.stringify([{ role: "user", content: "unique-phrase-beta" }]));
-      expect(store.searchConversations("unique-phrase-alpha")).toHaveLength(1);
-      expect(store.searchConversations("unique-phrase")).toHaveLength(2);
+      expect(await store.searchConversations("unique-phrase-alpha")).toHaveLength(1);
+      expect(await store.searchConversations("unique-phrase")).toHaveLength(2);
     });
 
-    it("gracefully handles corrupted turns JSON in search", () => {
+    it("gracefully handles corrupted turns JSON in search", async () => {
       writeTurns("bad-session", "not json {{{");
-      expect(() => store.searchConversations("anything")).not.toThrow();
+      await expect(store.searchConversations("anything")).resolves.toEqual([]);
     });
   });
 });

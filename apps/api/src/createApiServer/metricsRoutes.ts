@@ -1,3 +1,4 @@
+import { parseBoundedInt } from "./queryParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
@@ -32,8 +33,12 @@ export const handleMetricsHeatmapRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const rawDays = requestUrl.searchParams.get("days");
-  const days = rawDays ? Math.max(1, Math.min(90, Number.parseInt(rawDays, 10) || 7)) : 7;
+  // Clamp days to 1..90; absent or NaN falls back to 7 BEFORE clamping.
+  const { value: days } = parseBoundedInt(requestUrl.searchParams, "days", {
+    min: 1,
+    max: 90,
+    default: 7,
+  });
   const payload = metricsStore.readHeatmap(days);
   writeJson(response, 200, payload, corsOrigin);
   return true;

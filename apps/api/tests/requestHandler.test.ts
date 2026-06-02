@@ -4,12 +4,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // node-pty must be mocked before createApiRequestHandler imports happen
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }));
 vi.mock("node-pty", () => ({ spawn: spawnMock }));
 
+import { resetRateLimits } from "../src/createApiServer/rateLimit";
 import { createApiRequestHandler } from "../src/createApiServer/requestHandler";
 import type {
   RouteHandlerDependencies,
@@ -396,6 +397,52 @@ describe("createApiRequestHandler – static file serving", () => {
     await handler(req, res);
     // Should not serve the file (URL normalization prevents traversal, falls to 404)
     expect([404, 200]).toContain(getStatus()); // 404 when file inaccessible
+  });
+});
+
+describe("createApiRequestHandler – rate limiting", () => {
+  beforeEach(() => {
+    resetRateLimits();
+  });
+
+  afterEach(() => {
+    resetRateLimits();
+    // biome-ignore lint/performance/noDelete: restoring original env requires removing the key, not setting it to "undefined".
+    delete process.env.SENTIPH_RATELIMIT_CREATE_PER_MIN;
+  });
+
+  it("returns 429 after the create limit is exceeded and leaves normal usage unaffected", async () => {
+    process.env.SENTIPH_RATELIMIT_CREATE_PER_MIN = "3";
+    const handler = makeHandler();
+
+    const post = async () => {
+      const req = makeRequest("POST", "/api/terminals", { host: "localhost" }, "{}");
+      const { res, getStatus } = makeResponse();
+      await handler(req, res);
+      return getStatus();
+    };
+
+    // First 3 creates succeed (201), the 4th is throttled (429).
+    expect(await post()).toBe(201);
+    expect(await post()).toBe(201);
+    expect(await post()).toBe(201);
+
+    const req = makeRequest("POST", "/api/terminals", { host: "localhost" }, "{}");
+    const { res, getStatus, getBody } = makeResponse();
+    await handler(req, res);
+    expect(getStatus()).toBe(429);
+    expect(getBody()).toEqual({ error: "Too many requests" });
+  });
+
+  it("does not rate-limit GET requests to terminal endpoints", async () => {
+    process.env.SENTIPH_RATELIMIT_CREATE_PER_MIN = "1";
+    const handler = makeHandler();
+    for (let i = 0; i < 5; i++) {
+      const req = makeRequest("GET", "/api/terminal-snapshots", { host: "localhost" });
+      const { res, getStatus } = makeResponse();
+      await handler(req, res);
+      expect(getStatus()).toBe(200);
+    }
   });
 });
 

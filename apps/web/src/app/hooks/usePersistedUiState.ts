@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
 import { MIN_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import { areNumberRecordMapsEqual, areStringArraysEqual } from "../equalityUtils";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
   type TerminalCompletionSoundId,
@@ -33,37 +34,6 @@ const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
 const DEFAULT_TERMINAL_WIDTHS: Record<string, number> = {};
 const DEFAULT_CANVAS_OPEN_TERMINAL_IDS: string[] = [];
 const DEFAULT_CANVAS_OPEN_TENTACLE_IDS: string[] = [];
-
-const areStringArraysEqual = (left: string[] | undefined, right: string[] | undefined) => {
-  if (left === right) {
-    return true;
-  }
-
-  const nextLeft = left ?? [];
-  const nextRight = right ?? [];
-  if (nextLeft.length !== nextRight.length) {
-    return false;
-  }
-
-  return nextLeft.every((value, index) => value === nextRight[index]);
-};
-
-const areNumberRecordMapsEqual = (
-  left: Record<string, number> | undefined,
-  right: Record<string, number> | undefined,
-) => {
-  if (left === right) {
-    return true;
-  }
-
-  const leftEntries = Object.entries(left ?? {});
-  const rightEntries = right ?? {};
-  if (leftEntries.length !== Object.keys(rightEntries).length) {
-    return false;
-  }
-
-  return leftEntries.every(([key, value]) => rightEntries[key] === value);
-};
 
 const buildPersistedUiStateSnapshot = ({
   activePrimaryNav,

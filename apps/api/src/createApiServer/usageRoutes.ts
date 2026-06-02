@@ -1,3 +1,4 @@
+import { parseEnum } from "./queryParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
@@ -59,8 +60,11 @@ export const handleUsageHeatmapRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const scope = requestUrl.searchParams.get("scope") === "project" ? "project" : "all";
-  const payload = await scanUsageHeatmap(scope);
+  // Any value other than "project" (absent, "all", or unrecognized) maps to "all".
+  const { value: scope } = parseEnum(requestUrl.searchParams, "scope", ["all", "project"], {
+    default: "all",
+  });
+  const payload = await scanUsageHeatmap(scope ?? "all");
   writeJson(response, 200, payload, corsOrigin);
   return true;
 };

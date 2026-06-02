@@ -1,0 +1,203 @@
+/* ─── Toasts (app-wide ephemeral feedback) ──────────────────────────────────
+   Rendered by a single <ToastHost />. Bottom-right stack on desktop, full-width
+   at the bottom on narrow screens. Tone is carried by a left accent bar so the
+   signal isn't color-only (the icon-free text remains readable for everyone). */
+.toast-host {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 120;
+  pointer-events: none;
+  max-width: min(380px, calc(100vw - 32px));
+}
+
+.toast-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  font-family: var(--font-main);
+  animation: toast-in 160ms ease-out;
+}
+
+.toast--success {
+  border-left-color: var(--term-green);
+}
+
+.toast--error {
+  border-left-color: var(--term-red);
+}
+
+.toast--info {
+  border-left-color: var(--term-blue);
+}
+
+.toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toast-message {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.toast-detail {
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.toast-dismiss {
+  appearance: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-family: var(--font-main);
+  border-radius: 3px;
+}
+
+.toast-dismiss:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.toast-dismiss:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .toast-host {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+/* ─── App crash screen (top-level error boundary fallback) ───────────────────── */
+.app-crash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--bg-canvas);
+  font-family: var(--font-main);
+}
+
+.app-crash-card {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: 6px;
+  padding: 40px 32px;
+}
+
+.app-crash-code {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--term-red);
+}
+
+.app-crash-title {
+  margin: 16px 0 8px;
+  font-size: var(--font-h2);
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-crash-body {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.app-crash-detail {
+  margin: 0 0 20px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--term-red);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.app-crash-action {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 20px;
+  border-radius: 4px;
+}
+
+.app-crash-action:hover {
+  background: color-mix(in srgb, var(--accent-primary) 85%, #000);
+}
+
+.app-crash-action:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}

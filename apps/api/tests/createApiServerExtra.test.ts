@@ -38,6 +38,8 @@ vi.mock("../src/codexUsage", () => ({
 
 vi.mock("../src/githubRepoSummary", () => ({
   readGithubRepoSummary: vi.fn().mockResolvedValue({ repoName: "test" }),
+  readGithubRepoSummaryCached: vi.fn().mockResolvedValue({ repoName: "test" }),
+  resetGithubRepoSummaryCache: vi.fn(),
 }));
 
 vi.mock("../src/claudeSessionScanner", () => ({

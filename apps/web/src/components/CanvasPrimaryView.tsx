@@ -14,6 +14,7 @@ import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
 import { CanvasContextMenu } from "./CanvasPrimaryView/CanvasContextMenu";
 import { CanvasDialogs } from "./CanvasPrimaryView/CanvasDialogs";
 import { CanvasGraphLayer } from "./CanvasPrimaryView/CanvasGraphLayer";
+import { CanvasOnboardingHint } from "./CanvasPrimaryView/CanvasOnboardingHint";
 import { CanvasTerminalsPanel } from "./CanvasPrimaryView/CanvasTerminalsPanel";
 import { CanvasToolbar } from "./CanvasPrimaryView/CanvasToolbar";
 import { buildActiveSessionNodeId } from "./CanvasPrimaryView/helpers";
@@ -418,6 +419,14 @@ export const CanvasPrimaryView = ({
           handleNodeClick={handleNodeClick}
           onCreateTerminal={onCreateTerminal}
         />
+
+        {columns.length === 0 ? (
+          <CanvasOnboardingHint
+            onSpawn={() => {
+              void onCreateTerminal?.();
+            }}
+          />
+        ) : null}
       </div>
 
       {hasPanels && (

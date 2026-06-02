@@ -17,8 +17,12 @@ type ObservabilityPrimaryViewProps = {
 };
 
 const formatRate = (rate: number): string => `${Math.round(rate * 100)}%`;
-const formatCost = (usd: number): string =>
-  usd >= 1 ? `$${usd.toFixed(2)}` : `$${usd.toFixed(4)}`;
+const formatCost = (usd: number): string => {
+  // 4-decimal precision is only meaningful for sub-dollar, non-zero costs;
+  // a flat "$0.0000" just reads as broken.
+  if (usd === 0) return "$0.00";
+  return usd >= 1 ? `$${usd.toFixed(2)}` : `$${usd.toFixed(4)}`;
+};
 const formatDuration = (ms: number): string => {
   if (ms < 1000) return `${Math.round(ms)}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
@@ -65,6 +69,18 @@ export const ObservabilityPrimaryView = ({ enabled = true }: ObservabilityPrimar
             </dd>
           </div>
         </dl>
+        {aggregate && aggregate.totalRuns === 0 && (
+          <p className="obs-summary-empty">
+            No agent runs recorded yet — these metrics populate once an agent completes a run.
+          </p>
+        )}
+        {aggregate && aggregate.totalRuns > 0 && aggregate.successRate === 0 && (
+          <p className="obs-summary-empty">
+            {aggregate.totalRuns} runs recorded · none completed yet — success rate and cost
+            populate when runs finish, so the 0% / $0.00 figures below are "no data yet", not
+            errors.
+          </p>
+        )}
       </header>
 
       <div className="obs-body">

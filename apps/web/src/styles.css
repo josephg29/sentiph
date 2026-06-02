@@ -5,6 +5,7 @@
 @import "./styles/chrome-and-buttons.css";
 @import "./styles/sidebar-and-scrollbars.css";
 @import "./styles/terminal-and-status.css";
+@import "./styles/toasts.css";
 
 /* Console theme tokens and console-specific overrides */
 @import "./styles/console-theme-tokens.css";

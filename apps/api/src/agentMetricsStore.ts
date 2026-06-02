@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
@@ -131,20 +131,46 @@ export type AgentMetricsStore = ReturnType<typeof createAgentMetricsStore>;
 export const createAgentMetricsStore = (metricsDir: string) => {
   const summariesPath = join(metricsDir, "summaries.jsonl");
 
+  // The observability surface polls aggregate, summaries, and heatmap on the same
+  // interval, each of which previously re-read and re-parsed the full summaries.jsonl.
+  // Memoize the parsed log keyed on the file's mtime+size (same invalidation strategy
+  // used for git reads) so one poll cycle parses it at most once; any write to the
+  // log changes mtime/size and busts the cache.
+  let summariesCache: { key: string; summaries: AgentRunSummary[] } | null = null;
+
+  const loadAllSummaries = (): AgentRunSummary[] => {
+    let key = "absent";
+    try {
+      const stat = statSync(summariesPath);
+      key = `${stat.mtimeMs}:${stat.size}`;
+    } catch {
+      // Missing file → stable "absent" key; tryParseJsonl returns [] below.
+    }
+
+    if (summariesCache && summariesCache.key === key) {
+      return summariesCache.summaries;
+    }
+
+    const parsed: AgentRunSummary[] = [];
+    for (const item of tryParseJsonl<unknown>(summariesPath)) {
+      const summary = parseSummary(item);
+      if (summary) {
+        parsed.push(summary);
+      }
+    }
+    summariesCache = { key, summaries: parsed };
+    return parsed;
+  };
+
   const readSummaries = (opts?: {
     provider?: string;
     tentacleId?: string;
     since?: string;
   }): AgentRunSummary[] => {
-    const raw = tryParseJsonl<unknown>(summariesPath);
     const summaries: AgentRunSummary[] = [];
     const sinceMs = opts?.since ? new Date(opts.since).getTime() : 0;
 
-    for (const item of raw) {
-      const summary = parseSummary(item);
-      if (!summary) {
-        continue;
-      }
+    for (const summary of loadAllSummaries()) {
       if (opts?.provider && summary.agentProvider !== opts.provider) {
         continue;
       }

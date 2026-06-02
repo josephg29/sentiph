@@ -46,7 +46,7 @@
 }
 
 .usage-heatmap-summary {
-  color: #888888;
+  color: #666666;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
 }
@@ -68,7 +68,7 @@
   padding: 0.14rem 0.42rem;
   font-size: 0.66rem;
   letter-spacing: 0.05em;
-  color: #888888;
+  color: #666666;
   background: #f0f0f0;
   transition: background 100ms linear, color 100ms linear;
 }
@@ -84,10 +84,16 @@
   font-weight: 600;
 }
 
-.usage-heatmap-refresh {
+/* Scoped under .console-shell to match the broad `.console-shell .action-button`
+   rule (which forces light #ddd text for the dark chrome) — otherwise this
+   light-panel refresh button inherited #ddd and rendered grey-on-white. */
+.console-shell .usage-heatmap-refresh {
   --action-button-font-size: 0.66rem;
   --action-button-padding-y: 0.16rem;
   --action-button-padding-x: 0.34rem;
+  --action-button-bg: #ffffff;
+  --action-button-border: #111111;
+  --action-button-color: #111111;
 }
 
 /* ── Bar chart ──────────────────────────────────────── */
@@ -103,6 +109,20 @@
 .usage-chart-panel {
   min-height: 0;
   min-width: 0;
+}
+
+/* Loaded-but-empty state so "0 tokens across 0 days" reads as "no usage yet". */
+.usage-chart-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 
 .usage-chart-left-stack,
@@ -144,7 +164,7 @@
 
 .usage-chart-stat dt {
   margin: 0;
-  color: #888888;
+  color: #666666;
   font-size: 0.58rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -190,7 +210,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #888888;
+  color: #666666;
   background: #f0f0f0;
   border: 1px solid #dddddd;
   text-align: center;
@@ -232,14 +252,14 @@
 }
 
 .usage-chart-y-label {
-  fill: #888888;
+  fill: #666666;
   font-size: 9px;
   text-anchor: end;
   letter-spacing: 0.04em;
 }
 
 .usage-chart-x-label {
-  fill: #888888;
+  fill: #666666;
   font-size: 8px;
   text-anchor: middle;
   letter-spacing: 0.04em;
@@ -256,13 +276,13 @@
 /* ── Heatmap cells ────────────────────────────────────── */
 
 .usage-heatmap-month-label {
-  fill: #888888;
+  fill: #666666;
   font-size: 9px;
   letter-spacing: 0.06em;
 }
 
 .usage-heatmap-day-label {
-  fill: #888888;
+  fill: #666666;
   font-size: 9px;
   text-anchor: end;
   letter-spacing: 0.04em;
@@ -315,7 +335,7 @@
 
 .usage-heatmap-tooltip-stats dt {
   margin: 0;
-  color: #888888;
+  color: #666666;
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   display: inline-flex;
@@ -344,7 +364,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.26rem;
-  color: #888888;
+  color: #666666;
   font-size: 0.66rem;
   letter-spacing: 0.04em;
 }
@@ -355,4 +375,46 @@
   height: 8px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+/* ─── Narrow viewports: reflow the Activity dashboard ─────────────────────────
+   The token chart lives in a 3-column grid (toggle rail · bars · heatmap) and
+   the summary sits in a 5-up stat row — together they squeezed the bar chart
+   to an unreadable thumbnail and pushed the stat tiles off the right edge
+   below ~860px. Keep the slim Project/Model rail beside the bar chart, drop
+   the heatmap + stats to a full-width row beneath, and give each chart panel a
+   min-height so it can't collapse once stacked. Breakpoint matches the GitHub
+   section's mobile reflow (console-canvas-github.css) so they flip together. */
+@media (max-width: 900px) {
+  /* The view is a fixed 1fr/1fr grid with overflow:hidden — on short/mobile
+     viewports the token section and GitHub section each got half the height
+     and their content bled into one another. Switch to plain block flow + a
+     scroll so each section takes its natural (explicit) height and they can't
+     overlap. The chart panels below carry their own min-heights so the SVGs
+     (which are height:100%) don't collapse once the grid chain is gone. */
+  .console-shell .activity-view {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .usage-heatmap {
+    display: block;
+  }
+
+  .usage-chart-split {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .usage-chart-right-stack {
+    grid-column: 1 / -1;
+  }
+
+  .usage-chart-left-stack > .usage-chart-panel,
+  .usage-chart-right-stack > .usage-chart-panel {
+    min-height: 156px;
+  }
+
+  .usage-chart-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

@@ -1,3 +1,9 @@
+// Values that become positional git arguments must not begin with a dash, or a
+// crafted value (e.g. "--upload-pack=...") could be interpreted as a git option
+// (argument injection). We reject leading-dash values rather than adding a `--`
+// separator, since some git subcommands reject that separator.
+const LEADING_DASH_PATTERN = /^-/;
+
 export const parseTentacleCommitMessage = (
   payload: unknown,
 ): { message: string | null; error: string | null } => {
@@ -70,6 +76,13 @@ export const parseTentacleSyncBaseRef = (
     };
   }
 
+  if (LEADING_DASH_PATTERN.test(trimmed)) {
+    return {
+      baseRef: null,
+      error: "baseRef must not begin with a dash.",
+    };
+  }
+
   return {
     baseRef: trimmed,
     error: null,
@@ -128,6 +141,15 @@ export const parseTentaclePullRequestCreateInput = (
       body: "",
       baseRef: null,
       error: "Pull request baseRef cannot be empty.",
+    };
+  }
+
+  if (normalizedBaseRef.length > 0 && LEADING_DASH_PATTERN.test(normalizedBaseRef)) {
+    return {
+      title: null,
+      body: "",
+      baseRef: null,
+      error: "Pull request baseRef must not begin with a dash.",
     };
   }
 

@@ -9,6 +9,29 @@ interface CreateGitOpsOptions {
   gitClient: GitClient | undefined;
 }
 
+// Short TTL so back-to-back reads (e.g. a UI polling status + PR for the same
+// tentacle) avoid re-shelling out to git, while staying fresh enough that a
+// mutation elsewhere is reflected quickly. Mutating ops invalidate eagerly.
+const GIT_READ_CACHE_TTL_MS = (() => {
+  const raw = process.env.SENTIPH_GIT_READ_CACHE_TTL_MS?.trim();
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 4000;
+})();
+
+type GitReadCacheEntry = { value: unknown; cachedAt: number };
+
+// Each createGitOps instance owns its own per-tentacle cache (keyed by
+// `${kind}:${tentacleId}`), so separate runtimes never share state. We register
+// every instance's cache here so the exported reset can clear them all for tests.
+const liveGitReadCaches = new Set<Map<string, GitReadCacheEntry>>();
+
+/** Clears every live per-tentacle git read cache. Exported for test isolation. */
+export const resetGitOpsCache = (): void => {
+  for (const cache of liveGitReadCaches) {
+    cache.clear();
+  }
+};
+
 /**
  * Git lifecycle operations for worktree terminals. Extracted from the terminal
  * runtime factory; depends only on the registry map, the worktrees directory,
@@ -39,17 +62,44 @@ export const createGitOps = ({ terminals, worktreesDir, gitClient }: CreateGitOp
     return { tentacleId, workspaceMode: "worktree" as const, ...status };
   };
 
+  // ---------------------------------------------------------------------------
+  // Per-tentacle read cache. Mutating operations invalidate the affected
+  // tentacle's entries since they change observable git state.
+  // ---------------------------------------------------------------------------
+  const gitReadCache = new Map<string, GitReadCacheEntry>();
+  liveGitReadCaches.add(gitReadCache);
+
+  const cacheKey = (kind: "status" | "pr", tentacleId: string) => `${kind}:${tentacleId}`;
+
+  const readCached = <T>(kind: "status" | "pr", tentacleId: string, compute: () => T): T => {
+    const key = cacheKey(kind, tentacleId);
+    const entry = gitReadCache.get(key);
+    if (entry && Date.now() - entry.cachedAt < GIT_READ_CACHE_TTL_MS) {
+      return entry.value as T;
+    }
+    const value = compute();
+    gitReadCache.set(key, { value, cachedAt: Date.now() });
+    return value;
+  };
+
+  const invalidateTentacle = (tentacleId: string) => {
+    gitReadCache.delete(cacheKey("status", tentacleId));
+    gitReadCache.delete(cacheKey("pr", tentacleId));
+  };
+
   return {
-    readTentacleGitStatus: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      return toGitStatusSnapshot(tentacleId, result.worktreePath);
-    },
+    readTentacleGitStatus: (tentacleId: string) =>
+      readCached("status", tentacleId, () => {
+        const result = requireWorktreeTerminal(tentacleId);
+        if (!result) return null;
+        return toGitStatusSnapshot(tentacleId, result.worktreePath);
+      }),
 
     commitTentacleWorktree: (tentacleId: string, message: string) => {
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
       result.gitClient.commitAll({ cwd: result.worktreePath, message });
+      invalidateTentacle(tentacleId);
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
@@ -57,6 +107,7 @@ export const createGitOps = ({ terminals, worktreesDir, gitClient }: CreateGitOp
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
       result.gitClient.pushCurrentBranch({ cwd: result.worktreePath });
+      invalidateTentacle(tentacleId);
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
@@ -64,22 +115,24 @@ export const createGitOps = ({ terminals, worktreesDir, gitClient }: CreateGitOp
       const result = requireWorktreeTerminal(tentacleId);
       if (!result) return null;
       result.gitClient.syncWithBase({ cwd: result.worktreePath, baseRef: baseRef ?? "HEAD" });
+      invalidateTentacle(tentacleId);
       return toGitStatusSnapshot(tentacleId, result.worktreePath);
     },
 
-    readTentaclePullRequest: (tentacleId: string) => {
-      const result = requireWorktreeTerminal(tentacleId);
-      if (!result) return null;
-      const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
-      if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
-      const { state, ...prRest } = pr;
-      return {
-        tentacleId,
-        workspaceMode: "worktree" as const,
-        status: state.toLowerCase() as "open" | "merged" | "closed",
-        ...prRest,
-      };
-    },
+    readTentaclePullRequest: (tentacleId: string) =>
+      readCached("pr", tentacleId, () => {
+        const result = requireWorktreeTerminal(tentacleId);
+        if (!result) return null;
+        const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
+        if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
+        const { state, ...prRest } = pr;
+        return {
+          tentacleId,
+          workspaceMode: "worktree" as const,
+          status: state.toLowerCase() as "open" | "merged" | "closed",
+          ...prRest,
+        };
+      }),
 
     createTentaclePullRequest: (tentacleId: string, opts: Record<string, unknown>) => {
       const result = requireWorktreeTerminal(tentacleId);
@@ -96,6 +149,7 @@ export const createGitOps = ({ terminals, worktreesDir, gitClient }: CreateGitOp
         baseRef: String(opts.baseRef ?? worktreeStatus.defaultBaseBranchName ?? "main"),
         headRef: worktreeStatus.branchName,
       });
+      invalidateTentacle(tentacleId);
       if (!pr) return null;
       const { state, ...prRest } = pr;
       return {
@@ -117,6 +171,7 @@ export const createGitOps = ({ terminals, worktreesDir, gitClient }: CreateGitOp
         cwd: result.worktreePath,
         strategy: "squash",
       });
+      invalidateTentacle(tentacleId);
       const pr = result.gitClient.readCurrentBranchPullRequest({ cwd: result.worktreePath });
       if (!pr) return { tentacleId, workspaceMode: "worktree" as const };
       const { state, ...prRest } = pr;

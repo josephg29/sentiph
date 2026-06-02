@@ -56,10 +56,24 @@
   gap: 0.26rem;
 }
 
-.github-overview-refresh {
+/* Scoped under .console-shell to beat the dark-chrome `.console-shell
+   .action-button` rule (light #ddd text) — see usage-heatmap-refresh. */
+.console-shell .github-overview-refresh {
   --action-button-font-size: 0.66rem;
   --action-button-padding-y: 0.16rem;
   --action-button-padding-x: 0.34rem;
+  --action-button-bg: #ffffff;
+  --action-button-border: #111111;
+  --action-button-color: #111111;
+}
+
+/* The shared .console-status-pill is tuned for the dark chrome (light #ddd
+   text on transparent). Here it sits on a white panel, where #ddd-on-white is
+   effectively invisible — re-tone it dark-on-light so "github live" reads. */
+.github-overview-header .console-status-pill {
+  color: #1f7a3f;
+  border-color: color-mix(in srgb, var(--term-green) 42%, #bbbbbb);
+  background: color-mix(in srgb, var(--term-green) 8%, #ffffff 92%);
 }
 
 .github-overview-content {
@@ -180,6 +194,10 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
+  /* The hover-hint span is long ("Hover points for date and commit count");
+     without wrapping it collided with the "Commits per day" label on narrow
+     widths. Let it drop to its own line instead. */
+  flex-wrap: wrap;
 }
 
 .github-overview-graph-meta strong {
@@ -535,7 +553,40 @@
 }
 
 @media (max-width: 900px) {
+  /* Block flow on mobile: the nested minmax(0,1fr) grids collapse without a
+     definite parent height, which let the commits graph overflow its track and
+     land on the stat row. Plain block stacking + an explicit graph height fixes
+     the overlap (the graph SVG is height:100% so it needs a real box). */
   .console-shell .github-view {
     padding: 0;
+    display: block;
+  }
+
+  .github-overview {
+    display: block;
+  }
+
+  .github-overview-content {
+    display: block;
+  }
+
+  .github-overview-main {
+    display: block;
+    margin-bottom: 0.58rem;
+  }
+
+  .github-overview-side {
+    display: block;
+  }
+
+  .github-overview-graph-surface {
+    min-height: 168px;
+  }
+
+  /* Four stat tiles (stars · issues · PRs · commits) overflow a phone width;
+     drop to a 2×2 grid so the values stay on-screen. */
+  .github-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 0.4rem;
   }
 }

@@ -26,6 +26,11 @@ const allocateTerminalId = (
   sessions: Map<string, TerminalSession>,
   hasTentacleWorktree: (id: string) => boolean,
 ): string => {
+  // O(n) linear probe where n is the number of live terminals (small in practice;
+  // the loop stops at the lowest free index, so it runs at most ~liveCount+1 times).
+  // The `terminals`/`sessions` checks are O(1) Map lookups; `hasTentacleWorktree`
+  // performs one existsSync per candidate, but the bounded iteration count keeps
+  // total filesystem probes small, so the cost is acceptable as-is.
   let candidateNumber = 1;
   while (candidateNumber < Number.MAX_SAFE_INTEGER) {
     const candidateId = `${TERMINAL_ID_PREFIX}${candidateNumber}`;

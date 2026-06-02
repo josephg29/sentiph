@@ -71,6 +71,15 @@
   color: var(--term-red);
 }
 
+/* Loaded-but-zero banner so 0 / 0% reads as "no runs yet", not "broken". */
+.obs-summary-empty {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
 /* ── Body layout ────────────────────────────────── */
 
 .obs-body {
@@ -92,6 +101,14 @@
 
 .obs-row--heatmap {
   flex-shrink: 0;
+}
+
+/* The heatmap SVG is intrinsically ~460px wide; letting its panel flex to the full
+   row width left the card outlining a wide band of empty space. Hug the content so
+   it reads as an intentional card, with the remainder as margin. */
+.obs-row--heatmap .obs-heatmap-panel {
+  flex: 0 1 auto;
+  max-width: 560px;
 }
 
 .obs-row--charts {
@@ -142,6 +159,31 @@
   letter-spacing: 0.04em;
 }
 
+/* Designed empty state for a populated panel whose data hasn't resolved yet
+   (e.g. agents tracked but no completed runs) — beats a wall of 0% bars. */
+.obs-empty--panel {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-height: 96px;
+  justify-content: center;
+  text-align: left;
+}
+
+.obs-empty-title {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.obs-empty-detail {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  max-width: 42ch;
+}
+
 /* ── Chart SVG primitives ─────────────────────────── */
 
 .obs-chart-svg {
@@ -151,13 +193,13 @@
 
 .obs-bar-label {
   fill: var(--text-secondary);
-  font-size: 9px;
+  font-size: 10px;
   font-family: var(--font-main);
 }
 
 .obs-bar-pct {
   fill: var(--text-secondary);
-  font-size: 9px;
+  font-size: 10px;
   font-family: var(--font-main);
 }
 
