@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{PROJECT_NAME}} — Project Report Card</title>
+<!--
+  REPORT CARD TEMPLATE
+  ====================
+  Reusable scoring template. Fill in the placeholders — no scores are baked in.
+
+  How to grade:
+  1. Replace {{...}} placeholders in the header and summary.
+  2. For each aspect card, set:
+       - the <span class="badge X"> letter grade — X is one of A | B | C | D
+       - the <div class="fill X" style="width:NN%"> bar — match class X to the badge,
+         set NN% to the numeric score (0–100)
+       - the <p> rationale and the .chip evidence tags
+  3. Update the GPA grade + score line and the footer date.
+  4. Add/remove .card blocks to change the number of aspects (default: 10).
+
+  Grade bands: A = Excellent · B = Good · C = Needs work · D = At risk
+-->
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151f; --panel-2:#161b27; --line:#222a3a;
+    --ink:#e8edf6; --muted:#9aa6bd; --faint:#6b7689;
+    --green:#34d399; --blue:#60a5fa; --amber:#fbbf24; --red:#f87171;
+    --accent:#7c8cff; --accent-2:#34d399;
+    --shadow:0 12px 40px rgba(0,0,0,.45);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(124,140,255,.10),transparent 60%),
+               radial-gradient(900px 500px at -10% 110%,rgba(52,211,153,.08),transparent 55%),
+               var(--bg);
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; padding:48px 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+
+  .head{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+    padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:34px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:48px;height:48px;border-radius:13px;flex:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:grid;place-items:center;font-weight:800;color:#0b0e14;font-size:22px;
+    box-shadow:0 6px 20px rgba(124,140,255,.35);
+  }
+  h1{font-size:25px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:3px}
+
+  .gpa{text-align:right}
+  .gpa .grade{font-size:54px;font-weight:800;line-height:1;letter-spacing:-.03em;
+    background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .gpa .score{color:var(--muted);font-size:13px;margin-top:4px}
+
+  .summary{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:30px;
+    box-shadow:var(--shadow);font-size:14.5px;color:var(--muted)
+  }
+  .summary strong{color:var(--ink)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+    transition:transform .15s ease,border-color .15s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:#2f3a52}
+  .card .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+  .card .name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px}
+  .card .ic{font-size:17px}
+  .badge{
+    font-weight:800;font-size:14px;padding:3px 11px;border-radius:999px;letter-spacing:.02em;
+    border:1px solid transparent;
+  }
+  .A{color:var(--green);background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.30)}
+  .B{color:var(--blue);background:rgba(96,165,250,.10);border-color:rgba(96,165,250,.30)}
+  .C{color:var(--amber);background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.30)}
+  .D{color:var(--red);background:rgba(248,113,113,.10);border-color:rgba(248,113,113,.30)}
+
+  .bar{height:7px;border-radius:999px;background:#0c1019;overflow:hidden;margin:10px 0 12px;border:1px solid #1b2233}
+  .fill{height:100%;border-radius:999px}
+  .fill.A{background:linear-gradient(90deg,#34d399,#10b981)}
+  .fill.B{background:linear-gradient(90deg,#60a5fa,#3b82f6)}
+  .fill.C{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+  .fill.D{background:linear-gradient(90deg,#f87171,#ef4444)}
+
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card .ev{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--faint);background:#0d1119;border:1px solid #1b2233;border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums}
+
+  .foot{margin-top:34px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--faint);font-size:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">
+      <div class="logo">{{INITIAL}}</div>
+      <div>
+        <h1>{{PROJECT_NAME}} — Project Report Card</h1>
+        <div class="sub">{{PROJECT_TAGLINE}} · {{VERSION}} · branch <code>{{BRANCH}}</code></div>
+      </div>
+    </div>
+    <div class="gpa">
+      <div class="grade">{{OVERALL_GRADE}}</div>
+      <div class="score">{{OVERALL_SCORE}}</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    {{EXECUTIVE_SUMMARY}}
+  </div>
+
+  <div class="grid">
+
+    <!-- Repeat one .card block per aspect. Set badge/fill class to A|B|C|D and width to the score %. -->
+    <div class="card">
+      <div class="top"><div class="name"><span class="ic">{{ICON}}</span>{{ASPECT_NAME}}</div><span class="badge A">{{GRADE}}</span></div>
+      <div class="bar"><div class="fill A" style="width:0%"></div></div>
+      <p>{{RATIONALE}}</p>
+      <div class="ev"><span class="chip">{{evidence 1}}</span><span class="chip">{{evidence 2}}</span><span class="chip">{{evidence 3}}</span></div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>A — Excellent</span>
+      <span><i class="dot" style="background:var(--blue)"></i>B — Good</span>
+      <span><i class="dot" style="background:var(--amber)"></i>C — Needs work</span>
+      <span><i class="dot" style="background:var(--red)"></i>D — At risk</span>
+    </div>
+    <div>Graded {{DATE}} · {{N}} aspects · {{METHOD}}</div>
+  </div>
+</div>
+</body>
+</html>

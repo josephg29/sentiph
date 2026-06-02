@@ -8,7 +8,7 @@
   :root{
     --bg:#0b0e14; --panel:#11151f; --panel-2:#161b27; --line:#222a3a;
     --ink:#e8edf6; --muted:#9aa6bd; --faint:#6b7689;
-    --a:#34d399; --b:#60a5fa; --c:#fbbf24; --d:#f87171;
+    --green:#34d399; --blue:#60a5fa; --amber:#fbbf24; --red:#f87171;
     --accent:#7c8cff; --accent-2:#34d399;
     --shadow:0 12px 40px rgba(0,0,0,.45);
     font-synthesis:none;
@@ -21,279 +21,178 @@
                var(--bg);
     color:var(--ink);
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.5; padding:48px 20px;
+    line-height:1.55; padding:48px 20px;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:980px;margin:0 auto}
+  .wrap{max-width:1000px;margin:0 auto}
 
-  /* Header */
   .head{
     display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
     padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:34px;flex-wrap:wrap;
   }
   .brand{display:flex;align-items:center;gap:14px}
   .logo{
-    width:46px;height:46px;border-radius:12px;flex:none;
+    width:48px;height:48px;border-radius:13px;flex:none;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
-    display:grid;place-items:center;font-weight:800;color:#0b0e14;font-size:20px;
+    display:grid;place-items:center;font-weight:800;color:#0b0e14;font-size:22px;
     box-shadow:0 6px 20px rgba(124,140,255,.35);
   }
-  h1{font-size:24px;margin:0;letter-spacing:-.02em}
-  .sub{color:var(--muted);font-size:13.5px;margin-top:2px}
-  .meta{color:var(--faint);font-size:12px;text-align:right}
-  .meta b{color:var(--muted)}
+  h1{font-size:25px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:3px}
 
-  /* GPA card */
-  .gpa{
-    display:flex;align-items:center;gap:30px;flex-wrap:wrap;
+  .gpa{text-align:right}
+  .gpa .grade{font-size:54px;font-weight:800;line-height:1;letter-spacing:-.03em;
+    background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .gpa .score{color:var(--muted);font-size:13px;margin-top:4px}
+
+  .summary{
     background:linear-gradient(180deg,var(--panel-2),var(--panel));
-    border:1px solid var(--line);border-radius:18px;padding:26px 30px;margin-bottom:34px;
-    box-shadow:var(--shadow);
+    border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:30px;
+    box-shadow:var(--shadow);font-size:14.5px;color:var(--muted)
   }
-  .score-ring{position:relative;width:128px;height:128px;flex:none}
-  .score-ring svg{transform:rotate(-90deg)}
-  .score-ring .val{
-    position:absolute;inset:0;display:grid;place-content:center;text-align:center;
-  }
-  .score-ring .grade{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
-  .score-ring .num{font-size:12px;color:var(--muted);margin-top:4px}
-  .gpa-copy{flex:1;min-width:240px}
-  .gpa-copy h2{margin:0 0 6px;font-size:17px}
-  .gpa-copy p{margin:0;color:var(--muted);font-size:13.5px}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .chip{font-size:11.5px;color:var(--muted);border:1px solid var(--line);
-    background:var(--panel);border-radius:999px;padding:4px 11px}
-  .chip b{color:var(--ink)}
+  .summary strong{color:var(--ink)}
 
-  /* Grid of aspects */
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-  @media(max-width:720px){.grid{grid-template-columns:1fr}.gpa{justify-content:center;text-align:center}}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+
   .card{
-    background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px 18px 16px;
-    transition:transform .15s ease,border-color .15s ease;position:relative;overflow:hidden;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+    transition:transform .15s ease,border-color .15s ease;
   }
   .card:hover{transform:translateY(-2px);border-color:#2f3a52}
-  .card .top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
-  .card h3{margin:0;font-size:14.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
-  .ico{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px;flex:none;
-    background:var(--panel-2);border:1px solid var(--line)}
-  .badge{font-weight:800;font-size:15px;padding:3px 11px;border-radius:9px;letter-spacing:.01em}
-  .bar{height:7px;border-radius:99px;background:#0c1019;border:1px solid var(--line);overflow:hidden;margin:4px 0 10px}
-  .bar > span{display:block;height:100%;border-radius:99px}
-  .card p{margin:0;color:var(--muted);font-size:12.7px}
-  .scoreline{font-size:11.5px;color:var(--faint);margin-top:9px}
+  .card .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+  .card .name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px}
+  .card .ic{font-size:17px}
+  .badge{
+    font-weight:800;font-size:14px;padding:3px 11px;border-radius:999px;letter-spacing:.02em;
+    border:1px solid transparent;
+  }
+  .A{color:var(--green);background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.30)}
+  .B{color:var(--blue);background:rgba(96,165,250,.10);border-color:rgba(96,165,250,.30)}
+  .C{color:var(--amber);background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.30)}
+  .D{color:var(--red);background:rgba(248,113,113,.10);border-color:rgba(248,113,113,.30)}
 
-  .gA{color:var(--a)} .gB{color:var(--b)} .gC{color:var(--c)} .gD{color:var(--d)}
-  .bgA{background:rgba(52,211,153,.12)} .bgB{background:rgba(96,165,250,.12)}
-  .bgC{background:rgba(251,191,36,.12)} .bgD{background:rgba(248,113,113,.12)}
-  .fA{background:linear-gradient(90deg,#10b981,#34d399)}
-  .fB{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
-  .fC{background:linear-gradient(90deg,#d97706,#fbbf24)}
-  .fD{background:linear-gradient(90deg,#dc2626,#f87171)}
+  .bar{height:7px;border-radius:999px;background:#0c1019;overflow:hidden;margin:10px 0 12px;border:1px solid #1b2233}
+  .fill{height:100%;border-radius:999px}
+  .fill.A{background:linear-gradient(90deg,#34d399,#10b981)}
+  .fill.B{background:linear-gradient(90deg,#60a5fa,#3b82f6)}
+  .fill.C{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+  .fill.D{background:linear-gradient(90deg,#f87171,#ef4444)}
 
-  /* Footer notes */
-  .notes{margin-top:34px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px 24px}
-  .notes h4{margin:0 0 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px 30px}
-  @media(max-width:720px){.cols{grid-template-columns:1fr}}
-  .note{font-size:12.8px;color:var(--muted);display:flex;gap:9px;padding:3px 0}
-  .note .m{flex:none;font-weight:700}
-  .plus .m{color:var(--a)} .minus .m{color:var(--c)}
-  .foot{text-align:center;color:var(--faint);font-size:11.5px;margin-top:26px}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card .ev{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--faint);background:#0d1119;border:1px solid #1b2233;border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums}
+
+  .foot{margin-top:34px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--faint);font-size:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
 </style>
 </head>
 <body>
 <div class="wrap">
-
   <div class="head">
     <div class="brand">
       <div class="logo">S</div>
       <div>
         <h1>Sentiph — Project Report Card</h1>
-        <div class="sub">Multi-agent orchestration for Claude Code · TypeScript monorepo</div>
+        <div class="sub">Web-first command surface for running multiple coding agents in parallel · v0.1.0 · branch <code>demo/refactor</code></div>
       </div>
     </div>
-    <div class="meta">
-      Branch <b>demo/refactor</b><br/>
-      Assessed <b>2026-06-01</b> · 374 commits · v0.1.0
+    <div class="gpa">
+      <div class="grade">A−</div>
+      <div class="score">GPA 3.65 / 4.0 · 89%</div>
     </div>
   </div>
 
-  <!-- Overall -->
-  <div class="gpa">
-    <div class="score-ring">
-      <svg width="128" height="128" viewBox="0 0 128 128">
-        <circle cx="64" cy="64" r="56" fill="none" stroke="#1c2434" stroke-width="11"/>
-        <circle cx="64" cy="64" r="56" fill="none" stroke="url(#g)" stroke-width="11"
-                stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="63.3"/>
-        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#7c8cff"/><stop offset="1" stop-color="#34d399"/>
-        </linearGradient></defs>
-      </svg>
-      <div class="val">
-        <div class="grade gA">A−</div>
-        <div class="num">8.2 / 10</div>
-      </div>
-    </div>
-    <div class="gpa-copy">
-      <h2>Production-minded, well-tested, cleanly layered</h2>
-      <p>A mature local-first developer tool with strict typing, a fast and broad test suite, real
-      security hardening, and unusually thorough documentation. Main drag: lint/tooling hygiene
-      (a mis-scoped Biome config floods 484 false errors) and a few oversized modules.</p>
-      <div class="chips">
-        <span class="chip"><b>202</b> tests passing</span>
-        <span class="chip"><b>~30k</b> LOC</span>
-        <span class="chip"><b>13</b> doc pages</span>
-        <span class="chip"><b>strict</b> TS</span>
-        <span class="chip"><b>1</b> TODO in src</span>
-      </div>
-    </div>
+  <div class="summary">
+    A genuinely well-engineered pre-1.0 TypeScript monorepo. <strong>Standout strengths:</strong> a documented threat model with loopback/host/origin gating, a near-bare production dependency surface (2 runtime deps), a hardened CI pipeline with coverage gates, and a disciplined effort to keep every file under 800 lines. <strong>Where it loses points:</strong> the API package's coverage bar sits low (50%) versus the core's exemplary 90%, and the project is still early (0.1.0) without a tagged stable release. Solid foundations — finish the testing story and it's an A.
   </div>
 
-  <!-- Aspects -->
   <div class="grid">
 
-    <!-- 1 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🏛️</span>Architecture &amp; Design</h3>
-        <span class="badge gA bgA">A</span>
-      </div>
-      <div class="bar"><span class="fA" style="width:90%"></span></div>
-      <p>Clean pnpm monorepo: <code>api</code> / <code>web</code> / framework-agnostic <code>core</code>
-      with hexagonal layering (domain · ports · adapters · application). Clear infrastructure boundaries.</p>
-      <div class="scoreline">9.0 / 10 · separation of concerns is exemplary</div>
+      <div class="top"><div class="name"><span class="ic">🏛️</span>Architecture &amp; Design</div><span class="badge A">A</span></div>
+      <div class="bar"><div class="fill A" style="width:92%"></div></div>
+      <p>Clean monorepo: <code>apps/web</code> (Vite+React), <code>apps/api</code> (Node WS/PTY), <code>packages/core</code> (domain types), plus a landing app. Clear separation of concerns built around a PTY-driven runtime.</p>
+      <div class="ev"><span class="chip">3 apps + core pkg</span><span class="chip">domain types isolated</span><span class="chip">pnpm workspace</span></div>
     </div>
 
-    <!-- 2 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🛡️</span>Security</h3>
-        <span class="badge gA bgA">A</span>
-      </div>
-      <div class="bar"><span class="fA" style="width:90%"></span></div>
-      <p>Loopback bind by default, dedicated Host/Origin guard on HTTP &amp; WS upgrades, explicit
-      <code>allowRemoteAccess</code> opt-in, careful CORS+Vary handling, recent CVE patching via pnpm overrides.</p>
-      <div class="scoreline">9.0 / 10 · thoughtful threat model for a local tool</div>
+      <div class="top"><div class="name"><span class="ic">✨</span>Code Quality &amp; Style</div><span class="badge A">A−</span></div>
+      <div class="bar"><div class="fill A" style="width:90%"></div></div>
+      <p>TypeScript <code>strict: true</code>, Biome for lint+format, and a recent refactor sweep splitting <code>sessionRuntime</code>, <code>terminalRuntime</code> &amp; <code>CanvasPrimaryView</code> to honor the 800-line ceiling. A few source files still hover near the cap.</p>
+      <div class="ev"><span class="chip">strict TS</span><span class="chip">biome</span><span class="chip">max 797 src lines</span></div>
     </div>
 
-    <!-- 3 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🔠</span>Type Safety</h3>
-        <span class="badge gA bgA">A</span>
-      </div>
-      <div class="bar"><span class="fA" style="width:91%"></span></div>
-      <p>Strictest practical config: <code>strict</code>, <code>noUncheckedIndexedAccess</code>,
-      <code>exactOptionalPropertyTypes</code>, <code>isolatedModules</code>. <code>tsc --noEmit</code> gates every package.</p>
-      <div class="scoreline">9.1 / 10 · few projects opt into this much rigor</div>
+      <div class="top"><div class="name"><span class="ic">🧪</span>Testing</div><span class="badge B">B</span></div>
+      <div class="bar"><div class="fill B" style="width:78%"></div></div>
+      <p>33 test files with coverage gates wired into CI. <code>packages/core</code> holds an excellent 90% threshold across the board, but <code>apps/api</code> gates at only 50% statements / 40% branches — the weakest link. No E2E suite tracked in repo.</p>
+      <div class="ev"><span class="chip">33 test files</span><span class="chip">core 90%</span><span class="chip">api 50%</span></div>
     </div>
 
-    <!-- 4 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">📚</span>Documentation</h3>
-        <span class="badge gA bgA">A</span>
-      </div>
-      <div class="bar"><span class="fA" style="width:89%"></span></div>
-      <p>13 structured docs (getting-started · guides · concepts · reference), an accurate
-      architecture-led README, plus AGENTS.md, CONTRIBUTING.md and MIT LICENSE.</p>
-      <div class="scoreline">8.9 / 10 · README matches the actual code</div>
+      <div class="top"><div class="name"><span class="ic">🔒</span>Security</div><span class="badge A">A</span></div>
+      <div class="bar"><div class="fill A" style="width:93%"></div></div>
+      <p>A real <code>SECURITY.md</code> with an articulated threat model: loopback-only binding, host-header gating against DNS rebinding, origin gating, and scoped CORS (never <code>*</code>). Checks live in code and are test-covered; a recent commit patched a critical vitest advisory.</p>
+      <div class="ev"><span class="chip">threat model</span><span class="chip">DNS-rebind defense</span><span class="chip">scoped CORS</span></div>
     </div>
 
-    <!-- 5 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🧪</span>Testing</h3>
-        <span class="badge gB bgB">B+</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:82%"></span></div>
-      <p>202 tests across 26 files pass in ~3s — runtime, usage parsing, protocol, and React UI all covered.
-      No enforced coverage gate and no end-to-end layer in CI.</p>
-      <div class="scoreline">8.2 / 10 · strong breadth, missing E2E + coverage floor</div>
+      <div class="top"><div class="name"><span class="ic">⚙️</span>CI/CD &amp; Tooling</div><span class="badge A">A−</span></div>
+      <div class="bar"><div class="fill A" style="width:89%"></div></div>
+      <p>GitHub Actions <code>ci.yml</code> runs lint → coverage-gated tests → build with concurrency cancellation and 20-min timeouts; coverage artifacts uploaded. A separate <code>release.yml</code> and a public-install smoke script guard the published package.</p>
+      <div class="ev"><span class="chip">lint+test+build</span><span class="chip">coverage gate</span><span class="chip">release pipeline</span></div>
     </div>
 
-    <!-- 6 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">📦</span>Dependencies</h3>
-        <span class="badge gB bgB">B+</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:82%"></span></div>
-      <p>Lean runtime deps (<code>node-pty</code>, <code>ws</code>), pinned <code>pnpm@10.4.1</code>,
-      Node 22+ engine guard, frozen-lockfile CI, and security overrides for vite/postcss/picomatch.</p>
-      <div class="scoreline">8.2 / 10 · disciplined and minimal</div>
+      <div class="top"><div class="name"><span class="ic">📦</span>Dependency Management</div><span class="badge A">A</span></div>
+      <div class="bar"><div class="fill A" style="width:94%"></div></div>
+      <p>Exceptionally lean runtime surface — only <code>node-pty</code> and <code>ws</code> in production. <code>pnpm</code> with a frozen lockfile, pinned <code>packageManager</code>, and security <code>overrides</code> forcing patched vite/picomatch/happy-dom/postcss.</p>
+      <div class="ev"><span class="chip">2 prod deps</span><span class="chip">frozen lockfile</span><span class="chip">advisory overrides</span></div>
     </div>
 
-    <!-- 7 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🔧</span>Tooling &amp; DX</h3>
-        <span class="badge gB bgB">B</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:78%"></span></div>
-      <p>Biome + Vitest + Vite + knip + a custom dev orchestrator script. But <code>biome.json</code>
-      doesn't ignore <code>.sentiph/</code> state &amp; marketing HTML, so <code>pnpm lint</code> reports 493 errors —
-      484 of them noise from generated files.</p>
-      <div class="scoreline">7.8 / 10 · great stack, mis-scoped linter config</div>
+      <div class="top"><div class="name"><span class="ic">📚</span>Documentation</div><span class="badge A">A−</span></div>
+      <div class="bar"><div class="fill A" style="width:88%"></div></div>
+      <p>225-line README plus a structured <code>docs/</code> tree (concepts, getting-started, guides, reference) with an index. <code>AGENTS.md</code>, <code>CONTRIBUTING.md</code> and a maintained <code>CHANGELOG.md</code> round it out, with inline links from docs to source.</p>
+      <div class="ev"><span class="chip">docs/ tree</span><span class="chip">CHANGELOG</span><span class="chip">CONTRIBUTING</span></div>
     </div>
 
-    <!-- 8 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🧬</span>Maintainability</h3>
-        <span class="badge gB bgB">B+</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:80%"></span></div>
-      <p>Mostly small, focused modules; only 1 TODO in all source. A few hotspots exceed the 800-line
-      guideline — <code>CanvasPrimaryView.tsx</code> (1409), <code>terminalRuntime.ts</code> (1256).</p>
-      <div class="scoreline">8.0 / 10 · trim the large files to stay clean</div>
+      <div class="top"><div class="name"><span class="ic">🛠️</span>Maintainability</div><span class="badge A">A−</span></div>
+      <div class="bar"><div class="fill A" style="width:87%"></div></div>
+      <p>The "many small files" philosophy is visibly enforced, recent commits actively pay down size debt, and <code>knip</code> guards against dead code and unused deps. The two ~2,900-line test files are the main outliers worth splitting.</p>
+      <div class="ev"><span class="chip">knip</span><span class="chip">800-line budget</span><span class="chip">active refactors</span></div>
     </div>
 
-    <!-- 9 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">⚙️</span>CI / CD</h3>
-        <span class="badge gB bgB">B</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:74%"></span></div>
-      <p>GitHub Actions runs lint → test → build on every PR and on main, with cache + frozen lockfile.
-      Single workflow only; lint step currently fails on state files, and there's no release/coverage automation.</p>
-      <div class="scoreline">7.4 / 10 · solid gate, pipeline currently red on lint</div>
+      <div class="top"><div class="name"><span class="ic">🧑‍💻</span>Developer Experience</div><span class="badge B">B+</span></div>
+      <div class="bar"><div class="fill B" style="width:84%"></div></div>
+      <p>One-command <code>pnpm dev</code>, a <code>bin/sentiph</code> entry, <code>.env.example</code> with documented vars, and clean <code>start/build/test/lint/format</code> scripts. Onboarding is smooth; a devcontainer setup would push this higher.</p>
+      <div class="ev"><span class="chip">pnpm dev</span><span class="chip">.env.example</span><span class="chip">CLI bin</span></div>
     </div>
 
-    <!-- 10 -->
     <div class="card">
-      <div class="top">
-        <h3><span class="ico">🎨</span>Code Quality &amp; Style</h3>
-        <span class="badge gB bgB">B</span>
-      </div>
-      <div class="bar"><span class="fB" style="width:76%"></span></div>
-      <p>Consistent, well-named, immutability-friendly code with JSDoc on exports. Only 9 genuine
-      lint findings in source (intentional control-chars in ANSI/terminal regexes). Conventional-commit history.</p>
-      <div class="scoreline">7.6 / 10 · clean; resolve or suppress the 9 warnings</div>
+      <div class="top"><div class="name"><span class="ic">🚀</span>Maturity &amp; Release Readiness</div><span class="badge B">B</span></div>
+      <div class="bar"><div class="fill B" style="width:75%"></div></div>
+      <p>MIT-licensed, proper npm metadata (repo, homepage, bugs, keywords), a scoped <code>files</code> allowlist, and a Node ≥22 engine pin. Still 0.1.0 / pre-1.0 with no stable tag and an explicitly evolving security posture — appropriate, but early.</p>
+      <div class="ev"><span class="chip">v0.1.0</span><span class="chip">MIT</span><span class="chip">npm-ready</span></div>
     </div>
 
-  </div>
-
-  <!-- Teacher's notes -->
-  <div class="notes">
-    <h4>Examiner's Notes</h4>
-    <div class="cols">
-      <div class="note plus"><span class="m">＋</span>Framework-agnostic <code>core</code> with no React/HTTP/FS coupling — textbook clean architecture.</div>
-      <div class="note minus"><span class="m">→</span>Add <code>.sentiph</code> &amp; <code>*.html</code> to <code>biome.json</code> ignores to clear 484 phantom lint errors and turn CI green.</div>
-      <div class="note plus"><span class="m">＋</span>Security guard is real code, not a README claim — Host/Origin checks with an explicit remote opt-in.</div>
-      <div class="note minus"><span class="m">→</span>Split <code>CanvasPrimaryView.tsx</code> (1409) and <code>terminalRuntime.ts</code> (1256) below the 800-line line.</div>
-      <div class="note plus"><span class="m">＋</span>202 fast tests and strict TS give a strong refactor-safety net.</div>
-      <div class="note minus"><span class="m">→</span>Add an E2E layer (Playwright) and a coverage threshold to CI to lock in quality.</div>
-    </div>
   </div>
 
   <div class="foot">
-    Generated from static analysis of branch <b>demo/refactor</b> · scores are heuristic, weighted toward
-    architecture, testing, security &amp; type safety.
+    <div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>A — Excellent</span>
+      <span><i class="dot" style="background:var(--blue)"></i>B — Good</span>
+      <span><i class="dot" style="background:var(--amber)"></i>C — Needs work</span>
+      <span><i class="dot" style="background:var(--red)"></i>D — At risk</span>
+    </div>
+    <div>Graded 2026-06-01 · 10 aspects · static analysis of repo, CI, docs &amp; config</div>
   </div>
-
 </div>
 </body>
 </html>
