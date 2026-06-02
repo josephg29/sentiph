@@ -69,7 +69,7 @@ describe("App shell and navigation", () => {
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
-    expect(screen.getByText("Press 1-9 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 1-4 to navigate")).toBeInTheDocument();
   });
 
   it("supports keyboard-first primary navigation with number keys", async () => {
@@ -78,11 +78,11 @@ describe("App shell and navigation", () => {
     render(<App />);
     await screen.findByRole("navigation", { name: "Primary navigation" });
 
-    fireEvent.keyDown(window, { key: "3" });
+    fireEvent.keyDown(window, { key: "2" });
 
     expect(
       screen.getByRole("button", {
-        name: "[3] Activity",
+        name: "[2] Activity",
       }),
     ).toHaveAttribute("aria-current", "page");
   });
@@ -95,7 +95,7 @@ describe("App shell and navigation", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "[8] Settings",
+        name: "[3] Settings",
       }),
     );
 

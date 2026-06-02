@@ -1,4 +1,4 @@
-import { PRIMARY_NAV_MAX, type PrimaryNavIndex } from "./constants";
+import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "./constants";
 const MAX_TICKER_QUERY_LENGTH = 16;
 const TICKER_QUERY_ALLOWED_PATTERN = /[^A-Z0-9._/-]/g;
 
@@ -19,12 +19,14 @@ export const isEditableEventTarget = (target: EventTarget | null): boolean => {
 };
 
 export const parsePrimaryNavKey = (key: string): PrimaryNavIndex | null => {
-  const n = Number.parseInt(key, 10);
-  if (Number.isNaN(n) || n < 1 || n > PRIMARY_NAV_MAX) {
+  const pressed = Number.parseInt(key, 10);
+  if (Number.isNaN(pressed)) {
     return null;
   }
 
-  return n as PrimaryNavIndex;
+  // Map the visible 1-based shortcut the user typed back to the stable nav index.
+  const match = PRIMARY_NAV_ITEMS.find((item) => item.shortcut === pressed);
+  return match ? match.index : null;
 };
 
 /**

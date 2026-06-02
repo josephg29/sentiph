@@ -26,6 +26,7 @@ import { clampSidebarWidth } from "./app/uiStateNormalizers";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
+import { RouteNotFound } from "./components/RouteNotFound";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
@@ -34,7 +35,17 @@ import {
   buildTerminalSnapshotsUrl,
 } from "./runtime/runtimeEndpoints";
 
+// Sentiph has no client-side router; the console only ever lives at "/".
+const readUnknownRoutePath = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const { pathname } = window.location;
+  return pathname === "/" || pathname === "" ? null : pathname;
+};
+
 export const App = () => {
+  const [unknownRoutePath, setUnknownRoutePath] = useState<string | null>(readUnknownRoutePath);
   const [terminals, setTerminals] = useState<TerminalView>([]);
   const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
     TerminalView[number] | null
@@ -410,6 +421,18 @@ export const App = () => {
       current.map((t) => (t.terminalId === terminalId ? { ...t, hasUserPrompt: true } : t)),
     );
   }, []);
+
+  if (unknownRoutePath !== null) {
+    return (
+      <RouteNotFound
+        path={unknownRoutePath}
+        onReturnHome={() => {
+          window.history.replaceState(null, "", "/");
+          setUnknownRoutePath(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="page console-shell">

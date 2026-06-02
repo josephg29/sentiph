@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
-import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
+import { SENTIPH_ID, useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
@@ -248,6 +248,49 @@ export const CanvasPrimaryView = ({
       return next;
     });
   }, [pendingOpenAgentId, resolveActiveSessionNode, setOpenTerminals]);
+
+  // On first load, surface a live Sentiph parent terminal instead of a bare canvas.
+  // Reuse an already-running parent session if there is one; otherwise spawn it.
+  // Skips entirely when the user has persisted open terminals (they get restored).
+  const hasAutoOpenedParentRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoOpenedParentRef.current) return;
+    if (!isUiStateHydrated) return;
+    // Let the persisted-open-terminal hydration win when the user left panels open.
+    if (canvasOpenTerminalIds && canvasOpenTerminalIds.length > 0) {
+      hasAutoOpenedParentRef.current = true;
+      return;
+    }
+    if (isHydratingTerminals) return;
+    if (openTerminals.size > 0) {
+      hasAutoOpenedParentRef.current = true;
+      return;
+    }
+
+    hasAutoOpenedParentRef.current = true;
+
+    const existingParent = columns.find(
+      (terminal) => terminal.tentacleId === SENTIPH_ID && !terminal.parentTerminalId,
+    );
+    if (existingParent) {
+      setPendingOpenAgentId(existingParent.terminalId);
+      return;
+    }
+
+    const result = onCreateTerminal?.();
+    if (result && typeof result.then === "function") {
+      void result.then((terminalId) => {
+        if (terminalId) setPendingOpenAgentId(terminalId);
+      });
+    }
+  }, [
+    isUiStateHydrated,
+    isHydratingTerminals,
+    openTerminals,
+    canvasOpenTerminalIds,
+    columns,
+    onCreateTerminal,
+  ]);
 
   usePanelFocusScroll({ selectedNodeId, openTerminals, openTentacles, panelRefs });
 

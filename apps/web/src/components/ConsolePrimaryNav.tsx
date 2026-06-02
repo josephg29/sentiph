@@ -1,4 +1,8 @@
-import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "../app/constants";
+import {
+  PRIMARY_NAV_ITEMS,
+  PRIMARY_NAV_SHORTCUT_MAX,
+  type PrimaryNavIndex,
+} from "../app/constants";
 
 type ConsolePrimaryNavProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -22,12 +26,10 @@ export const ConsolePrimaryNav = ({
           }}
           type="button"
         >
-          [{item.index}] {item.label}
+          [{item.shortcut}] {item.label}
         </button>
       ))}
     </div>
-    <p className="console-primary-nav-hint">
-      Press 1-{Math.max(...PRIMARY_NAV_ITEMS.map((item) => item.index))} to navigate
-    </p>
+    <p className="console-primary-nav-hint">Press 1-{PRIMARY_NAV_SHORTCUT_MAX} to navigate</p>
   </nav>
 );

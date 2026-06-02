@@ -607,9 +607,6 @@
 }
 
 .canvas-toolbar-btn--new {
-  padding: 2px 10px;
-  font-size: 20px;
-  font-weight: 300;
   color: var(--accent-primary);
   border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }

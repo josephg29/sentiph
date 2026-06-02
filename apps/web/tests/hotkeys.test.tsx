@@ -7,15 +7,17 @@ import {
 } from "../src/app/hotkeys";
 
 describe("hotkeys helpers", () => {
-  it("parses primary nav keys from 1 to 5", () => {
-    expect(parsePrimaryNavKey("1")).toBe(1);
-    expect(parsePrimaryNavKey("2")).toBe(2);
-    expect(parsePrimaryNavKey("3")).toBe(3);
-    expect(parsePrimaryNavKey("5")).toBe(5);
+  it("maps the visible 1-based shortcut to the stable nav index", () => {
+    expect(parsePrimaryNavKey("1")).toBe(1); // Agents
+    expect(parsePrimaryNavKey("2")).toBe(3); // Activity
+    expect(parsePrimaryNavKey("3")).toBe(8); // Settings
+    expect(parsePrimaryNavKey("4")).toBe(9); // Observe
   });
 
-  it("returns null for unsupported nav keys", () => {
+  it("returns null for shortcuts outside the visible range", () => {
     expect(parsePrimaryNavKey("0")).toBeNull();
+    expect(parsePrimaryNavKey("5")).toBeNull();
+    expect(parsePrimaryNavKey("9")).toBeNull();
     expect(parsePrimaryNavKey("10")).toBeNull();
     expect(parsePrimaryNavKey("x")).toBeNull();
     expect(parsePrimaryNavKey("/")).toBeNull();

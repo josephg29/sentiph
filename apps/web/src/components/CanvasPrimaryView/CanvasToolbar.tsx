@@ -1,4 +1,4 @@
-import { Maximize, Pause, Play, RefreshCw, Trash2 } from "lucide-react";
+import { Maximize, Pause, Play, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import type { GraphNode } from "../../app/canvas/types";
 
@@ -40,12 +40,13 @@ export const CanvasToolbar = ({
               });
             }
           }}
-          aria-label="New terminal"
-          title="New terminal"
+          aria-label="New agent"
+          title="Spawn a new Sentiph agent session"
         >
-          <span className="canvas-toolbar-icon" style={{ fontSize: "18px", lineHeight: 1 }}>
-            +
+          <span className="canvas-toolbar-icon">
+            <Plus size={14} />
           </span>
+          <span className="canvas-toolbar-label">New Agent</span>
         </button>
         <div className="canvas-toolbar-separator" />
         <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>

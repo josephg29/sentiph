@@ -53,6 +53,7 @@ vi.mock("../src/app/hooks/useAgentRuntimeStates", () => ({
 }));
 
 vi.mock("../src/app/hooks/useCanvasGraphData", () => ({
+  SENTIPH_ID: "__sentiph__",
   useCanvasGraphData: () => ({
     nodes,
     edges: [],

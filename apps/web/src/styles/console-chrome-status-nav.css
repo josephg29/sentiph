@@ -438,3 +438,81 @@
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
+
+/* ─── Route not found ──────────────────────────────────────────────────────── */
+
+.route-not-found {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--bg-canvas);
+  font-family: var(--font-main);
+}
+
+.route-not-found-card {
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: 6px;
+  padding: 40px 32px;
+}
+
+.route-not-found-code {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+}
+
+.route-not-found-title {
+  margin: 16px 0 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.route-not-found-body {
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.route-not-found-path {
+  font-family: var(--font-main);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  word-break: break-all;
+}
+
+.route-not-found-action {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 20px;
+  border-radius: 4px;
+}
+
+.route-not-found-action:hover {
+  background: color-mix(in srgb, var(--accent-primary) 85%, #000);
+}
+
+.route-not-found-action:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
