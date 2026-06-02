@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -395,22 +395,11 @@ let registryTempCounter = 0;
 const buildTempRegistryPath = (registryPath: string): string =>
   `${registryPath}.${process.pid}.${++registryTempCounter}.tmp`;
 
-const writeSerializedRegistrySync = (registryPath: string, serialized: string) => {
-  mkdirSync(dirname(registryPath), { recursive: true });
-  const tempPath = buildTempRegistryPath(registryPath);
-  writeFileSync(tempPath, serialized, "utf8");
-  renameSync(tempPath, registryPath);
-};
-
 const writeSerializedRegistry = async (registryPath: string, serialized: string) => {
   mkdirSync(dirname(registryPath), { recursive: true });
   const tempPath = buildTempRegistryPath(registryPath);
   await writeFile(tempPath, serialized, "utf8");
   await rename(tempPath, registryPath);
-};
-
-const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {
-  writeSerializedRegistrySync(registryPath, serializeTerminalRegistry(state));
 };
 
 /**

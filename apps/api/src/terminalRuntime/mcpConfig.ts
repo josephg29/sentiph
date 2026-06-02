@@ -8,7 +8,7 @@ import {
   assertSentiphSystemPromptIsShellSafe,
 } from "../sentiphSystemPrompt";
 
-export const resolveCurrentDir = (): string =>
+const resolveCurrentDir = (): string =>
   // import.meta.dirname is Node 22+ and Vite-bundle safe; fall back for older runtimes.
   (import.meta.dirname as string | undefined) ?? dirname(fileURLToPath(import.meta.url));
 

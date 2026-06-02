@@ -1,0 +1,18 @@
+# Lefthook git hooks — https://lefthook.dev
+# Installed via the `prepare` script (`lefthook install`) on `pnpm install`.
+
+pre-commit:
+  parallel: true
+  commands:
+    format-lint:
+      glob: "*.{ts,tsx,js,jsx,mjs,mts,cjs,json,jsonc}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    typecheck:
+      run: pnpm -r exec tsc -p tsconfig.json --noEmit
+    test:
+      run: pnpm -r test

@@ -22,7 +22,7 @@ const readOptionalGitCommand = (cwd: string, args: string[]) => {
   }
 };
 
-const isExitCode = (error: unknown, exitCode: number) => {
+export const isExitCode = (error: unknown, exitCode: number) => {
   if (typeof error !== "object" || error === null) {
     return false;
   }
@@ -32,7 +32,7 @@ const isExitCode = (error: unknown, exitCode: number) => {
 
 const CONFLICT_MARKERS = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 
-const parseChangedFile = (line: string) => {
+export const parseChangedFile = (line: string) => {
   const payload = line.slice(3).trim();
   if (!payload) {
     return null;
@@ -47,7 +47,7 @@ const parseChangedFile = (line: string) => {
   return payload.slice(renameIndex + renameMarker.length).trim();
 };
 
-const parseDiffNumstatLineCounts = (
+export const parseDiffNumstatLineCounts = (
   numstatOutput: string,
 ): { insertedLineCount: number; deletedLineCount: number } =>
   numstatOutput
@@ -95,7 +95,7 @@ const readErrorDetails = (error: unknown) => {
   return typeof errorWithStreams.message === "string" ? errorWithStreams.message : "";
 };
 
-const readGhFailureMessage = (error: unknown) => {
+export const readGhFailureMessage = (error: unknown) => {
   if (typeof error === "object" && error !== null) {
     const errorWithCode = error as { code?: unknown };
     if (errorWithCode.code === "ENOENT") {
@@ -113,7 +113,7 @@ const readGhFailureMessage = (error: unknown) => {
   return null;
 };
 
-const isNoPullRequestError = (error: unknown) => {
+export const isNoPullRequestError = (error: unknown) => {
   const details = readErrorDetails(error).toLowerCase();
   return (
     details.includes("no pull requests found") ||
@@ -122,7 +122,7 @@ const isNoPullRequestError = (error: unknown) => {
   );
 };
 
-const parsePullRequestPayload = (
+export const parsePullRequestPayload = (
   payload: unknown,
 ): {
   number: number;
@@ -183,7 +183,7 @@ const readPullRequestWithGh = (cwd: string, args: string[]) => {
   return parsePullRequestPayload(JSON.parse(output));
 };
 
-const createDefaultGitClient = (): GitClient => ({
+export const createDefaultGitClient = (): GitClient => ({
   assertAvailable() {
     try {
       execFileSync("git", ["--version"], { stdio: "ignore" });

@@ -1,33 +1,33 @@
-import { existsSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 
-import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
-
-import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
-import { buildBootstrapCommand, planClaudeBootstrap } from "./claudeBootstrap";
+import type { AgentRuntimeState } from "../agentStateDetection";
 import {
-  CLAUDE_EFFORT_THINKING_TOKENS,
-  DEFAULT_AGENT_PROVIDER,
-  SENTIPH_TENTACLE_ID,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
-import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
 import {
-  type SessionEndEvent,
-  appendDebugLog,
-  appendTranscriptEvent,
-  createDebugLog as createDebugLogFile,
-  exitSignalFields,
-  openTranscriptLog as openTranscriptLogFile,
-  resolveEndedAt,
-  resolveSessionEndReason,
-} from "./sessionLogging";
-import { formatShellSpawnError, getShellLaunch } from "./shellLaunch";
+  type BootstrapContext,
+  type EnsureSessionContext,
+  ensureAgentBootstrapped,
+  ensureSession,
+} from "./sessionBootstrap";
+import {
+  type TeardownOptions,
+  clearIdleCloseTimer,
+  closeSession as lifecycleCloseSession,
+  emitStateIfChanged as lifecycleEmitStateIfChanged,
+  killSession as lifecycleKillSession,
+  scheduleIdleCloseIfNeeded as lifecycleScheduleIdleClose,
+  stopSession as lifecycleStopSession,
+  schedulePromptTimer,
+  teardownSession,
+} from "./sessionLifecycle";
+import { appendDebugLog } from "./sessionLogging";
+import type { SessionEndEvent } from "./sessionLogging";
 import { toErrorMessage } from "./systemClients";
 import {
   appendScrollback as appendScrollbackToSession,
@@ -83,36 +83,11 @@ export const createSessionRuntime = ({
   sentiphMcpConfigPath,
   sentiphSystemPromptPath,
 }: CreateSessionRuntimeOptions) => {
-  const DEFAULT_PTY_COLS = 120;
-  const DEFAULT_PTY_ROWS = 35;
   const sessionLimit = Number.isFinite(maxConcurrentSessions)
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
 
-  let transcriptEventSequence = 0;
-
-  const openTranscriptLog = (sessionId: string): string | undefined =>
-    openTranscriptLogFile(sessionId, transcriptDirectoryPath);
-
-  const emitStateIfChanged = (
-    session: TerminalSession,
-    sessionId: string,
-    nextState: AgentRuntimeState | null,
-  ) => {
-    if (!nextState || nextState === session.agentState) {
-      return;
-    }
-
-    session.agentState = nextState;
-    session.agentStateChangedAt = Date.now();
-    appendDebugLog(session, `state-change session=${sessionId} state=${nextState}`);
-    onStateChange?.(sessionId, nextState, session.lastToolName);
-    broadcastMessage(session, {
-      type: "state",
-      state: nextState,
-      ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
-    });
-  };
+  const transcriptEventSequence = { value: 0 };
 
   const resolveSession =
     resolveTerminalSession ??
@@ -126,47 +101,6 @@ export const createSessionRuntime = ({
         tentacleId: terminal?.tentacleId ?? terminalId,
       };
     });
-
-  const clearIdleCloseTimer = (session: TerminalSession) => {
-    if (!session.idleCloseTimer) {
-      return;
-    }
-
-    clearTimeout(session.idleCloseTimer);
-    session.idleCloseTimer = undefined;
-  };
-
-  const clearPromptTimers = (session: TerminalSession) => {
-    if (!session.promptTimers) {
-      return;
-    }
-
-    for (const timer of session.promptTimers) {
-      clearTimeout(timer);
-    }
-    session.promptTimers.clear();
-  };
-
-  const schedulePromptTimer = (
-    session: TerminalSession,
-    sessionId: string,
-    callback: () => void,
-    delayMs: number,
-  ) => {
-    const timer = setTimeout(() => {
-      session.promptTimers?.delete(timer);
-      if (session.isClosed || sessions.get(sessionId) !== session) {
-        return;
-      }
-
-      callback();
-    }, delayMs);
-
-    if (!session.promptTimers) {
-      session.promptTimers = new Set();
-    }
-    session.promptTimers.add(timer);
-  };
 
   const appendScrollback = (session: TerminalSession, chunk: string) => {
     appendScrollbackToSession(session, chunk, scrollbackMaxBytes);
@@ -183,392 +117,135 @@ export const createSessionRuntime = ({
     });
   };
 
-  const teardownSession = (
+  // -------------------------------------------------------------------------
+  // Bound teardown context
+  // -------------------------------------------------------------------------
+
+  const teardownCtx: TeardownOptions = {
+    sessions,
+    ...(onSessionEnd ? { onSessionEnd } : {}),
+    transcriptEventSequence,
+  };
+
+  const boundTeardownSession = (
     sessionId: string,
     session: TerminalSession,
     event: SessionEndEvent,
     options: { killPty: boolean; killSignal?: string },
   ): void => {
-    if (session.isClosed) {
-      return;
-    }
-
-    session.isClosed = true;
-    clearIdleCloseTimer(session);
-    clearPromptTimers(session);
-    onSessionEnd?.(sessionId, {
-      reason: resolveSessionEndReason(event.reason),
-      endedAt: resolveEndedAt(event.timestamp),
-      ...exitSignalFields(event),
-    });
-
-    if (session.statePollTimer) {
-      clearInterval(session.statePollTimer);
-      session.statePollTimer = undefined;
-    }
-
-    for (const disposable of session.ptyDisposables ?? []) {
-      try {
-        disposable.dispose();
-      } catch {
-        // Ignore listener cleanup errors; the PTY teardown below is still required.
-      }
-    }
-    session.ptyDisposables = [];
-
-    if (options.killPty) {
-      try {
-        session.pty.kill(options.killSignal);
-      } catch {
-        // Ignore teardown errors; session will still be discarded.
-      }
-    }
-
-    for (const client of session.clients) {
-      if (client.readyState === 1) {
-        client.close();
-      }
-    }
-    session.clients.clear();
-    session.directListeners.clear();
-    session.debugLog?.end();
-    session.debugLog = undefined;
-
-    appendTranscriptEvent(session, {
-      type: "session_end",
-      eventId: `${sessionId}:${++transcriptEventSequence}`,
-      sessionId,
-      reason: resolveSessionEndReason(event.reason),
-      timestamp: resolveEndedAt(event.timestamp),
-      ...exitSignalFields(event),
-    });
-    session.transcriptLog = undefined;
-
-    if (sessions.get(sessionId) === session) {
-      sessions.delete(sessionId);
-    }
+    teardownSession(sessionId, session, event, options, teardownCtx);
   };
 
-  const closeSession = (sessionId: string): boolean => {
-    const session = sessions.get(sessionId);
-    if (!session) {
-      return false;
-    }
+  // -------------------------------------------------------------------------
+  // Bound state-emission helper
+  // -------------------------------------------------------------------------
 
-    teardownSession(
-      sessionId,
+  const boundEmitStateIfChanged = (
+    session: TerminalSession,
+    sessionId: string,
+    nextState: AgentRuntimeState | null,
+  ): void => {
+    lifecycleEmitStateIfChanged(
       session,
-      {
-        type: "session_end",
-        reason: "session_close",
-        timestamp: new Date().toISOString(),
+      sessionId,
+      nextState,
+      onStateChange,
+      (_session, _nextState) => {
+        broadcastMessage(_session, {
+          type: "state",
+          state: _nextState,
+          ...(_session.lastToolName ? { toolName: _session.lastToolName } : {}),
+        });
       },
-      { killPty: true },
     );
-    return true;
   };
 
-  const stopSession = (sessionId: string): boolean => {
-    const session = sessions.get(sessionId);
-    if (!session) {
-      return false;
-    }
+  // -------------------------------------------------------------------------
+  // Bound schedulePromptTimer
+  // -------------------------------------------------------------------------
 
-    teardownSession(
-      sessionId,
-      session,
-      {
-        type: "session_end",
-        reason: "operator_stop",
-        timestamp: new Date().toISOString(),
-      },
-      { killPty: true },
-    );
-    return true;
+  const boundSchedulePromptTimer = (
+    session: TerminalSession,
+    sessionId: string,
+    callback: () => void,
+    delayMs: number,
+  ): void => {
+    schedulePromptTimer(session, sessions, sessionId, callback, delayMs);
   };
 
-  const killSession = (sessionId: string, signal = "SIGKILL"): boolean => {
-    const session = sessions.get(sessionId);
-    if (!session) {
-      return false;
-    }
+  // -------------------------------------------------------------------------
+  // Bound closeSession (used in idle-grace and public API)
+  // -------------------------------------------------------------------------
 
-    teardownSession(
-      sessionId,
-      session,
-      {
-        type: "session_end",
-        reason: "operator_kill",
-        signal,
-        timestamp: new Date().toISOString(),
-      },
-      { killPty: true, killSignal: signal },
-    );
-    return true;
+  const boundCloseSession = (sessionId: string): boolean =>
+    lifecycleCloseSession(sessionId, sessions, teardownCtx);
+
+  // -------------------------------------------------------------------------
+  // Bootstrap context
+  // -------------------------------------------------------------------------
+
+  const bootstrapCtx: BootstrapContext = {
+    terminals,
+    ...(sentiphMcpConfigPath ? { sentiphMcpConfigPath } : {}),
+    ...(sentiphSystemPromptPath ? { sentiphSystemPromptPath } : {}),
+    schedulePromptTimer: boundSchedulePromptTimer,
+    appendScrollback,
+    broadcastOutput: (session, data) => {
+      broadcastMessage(session, { type: "output", data });
+    },
+    appendDebugLog,
   };
 
-  const INITIAL_PROMPT_DELAY_MS = 4_000;
-  const INITIAL_PROMPT_SUBMIT_DELAY_MS = 150;
-  const BRACKETED_PASTE_START = "\x1b[200~";
-  const BRACKETED_PASTE_END = "\x1b[201~";
+  // -------------------------------------------------------------------------
+  // ensureSession context
+  // -------------------------------------------------------------------------
 
-  const scheduleIdleCloseIfNeeded = (session: TerminalSession, sessionId: string) => {
-    if (session.isClosed || sessions.get(sessionId) !== session) {
-      return;
-    }
-
-    if (session.keepAliveWithoutClients) {
-      return;
-    }
-
-    if (session.clients.size > 0 || session.directListeners.size > 0) {
-      return;
-    }
-
-    appendDebugLog(
-      session,
-      `idle-grace-start session=${sessionId} timeoutMs=${sessionIdleGraceMs}`,
-    );
-    clearIdleCloseTimer(session);
-    session.idleCloseTimer = setTimeout(() => {
-      appendDebugLog(session, `idle-grace-expired session=${sessionId}`);
-      closeSession(sessionId);
-    }, sessionIdleGraceMs);
+  const ensureSessionCtx: EnsureSessionContext = {
+    sessions,
+    terminals,
+    sessionLimit,
+    getTentacleWorkspaceCwd,
+    isDebugPtyLogsEnabled,
+    ptyLogDir,
+    ...(transcriptDirectoryPath ? { transcriptDirectoryPath } : {}),
+    transcriptEventSequence,
+    ...(onSessionStart ? { onSessionStart } : {}),
+    ...(onOutputChunk ? { onOutputChunk } : {}),
+    appendScrollback,
+    broadcastMessage: (session, msg) => {
+      broadcastMessage(session, msg as Parameters<typeof broadcastMessage>[1]);
+    },
+    emitStateIfChanged: boundEmitStateIfChanged,
+    teardownSession: boundTeardownSession,
   };
 
-  const ensureAgentBootstrapped = (sessionId: string, session: TerminalSession) => {
-    if (session.isBootstrapCommandSent) {
-      return;
-    }
+  // -------------------------------------------------------------------------
+  // Idle-close scheduling
+  // -------------------------------------------------------------------------
 
-    session.isBootstrapCommandSent = true;
-    const terminal = terminals.get(session.terminalId);
-    const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
-
-    const bootstrapCommand = buildBootstrapCommand({
-      provider,
-      tentacleId: session.tentacleId,
-      ...(terminal?.isGroupLeader ? { isGroupLeader: terminal.isGroupLeader } : {}),
-      ...(session.claudeBootstrapFlags
-        ? { claudeBootstrapFlags: session.claudeBootstrapFlags }
-        : {}),
-      ...(sentiphMcpConfigPath ? { sentiphMcpConfigPath } : {}),
-      ...(sentiphSystemPromptPath ? { sentiphSystemPromptPath } : {}),
-    });
-    if (session.claudeResumeBanner) {
-      const banner = `\r\n${session.claudeResumeBanner}\r\n`;
-      appendScrollback(session, banner);
-      broadcastMessage(session, { type: "output", data: banner });
-    }
-    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
-    session.pty.write(`${bootstrapCommand}\r`);
-
-    // Schedule initial prompt injection after Claude Code has had time to boot.
-    if (session.initialPrompt && !session.isInitialPromptSent) {
-      schedulePromptTimer(
-        session,
-        sessionId,
-        () => {
-          if (session.isInitialPromptSent) {
-            return;
-          }
-          session.isInitialPromptSent = true;
-          appendDebugLog(session, `initial-prompt session=${sessionId}`);
-          const prompt = session.initialPrompt ?? "";
-          session.pty.write(`${BRACKETED_PASTE_START}${prompt}${BRACKETED_PASTE_END}`);
-          schedulePromptTimer(
-            session,
-            sessionId,
-            () => {
-              appendDebugLog(session, `initial-prompt-submit session=${sessionId}`);
-              session.pty.write("\r");
-            },
-            INITIAL_PROMPT_SUBMIT_DELAY_MS,
-          );
-        },
-        INITIAL_PROMPT_DELAY_MS,
-      );
-    }
-
-    if (session.initialInputDraft && !session.isInitialInputDraftSent && !session.initialPrompt) {
-      schedulePromptTimer(
-        session,
-        sessionId,
-        () => {
-          if (session.isInitialInputDraftSent) {
-            return;
-          }
-          session.isInitialInputDraftSent = true;
-          appendDebugLog(session, `initial-input-draft session=${sessionId}`);
-          const draft = session.initialInputDraft ?? "";
-          session.pty.write(`${BRACKETED_PASTE_START}${draft}${BRACKETED_PASTE_END}`);
-        },
-        INITIAL_PROMPT_DELAY_MS,
-      );
-    }
+  const scheduleIdleCloseIfNeeded = (session: TerminalSession, sessionId: string): void => {
+    lifecycleScheduleIdleClose(session, sessionId, sessions, sessionIdleGraceMs, boundCloseSession);
   };
 
-  const ensureSession = (sessionId: string, tentacleId: string) => {
-    const existingSession = sessions.get(sessionId);
-    if (existingSession) {
-      return existingSession;
-    }
+  // -------------------------------------------------------------------------
+  // Bootstrap helper (bound)
+  // -------------------------------------------------------------------------
 
-    if (sessions.size >= sessionLimit) {
-      throw new Error(
-        `Terminal session limit reached (${sessionLimit}). Close an existing terminal session or increase SENTIPH_MAX_TERMINAL_SESSIONS.`,
-      );
-    }
-
-    const terminalRecord = terminals.get(sessionId);
-
-    const tentacleCwd = getTentacleWorkspaceCwd(tentacleId);
-    if (!existsSync(tentacleCwd)) {
-      throw new Error(`Terminal working directory does not exist: ${tentacleCwd}`);
-    }
-
-    const claudePlan = planClaudeBootstrap(terminalRecord, tentacleCwd);
-    if (terminalRecord && claudePlan.sessionIdToPersist) {
-      terminalRecord.claudeSessionId = claudePlan.sessionIdToPersist;
-    }
-
-    ensureNodePtySpawnHelperExecutable();
-    const shellLaunch = getShellLaunch();
-
-    const thinkingTokens = terminalRecord?.effort
-      ? CLAUDE_EFFORT_THINKING_TOKENS[terminalRecord.effort]
-      : undefined;
-
-    let pty: IPty;
-    try {
-      pty = spawn(shellLaunch.command, shellLaunch.args, {
-        cols: DEFAULT_PTY_COLS,
-        rows: DEFAULT_PTY_ROWS,
-        cwd: tentacleCwd,
-        env: createShellEnvironment({
-          sentiphSessionId: sessionId,
-          ...(thinkingTokens !== undefined ? { maxThinkingTokens: thinkingTokens } : {}),
-        }),
-        name: "xterm-256color",
-      });
-    } catch (error) {
-      throw new Error(formatShellSpawnError(shellLaunch.command, toErrorMessage(error)));
-    }
-
-    const stateTracker = new AgentStateTracker();
-    const debugLog = createDebugLogFile(sessionId, isDebugPtyLogsEnabled, ptyLogDir);
-    const session: TerminalSession = {
-      terminalId: sessionId,
-      tentacleId,
-      pty,
-      clients: new Set(),
-      directListeners: new Set(),
-      cols: DEFAULT_PTY_COLS,
-      rows: DEFAULT_PTY_ROWS,
-      agentState: stateTracker.currentState,
-      agentStateChangedAt: Date.now(),
-      stateTracker,
-      isBootstrapCommandSent: false,
-      scrollbackChunks: [],
-      scrollbackBytes: 0,
-      pendingInput: "",
-      keepAliveWithoutClients:
-        Boolean(terminalRecord?.initialPrompt) || tentacleId === SENTIPH_TENTACLE_ID,
-    };
-    if (debugLog) {
-      session.debugLog = debugLog;
-    }
-    if (claudePlan.flags.length > 0) {
-      session.claudeBootstrapFlags = claudePlan.flags;
-    }
-    if (claudePlan.banner) {
-      session.claudeResumeBanner = claudePlan.banner;
-    }
-
-    const transcriptLog = openTranscriptLog(sessionId);
-    if (transcriptLog) {
-      session.transcriptLog = transcriptLog;
-      session.transcriptEventCount = 0;
-    }
-
-    appendDebugLog(session, `session-start session=${sessionId} tentacle=${tentacleId}`);
-    const startedAt = new Date().toISOString();
-    const processId =
-      typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
-
-    appendTranscriptEvent(session, {
-      type: "session_start",
-      eventId: `${sessionId}:${++transcriptEventSequence}`,
-      sessionId,
-      tentacleId,
-      timestamp: startedAt,
-    });
-
-    onSessionStart?.(sessionId, {
-      startedAt,
-      ...(processId ? { processId } : {}),
-    });
-    session.statePollTimer = setInterval(() => {
-      emitStateIfChanged(session, sessionId, session.stateTracker.poll(Date.now()));
-    }, 300);
-
-    const dataDisposable = session.pty.onData((chunk) => {
-      if (session.isClosed) {
-        return;
-      }
-
-      appendDebugLog(session, `pty-output session=${sessionId} chunk=${JSON.stringify(chunk)}`);
-      appendScrollback(session, chunk);
-      onOutputChunk?.(sessionId, chunk);
-      const nextState = session.stateTracker.observeChunk(chunk, Date.now());
-      broadcastMessage(session, {
-        type: "output",
-        data: chunk,
-      });
-      emitStateIfChanged(session, sessionId, nextState);
-    });
-
-    const exitDisposable = session.pty.onExit(({ exitCode, signal }) => {
-      if (session.isClosed) {
-        return;
-      }
-
-      const message = `\r\n[terminal exited (code ${exitCode}, signal ${signal})]\r\n`;
-      broadcastMessage(session, {
-        type: "output",
-        data: message,
-      });
-
-      appendDebugLog(
-        session,
-        `session-exit session=${sessionId} code=${exitCode} signal=${signal}`,
-      );
-      teardownSession(
-        sessionId,
-        session,
-        {
-          type: "session_end",
-          reason: "pty_exit",
-          ...(Number.isFinite(exitCode) ? { exitCode } : {}),
-          ...(Number.isFinite(signal) ? { signal } : {}),
-          timestamp: new Date().toISOString(),
-        },
-        { killPty: false },
-      );
-    });
-    session.ptyDisposables = [dataDisposable, exitDisposable];
-
-    // Propagate initial prompt from the terminal definition, if set.
-    if (terminalRecord?.initialPrompt) {
-      session.initialPrompt = terminalRecord.initialPrompt;
-    }
-    if (terminalRecord?.initialInputDraft) {
-      session.initialInputDraft = terminalRecord.initialInputDraft;
-    }
-
-    sessions.set(sessionId, session);
-    return session;
+  const boundEnsureAgentBootstrapped = (sessionId: string, session: TerminalSession): void => {
+    ensureAgentBootstrapped(sessionId, session, bootstrapCtx);
   };
+
+  // -------------------------------------------------------------------------
+  // Public API
+  // -------------------------------------------------------------------------
+
+  const closeSession = boundCloseSession;
+
+  const stopSession = (sessionId: string): boolean =>
+    lifecycleStopSession(sessionId, sessions, teardownCtx);
+
+  const killSession = (sessionId: string, signal = "SIGKILL"): boolean =>
+    lifecycleKillSession(sessionId, signal, sessions, teardownCtx);
 
   const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
     const terminalId = getTerminalId(request);
@@ -585,7 +262,7 @@ export const createSessionRuntime = ({
     websocketServer.handleUpgrade(request, socket, head, (websocket: WebSocket) => {
       let session: TerminalSession;
       try {
-        session = ensureSession(sessionId, tentacleId);
+        session = ensureSession(sessionId, tentacleId, ensureSessionCtx);
       } catch (error) {
         sendMessage(websocket, {
           type: "output",
@@ -598,7 +275,7 @@ export const createSessionRuntime = ({
       session.clients.add(websocket);
       appendDebugLog(session, `ws-open session=${sessionId} clients=${session.clients.size}`);
       clearIdleCloseTimer(session);
-      ensureAgentBootstrapped(sessionId, session);
+      boundEnsureAgentBootstrapped(sessionId, session);
       sendHistory(websocket, session);
       sendMessage(websocket, {
         type: "state",
@@ -624,7 +301,7 @@ export const createSessionRuntime = ({
             );
             session.pty.write(payload.data);
             if (/[\r\n]/.test(payload.data)) {
-              emitStateIfChanged(
+              boundEmitStateIfChanged(
                 session,
                 sessionId,
                 session.stateTracker.observeSubmit(Date.now()),
@@ -685,16 +362,15 @@ export const createSessionRuntime = ({
 
     let session: TerminalSession;
     try {
-      session = ensureSession(sessionId, tentacleId);
+      session = ensureSession(sessionId, tentacleId, ensureSessionCtx);
     } catch {
       return null;
     }
 
     session.directListeners.add(listener);
     clearIdleCloseTimer(session);
-    ensureAgentBootstrapped(sessionId, session);
+    boundEnsureAgentBootstrapped(sessionId, session);
 
-    // Send history and current state to the new listener
     if (session.scrollbackChunks.length > 0) {
       listener({ type: "history", data: session.scrollbackChunks.join("") });
     }
@@ -719,13 +395,13 @@ export const createSessionRuntime = ({
     const { sessionId, tentacleId } = resolvedSession;
     let session: TerminalSession;
     try {
-      session = ensureSession(sessionId, tentacleId);
+      session = ensureSession(sessionId, tentacleId, ensureSessionCtx);
     } catch {
       return false;
     }
 
     clearIdleCloseTimer(session);
-    ensureAgentBootstrapped(sessionId, session);
+    boundEnsureAgentBootstrapped(sessionId, session);
     return true;
   };
 
@@ -737,7 +413,7 @@ export const createSessionRuntime = ({
 
     session.pty.write(data);
     if (/[\r\n]/.test(data)) {
-      emitStateIfChanged(session, terminalId, session.stateTracker.observeSubmit(Date.now()));
+      boundEmitStateIfChanged(session, terminalId, session.stateTracker.observeSubmit(Date.now()));
     }
     return true;
   };

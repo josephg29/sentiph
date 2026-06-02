@@ -11,7 +11,7 @@ const INACTIVE_SESSION_RADIUS = 10;
 
 const SENTIPH_RADIUS = 52;
 export const SENTIPH_ID = "__sentiph__";
-export const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
+const SENTIPH_NODE_ID = `t:${SENTIPH_ID}`;
 
 const getAccentPrimary = (): string =>
   typeof document !== "undefined"

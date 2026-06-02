@@ -10,20 +10,6 @@ export type AvailableClaudeSkill = {
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const H1_PATTERN = /^#\s+(.+)$/m;
 
-const normalizeSkillNames = (skills: readonly string[]): string[] => {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-
-  for (const skill of skills) {
-    const trimmed = skill.trim();
-    if (trimmed.length === 0 || seen.has(trimmed)) continue;
-    seen.add(trimmed);
-    normalized.push(trimmed);
-  }
-
-  return normalized.sort((a, b) => a.localeCompare(b));
-};
-
 const readSkillMetadata = (
   skillFilePath: string,
 ): { name: string; description: string; title: string | null } => {
