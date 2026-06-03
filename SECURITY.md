@@ -34,9 +34,8 @@ latest published release.
 Please report suspected vulnerabilities privately rather than opening a public
 issue:
 
-1. Use GitHub's **"Report a vulnerability"** flow under the repository's
-   **Security** tab (private advisory), or
-2. Email the maintainer listed in [`package.json`](package.json).
+- Use GitHub's **"Report a vulnerability"** flow under the repository's
+  **Security** tab (private advisory).
 
 Include a description, reproduction steps, and the affected version or commit.
 You can expect an initial acknowledgement within a few business days. Please give

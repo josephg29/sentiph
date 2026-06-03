@@ -17,9 +17,16 @@
 /.claude
 /.codex
 /.octogent
+/.agents
 .sentiph/
 **/.sentiph/
 /context
+/references
+
+# Internal scaffolding (not for the public repo)
+/docs/reports/
+/docs/ux-to-a-roadmap.md
+/scripts/grade-report-gen.mjs
 
 # Playwright MCP test artifacts
 .playwright-mcp/
