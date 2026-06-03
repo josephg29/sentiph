@@ -90,8 +90,18 @@ function serverError(errorMsg = "internal error"): Response {
   return new Response(JSON.stringify({ error: errorMsg }), { status: 500 });
 }
 
+// Keep the orchestrating-parent env var out of the ambient environment so these
+// tests are hermetic: sentiphMcp.ts reads SENTIPH_SESSION_ID lazily, and most
+// tests assume no parent (parentTerminalId === null). Without this, running the
+// suite from inside a Sentiph session (where SENTIPH_SESSION_ID is set) changes
+// list_terminals filtering and fails these tests.
+beforeEach(() => {
+  vi.stubEnv("SENTIPH_SESSION_ID", undefined);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 // ─── JSON-RPC protocol tests ──────────────────────────────────────────────────

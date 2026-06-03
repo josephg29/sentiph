@@ -11,7 +11,12 @@ import {
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
-export const GLOBAL_SENTIPH_DIR = join(homedir(), ".sentiph");
+// Base directory for global Sentiph state. Defaults to the user's home
+// directory; `SENTIPH_HOME_DIR` overrides it so tests (and sandboxed runs) can
+// point global state at an isolated location instead of the real `~/.sentiph`.
+const SENTIPH_HOME_DIR = process.env.SENTIPH_HOME_DIR ?? homedir();
+
+export const GLOBAL_SENTIPH_DIR = join(SENTIPH_HOME_DIR, ".sentiph");
 export const PROJECTS_FILE = join(GLOBAL_SENTIPH_DIR, "projects.json");
 export const PROJECT_CONFIG_RELATIVE_PATH = join(".sentiph", "project.json");
 

@@ -24,7 +24,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The readline mock must already be in place — sentiphMcp.test.ts imports the
 // module first. We re-use the same fakeRl by re-mocking readline identically.
@@ -83,8 +83,15 @@ function okText(text: string, status = 200): Response {
   return new Response(text, { status });
 }
 
+// sentiphMcp.ts reads SENTIPH_SESSION_ID lazily; clear it so these branch tests
+// run with no orchestrating parent regardless of the ambient environment.
+beforeEach(() => {
+  vi.stubEnv("SENTIPH_SESSION_ID", undefined);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 // ---------------------------------------------------------------------------
@@ -381,5 +388,35 @@ describe("tool: send_prompt branches — processing without changedAt", () => {
     expect(text).toMatch(/blocked/i);
     // No "processing for Xs" since changedAt is missing
     expect(text).not.toMatch(/processing for \d+s/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_terminals: SENTIPH_SESSION_ID set → filters to own children
+// ---------------------------------------------------------------------------
+// Previously untestable: parentTerminalId was a module-load constant, so a test
+// could never exercise the "running as a parent" branch. It is now read lazily.
+describe("tool: list_terminals branches — orchestrating parent set", () => {
+  it("shows only children whose parentTerminalId matches SENTIPH_SESSION_ID", async () => {
+    vi.stubEnv("SENTIPH_SESSION_ID", "parent-1");
+    const snapshots = [
+      { terminalId: "mine", tentacleName: "Mine", parentTerminalId: "parent-1" },
+      { terminalId: "theirs", tentacleName: "Theirs", parentTerminalId: "parent-2" },
+      { terminalId: "orphan", tentacleName: "Orphan", parentTerminalId: null },
+    ];
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okJson(snapshots)));
+
+    const res = await sendLineAsync({
+      jsonrpc: "2.0",
+      id: 250,
+      method: "tools/call",
+      params: { name: "list_terminals", arguments: {} },
+    });
+
+    const text = (res.result as { content: Array<{ text: string }> }).content[0]?.text ?? "";
+    expect(text).toContain("mine");
+    expect(text).not.toContain("theirs");
+    expect(text).not.toContain("orphan");
   });
 });

@@ -26,7 +26,17 @@ import {
   ensureNodePtySpawnHelperExecutable,
 } from "../src/terminalRuntime/ptyEnvironment";
 
+// createShellEnvironment copies the entire process.env, so the "does not set X"
+// assertions only hold when these vars are absent from the ambient environment.
+// Running the suite inside a Sentiph session sets SENTIPH_SESSION_ID; clear the
+// vars under test so the assertions are hermetic, then restore.
+beforeEach(() => {
+  vi.stubEnv("SENTIPH_SESSION_ID", undefined);
+  vi.stubEnv("MAX_THINKING_TOKENS", undefined);
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   existsSyncMock.mockReset();
   statSyncMock.mockReset();

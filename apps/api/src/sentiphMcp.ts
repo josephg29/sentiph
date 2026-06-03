@@ -1,8 +1,17 @@
 import { createInterface } from "node:readline";
 
 const apiOrigin = process.env.SENTIPH_API_ORIGIN ?? "http://127.0.0.1:8787";
-const parentTerminalId = process.env.SENTIPH_SESSION_ID ?? null;
 const MAX_PROMPT_LENGTH = 8192;
+
+/**
+ * Read the orchestrating parent's terminal ID from the environment.
+ *
+ * Resolved lazily (per call) rather than captured in a module-load constant so
+ * that the value reflects the process environment at request time. This keeps
+ * the MCP tools testable: a test can control `SENTIPH_SESSION_ID` without the
+ * value being frozen at import.
+ */
+const getParentTerminalId = (): string | null => process.env.SENTIPH_SESSION_ID ?? null;
 
 const TOOLS = [
   {
@@ -140,6 +149,7 @@ const handleToolCall = async (name: string, args: Record<string, unknown>): Prom
     }
     const snapshots = (await res.json()) as Array<Record<string, unknown>>;
 
+    const parentTerminalId = getParentTerminalId();
     const children = parentTerminalId
       ? snapshots.filter((s) => s.parentTerminalId === parentTerminalId)
       : snapshots.filter((s) => s.parentTerminalId !== undefined && s.parentTerminalId !== null);
@@ -232,6 +242,7 @@ const handleToolCall = async (name: string, args: Record<string, unknown>): Prom
       workspaceMode: "shared",
       initialPrompt: prompt,
     };
+    const parentTerminalId = getParentTerminalId();
     if (parentTerminalId) {
       body.parentTerminalId = parentTerminalId;
     }
