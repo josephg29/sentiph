@@ -40,7 +40,7 @@ The two apps communicate over HTTP (CRUD, snapshots, prompt resolution) and two 
 ## Prerequisites
 
 - Node.js `22+`
-- pnpm `10+`
+- pnpm `10+` (required for workspace management; npm alone is not enough)
 - `claude` CLI (Claude Code)
 - `git` (required for worktree-isolated sessions)
 - `gh` (required for GitHub pull-request features)
@@ -66,7 +66,7 @@ sentiph
 
 On first run, Sentiph initialises a `.sentiph/` scaffold in the current directory, assigns a stable project ID, and opens the UI in the browser.
 
-> Sentiph is not yet published to npm, so `npm install -g sentiph` is not a valid install path.
+> Sentiph is not yet published to the npm registry, so `npm install -g sentiph` is not a valid install path.
 
 ## Running in development
 
@@ -76,6 +76,12 @@ pnpm dev
 ```
 
 `pnpm dev` starts `@sentiph/api` and `@sentiph/web` in parallel. The dev runner picks an available port starting at `8787` and passes it to both processes as `SENTIPH_API_PORT`.
+
+You can also start the dev server with npm after the initial `pnpm install`:
+
+```bash
+npm run dev
+```
 
 ## Building
 

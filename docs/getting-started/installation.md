@@ -5,6 +5,7 @@ Sentiph is a local Node.js project with a local API and web UI.
 ## Requirements
 
 - Node.js `22+`
+- pnpm `10+` — required for workspace dependency management
 - `claude` for the supported workflow
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
@@ -14,9 +15,18 @@ The current docs are Claude Code-first. Some provider plumbing exists in the cod
 
 ## Local development install
 
+Install dependencies with pnpm (required — npm alone cannot resolve workspace packages):
+
 ```bash
 pnpm install
+```
+
+Start the dev server. Either command works:
+
+```bash
 pnpm dev
+# or
+npm run dev
 ```
 
 ## Local global CLI install from a clone
@@ -26,6 +36,8 @@ pnpm install
 pnpm build
 npm install -g .
 ```
+
+The final `npm install -g .` step uses npm to link the built package globally — this is intentional and does not require pnpm.
 
 ## npm registry install
 
