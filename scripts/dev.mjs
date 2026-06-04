@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;
@@ -66,7 +67,7 @@ const apiOrigin = `http://127.0.0.1:${apiPort}`;
 
 console.log(`[sentiph-dev] using api port ${apiPort}`);
 
-const monorepoRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+const monorepoRoot = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "");
 
 // Resolve project state dir from global registry.
 const resolveProjectStateDir = (workspaceCwd) => {
@@ -115,6 +116,7 @@ const child = spawn(
   ["-r", "--parallel", "--filter", "@sentiph/api", "--filter", "@sentiph/web", "dev"],
   {
     stdio: "inherit",
+    shell: process.platform === "win32",
     env: {
       ...process.env,
       SENTIPH_API_PORT: String(apiPort),
