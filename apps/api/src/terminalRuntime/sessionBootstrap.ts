@@ -4,6 +4,7 @@ import { type IPty, spawn } from "node-pty";
 
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
 import { buildBootstrapCommand, planClaudeBootstrap } from "./claudeBootstrap";
+import { resolveClaudeCommand } from "./claudeExecutable";
 import {
   CLAUDE_EFFORT_THINKING_TOKENS,
   DEFAULT_AGENT_PROVIDER,
@@ -66,6 +67,12 @@ export const ensureAgentBootstrapped = (
   const bootstrapCommand = buildBootstrapCommand({
     provider,
     tentacleId: session.tentacleId,
+    // Resolve against the same environment the PTY shell inherits so the
+    // launcher token is one cmd.exe/bash can actually execute. Without this a
+    // bare `claude` can bind to a `.ps1`/extensionless shim on Windows that
+    // cmd.exe refuses ("The system cannot execute the specified program"),
+    // leaving the terminal in a raw shell that swallows the task brief.
+    claudeExecutable: resolveClaudeCommand(),
     ...(terminal?.isGroupLeader ? { isGroupLeader: terminal.isGroupLeader } : {}),
     ...(session.claudeBootstrapFlags ? { claudeBootstrapFlags: session.claudeBootstrapFlags } : {}),
     ...(ctx.sentiphMcpConfigPath ? { sentiphMcpConfigPath: ctx.sentiphMcpConfigPath } : {}),

@@ -22,6 +22,20 @@ Check that your shell environment is available and executable.
 
 If startup fails with `Terminal session limit reached`, Sentiph already has the configured number of live PTY-backed sessions. Stop unused terminals with `sentiph terminal stop <terminal-id>` or prune inactive records with `sentiph terminal prune`. The default cap is 32; set `SENTIPH_MAX_TERMINAL_SESSIONS` to a positive integer before starting Sentiph to adjust it.
 
+## A spawned terminal drops to a raw shell instead of launching Claude (Windows)
+
+Symptom: a newly spawned worker shows `The system cannot execute the specified program.` and then echoes the task brief as a shell command (e.g. `'You' is not recognized as an internal or external command`).
+
+Cause: the terminal's shell (`cmd.exe`) could not execute a bare `claude`. This happens when `claude` resolves to a `claude.ps1` shim (common when `PATHEXT` lists `.PS1` ahead of `.CMD`) or to the extensionless `claude` bash script — neither of which `cmd.exe` can run.
+
+Sentiph resolves `claude` to a `cmd.exe`-executable wrapper (`.cmd`/`.exe`/`.bat`) automatically. If your install lives somewhere non-standard, point Sentiph at the exact launcher before starting it:
+
+```powershell
+$env:SENTIPH_CLAUDE_PATH = "C:\path\to\claude.cmd"
+```
+
+`SENTIPH_CLAUDE_PATH` overrides resolution on every platform. Verify the target runs with `cmd /c "<path>" --version`.
+
 ## Worktree terminal creation fails
 
 Verify:

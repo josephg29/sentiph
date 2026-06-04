@@ -24,6 +24,11 @@ export type BuildBootstrapCommandOptions = {
   claudeBootstrapFlags?: string[];
   sentiphMcpConfigPath?: string;
   sentiphSystemPromptPath?: string;
+  // Shell token used to invoke Claude Code. Defaults to the bare `claude`
+  // word; callers pass a resolved, shell-executable path (see
+  // resolveClaudeCommand) so the command works in the spawned PTY shell —
+  // notably cmd.exe on Windows, which cannot launch a bare `claude`.
+  claudeExecutable?: string;
 };
 
 export const buildBootstrapCommand = ({
@@ -33,8 +38,19 @@ export const buildBootstrapCommand = ({
   claudeBootstrapFlags,
   sentiphMcpConfigPath,
   sentiphSystemPromptPath,
+  claudeExecutable,
 }: BuildBootstrapCommandOptions): string => {
-  const claudeBase = TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude";
+  // Split the configured base command into the executable head and its static
+  // flags, then swap the head for the resolved executable when provided. The
+  // resolved path may contain spaces (already quoted), so it is kept as a
+  // single token rather than re-split.
+  const baseTokens = (TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER] ?? "claude")
+    .split(/\s+/)
+    .filter((token) => token.length > 0);
+  const head = claudeExecutable ?? baseTokens[0] ?? "claude";
+  const baseFlags = baseTokens.slice(1);
+  const baseCommand = [head, ...baseFlags].join(" ");
+
   if (tentacleId === SENTIPH_TENTACLE_ID) {
     const flags: string[] = [];
     if (sentiphMcpConfigPath) {
@@ -46,23 +62,17 @@ export const buildBootstrapCommand = ({
       // The inner quotes around the path tolerate spaces in stateDir.
       flags.push(`--append-system-prompt "$(cat "${sentiphSystemPromptPath}")"`);
     }
-    return flags.length > 0 ? `${claudeBase} ${flags.join(" ")}` : claudeBase;
+    return flags.length > 0 ? `${baseCommand} ${flags.join(" ")}` : baseCommand;
   }
   if (provider === "claude-code" && isGroupLeader && sentiphMcpConfigPath) {
-    const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
-    const head = baseTokens[0] ?? "claude";
-    const tail = baseTokens.slice(1);
     const resumeFlags = claudeBootstrapFlags ?? [];
-    return [head, ...resumeFlags, `--mcp-config "${sentiphMcpConfigPath}"`, ...tail].join(" ");
+    return [head, ...resumeFlags, `--mcp-config "${sentiphMcpConfigPath}"`, ...baseFlags].join(" ");
   }
   if (provider === "claude-code") {
-    const baseTokens = claudeBase.split(/\s+/).filter((token) => token.length > 0);
-    const head = baseTokens[0] ?? "claude";
-    const tail = baseTokens.slice(1);
     const resumeFlags = claudeBootstrapFlags ?? [];
-    return [head, ...resumeFlags, ...tail].join(" ");
+    return [head, ...resumeFlags, ...baseFlags].join(" ");
   }
-  return TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? claudeBase;
+  return TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? baseCommand;
 };
 
 const claudeProjectsDir = (): string => {

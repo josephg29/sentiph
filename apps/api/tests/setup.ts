@@ -19,6 +19,13 @@ import { afterAll } from "vitest";
 const isolatedHome = mkdtempSync(join(tmpdir(), "sentiph-test-home-"));
 process.env.SENTIPH_HOME_DIR = isolatedHome;
 
+// Pin the Claude launcher token so bootstrap-command assertions stay
+// deterministic regardless of the host OS or how `claude` is installed there.
+// resolveClaudeCommand() otherwise probes PATH and, on Windows, returns an
+// absolute `claude.cmd` path — which would break the exact-string checks that
+// integration tests make against the PTY bootstrap write.
+process.env.SENTIPH_CLAUDE_PATH = "claude";
+
 afterAll(() => {
   rmSync(isolatedHome, { recursive: true, force: true });
 });
