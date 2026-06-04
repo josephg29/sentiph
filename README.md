@@ -9,7 +9,6 @@
 
 Running several Claude Code sessions at once gets unwieldy fast — context gets lost, windows multiply, and there is no shared source of truth between sessions. Sentiph wraps each job in a durable file-based session, shows every active session on a visual canvas, and lets one Claude Code session spawn and coordinate others, all from a local web UI backed by a WebSocket/PTY API.
 
-![Sentiph canvas — active agent sessions on an interactive graph](static/images/preview_1.jpg)
 
 ## Highlights
 
