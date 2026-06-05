@@ -101,7 +101,11 @@ describe("readCodexUsageSnapshot", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://chatgpt.com/backend-api/wham/usage");
 
     expect(writeFileText).toHaveBeenCalledTimes(1);
-    expect(writeFileText.mock.calls[0]?.[0]).toBe("/workspace/.codex/auth.json");
+    // Normalize separators so the assertion holds on both POSIX and Windows
+    // (path.join produces "\" on Windows).
+    expect(writeFileText.mock.calls[0]?.[0]?.replace(/\\/g, "/")).toBe(
+      "/workspace/.codex/auth.json",
+    );
     expect(writeFileText.mock.calls[0]?.[1]).toContain("fresh-access-token");
   });
 });

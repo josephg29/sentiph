@@ -24,7 +24,7 @@
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -285,7 +285,7 @@ describe("toProjectRegistryEntry — legacy path (no id field)", () => {
     try {
       const config = ensureProjectConfig(workspace);
       // basename fallback
-      const base = workspace.split("/").pop() ?? "";
+      const base = basename(workspace);
       expect(config.displayName).toBe(base);
     } finally {
       if (originalContent !== null) {

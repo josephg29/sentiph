@@ -88,7 +88,10 @@ describe("writeSentiphMcpConfig", () => {
     }
   });
 
-  it("sets file mode to 0o600 (owner read/write only)", () => {
+  // Skipped on Windows: NTFS does not enforce Unix mode bits, so a file
+  // written with mode 0o600 reports 0o666 when stat'd. The source still
+  // requests 0o600 for POSIX security; only the assertion is platform-gated.
+  it.skipIf(process.platform === "win32")("sets file mode to 0o600 (owner read/write only)", () => {
     const configPath = writeSentiphMcpConfig(tmpDir);
     const stat = statSync(configPath);
     // Mask to the permission bits (ignoring file type bits)
@@ -139,7 +142,10 @@ describe("writeSentiphSystemPrompt", () => {
     }
   });
 
-  it("sets file mode to 0o600", () => {
+  // Skipped on Windows: NTFS does not enforce Unix mode bits, so a file
+  // written with mode 0o600 reports 0o666 when stat'd. The source still
+  // requests 0o600 for POSIX security; only the assertion is platform-gated.
+  it.skipIf(process.platform === "win32")("sets file mode to 0o600", () => {
     const promptPath = writeSentiphSystemPrompt(tmpDir);
     if (promptPath) {
       const stat = statSync(promptPath);

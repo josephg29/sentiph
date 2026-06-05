@@ -109,7 +109,9 @@ describe("readCodexUsageSnapshot – credential formats", () => {
       fetchImpl,
     });
 
-    expect(capturedPath).toContain("/custom/codex");
+    // Normalize separators so the assertion holds on both POSIX and Windows
+    // (path.join produces "\" on Windows).
+    expect(capturedPath.replace(/\\/g, "/")).toContain("/custom/codex");
     expect(snapshot.status).toBe("ok");
   });
 
@@ -127,8 +129,11 @@ describe("readCodexUsageSnapshot – credential formats", () => {
       fetchImpl,
     });
 
-    expect(capturedPath).toMatch(/\.codex\/auth\.json$/);
-    expect(capturedPath).not.toContain("/custom/codex");
+    // Normalize separators so the assertion holds on both POSIX and Windows
+    // (path.join produces "\" on Windows).
+    const normalizedPath = capturedPath.replace(/\\/g, "/");
+    expect(normalizedPath).toMatch(/\.codex\/auth\.json$/);
+    expect(normalizedPath).not.toContain("/custom/codex");
   });
 
   it("ignores whitespace-only access_token values", async () => {

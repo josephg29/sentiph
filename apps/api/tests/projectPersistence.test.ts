@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -312,7 +312,7 @@ describe("ensureProjectConfig", () => {
   it("falls back to directory basename when no name is given", () => {
     const workspace = makeTempDir();
     const config = ensureProjectConfig(workspace);
-    const base = workspace.split("/").pop() ?? "";
+    const base = basename(workspace);
     expect(config.displayName).toBe(base);
   });
 
