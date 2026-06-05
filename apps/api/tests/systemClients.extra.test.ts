@@ -216,6 +216,10 @@ describe("isNoPullRequestError", () => {
     expect(isNoPullRequestError(makeErr({ stderr: "no open pull requests" }))).toBe(true);
   });
 
+  it("matches 'no git remotes found' (a remoteless repo has no PR)", () => {
+    expect(isNoPullRequestError(makeErr({ stderr: "no git remotes found" }))).toBe(true);
+  });
+
   it("returns false for generic network errors", () => {
     expect(isNoPullRequestError(makeErr({ stderr: "timeout" }))).toBe(false);
   });

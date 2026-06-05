@@ -47,7 +47,7 @@ describe("RuntimeStatusStrip", () => {
     );
 
     const usage = screen.getByLabelText("Claude usage limits");
-    expect(within(usage).getAllByText("NA")).toHaveLength(2);
+    expect(within(usage).getAllByText("n/a")).toHaveLength(2);
     expect(within(usage).queryByText("···")).toBeNull();
   });
 

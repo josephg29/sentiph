@@ -118,7 +118,11 @@ export const isNoPullRequestError = (error: unknown) => {
   return (
     details.includes("no pull requests found") ||
     details.includes("could not find any pull requests") ||
-    details.includes("no open pull requests")
+    details.includes("no open pull requests") ||
+    // A repository with no remote cannot have a pull request. The dashboard
+    // reads PR info for every worktree terminal, so treat this as "no PR"
+    // instead of letting it surface as an unhandled 500.
+    details.includes("no git remotes")
   );
 };
 

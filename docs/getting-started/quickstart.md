@@ -32,7 +32,7 @@ sentiph tentacle create api-backend --description "API runtime and request handl
 
 Or use the Deck view in the UI.
 
-Each session becomes a folder under `.sentiph/sessions/<session-id>/`.
+Each session becomes a folder under `.sentiph/tentacles/<session-id>/`.
 
 ## 3. Let the agent build the local session
 

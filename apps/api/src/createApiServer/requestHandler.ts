@@ -11,6 +11,7 @@ import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logError, logVerbose } from "../logging";
 import { createPairingService as createDefaultPairingService } from "../pairing";
 import type { PairingService } from "../pairing";
+import { handleChannelMessagesRoute } from "./channelRoutes";
 import {
   handleConversationExportRoute,
   handleConversationItemRoute,
@@ -43,6 +44,7 @@ import {
   isAuthorizedRequest,
   readHeaderValue,
 } from "./security";
+import { handleTentaclesCollectionRoute } from "./tentacleRoutes";
 import {
   handleTerminalActionRoute,
   handleTerminalInputRoute,
@@ -125,7 +127,11 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleTerminalItemRoute,
     ],
   ],
-  ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
+  [
+    "tentacles",
+    [handleTentaclesCollectionRoute, handleTentacleGitRoute, handleTentacleGitPullRequestRoute],
+  ],
+  ["channels", [handleChannelMessagesRoute]],
   ["hooks", [handleHookSessionStartRoute, handleHookUserPromptSubmitRoute]],
   [
     "conversations",

@@ -24,14 +24,24 @@ Terminal snapshots include `lifecycleState` when known. Supported lifecycle stat
 
 Creating a terminal registers metadata first. A PTY starts immediately only when an initial prompt is provided, a WebSocket attaches, or an internal direct listener starts the session. Worktree terminals also create their worktree before the terminal record is exposed.
 
+## Tentacles (sessions)
+
+- `GET /api/tentacles` - lists tentacle (session) summaries
+- `POST /api/tentacles` - creates a tentacle (session) folder and `CONTEXT.md`
+
+The POST body provides `name` and optional `description` and `tentacleId`. When
+`tentacleId` is omitted, the id is a slug of the name.
+
 ## Git and worktrees
 
-- `GET /api/sessions/:sessionId/git/status` - reads git status for a worktree-backed session
-- `POST /api/sessions/:sessionId/git/commit` - creates a commit from the session worktree
-- `POST /api/sessions/:sessionId/git/push` - pushes the session branch
-- `POST /api/sessions/:sessionId/git/sync` - syncs the session worktree with its base branch
-- `GET /api/sessions/:sessionId/git/pr` - reads pull request information for the session branch
-- `POST /api/sessions/:sessionId/git/pr/merge` - merges the session pull request
+Worktree-backed sessions are addressed by tentacle id:
+
+- `GET /api/tentacles/:tentacleId/git/status` - reads git status for a worktree-backed session
+- `POST /api/tentacles/:tentacleId/git/commit` - creates a commit from the session worktree
+- `POST /api/tentacles/:tentacleId/git/push` - pushes the session branch
+- `POST /api/tentacles/:tentacleId/git/sync` - syncs the session worktree with its base branch
+- `GET /api/tentacles/:tentacleId/git/pr` - reads pull request information for the session branch
+- `POST /api/tentacles/:tentacleId/git/pr/merge` - merges the session pull request
 
 ## Prompts
 

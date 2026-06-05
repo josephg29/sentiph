@@ -6,7 +6,7 @@ Sentiph uses child terminals to split work into parallel streams.
 
 A child agent is a normal terminal record with `parentTerminalId` set. The relationship is stored in the terminal registry and shown in the UI; the child still has its own terminal ID, lifecycle state, transcript, workspace mode, and optional worktree.
 
-Deck creates child agents by resolving prompt templates. The prompt receives the session name, session ID, path to `.sentiph/sessions/<session-id>/`, terminal ID, API port, workspace guidance, and parent terminal ID when a parent exists.
+Deck creates child agents by resolving prompt templates. The prompt receives the session name, session ID, path to `.sentiph/tentacles/<session-id>/`, terminal ID, API port, workspace guidance, and parent terminal ID when a parent exists.
 
 ## When to use child agents
 

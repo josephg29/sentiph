@@ -4,7 +4,7 @@ Sessions are the core abstraction in Sentiph.
 
 ## What a session is
 
-A session is a folder under `.sentiph/sessions/<session-id>/` that stores agent-readable markdown files.
+A session is a folder under `.sentiph/tentacles/<session-id>/` that stores agent-readable markdown files.
 
 The minimum useful file is:
 

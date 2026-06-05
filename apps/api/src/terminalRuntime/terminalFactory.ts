@@ -181,7 +181,9 @@ export const createTerminal = (
       const headingMatch = /^#\s+(.+)$/m.exec(contextContent);
       if (headingMatch) {
         const sectionName = (headingMatch[1] ?? "").trim();
-        const relativeTentacleDir = relative(ctx.workspaceCwd, tentacleDir);
+        // Use forward slashes so the agent-facing prompt is consistent and
+        // portable across platforms (backslashes leak on Windows otherwise).
+        const relativeTentacleDir = relative(ctx.workspaceCwd, tentacleDir).replace(/\\/g, "/");
         initialInputDraft = `You are working on the ${sectionName} section. For tool-list items, context, and docs, check ${relativeTentacleDir}.`;
       }
     }

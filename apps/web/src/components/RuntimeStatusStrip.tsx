@@ -42,7 +42,9 @@ const buildUsageBars = (data: UsageChartData): MiniBar[] => {
 
 const pct = (value: number | null | undefined, loading?: boolean): string => {
   if (loading) return "···";
-  return value == null ? "NA" : `${Math.round(value)}%`;
+  // Lowercase to match the rest of the strip ("session", "week (all)", "5h");
+  // "NA" was the only uppercase token and read as a stray abbreviation.
+  return value == null ? "n/a" : `${Math.round(value)}%`;
 };
 
 const usageState = (

@@ -4,7 +4,7 @@ These docs are written for contributors and future coding agents. They explain h
 
 Sentiph has three main layers:
 
-- **agent-facing files** in `.sentiph/sessions/<session-id>/`, which hold notes, architecture, and handoff information
+- **agent-facing files** in `.sentiph/tentacles/<session-id>/`, which hold notes, architecture, and handoff information
 - **runtime state** under `~/.sentiph/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
 - **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Claude Code terminals
 

@@ -149,7 +149,10 @@ describe("planClaudeBootstrap", () => {
   });
 
   const writeFakeSessionFile = (sessionId: string) => {
-    const projectDirName = workspaceCwd.replace(/\//g, "-");
+    // Mirror Claude CLI's project-directory encoding (path separators and the
+    // Windows drive-letter colon become dashes) so the fake file lands where
+    // the source looks for it on every platform.
+    const projectDirName = workspaceCwd.replace(/[/\\:]/g, "-");
     const projectDir = join(claudeConfigDir, "projects", projectDirName);
     mkdirSync(projectDir, { recursive: true });
     writeFileSync(join(projectDir, `${sessionId}.jsonl`), "{}\n", "utf8");

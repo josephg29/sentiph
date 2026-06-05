@@ -147,8 +147,11 @@ describe("createSessionRuntime", () => {
       }
     });
 
+    // Mirror Claude CLI's project-directory encoding (path separators and the
+    // Windows drive-letter colon become dashes) so the fake session file lands
+    // where the source looks for it on every platform.
     const claudeProjectDirForCwd = (cwd: string) =>
-      join(claudeConfigDir, "projects", cwd.replace(/\//g, "-"));
+      join(claudeConfigDir, "projects", cwd.replace(/[/\\:]/g, "-"));
 
     const writeFakeClaudeSessionFile = (cwd: string, sessionId: string) => {
       const dir = claudeProjectDirForCwd(cwd);

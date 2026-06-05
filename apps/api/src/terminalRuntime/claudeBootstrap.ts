@@ -83,7 +83,12 @@ const claudeProjectsDir = (): string => {
   return join(homedir(), ".claude", "projects");
 };
 
-const encodeClaudeProjectDirectoryName = (cwd: string): string => cwd.replace(/\//g, "-");
+// Claude CLI derives a project directory name from the cwd by replacing path
+// separators with dashes. On POSIX the cwd contains forward slashes; on Windows
+// it contains backslashes and a drive-letter colon (e.g. `C:\Users\me\proj`),
+// which Claude encodes as `C--Users-me-proj`. Replace all three characters so
+// the encoded name matches the real on-disk directory on every platform.
+const encodeClaudeProjectDirectoryName = (cwd: string): string => cwd.replace(/[/\\:]/g, "-");
 
 const claudeSessionFileExists = (cwd: string, sessionId: string): boolean => {
   try {
