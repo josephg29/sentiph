@@ -818,6 +818,179 @@ describe("cli.ts — terminal prune", () => {
 });
 
 // --------------------------------------------------------------------------
+// Tests — channel send / list
+// --------------------------------------------------------------------------
+
+describe("cli.ts — channel send", () => {
+  beforeEach(() => {
+    process.env.SENTIPH_API_ORIGIN = "http://127.0.0.1:8787";
+    process.env.SENTIPH_SESSION_ID = undefined;
+  });
+
+  it("POSTs to /api/channels/:id/messages with content and default sender", async () => {
+    setArgv("channel", "send", "terminal-2", "need review");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ messageId: "m-1" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const [url, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toBe("http://127.0.0.1:8787/api/channels/terminal-2/messages");
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ fromTerminalId: "cli", content: "need review" });
+    expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/Sent message/));
+
+    logSpy.mockRestore();
+  });
+
+  it("uses --from flag as the sender, regardless of position", async () => {
+    setArgv("channel", "send", "terminal-2", "done", "--from", "terminal-1");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ messageId: "m-2" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const [, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ fromTerminalId: "terminal-1", content: "done" });
+  });
+
+  it("falls back to SENTIPH_SESSION_ID when --from is omitted", async () => {
+    setArgv("channel", "send", "terminal-2", "hi");
+    process.env.SENTIPH_SESSION_ID = "terminal-9";
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ messageId: "m-3" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const [, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body.fromTerminalId).toBe("terminal-9");
+  });
+
+  it("exits 1 when terminalId is missing", async () => {
+    setArgv("channel", "send");
+
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+  });
+
+  it("exits 1 and prints server error when response is not ok", async () => {
+    setArgv("channel", "send", "ghost", "hi");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "Target terminal not found." }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+  });
+});
+
+describe("cli.ts — channel list", () => {
+  beforeEach(() => {
+    process.env.SENTIPH_API_ORIGIN = "http://127.0.0.1:8787";
+  });
+
+  it("prints 'No messages.' when channel is empty", async () => {
+    setArgv("channel", "list", "terminal-2");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(logSpy).toHaveBeenCalledWith("No messages.");
+    logSpy.mockRestore();
+  });
+
+  it("prints a row per message with delivery status", async () => {
+    setArgv("channel", "list", "terminal-2");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify([
+          {
+            fromTerminalId: "terminal-1",
+            toTerminalId: "terminal-2",
+            content: "hello",
+            delivered: false,
+          },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const printed = logSpy.mock.calls.some(
+      (call) =>
+        typeof call[0] === "string" && call[0].includes("queued") && call[0].includes("hello"),
+    );
+    expect(printed).toBe(true);
+    logSpy.mockRestore();
+  });
+});
+
+// --------------------------------------------------------------------------
 // Tests — unknown command → usage help
 // --------------------------------------------------------------------------
 

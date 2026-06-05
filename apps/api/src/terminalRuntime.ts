@@ -2,11 +2,13 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
-import type { TerminalSnapshot } from "@sentiph/core";
+import { formatChannelDelivery } from "@sentiph/core";
+import type { ChannelMessage, TerminalSnapshot } from "@sentiph/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
 import { createAgentMetricsCollector } from "./agentMetricsCollector";
+import { createChannelStore } from "./terminalRuntime/channelStore";
 import {
   DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
   SENTIPH_TENTACLE_ID,
@@ -91,6 +93,11 @@ export const createTerminalRuntime = ({
   const sentiphMcpConfigPath = writeSentiphMcpConfig(stateDir);
   const sentiphSystemPromptPath = writeSentiphSystemPrompt(stateDir);
   const sessions = new Map<string, TerminalSession>();
+  const channelStore = createChannelStore();
+  // Last known agent runtime state per terminal, used to deliver queued channel
+  // messages the moment a target becomes idle (and to deliver on send when the
+  // target is already idle).
+  const lastAgentState = new Map<string, string>();
   const websocketServer = new WebSocketServer({ noServer: true });
   const terminalEventsWebsocketServer = new WebSocketServer({ noServer: true });
   const terminalEventClients = new Set<WebSocket>();
@@ -165,12 +172,29 @@ export const createTerminalRuntime = ({
     toolName?: string,
   ) => {
     metricsCollector.onStateChange(terminalId, agentRuntimeState);
+    lastAgentState.set(terminalId, agentRuntimeState);
     broadcastTerminalEvent({
       type: "terminal-state-changed",
       terminalId,
       agentRuntimeState,
       ...(toolName ? { toolName } : {}),
     });
+    if (agentRuntimeState === "idle") {
+      deliverPendingChannelMessages(terminalId);
+    }
+  };
+
+  // Inject any queued channel messages into a target terminal's PTY. Best-effort:
+  // if the session is not currently writable, messages stay pending and are retried
+  // on the next idle transition.
+  const deliverPendingChannelMessages = (terminalId: string) => {
+    for (const message of channelStore.takePending(terminalId)) {
+      const ok = sessionRuntime.writeInput(terminalId, `${formatChannelDelivery(message)}\r`);
+      if (!ok) {
+        return;
+      }
+      channelStore.markDelivered(terminalId, message.messageId);
+    }
   };
 
   const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
@@ -338,6 +362,37 @@ export const createTerminalRuntime = ({
 
     resizeTerminal(terminalId: string, cols: number, rows: number): boolean {
       return sessionRuntime.resizeSession(terminalId, cols, rows);
+    },
+
+    // ---- Channels (in-memory inter-terminal messaging) ----
+
+    /**
+     * Queue a channel message for a target terminal. Returns the stored message,
+     * or null when the target terminal record does not exist. If the target is
+     * already idle, pending messages are delivered immediately.
+     */
+    sendChannelMessage(input: {
+      fromTerminalId: string;
+      toTerminalId: string;
+      content: string;
+    }): ChannelMessage | null {
+      if (!terminals.has(input.toTerminalId)) {
+        return null;
+      }
+      const message = channelStore.enqueue(input);
+      // Deliver immediately when the target is already idle. The session's live
+      // agentState is authoritative (a terminal can be idle without ever having
+      // emitted a state-change event); lastAgentState is only a fallback.
+      const targetState =
+        sessions.get(input.toTerminalId)?.agentState ?? lastAgentState.get(input.toTerminalId);
+      if (targetState === "idle") {
+        deliverPendingChannelMessages(input.toTerminalId);
+      }
+      return message;
+    },
+
+    listChannelMessages(terminalId: string): ChannelMessage[] {
+      return channelStore.list(terminalId);
     },
 
     ...conversationStore,
