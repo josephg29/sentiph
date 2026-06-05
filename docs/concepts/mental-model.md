@@ -10,7 +10,7 @@ Sentiph separates durable job state from live terminal execution.
 flowchart TD
   Human[Developer] --> Deck[Deck and Canvas UI]
   Deck --> API[Local API]
-  API --> Files[".sentiph/sessions/*"]
+  API --> Files[".sentiph/tentacles/*"]
   API --> State["~/.sentiph/projects/<id>/state/*"]
   API --> PTY[PTY-backed agent sessions]
   PTY --> Hooks[Claude hooks]
@@ -49,7 +49,7 @@ A session can be used with:
 
 The session decides *what the job is about*. The worktree decides *where the code changes happen*.
 
-In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.sentiph/worktrees/<worktree-id>/` on branch `sentiph/<worktree-id>` and starts the PTY there. The session files still stay in `.sentiph/sessions/<session-id>/`.
+In shared mode, the PTY starts in the main workspace. In worktree mode, the API creates `.sentiph/worktrees/<worktree-id>/` on branch `sentiph/<worktree-id>` and starts the PTY there. The session files still stay in `.sentiph/tentacles/<session-id>/`.
 
 ## What belongs in files
 

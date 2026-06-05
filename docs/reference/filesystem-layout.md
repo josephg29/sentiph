@@ -9,7 +9,7 @@ Sentiph splits files by ownership. Agent-facing project files stay in the worksp
 Main paths:
 
 - `.sentiph/project.json`
-- `.sentiph/sessions/`
+- `.sentiph/tentacles/`
 - `.sentiph/worktrees/`
 
 `project.json` holds the stable project ID used to find global state. The sessions folder is intended for agent-readable markdown. Worktrees are generated execution checkouts and should not be treated as state storage.
