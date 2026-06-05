@@ -280,7 +280,8 @@ const terminalCreate = async () => {
   const initialPrompt = parseFlag("--initial-prompt") ?? parseFlag("-p");
   const workspaceMode = parseFlag("--workspace-mode") ?? parseFlag("-w") ?? "shared";
   const terminalId = parseFlag("--terminal-id");
-  const tentacleId = parseFlag("--tentacle-id");
+  // `--session-id` is the documented Quickstart alias for `--tentacle-id`.
+  const tentacleId = parseFlag("--tentacle-id") ?? parseFlag("--session-id");
   const nameOrigin = parseFlag("--name-origin");
   const autoRenamePromptContext = parseFlag("--auto-rename-prompt-context");
   const apiBase = resolveRuntimeApiBase();
@@ -393,6 +394,67 @@ const terminalPrune = async () => {
       return;
     }
     console.log(`Pruned ${prunedTerminalIds.length} terminal(s): ${prunedTerminalIds.join(", ")}`);
+  } catch {
+    apiError();
+  }
+};
+
+const tentacleCreate = async () => {
+  const name = args[2];
+  if (!name || name.startsWith("-")) {
+    console.error("Error: tentacle name is required.");
+    process.exit(1);
+  }
+
+  const description = parseFlag("--description") ?? parseFlag("-d") ?? "";
+  const id = parseFlag("--id") ?? parseFlag("--tentacle-id");
+  const apiBase = resolveRuntimeApiBase();
+
+  const body: Record<string, unknown> = { name, description };
+  if (id) body.tentacleId = id;
+
+  try {
+    const response = await fetch(`${apiBase}/api/tentacles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      console.error(`Error: ${data.error ?? "Failed"}`);
+      process.exit(1);
+    }
+    console.log(`Created session "${data.tentacleId}"`);
+  } catch {
+    apiError();
+  }
+};
+
+const tentacleList = async () => {
+  const apiBase = resolveRuntimeApiBase();
+
+  try {
+    const response = await fetch(`${apiBase}/api/tentacles`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      console.error("Error: failed to fetch sessions.");
+      process.exit(1);
+    }
+
+    const tentacles = (await response.json()) as Array<Record<string, unknown>>;
+    if (tentacles.length === 0) {
+      console.log("No sessions found.");
+      return;
+    }
+
+    for (const tentacle of tentacles) {
+      const description =
+        typeof tentacle.description === "string" && tentacle.description.length > 0
+          ? `  ${tentacle.description}`
+          : "";
+      console.log(`  ${tentacle.tentacleId}  ${tentacle.name}${description}`);
+    }
   } catch {
     apiError();
   }
@@ -518,6 +580,15 @@ const main = async () => {
     }
   }
 
+  if (command === "tentacle" || command === "tentacles" || command === "session") {
+    if (args[1] === "create") {
+      return tentacleCreate();
+    }
+    if (args[1] === "list" || args[1] === "ls") {
+      return tentacleList();
+    }
+  }
+
   if (command === "channel" || command === "channels") {
     if (args[1] === "send") {
       return channelSend();
@@ -532,12 +603,17 @@ const main = async () => {
   sentiph init [project-name]         Initialize the current directory explicitly
   sentiph projects                    List registered projects
 
+  sentiph tentacle create <name>      Create a session
+    --description, -d                  Session description
+    --id                               Explicit session/tentacle ID
+  sentiph tentacle list               List sessions
+
   sentiph terminal create [options]   Create a terminal
     --name, -n                         Terminal display name
     --workspace-mode, -w               shared | worktree
     --initial-prompt, -p               Raw initial prompt text
     --terminal-id                      Explicit terminal ID
-    --tentacle-id                      Existing tentacle ID to attach to
+    --tentacle-id, --session-id        Existing session/tentacle ID to attach to
   sentiph terminal list               List terminal lifecycle state
   sentiph terminal stop <id>          Stop a terminal session
   sentiph terminal kill <id>          Kill a terminal session or recorded process

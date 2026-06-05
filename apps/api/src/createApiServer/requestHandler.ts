@@ -44,6 +44,7 @@ import {
   isAuthorizedRequest,
   readHeaderValue,
 } from "./security";
+import { handleTentaclesCollectionRoute } from "./tentacleRoutes";
 import {
   handleTerminalActionRoute,
   handleTerminalInputRoute,
@@ -126,7 +127,10 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleTerminalItemRoute,
     ],
   ],
-  ["tentacles", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
+  [
+    "tentacles",
+    [handleTentaclesCollectionRoute, handleTentacleGitRoute, handleTentacleGitPullRequestRoute],
+  ],
   ["channels", [handleChannelMessagesRoute]],
   ["hooks", [handleHookSessionStartRoute, handleHookUserPromptSubmitRoute]],
   [

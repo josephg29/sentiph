@@ -23,6 +23,7 @@ import {
   pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
+import { createTentacleStore } from "./terminalRuntime/tentacleStore";
 import {
   type CreateTerminalContext,
   type CreateTerminalParams,
@@ -94,6 +95,7 @@ export const createTerminalRuntime = ({
   const sentiphSystemPromptPath = writeSentiphSystemPrompt(stateDir);
   const sessions = new Map<string, TerminalSession>();
   const channelStore = createChannelStore();
+  const tentacleStore = createTentacleStore(join(stateDir, "tentacles"));
   // Last known agent runtime state per terminal, used to deliver queued channel
   // messages the moment a target becomes idle (and to deliver on send when the
   // target is already idle).
@@ -393,6 +395,16 @@ export const createTerminalRuntime = ({
 
     listChannelMessages(terminalId: string): ChannelMessage[] {
       return channelStore.list(terminalId);
+    },
+
+    // ---- Tentacles (sessions) ----
+
+    createTentacle(input: { name: string; description?: string; id?: string }) {
+      return tentacleStore.createTentacle(input);
+    },
+
+    listTentacles() {
+      return tentacleStore.listTentacles();
     },
 
     ...conversationStore,

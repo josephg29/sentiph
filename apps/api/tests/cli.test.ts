@@ -818,6 +818,136 @@ describe("cli.ts — terminal prune", () => {
 });
 
 // --------------------------------------------------------------------------
+// Tests — terminal create --session-id alias
+// --------------------------------------------------------------------------
+
+describe("cli.ts — terminal create --session-id alias", () => {
+  beforeEach(() => {
+    process.env.SENTIPH_API_ORIGIN = "http://127.0.0.1:8787";
+  });
+
+  it("maps --session-id onto the tentacleId body field", async () => {
+    setArgv("terminal", "create", "--session-id", "api-backend");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ terminalId: "t1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const [, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body.tentacleId).toBe("api-backend");
+  });
+});
+
+// --------------------------------------------------------------------------
+// Tests — tentacle create / list
+// --------------------------------------------------------------------------
+
+describe("cli.ts — tentacle create", () => {
+  beforeEach(() => {
+    process.env.SENTIPH_API_ORIGIN = "http://127.0.0.1:8787";
+  });
+
+  it("POSTs to /api/tentacles with name and description", async () => {
+    setArgv("tentacle", "create", "api-backend", "--description", "API runtime");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ tentacleId: "api-backend" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const [url, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toBe("http://127.0.0.1:8787/api/tentacles");
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ name: "api-backend", description: "API runtime" });
+    expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/Created session "api-backend"/));
+
+    logSpy.mockRestore();
+  });
+
+  it("exits 1 when name is missing", async () => {
+    setArgv("tentacle", "create");
+
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+  });
+});
+
+describe("cli.ts — tentacle list", () => {
+  beforeEach(() => {
+    process.env.SENTIPH_API_ORIGIN = "http://127.0.0.1:8787";
+  });
+
+  it("prints 'No sessions found.' when empty", async () => {
+    setArgv("tentacle", "list");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(logSpy).toHaveBeenCalledWith("No sessions found.");
+    logSpy.mockRestore();
+  });
+
+  it("prints a row per session", async () => {
+    setArgv("tentacle", "ls");
+
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify([{ tentacleId: "api", name: "API", description: "the api" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await import("../src/cli");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const printed = logSpy.mock.calls.some(
+      (call) => typeof call[0] === "string" && call[0].includes("api") && call[0].includes("API"),
+    );
+    expect(printed).toBe(true);
+    logSpy.mockRestore();
+  });
+});
+
+// --------------------------------------------------------------------------
 // Tests — channel send / list
 // --------------------------------------------------------------------------
 
