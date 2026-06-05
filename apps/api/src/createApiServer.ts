@@ -15,6 +15,7 @@ import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
 import { readGithubRepoSummaryCached as readGithubRepoSummaryDefault } from "./githubRepoSummary";
 import { createTerminalRuntime } from "./terminalRuntime";
+import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 
 export const createApiServer = ({
   workspaceCwd,
@@ -74,10 +75,10 @@ export const createApiServer = ({
     workspaceCwd: resolvedWorkspaceCwd,
     projectStateDir: resolvedStateDir,
     getApiBaseUrl,
+    // Without an injected client, production callers (the CLI) previously got no
+    // git client at all, which silently disabled worktree-isolated terminals.
+    gitClient: gitClient ?? createDefaultGitClient(),
   };
-  if (gitClient) {
-    runtimeOptions.gitClient = gitClient;
-  }
 
   const runtime = createTerminalRuntime(runtimeOptions);
   const scanUsageHeatmapWithDefault =

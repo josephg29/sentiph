@@ -126,8 +126,8 @@ describe("createApiServer — defaults and wiring", () => {
     expect(server).toBeDefined();
   });
 
-  it("does not set gitClient on runtimeOptions when not provided", () => {
-    // Just verifying no crash when gitClient is omitted
+  it("falls back to a default git client when gitClient is not provided", () => {
+    // A real default git client is wired so worktree terminals work via the CLI.
     const { server } = createApiServer({});
     expect(server).toBeDefined();
   });
